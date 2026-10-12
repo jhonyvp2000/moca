@@ -112,7 +112,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Semana y arqueo
 
 - La semana va de lunes a domingo.
-- Arqueo sugerido: **domingo a la hora de cierre**. Ese día, el aviso de cierre ofrece el arqueo después de la venta. Se puede hacer cualquier día y cubre la semana en curso.
+- Arqueo: **domingo a la hora de cierre** (aprobado por Jhony). Ese día, el aviso de cierre ofrece el arqueo después de la venta. Se puede hacer cualquier día y cubre la semana en curso.
 - Si el lunes a las 8:00 a. m. no hay arqueo de la semana anterior, aparece «Falta el arqueo de esta semana».
 
 ### Avisos
@@ -138,7 +138,9 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Historial y cambios
 
 - «Deshacer» y las ediciones anulan el registro anterior; nada se borra.
-- La bitácora completa (quién cambió qué, con valor anterior y nuevo) se construye en la V1 real, no en el prototipo.
+- La bitácora entra en el prototipo: cada alta, edición, anulación, pago de una compra y arqueo guarda quién, cuándo, el valor anterior y el nuevo, en la capa de datos.
+- Se ve en el detalle de cada movimiento, como una lista «Cambios» (estado no dibujado: se propone antes de construirlo).
+- La bitácora no sale en la exportación de la medición, porque tiene montos.
 
 ### Textos legales (propuesta para revisar)
 

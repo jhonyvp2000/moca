@@ -9,7 +9,7 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - ~~Cómo funciona «Ver una demo» y qué pasa con quien sigue sin crear cuenta~~: ver «Comportamiento acordado» en `prototipo-v1.md` (12-10-2026).
 - ~~Límite de tiempo~~: dos a tres semanas, como dice `prototipo-v1.md` (12-10-2026).
 - Estados no dibujados (teclado, vacíos, errores, confirmaciones, franja de la Demo): Claude Code los propone y Jhony los aprueba.
-- Confirmar el día y la hora del arqueo (propuesta: domingo a la hora de cierre).
+- ~~Día y hora del arqueo~~: domingo a la hora de cierre (12-10-2026).
 - Revisar los textos legales y las categorías provisionales de `prototipo-v1.md`.
 - Fecha y negocios de la prueba con pilotos.
 
