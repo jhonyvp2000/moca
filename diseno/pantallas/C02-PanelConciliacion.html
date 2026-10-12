@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moca · C02 · Conciliación SIRE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;background:#F3F6FB}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</head>
+<body>
+<div style="min-height: 1240px; box-sizing: border-box; display: flex; flex-wrap: wrap; background: #F3F6FB; color: #0F1F3D; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+
+<nav aria-label="Secciones" style="flex: 1 1 220px; box-sizing: border-box; padding: 24px 16px; background: #0F1F3D; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px">
+<div style="padding: 0 12px 20px; display: flex; align-items: center; gap: 10px">
+<svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="#1D4ED8"/><path d="M7 20V9l7 7 7-7v11" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-size: 24px; font-weight: 700">Moca</span>
+</div>
+<a href="C01-PanelContador.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Cartera</a>
+<a href="C03-PanelRevision.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Por revisar<span style="margin-left: auto; padding: 2px 8px; border-radius: 10px; background: #FBEEDD; color: #5C2C04; font-size: 14px; font-weight: 700">23</span></a>
+<a href="C02-PanelConciliacion.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #1D4ED8; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none">Conciliación SIRE</a>
+<a href="C04-PanelDeclaracion.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Declaraciones</a>
+<a href="C05-PanelInforme.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Informes a clientes</a>
+<a href="C06-PanelPendientes.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Pendientes</a>
+<a href="C07-PanelMoca.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Pregúntale a Moca</a>
+<a href="C08-PanelEstudio.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi estudio</a>
+<a href="C09-PanelPerfil.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi perfil y mis clientes</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700">Conciliación SIRE</h1>
+<div style="font-size: 15px; color: #4B5A75">Ferretería El Tornillo S.A.C. · setiembre 2026</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<span style="font-size: 14px; color: #4B5A75">Quedan 21 por resolver</span>
+<button disabled style="min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; background: #E4EAF3; color: #4B5A75; font: inherit; font-size: 14px; font-weight: 700">Cerrar periodo</button>
+</div>
+</div>
+
+<div style="padding: 16px 20px; background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 14px; color: #4B5A75">Archivo cargado el 3 de octubre · 148 comprobantes en SIRE</div>
+<div style="display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px">
+<div style="width: 88.5%; background: #1D4ED8"></div>
+<div style="width: 8.1%; background: #C98A4B"></div>
+<div style="width: 3.4%; background: #7A3A05"></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 15px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #1D4ED8"></span><strong style="font-variant-numeric: tabular-nums">131</strong> unidos con un registro</div>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 15px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #C98A4B"></span><strong style="font-variant-numeric: tabular-nums">12</strong> en SIRE y no en Moca</div>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 15px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #7A3A05"></span><strong style="font-variant-numeric: tabular-nums">5</strong> con monto distinto</div>
+</div>
+</div>
+
+<section style="background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; overflow-x: auto">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">En SIRE y no en Moca · 12</h2>
+<div style="font-size: 14px; color: #4B5A75">El cliente no los registró. Crearlos los suma a su flujo de caja.</div>
+</div>
+<button style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 700">Crear los 12 registros</button>
+</div>
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px">
+<thead><tr style="text-align: left; color: #4B5A75">
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Comprobante</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Contraparte</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Tipo</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">Total</th>
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">Acción</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">F002-01877 · 12 set</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Aceros del Oriente S.A.C.</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Compra</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;4,720.00</td>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; text-align: right"><button style="min-height: 44px; padding: 0 12px; border: 1px solid #B5C2D6; border-radius: 10px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-weight: 600">Pedir foto al cliente</button></td>
+</tr>
+<tr>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">F001-00244 · 18 set</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Hotel Cumbaza E.I.R.L.</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Venta</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;2,100.00</td>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; text-align: right"><button style="min-height: 44px; padding: 0 12px; border: 1px solid #B5C2D6; border-radius: 10px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-weight: 600">Crear registro</button></td>
+</tr>
+<tr>
+<td colspan="5" style="padding: 10px 20px"><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 700">Ver los otros 10</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; overflow-x: auto">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 16px 20px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Con monto distinto · 5</h2>
+<div style="font-size: 14px; color: #4B5A75">El mismo comprobante figura con otro total. Vale el de SIRE salvo que indiques lo contrario.</div>
+</div>
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px">
+<thead><tr style="text-align: left; color: #4B5A75">
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Comprobante</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">En SIRE</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">En Moca</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Origen en Moca</th>
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">Acción</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">F001-00482 · 8 set</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;980.00</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-weight: 700; color: #7A3A05; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;890.00</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Foto, corregida a mano por el dueño</td>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; text-align: right"><button style="min-height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-weight: 700">Usar SIRE</button></td>
+</tr>
+<tr>
+<td colspan="5" style="padding: 10px 20px"><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 700">Ver los otros 4</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; overflow-x: auto">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 16px 20px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">En Moca y no en SIRE · 4</h2>
+<div style="font-size: 14px; color: #4B5A75">Gastos registrados sin comprobante electrónico. Sirven para la caja, no para el crédito fiscal.</div>
+</div>
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px">
+<thead><tr style="text-align: left; color: #4B5A75">
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Registro</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC">Sustento</th>
+<th scope="col" style="padding: 10px 12px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">Total</th>
+<th scope="col" style="padding: 10px 20px; font-weight: 600; border-top: 1px solid #D8E0EC; border-bottom: 1px solid #D8E0EC; text-align: right">Acción</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">Flete a Moyobamba · 21 set</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3">Dicho por voz, sin papel</td>
+<td style="padding: 10px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;350.00</td>
+<td style="padding: 10px 20px; border-bottom: 1px solid #E4EAF3; text-align: right"><button style="min-height: 44px; padding: 0 12px; border: 1px solid #B5C2D6; border-radius: 10px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-weight: 600">Pedir comprobante</button></td>
+</tr>
+<tr>
+<td colspan="4" style="padding: 10px 20px"><a href="#" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 700">Ver los otros 3</a></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+<div style="padding: 24px; border: 2px dashed #8696B0; border-radius: 16px; background: #FFFFFF; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 17px; font-weight: 700">Arrastra aquí los archivos exportados de SIRE</div>
+<div style="font-size: 14px; line-height: 1.45; color: #4B5A75">Puedes soltar varios a la vez, de distintas empresas. Moca reconoce cada una por su RUC. No se pide la clave SOL.</div>
+</div>
+<button style="min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Elegir archivos</button>
+</div>
+
+</main>
+</div>
+</body>
+</html>

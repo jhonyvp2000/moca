@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moca · C07 · Moca para el contador</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;background:#F3F6FB}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</head>
+<body>
+<div style="min-height: 980px; box-sizing: border-box; display: flex; flex-wrap: wrap; background: #F3F6FB; color: #0F1F3D; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+
+<nav aria-label="Secciones" style="flex: 1 1 220px; box-sizing: border-box; padding: 24px 16px; background: #0F1F3D; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px">
+<div style="padding: 0 12px 20px; display: flex; align-items: center; gap: 10px">
+<svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="#1D4ED8"/><path d="M7 20V9l7 7 7-7v11" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-size: 24px; font-weight: 700">Moca</span>
+</div>
+<a href="C01-PanelContador.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Cartera</a>
+<a href="C03-PanelRevision.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Por revisar<span style="margin-left: auto; padding: 2px 8px; border-radius: 10px; background: #FBEEDD; color: #5C2C04; font-size: 14px; font-weight: 700">23</span></a>
+<a href="C02-PanelConciliacion.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Conciliación SIRE</a>
+<a href="C04-PanelDeclaracion.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Declaraciones</a>
+<a href="C05-PanelInforme.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Informes a clientes</a>
+<a href="C06-PanelPendientes.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Pendientes</a>
+<a href="C07-PanelMoca.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #1D4ED8; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none">Pregúntale a Moca</a>
+<a href="C08-PanelEstudio.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi estudio</a>
+<a href="C09-PanelPerfil.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi perfil y mis clientes</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700">Pregúntale a Moca por tu cartera</h1>
+<div style="font-size: 15px; color: #4B5A75">Responde con las cifras ya calculadas de tus clientes y te lleva al detalle.</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+
+<div style="display: flex; align-items: center; gap: 8px">
+<label for="pm-pregunta" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Tu pregunta</label>
+<input id="pm-pregunta" type="text" value="¿Qué le falta a La Patarashca para declarar setiembre?" style="flex-grow: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border: 1px solid #8696B0; border-radius: 14px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 16px">
+<button style="min-height: 52px; padding: 0 20px; border: 0; border-radius: 14px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-size: 15px; font-weight: 700">Preguntar</button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">¿Quiénes bajaron ventas este mes?</button>
+<button style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">¿Quién tiene más riesgo tributario?</button>
+<button style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">¿Cuánto IGV paga cada cliente?</button>
+</div>
+
+<div style="padding: 20px 24px; background: #E3ECFB; border-radius: 16px; display: flex; gap: 14px; align-items: flex-start">
+<svg width="36" height="36" viewBox="0 0 28 28" aria-hidden="true" style="flex-shrink: 0"><rect width="28" height="28" rx="8" fill="#1D4ED8"/><path d="M7 20V9l7 7 7-7v11" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+<div style="font-size: 16px; line-height: 1.5">A La Patarashca le faltan <strong>cuatro cosas</strong>, y la declaración vence en 3 días:</div>
+<div style="font-size: 15px; line-height: 1.5">1. No ha cargado el archivo SIRE de setiembre.</div>
+<div style="font-size: 15px; line-height: 1.5">2. Faltan 4 de las 6 fotos que pediste; la más grande es una compra de S/&nbsp;1,850.</div>
+<div style="font-size: 15px; line-height: 1.5">3. No respondió si el pago al ayudante de cocina tiene recibo.</div>
+<div style="font-size: 15px; line-height: 1.5">4. No hizo el cierre de mes; hay S/&nbsp;210 en caja sin explicar.</div>
+<div style="font-size: 14px; color: #4B5A75">Vio tu recordatorio de ayer, pero no contestó.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 700">Enviarle la lista por WhatsApp</button>
+<a href="C06-PanelPendientes.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; background: #FFFFFF; color: #0F1F3D; font-size: 14px; font-weight: 600; text-decoration: none">Ver sus pendientes</a>
+</div>
+</div>
+</div>
+
+<div style="font-size: 14px; line-height: 1.45; color: #4B5A75">Moca solo ve los clientes de tu cartera. No calcula por su cuenta: lee las cifras que el sistema ya validó.</div>
+</div>
+
+<div style="flex: 1 1 320px; min-width: 0; padding: 20px; background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Oportunidades en tu cartera</h2>
+<div style="font-size: 14px; color: #4B5A75">Trabajo que puedes ofrecer, detectado en sus datos</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #E4EAF3">
+<div style="font-size: 15px; font-weight: 700; line-height: 1.35">2 clientes se acercan al tope de su régimen</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Conviene planear el cambio antes de enero.</div>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700">Ver los 2 clientes</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #E4EAF3">
+<div style="font-size: 15px; font-weight: 700; line-height: 1.35">1 cliente en modo Simple ya guarda 18 facturas al mes</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Bodega Don Lucho podría formalizarse contigo.</div>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700">Proponérselo</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; font-weight: 700; line-height: 1.35">3 clientes compran más de S/&nbsp;1,000 al mes sin factura</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Entre los tres dejan de usar unos S/&nbsp;700 de IGV al mes.</div>
+<a href="#" style="display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700">Ver los 3 clientes</a>
+</div>
+</div>
+</div>
+
+</main>
+</div>
+</body>
+</html>

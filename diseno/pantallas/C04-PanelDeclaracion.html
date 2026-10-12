@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moca · C04 · Borrador de declaración</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;background:#F3F6FB}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</head>
+<body>
+<div style="min-height: 1040px; box-sizing: border-box; display: flex; flex-wrap: wrap; background: #F3F6FB; color: #0F1F3D; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+
+<nav aria-label="Secciones" style="flex: 1 1 220px; box-sizing: border-box; padding: 24px 16px; background: #0F1F3D; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px">
+<div style="padding: 0 12px 20px; display: flex; align-items: center; gap: 10px">
+<svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="#1D4ED8"/><path d="M7 20V9l7 7 7-7v11" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-size: 24px; font-weight: 700">Moca</span>
+</div>
+<a href="C01-PanelContador.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Cartera</a>
+<a href="C03-PanelRevision.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Por revisar<span style="margin-left: auto; padding: 2px 8px; border-radius: 10px; background: #FBEEDD; color: #5C2C04; font-size: 14px; font-weight: 700">23</span></a>
+<a href="C02-PanelConciliacion.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Conciliación SIRE</a>
+<a href="C04-PanelDeclaracion.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #1D4ED8; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none">Declaraciones</a>
+<a href="C05-PanelInforme.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Informes a clientes</a>
+<a href="C06-PanelPendientes.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Pendientes</a>
+<a href="C07-PanelMoca.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Pregúntale a Moca</a>
+<a href="C08-PanelEstudio.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi estudio</a>
+<a href="C09-PanelPerfil.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #D3DCEC; font-size: 15px; font-weight: 500; text-decoration: none">Mi perfil y mis clientes</a>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 700">Borrador de declaración</h1>
+<div style="font-size: 15px; color: #4B5A75">Ferretería El Tornillo S.A.C. · setiembre 2026 · vence en 5 días</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button style="min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Exportar hoja de trabajo</button>
+<button style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #1D4ED8; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 700">Marcar como revisado</button>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<section style="background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; overflow-x: auto">
+<table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 15px">
+<thead><tr style="text-align: left; color: #4B5A75; font-size: 14px">
+<th scope="col" style="padding: 14px 20px; font-weight: 600; border-bottom: 1px solid #D8E0EC">Concepto</th>
+<th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #D8E0EC; text-align: right">Base</th>
+<th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #D8E0EC; text-align: right">Impuesto</th>
+<th scope="col" style="padding: 14px 20px; font-weight: 600; border-bottom: 1px solid #D8E0EC">Origen</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">Ventas gravadas</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;35,000.00</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;6,300.00</td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; color: #4B5A75">SIRE · 62 comprobantes</td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">Compras con crédito fiscal</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;21,000.00</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">− S/&nbsp;3,780.00</td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; color: #4B5A75">SIRE · 86 comprobantes</td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 700">IGV por pagar</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3"></td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;2,520.00</td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; color: #4B5A75">Calculado</td>
+</tr>
+<tr>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; font-weight: 600">Pago a cuenta de renta</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;35,000.00</td>
+<td style="padding: 14px 12px; border-bottom: 1px solid #E4EAF3; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;350.00</td>
+<td style="padding: 14px 20px; border-bottom: 1px solid #E4EAF3; color: #4B5A75">[Tasa según régimen]</td>
+</tr>
+<tr>
+<td style="padding: 16px 20px; font-size: 17px; font-weight: 700">Total estimado</td>
+<td style="padding: 16px 12px"></td>
+<td style="padding: 16px 12px; text-align: right; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;2,870.00</td>
+<td style="padding: 16px 20px; color: #1E3A8A; font-weight: 600">El cliente tiene S/&nbsp;18,640</td>
+</tr>
+</tbody>
+</table>
+</section>
+
+<div style="padding: 16px 20px; background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 15px; font-weight: 700">Qué tan listo está este borrador</div>
+<div style="height: 12px; border-radius: 6px; background: #E4EAF3"><div style="width: 86%; height: 12px; border-radius: 6px; background: #1D4ED8"></div></div>
+<div style="font-size: 14px; color: #4B5A75">131 de 148 comprobantes conciliados · 5 con monto distinto · 12 sin registro</div>
+</div>
+<a href="C02-PanelConciliacion.html" style="display: flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; color: #0F1F3D; font-size: 14px; font-weight: 600; text-decoration: none">Terminar la conciliación</a>
+</div>
+
+<div style="font-size: 14px; line-height: 1.5; color: #4B5A75">Moca prepara las cifras; la declaración la revisas y la presentas tú en SUNAT. Las tasas y casillas dependen del régimen de cada cliente.</div>
+</div>
+
+<div style="flex: 1 1 320px; min-width: 0; padding: 20px; background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Riesgo tributario</h2>
+<div style="font-size: 14px; color: #4B5A75">Lo que conviene revisar antes de declarar</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #E4EAF3">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #7A3A05"><span style="width: 10px; height: 10px; background: #9A4A06; transform: rotate(45deg)"></span>Alto</div>
+<div style="font-size: 15px; font-weight: 600; line-height: 1.35">Pago en efectivo de S/&nbsp;4,720 a Aceros del Oriente</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Sin medio de pago bancario. Están en juego el gasto y S/&nbsp;720 de crédito fiscal.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #E4EAF3">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #7A3A05"><span style="width: 10px; height: 10px; background: #9A4A06; transform: rotate(45deg)"></span>Alto</div>
+<div style="font-size: 15px; font-weight: 600; line-height: 1.35">Proveedor no habido: Transportes Mayo</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Factura del 21 de setiembre por S/&nbsp;350.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #E4EAF3">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #4B5A75"><span style="width: 10px; height: 10px; border-radius: 2px; background: #4B5A75"></span>Medio</div>
+<div style="font-size: 15px; font-weight: 600; line-height: 1.35">S/&nbsp;1,200 de compras sin factura</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">No afectan esta declaración, pero el cliente pierde crédito cada mes.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #1E3A8A"><span style="width: 10px; height: 10px; border-radius: 5px; background: #1D4ED8"></span>Sin observación</div>
+<div style="font-size: 15px; font-weight: 600; line-height: 1.35">Relación entre ventas y compras</div>
+<div style="font-size: 14px; line-height: 1.4; color: #4B5A75">Dentro de lo habitual para este cliente.</div>
+</div>
+<button style="min-height: 44px; padding: 0 16px; border: 1px solid #B5C2D6; border-radius: 12px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Avisar al cliente de los 2 riesgos altos</button>
+</div>
+</div>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moca · D06 · Archivo de comprobantes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0;background:#F3F6FB}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F6FB; color: #0F1F3D; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+
+<div style="display: flex; align-items: center; gap: 8px; padding: 20px 20px 12px">
+<a href="D01-Pulso.html" aria-label="Volver" style="width: 44px; height: 44px; border: 1px solid #D8E0EC; border-radius: 12px; background: #FFFFFF; color: #0F1F3D; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+</a>
+<div style="font-size: 17px; font-weight: 700">Tu archivo</div>
+</div>
+
+<div style="padding: 4px 20px 0; display: flex; flex-direction: column; gap: 12px; flex-grow: 1">
+
+<div style="font-size: 15px; line-height: 1.45; color: #4B5A75">214 comprobantes guardados desde abril. Están aquí aunque pierdas el papel o cambies de teléfono.</div>
+
+<div style="display: flex; align-items: center; gap: 8px">
+<label for="arch-buscar" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Buscar en tu archivo</label>
+<input id="arch-buscar" type="text" value="congeladora" style="flex-grow: 1; min-width: 0; height: 52px; box-sizing: border-box; padding: 0 14px; border: 1px solid #8696B0; border-radius: 14px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 16px">
+<button aria-label="Buscar con voz" style="width: 52px; height: 52px; border: 0; border-radius: 14px; background: #1D4ED8; color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+</button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button aria-pressed="true" style="min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: #0F1F3D; color: #FFFFFF; font: inherit; font-size: 14px; font-weight: 700">Todo</button>
+<button aria-pressed="false" style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Facturas</button>
+<button aria-pressed="false" style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Garantías</button>
+<button aria-pressed="false" style="min-height: 44px; padding: 0 14px; border: 1px solid #B5C2D6; border-radius: 22px; background: #FFFFFF; color: #0F1F3D; font: inherit; font-size: 14px; font-weight: 600">Recibos</button>
+</div>
+
+<div style="padding: 14px; background: #FFFFFF; border: 2px solid #1D4ED8; border-radius: 16px; display: flex; gap: 14px">
+<div style="width: 64px; height: 84px; border: 1px dashed #8696B0; border-radius: 8px; background: #F3F6FB; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #4B5A75; flex-shrink: 0">Foto</div>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<div style="font-size: 16px; font-weight: 700">Congeladora</div>
+<div style="font-size: 14px; color: #4B5A75">Comercial Selva · 9 oct 2026 · S/&nbsp;2,400</div>
+<div style="font-size: 14px; font-weight: 700; color: #1E3A8A">Garantía hasta octubre de 2027</div>
+<button style="align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: #1D4ED8; font: inherit; font-size: 15px; font-weight: 700">Avisarme antes de que venza</button>
+</div>
+</div>
+
+<div style="font-size: 14px; font-weight: 700; color: #4B5A75">Últimos guardados</div>
+<div style="background: #FFFFFF; border: 1px solid #D8E0EC; border-radius: 16px; display: flex; flex-direction: column">
+<button style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; border: 0; border-bottom: 1px solid #E4EAF3; background: none; color: #0F1F3D; font: inherit; text-align: left">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Factura · Distribuidora San Martín</span><span style="font-size: 14px; color: #4B5A75">8 oct · 12 productos</span></span>
+<span style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;980</span>
+</button>
+<button style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; border: 0; border-bottom: 1px solid #E4EAF3; background: none; color: #0F1F3D; font: inherit; text-align: left">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Recibo de luz</span><span style="font-size: 14px; color: #4B5A75">8 oct · setiembre</span></span>
+<span style="font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">S/&nbsp;142</span>
+</button>
+<button style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; border: 0; background: none; color: #0F1F3D; font: inherit; text-align: left">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Contrato de alquiler</span><span style="font-size: 14px; color: #4B5A75">Guardado en abril · vence en marzo de 2027</span></span>
+</button>
+</div>
+</div>
+
+<div style="padding: 16px 20px 24px"></div>
+
+</div>
+</body>
+</html>

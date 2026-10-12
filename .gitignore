@@ -1,0 +1,16 @@
+# Muestras reales de la Fase 0 (datos personales)
+fase0/muestras/
+
+# Secretos
+.env
+*.keystore
+key.properties
+
+# Dependencias y compilados
+node_modules/
+build/
+.dart_tool/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
