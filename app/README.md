@@ -80,3 +80,25 @@ dart format lib test
 flutter analyze
 flutter test
 ```
+
+Si cambian las tablas de `lib/datos/local/tablas.dart`, hay que regenerar `base_local.g.dart` (se sube al repositorio) y luego formatear:
+
+```
+dart run build_runner build
+dart format lib test
+```
+
+## Cómo está organizado `lib/`
+
+| Carpeta | Contenido |
+|---|---|
+| `tema/` | Colores, tipografía y medidas de `diseno/estilo.md`. Las pantallas no usan colores ni tamaños sueltos |
+| `textos/` | Todos los textos de la app, en un solo archivo |
+| `comun/` | Piezas compartidas: tarjetas, isotipo, íconos, barra inferior |
+| `dominio/` | Tipos del modelo de datos e interfaces. No depende de Flutter |
+| `datos/` | Base local (drift) y las implementaciones de las interfaces |
+| `pantallas/` | Una carpeta por pantalla |
+| `operador/` | Ajuste oculto de la prueba |
+| `inyeccion.dart` | El único lugar que elige qué implementación usa cada interfaz |
+
+Una prueba automática (`test/arquitectura_test.dart`) falla si una pantalla importa algo de `datos/`.

@@ -1,0 +1,8 @@
+/// Lo que necesita el ajuste oculto del operador de la prueba.
+abstract interface class RepositorioOperador {
+  /// Cuántos registros hay guardados en el teléfono, sumando todas las tablas.
+  Future<int> contarRegistros();
+
+  /// Borra todos los datos del teléfono y deja la app como recién instalada.
+  Future<void> borrarTodo();
+}
