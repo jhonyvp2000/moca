@@ -2,8 +2,10 @@
 #
 # - Cada push que toca app/ revisa el código, corre las pruebas y deja el APK
 #   como archivo descargable de la ejecución (pestaña Actions).
-# - Una etiqueta entrega-N (por ejemplo entrega-0) además publica el APK en
-#   Releases, con un enlace fijo para descargarlo desde el teléfono.
+# - Una entrega se publica en Releases, con un enlace fijo para descargar el APK
+#   desde el teléfono, de dos formas: subiendo una etiqueta entrega-N, o lanzando
+#   este flujo a mano (Run workflow) con el nombre de la entrega; en ese caso
+#   GitHub crea la etiqueta sobre el commit armado.
 #
 # Firma: si existen los secretos MOCA_KEYSTORE_BASE64, MOCA_KEYSTORE_PASSWORD,
 # MOCA_KEY_ALIAS y MOCA_KEY_PASSWORD, el APK se firma con la llave de Moca.
@@ -24,6 +26,11 @@ on:
     tags:
       - "entrega-*"
   workflow_dispatch:
+    inputs:
+      entrega:
+        description: "Nombre de la entrega a publicar (por ejemplo entrega-1). Vacío: solo arma el APK."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -36,6 +43,8 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      ENTREGA: ${{ startsWith(github.ref, 'refs/tags/entrega-') && github.ref_name || inputs.entrega }}
     defaults:
       run:
         working-directory: app
@@ -73,7 +82,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.MOCA_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            if [[ "$GITHUB_REF" == refs/tags/entrega-* ]]; then
+            if [ -n "$ENTREGA" ]; then
               echo "::error::Una entrega no se publica sin la llave de Moca. Revisa los secretos MOCA_*."
               exit 1
             fi
@@ -110,7 +119,7 @@ jobs:
 
       - name: Nombre del archivo
         run: |
-          nombre="moca-${GITHUB_REF_NAME//\//-}-${{ github.run_number }}"
+          nombre="moca-${ENTREGA:-${GITHUB_REF_NAME//\//-}}-${{ github.run_number }}"
           if [ "$FIRMA" = "depuracion" ]; then nombre="$nombre-depuracion"; fi
           cp build/app/outputs/flutter-apk/app-release.apk "$nombre.apk"
           echo "APK=app/$nombre.apk" >> "$GITHUB_ENV"
@@ -123,12 +132,17 @@ jobs:
           retention-days: 30
 
       - name: Publicar en Releases
-        if: startsWith(github.ref, 'refs/tags/entrega-')
+        if: env.ENTREGA != ''
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$APK" \
-            --title "Moca · $GITHUB_REF_NAME" \
-            --notes "APK de la $GITHUB_REF_NAME del prototipo V1. Firma: $FIRMA." \
+          if [[ ! "$ENTREGA" =~ ^entrega-[0-9]+$ ]]; then
+            echo "::error::El nombre de la entrega debe ser entrega-N (por ejemplo entrega-1)."
+            exit 1
+          fi
+          gh release create "$ENTREGA" "$APK" \
+            --target "$GITHUB_SHA" \
+            --title "Moca · $ENTREGA" \
+            --notes "APK de la $ENTREGA del prototipo V1. Firma: $FIRMA." \
             --prerelease
