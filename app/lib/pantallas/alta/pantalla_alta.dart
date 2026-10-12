@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
+import '../../comun/opciones.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/primer_dia.dart';
 import '../../inyeccion.dart';
@@ -132,17 +133,10 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
         const SizedBox(height: 18),
         const Text(Textos.queTipoDeNegocio, style: etiqueta),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final MapEntry(key: tipo, value: nombre) in _tipos.entries)
-              _BotonTipo(
-                texto: nombre,
-                elegido: _tipo == tipo,
-                alTocar: () => setState(() => _tipo = tipo),
-              ),
-          ],
+        Opciones<TipoNegocio>(
+          opciones: _tipos,
+          elegida: _tipo,
+          alElegir: (tipo) => setState(() => _tipo = tipo),
         ),
         const SizedBox(height: 18),
         const Text(Textos.cuantaPlataTienes, style: etiqueta),
@@ -235,60 +229,4 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
         borderRadius: BorderRadius.circular(Medidas.radioBoton),
         borderSide: BorderSide(color: color, width: grosor),
       );
-}
-
-class _BotonTipo extends StatelessWidget {
-  const _BotonTipo({
-    required this.texto,
-    required this.elegido,
-    required this.alTocar,
-  });
-
-  final String texto;
-  final bool elegido;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(22),
-      side: elegido
-          ? const BorderSide(color: Colores.marca, width: 2)
-          : const BorderSide(color: Colores.bordeBotonSecundario),
-    );
-    return Semantics(
-      selected: elegido,
-      button: true,
-      child: Material(
-        color: elegido ? Colores.tinteAzul : Colores.superficie,
-        shape: forma,
-        child: InkWell(
-          customBorder: forma,
-          onTap: alTocar,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: Medidas.objetivoTactilMinimo,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    fontFamily: Tipografia.familia,
-                    fontSize: 14,
-                    fontWeight: elegido ? FontWeight.w700 : FontWeight.w600,
-                    color: elegido
-                        ? Colores.azulOscuro
-                        : Colores.textoPrincipal,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

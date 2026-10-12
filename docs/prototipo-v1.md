@@ -80,7 +80,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 - Las tres cuentas (efectivo, Yape, banco) existen desde la primera venta, con saldo inicial pendiente. La primera venta va a la cuenta que dijo el dueño; si no la dijo, Moca pregunta con las tres opciones.
 - El saldo inicial que se declara en S02 es el de **antes** de esa venta, con fecha de hoy. Bajo la pregunta se agrega: «Sin contar la venta que acabas de anotar».
 - S03 muestra «Tienes hoy» = saldo declarado + venta anotada, con la nota «Es lo que tenías al empezar más tu venta de hoy». En los primeros pasos, «Decir cuánta plata tienes» queda hecho si se declaró y «Anotar la venta 5 días» dice «llevas 1». Si la venta de hoy ya está anotada, la tarjeta de Moca dice «Ya anotaste la venta de hoy. Te recuerdo la siguiente a tu hora de cierre» y el botón pasa a ser «Anotar un gasto».
-- El Inicio es S03 durante la primera semana, hasta el primer arqueo; después es S04.
+- El Inicio es S03 durante la primera semana, hasta el primer arqueo; después es S04. En la práctica: S04 aparece a los 7 días de la primera venta o con el primer arqueo, lo que ocurra antes.
 - Si se deja el saldo para después, se toma como cero y el paso 1 queda pendiente.
 
 ### Enlaces sin servidor (S00, S01)
@@ -112,6 +112,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Semana y arqueo
 
 - La semana va de lunes a domingo.
+- «Esta semana te quedó» es lo que entró menos lo que salió, sin contar los retiros para el dueño, y se compara con la semana pasada hasta el mismo día de la semana.
 - Arqueo: **domingo a la hora de cierre** (aprobado por Jhony). Ese día, el aviso de cierre ofrece el arqueo después de la venta. Se puede hacer cualquier día y cubre la semana en curso.
 - Si el lunes a las 8:00 a. m. no hay arqueo de la semana anterior, aparece «Falta el arqueo de esta semana».
 - Con una respuesta rápida que genera movimiento («La retiré para mí», «Un gasto que olvidé»), se anota ese movimiento. Con «Di mal un vuelto» o «No lo sé», el saldo pasa a ser el contado y la diferencia no cuenta como gasto ni como ingreso del mes; queda registrada en el arqueo y, con «No lo sé», genera el aviso.

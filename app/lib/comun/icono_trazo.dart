@@ -11,7 +11,14 @@ enum Icono {
   borrar,
   check,
   entro,
-  microfono;
+  salio,
+  microfono,
+  cerrar,
+  camara,
+  qr,
+  lapiz,
+  ojo,
+  ojoTachado;
 
   void _trazar(Path p) {
     switch (this) {
@@ -71,6 +78,60 @@ enum Icono {
           ..moveTo(6, 11)
           ..lineTo(12, 5)
           ..lineTo(18, 11);
+      case Icono.salio:
+        p
+          ..moveTo(12, 5)
+          ..lineTo(12, 19)
+          ..moveTo(6, 13)
+          ..lineTo(12, 19)
+          ..lineTo(18, 13);
+      case Icono.cerrar:
+        p
+          ..moveTo(6, 6)
+          ..lineTo(18, 18)
+          ..moveTo(18, 6)
+          ..lineTo(6, 18);
+      case Icono.camara:
+        p
+          ..moveTo(4, 8)
+          ..lineTo(7, 8)
+          ..lineTo(9, 5)
+          ..lineTo(15, 5)
+          ..lineTo(17, 8)
+          ..lineTo(20, 8)
+          ..lineTo(20, 19)
+          ..lineTo(4, 19)
+          ..close()
+          ..addOval(Rect.fromCircle(center: const Offset(12, 13), radius: 3.5));
+      case Icono.qr:
+        p
+          ..addRRect(RRect.fromLTRBR(4, 4, 10, 10, const Radius.circular(1)))
+          ..addRRect(RRect.fromLTRBR(14, 4, 20, 10, const Radius.circular(1)))
+          ..addRRect(RRect.fromLTRBR(4, 14, 10, 20, const Radius.circular(1)))
+          ..moveTo(14, 14)
+          ..lineTo(16, 14)
+          ..lineTo(16, 16)
+          ..moveTo(20, 14)
+          ..lineTo(20, 20)
+          ..lineTo(14, 20);
+      case Icono.lapiz:
+        p
+          ..moveTo(4, 20)
+          ..lineTo(8, 20)
+          ..lineTo(19, 9)
+          ..lineTo(15, 5)
+          ..lineTo(4, 16)
+          ..close()
+          ..moveTo(13, 7)
+          ..lineTo(17, 11);
+      case Icono.ojo:
+        _trazarOjo(p);
+        p.addOval(Rect.fromCircle(center: const Offset(12, 12), radius: 3));
+      case Icono.ojoTachado:
+        _trazarOjo(p);
+        p
+          ..moveTo(4, 4)
+          ..lineTo(20, 20);
       case Icono.microfono:
         p
           ..addRRect(RRect.fromLTRBR(9, 3, 15, 14, const Radius.circular(3)))
@@ -101,6 +162,14 @@ enum Icono {
     }
   }
 }
+
+void _trazarOjo(Path p) => p
+  ..moveTo(2, 12)
+  ..quadraticBezierTo(5.5, 5, 12, 5)
+  ..quadraticBezierTo(18.5, 5, 22, 12)
+  ..quadraticBezierTo(18.5, 19, 12, 19)
+  ..quadraticBezierTo(5.5, 19, 2, 12)
+  ..close();
 
 class IconoTrazo extends StatelessWidget {
   const IconoTrazo(

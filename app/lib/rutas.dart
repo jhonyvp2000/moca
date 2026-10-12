@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'comun/barra_inferior.dart';
+import 'dominio/modelos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
 import 'pantallas/alta/pantalla_alta.dart';
@@ -12,7 +13,8 @@ import 'pantallas/historial/pantalla_historial.dart';
 import 'pantallas/informe/pantalla_informe.dart';
 import 'pantallas/inicio/pantalla_inicio.dart';
 import 'pantallas/moca/pantalla_moca.dart';
-import 'pantallas/registrar/hoja_registrar.dart';
+import 'pantallas/registrar/pantalla_escribir.dart';
+import 'pantallas/registrar/pantalla_registrar.dart';
 import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
 import 'tema/colores.dart';
 
@@ -27,6 +29,9 @@ abstract final class Rutas {
   static const historial = '/historial';
   static const informes = '/informes';
   static const moca = '/moca';
+  static const registrar = '/registrar';
+  static const escribir = '/registrar/escribir';
+  static const ventaDelDia = '/venta-del-dia';
   static const operador = '/operador';
 }
 
@@ -43,6 +48,9 @@ const _rutasPorEtapa = {
     Rutas.historial,
     Rutas.informes,
     Rutas.moca,
+    Rutas.registrar,
+    Rutas.escribir,
+    Rutas.ventaDelDia,
   ],
 };
 
@@ -100,6 +108,28 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
       ],
     ),
     GoRoute(
+      path: Rutas.registrar,
+      builder: (context, estado) => const PantallaRegistrar(),
+      routes: [
+        GoRoute(
+          path: 'escribir',
+          builder: (context, estado) {
+            final tipo = estado.uri.queryParameters['tipo'];
+            return PantallaEscribir(
+              tipoInicial: tipo == null
+                  ? null
+                  : TipoMovimiento.values.asNameMap()[tipo],
+            );
+          },
+        ),
+      ],
+    ),
+    GoRoute(
+      path: Rutas.ventaDelDia,
+      builder: (context, estado) =>
+          const PantallaVentaDeHoy(primeraVenta: false),
+    ),
+    GoRoute(
       path: Rutas.operador,
       builder: (context, estado) => const PantallaOperador(),
     ),
@@ -125,7 +155,7 @@ class _ConBarraInferior extends StatelessWidget {
           indice,
           initialLocation: indice == ramas.currentIndex,
         ),
-        alRegistrar: () => mostrarHojaRegistrar(context),
+        alRegistrar: () => context.push(Rutas.registrar),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/app.dart';
 import 'package:moca/comun/barra_inferior.dart';
+import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/modelos.dart';
@@ -258,12 +259,99 @@ void main() {
       expect(find.text(Textos.subtituloMoca), findsOneWidget);
     });
 
-    testWidgets('El botón central abre la hoja de Registrar', (tester) async {
+    testWidgets('El botón central abre Registrar; voz, foto y QR dicen en qué '
+        'entrega llegan', (tester) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      expect(find.text(Textos.registrarLlegaEnEntrega(3)), findsOneWidget);
-      await tocar(tester, find.text(Textos.entendido));
-      expect(find.text(Textos.registrarLlegaEnEntrega(3)), findsNothing);
+      expect(find.text(Textos.diloOMuestralo), findsOneWidget);
+      expect(find.text(Textos.llegaEnLaEntrega(4)), findsOneWidget);
+      expect(find.text(Textos.llegaEnLaEntrega(5)), findsNWidgets(2));
+      // Las entradas que todavía no funcionan no hacen nada.
+      await tocar(tester, find.text(Textos.decirloConVoz));
+      expect(find.text(Textos.diloOMuestralo), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    Future<void> abrirEscribir(WidgetTester tester) async {
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+    }
+
+    FilledButton botonGuardar(WidgetTester tester) =>
+        tester.widget(find.widgetWithText(FilledButton, Textos.guardar));
+
+    testWidgets('«Escribirlo» guarda un gasto, avisa cuánto tienes y se '
+        'puede deshacer', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      // Un gasto necesita categoría.
+      expect(botonGuardar(tester).onPressed, isNull);
+      await tocar(tester, find.text('Otros'));
+      expect(botonGuardar(tester).onPressed, isNotNull);
+      await tester.enterText(find.byType(TextField).last, 'bolsas');
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      expect(find.text(Textos.guardadoAhoraTienes('S/ 1,270')), findsOneWidget);
+      expect(find.text('S/ 1,270'), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.deshacer));
+      expect(find.text(Textos.seDeshizo), findsOneWidget);
+      expect(find.text('S/ 1,350'), findsOneWidget);
+      final anulados = await tester.runAsync(
+        () => (base.select(
+          base.movimientos,
+        )..where((m) => m.estado.equalsValue(EstadoRegistro.anulado))).get(),
+      );
+      expect(anulados, hasLength(1));
+    });
+
+    testWidgets('Moca pregunta antes de dejar una cuenta en negativo', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tocar(tester, find.text(Textos.yape));
+      await tocar(tester, find.text('Otros'));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      expect(
+        find.text(Textos.quedariaNegativo(Textos.yape, '−S/ 80')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.revisar));
+      expect(find.text(Textos.queFue), findsOneWidget);
+
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tocar(tester, find.text(Textos.guardarIgual));
+      expect(find.text(Textos.guardadoAhoraTienes('S/ 1,270')), findsOneWidget);
+    });
+
+    testWidgets('El retiro para mí no pide categoría', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.retiroParaMi));
+      expect(find.text(Textos.retiroDetalle), findsOneWidget);
+      expect(find.text(Textos.enQue), findsNothing);
+      await tester.enterText(find.byType(TextField).first, '100');
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(find.text(Textos.guardadoAhoraTienes('S/ 1,250')), findsOneWidget);
+    });
+
+    testWidgets('«Anotar un gasto» del Primer día abre «Salió» elegido', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.anotarUnGasto));
+      expect(find.text(Textos.enQue), findsOneWidget);
+      expect(find.text('Mercadería'), findsOneWidget);
     });
 
     Future<void> abrirAjusteOculto(WidgetTester tester) async {
@@ -319,6 +407,36 @@ void main() {
       expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
     });
 
+    testWidgets('Después de la primera semana se ve el Inicio completo; la '
+        'venta de hoy se suma', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      expect(find.text(Textos.primeraSemanaSaltada), findsOneWidget);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+
+      expect(find.text(Textos.tuPrimerDia), findsNothing);
+      // Toda la plata está en efectivo: el total y Efectivo coinciden.
+      expect(find.text('S/\u00A01,350'), findsNWidgets(2));
+      expect(find.text(Textos.efectivo), findsOneWidget);
+      expect(find.text(Textos.entroSalio('S/ 350', 'S/ 0')), findsOneWidget);
+      expect(find.text(Textos.mocaYaAnotasteHoy), findsOneWidget);
+
+      // El ojo oculta los montos.
+      await tocar(tester, find.byTooltip(Textos.ocultarMontos));
+      expect(find.text('S/ 1,350'), findsNothing);
+      expect(find.text(Textos.montoOculto), findsWidgets);
+      await tocar(tester, find.byTooltip(Textos.mostrarMontos));
+
+      await tocar(tester, find.text(Textos.anotarVentaDeHoy));
+      expect(find.text(Textos.hoyYaAnotaste('S/ 350')), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(1), '120');
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(find.text(Textos.guardadoAhoraTienes('S/ 1,470')), findsOneWidget);
+      expect(find.text('S/ 1,470'), findsOneWidget);
+    });
+
     testWidgets('Con la letra del sistema al 150 % nada se desborda', (
       tester,
     ) async {
@@ -334,6 +452,19 @@ void main() {
         await tocar(tester, find.text(pestana).last);
         expect(tester.takeException(), isNull, reason: pestana);
       }
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(tester.takeException(), isNull, reason: 'S06');
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      expect(tester.takeException(), isNull, reason: 'Escribirlo');
+      await tocar(tester, find.byType(BotonVolver));
+
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: 'S04');
     });
   });
 

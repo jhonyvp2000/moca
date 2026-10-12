@@ -1,21 +1,19 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../dominio/modelos.dart';
 import '../../dominio/primer_dia.dart';
 import '../../pais/peru/categorias.dart';
 import '../calculos/saldos.dart';
 import '../local/base_local.dart';
+import 'acceso_local.dart';
 
 class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
-  RepositorioPrimerDiaLocal(this._base, {DateTime Function()? ahora})
-    : _ahora = ahora ?? DateTime.now;
+  RepositorioPrimerDiaLocal(BaseLocal base, {DateTime Function()? ahora})
+    : _a = AccesoLocal(base, ahora ?? DateTime.now);
 
-  final BaseLocal _base;
-  final DateTime Function() _ahora;
-  static const _uuid = Uuid();
+  final AccesoLocal _a;
+  BaseLocal get _base => _a.base;
+  DateTime _ahora() => _a.ahora();
 
   static const _claveEtapa = 'etapa';
   static const _claveSinCuentaDesde = 'sin_cuenta_desde';
@@ -25,8 +23,6 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
     TipoCuenta.yape: 'Yape',
     TipoCuenta.banco: 'Banco',
   };
-
-  String _nuevoId() => _uuid.v4();
 
   // --- Etapa ---------------------------------------------------------------
 
@@ -43,46 +39,8 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
 
   Future<EtapaInicio> _etapaActual() => observarEtapa().first;
 
-  Future<void> _guardarAjuste(String clave, String valor) => _base
-      .into(_base.ajustes)
-      .insertOnConflictUpdate(
-        AjustesCompanion.insert(clave: clave, valor: valor),
-      );
-
   Future<void> _pasarA(EtapaInicio etapa) =>
-      _guardarAjuste(_claveEtapa, etapa.name);
-
-  // --- Lecturas de apoyo -----------------------------------------------------
-
-  Future<Empresa?> _empresa() =>
-      (_base.select(_base.empresas)..limit(1)).getSingleOrNull();
-
-  Future<Usuario> _usuario() =>
-      (_base.select(_base.usuarios)..limit(1)).getSingle();
-
-  Future<void> _anotarEnBitacora({
-    required String empresaId,
-    required String autorId,
-    required String entidad,
-    required String entidadId,
-    required AccionBitacora accion,
-    Map<String, Object?>? anterior,
-    Map<String, Object?>? nuevo,
-  }) => _base
-      .into(_base.bitacora)
-      .insert(
-        BitacoraCompanion.insert(
-          id: _nuevoId(),
-          empresaId: empresaId,
-          autorId: autorId,
-          entidad: entidad,
-          entidadId: entidadId,
-          accion: accion,
-          valorAnterior: Value(anterior == null ? null : jsonEncode(anterior)),
-          valorNuevo: Value(nuevo == null ? null : jsonEncode(nuevo)),
-          fecha: _ahora(),
-        ),
-      );
+      _a.guardarAjuste(_claveEtapa, etapa.name);
 
   Future<void> _agregarCategorias(
     String empresaId,
@@ -99,7 +57,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           .into(_base.categorias)
           .insert(
             CategoriasCompanion.insert(
-              id: _nuevoId(),
+              id: _a.nuevoId(),
               empresaId: empresaId,
               nombre: nombre,
               tipoMovimiento: tipo,
@@ -121,8 +79,8 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       if (await _etapaActual() != EtapaInicio.bienvenida) return;
 
       final ahora = _ahora();
-      final usuarioId = _nuevoId();
-      final empresaId = _nuevoId();
+      final usuarioId = _a.nuevoId();
+      final empresaId = _a.nuevoId();
 
       await _base
           .into(_base.usuarios)
@@ -146,7 +104,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           .into(_base.membresias)
           .insert(
             MembresiasCompanion.insert(
-              id: _nuevoId(),
+              id: _a.nuevoId(),
               usuarioId: usuarioId,
               empresaId: empresaId,
               rol: Rol.dueno,
@@ -157,7 +115,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       // inicial pendiente (decisiones.md, 12-10-2026).
       final cuentaIds = <TipoCuenta, String>{};
       for (final (orden, tipo) in TipoCuenta.values.indexed) {
-        final id = _nuevoId();
+        final id = _a.nuevoId();
         cuentaIds[tipo] = id;
         await _base
             .into(_base.cuentas)
@@ -192,7 +150,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
 
       for (final MapEntry(key: tipo, value: monto) in ventaPorCuenta.entries) {
         if (monto <= 0) continue;
-        final id = _nuevoId();
+        final id = _a.nuevoId();
         await _base
             .into(_base.movimientos)
             .insert(
@@ -216,7 +174,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
                 creadoEn: ahora,
               ),
             );
-        await _anotarEnBitacora(
+        await _a.anotarEnBitacora(
           empresaId: empresaId,
           autorId: usuarioId,
           entidad: 'movimiento',
@@ -238,12 +196,12 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   @override
   Future<void> guardarCelular(String celular) async {
     await _base.transaction(() async {
-      final usuario = await _usuario();
-      final empresa = (await _empresa())!;
+      final usuario = await _a.usuario();
+      final empresa = (await _a.empresa())!;
       await (_base.update(_base.usuarios)
             ..where((u) => u.id.equals(usuario.id)))
           .write(UsuariosCompanion(celular: Value(celular)));
-      await _anotarEnBitacora(
+      await _a.anotarEnBitacora(
         empresaId: empresa.id,
         autorId: usuario.id,
         entidad: 'usuario',
@@ -259,7 +217,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   @override
   Future<void> seguirSinCuenta() async {
     await _base.transaction(() async {
-      await _guardarAjuste(_claveSinCuentaDesde, _ahora().toIso8601String());
+      await _a.guardarAjuste(_claveSinCuentaDesde, _ahora().toIso8601String());
       await _pasarA(EtapaInicio.alta);
     });
   }
@@ -267,8 +225,8 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   @override
   Future<void> completarAlta(DatosAlta datos) async {
     await _base.transaction(() async {
-      final usuario = await _usuario();
-      final empresa = (await _empresa())!;
+      final usuario = await _a.usuario();
+      final empresa = (await _a.empresa())!;
       await (_base.update(
         _base.empresas,
       )..where((e) => e.id.equals(empresa.id))).write(
@@ -278,7 +236,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           horaCierreMinutos: Value(datos.horaCierreMinutos),
         ),
       );
-      await _anotarEnBitacora(
+      await _a.anotarEnBitacora(
         empresaId: empresa.id,
         autorId: usuario.id,
         entidad: 'empresa',
@@ -310,8 +268,8 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   @override
   Future<void> declararSaldo(Map<TipoCuenta, int> saldos) async {
     await _base.transaction(() async {
-      final usuario = await _usuario();
-      final empresa = (await _empresa())!;
+      final usuario = await _a.usuario();
+      final empresa = (await _a.empresa())!;
       await _fijarSaldos(empresa.id, usuario.id, saldos);
     });
   }
@@ -344,7 +302,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           fechaSaldoInicial: Value(desde),
         ),
       );
-      await _anotarEnBitacora(
+      await _a.anotarEnBitacora(
         empresaId: empresaId,
         autorId: autorId,
         entidad: 'cuenta',
@@ -359,23 +317,11 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   // --- Resumen -----------------------------------------------------------------
 
   @override
-  Stream<ResumenPrimerDia> observarResumen() {
-    final cambios = _base.tableUpdates(
-      TableUpdateQuery.onAllTables([
-        _base.empresas,
-        _base.cuentas,
-        _base.movimientos,
-        _base.categorias,
-      ]),
-    );
-    return cambios
-        .map((_) => null)
-        .startWith(null)
-        .asyncMap((_) => _calcularResumen());
-  }
+  Stream<ResumenPrimerDia> observarResumen() =>
+      _a.cambios().asyncMap((_) => _calcularResumen());
 
   Future<ResumenPrimerDia> _calcularResumen() async {
-    final empresa = await _empresa();
+    final empresa = await _a.empresa();
     if (empresa == null) {
       return const ResumenPrimerDia(
         nombreNegocio: '',
@@ -385,12 +331,8 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         diasConVenta: 0,
       );
     }
-    final cuentas = await (_base.select(
-      _base.cuentas,
-    )..where((c) => c.empresaId.equals(empresa.id))).get();
-    final movimientos = await (_base.select(
-      _base.movimientos,
-    )..where((m) => m.empresaId.equals(empresa.id))).get();
+    final cuentas = await _a.cuentas(empresa.id);
+    final movimientos = await _a.movimientos(empresa.id);
     final ventaDelDia =
         await (_base.select(_base.categorias)..where(
               (c) =>
@@ -399,24 +341,10 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
             ))
             .getSingleOrNull();
 
-    var tienesHoy = 0;
-    for (final cuenta in cuentas) {
-      tienesHoy += saldoDeCuenta(
-        saldoInicialCentimos: cuenta.saldoInicialCentimos,
-        fechaSaldoInicial: cuenta.fechaSaldoInicial,
-        movimientos: movimientos
-            .where((m) => m.cuentaId == cuenta.id)
-            .map(
-              (m) => MovimientoParaSaldo(
-                tipo: m.tipo,
-                montoCentimos: m.montoCentimos,
-                estado: m.estado,
-                estadoPago: m.estadoPago,
-                fecha: m.fechaPago ?? m.fechaMovimiento,
-              ),
-            ),
-      );
-    }
+    final tienesHoy = AccesoLocal.saldosPorCuenta(
+      cuentas,
+      movimientos,
+    ).values.fold(0, (suma, saldo) => suma + saldo);
 
     final hoy = inicioDelDia(_ahora());
     final ventas = movimientos.where(
@@ -438,12 +366,5 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       ventaDeHoyCentimos: ventaDeHoy,
       diasConVenta: dias.length,
     );
-  }
-}
-
-extension _ConInicio<T> on Stream<T> {
-  Stream<T> startWith(T valor) async* {
-    yield valor;
-    yield* this;
   }
 }

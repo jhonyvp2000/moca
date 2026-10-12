@@ -1,3 +1,5 @@
+import '../dominio/modelos.dart';
+
 /// Todos los textos de la app, en español de Perú y en un solo lugar,
 /// para poder ajustarlos después de la prueba con pilotos.
 abstract final class Textos {
@@ -17,8 +19,6 @@ abstract final class Textos {
   static const tituloInforme = 'Informe del mes';
   static const subtituloMoca = 'Tu asistente de cuentas';
   static String llegaEnEntrega(int n) => 'Esta parte llega en la entrega $n.';
-  static String registrarLlegaEnEntrega(int n) =>
-      'Registrar llega en la entrega $n.';
   static const entendido = 'Entendido';
 
   // S00 · Bienvenida
@@ -46,6 +46,11 @@ abstract final class Textos {
   static const yape = 'Yape';
   static const banco = 'Banco';
   static const agregarBanco = '+ Banco';
+  static String nombreCuenta(TipoCuenta cuenta) => switch (cuenta) {
+    TipoCuenta.efectivo => efectivo,
+    TipoCuenta.yape => yape,
+    TipoCuenta.banco => banco,
+  };
   static const totalQueEntroHoy = 'Total que entró hoy';
   static const guardar = 'Guardar';
   static const volver = 'Volver';
@@ -128,6 +133,66 @@ abstract final class Textos {
       'Antes de tu primera venta. Un aproximado sirve.';
   static const guardarSaldo = 'Guardar';
 
+  // S04 · Inicio
+  static const ocultarMontos = 'Ocultar montos';
+  static const mostrarMontos = 'Mostrar montos';
+  static const montoOculto = 'S/ •••';
+  static const estaSemanaTeQuedo = 'Esta semana te quedó ';
+  static String masQueLaSemanaPasada(String monto) =>
+      '$monto más que la semana pasada';
+  static String menosQueLaSemanaPasada(String monto) =>
+      '$monto menos que la semana pasada';
+  static const igualQueLaSemanaPasada = 'Lo mismo que la semana pasada';
+  static String entroSalio(String entro, String salio) =>
+      'Entró $entro · Salió $salio';
+  static const semanaSinMovimientos = 'Esta semana todavía no anotas nada.';
+  static const mocaFaltaVentaDeHoy = 'Aún no anotas la venta de hoy.';
+  static const mocaYaAnotasteHoy = 'Ya anotaste la venta de hoy.';
+
+  // Venta de hoy, después del primer día
+  static String hoyYaAnotaste(String monto) =>
+      'Hoy ya anotaste $monto. Esto se suma.';
+
+  // S06 · Registrar
+  static const cerrar = 'Cerrar';
+  static const diloOMuestralo = 'Dilo o muéstralo';
+  static const mocaReconoceSola = 'Moca reconoce sola si entró o salió plata.';
+  static const decirloConVoz = 'Decirlo con voz';
+  static const ejemplosVoz = '«Hoy vendí 350» · «Pagué 80 de luz»';
+  static const tomarFoto = 'Tomar foto';
+  static const tomarFotoDetalle = 'Boleta, factura, ticket o nota de venta';
+  static const leerQr = 'Leer el código QR';
+  static const leerQrDetalle = 'Lectura exacta de comprobantes electrónicos';
+  static const escribirlo = 'Escribirlo';
+  static const escribirloDetalle = 'Entró o salió, monto y cuenta';
+  static String llegaEnLaEntrega(int n) => 'Llega en la entrega $n';
+
+  // «Escribirlo» (no dibujado)
+  static const queFue = '¿Qué fue?';
+  static const entro = 'Entró';
+  static const salio = 'Salió';
+  static const retiroParaMi = 'Retiro para mí';
+  static const retiroDetalle =
+      'Baja la plata de la cuenta, pero no cuenta como gasto del negocio.';
+  static const cuanto = '¿Cuánto?';
+  static const deDondeSalio = '¿De dónde salió la plata?';
+  static const aDondeEntro = '¿A dónde entró la plata?';
+  static const enQue = '¿En qué?';
+  static const deQue = '¿De qué?';
+  static const nota = 'Nota (opcional)';
+  static const notaEjemplo = 'Por ejemplo: luz de octubre';
+  static const quedariaNegativoTitulo = '¿Lo guardo igual?';
+  static String quedariaNegativo(String cuenta, String monto) =>
+      'Con esto, en ${cuenta.toLowerCase()} te quedaría $monto.';
+  static const revisar = 'Revisar';
+  static const guardarIgual = 'Guardar igual';
+
+  // Después de guardar
+  static String guardadoAhoraTienes(String monto) =>
+      'Guardado. Ahora tienes $monto';
+  static const deshacer = 'Deshacer';
+  static const seDeshizo = 'Listo, no se guardó.';
+
   // Ajuste oculto del operador
   static const tituloOperador = 'Ajustes de la prueba';
   static const subtituloOperador = 'Solo para quien organiza la prueba.';
@@ -145,6 +210,10 @@ abstract final class Textos {
       'Borra todo y vuelve a la Bienvenida para probar el alta.';
   static const confirmarPrimerDiaTitulo = '¿Empezar en «Primer día»?';
   static const empezarPrimerDiaBoton = 'Borrar y empezar';
+  static const saltarPrimeraSemana = 'Saltar la primera semana';
+  static const saltarPrimeraSemanaDetalle =
+      'Muestra el Inicio completo sin esperar siete días ni el primer arqueo.';
+  static const primeraSemanaSaltada = 'Listo. El Inicio ya es el completo.';
   static const empezarDemo = 'Empezar en «Demo»';
   static const forzarFotoIlegible = 'Forzar «foto ilegible»';
   static const elegirFrase = 'Elegir frase de ejemplo para la voz';

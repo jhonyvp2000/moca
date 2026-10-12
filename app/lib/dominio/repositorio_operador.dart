@@ -5,4 +5,7 @@ abstract interface class RepositorioOperador {
 
   /// Borra todos los datos del teléfono y deja la app como recién instalada.
   Future<void> borrarTodo();
+
+  /// Muestra el Inicio completo (S04) sin esperar la primera semana.
+  Future<void> saltarPrimeraSemana();
 }

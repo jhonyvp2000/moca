@@ -1,5 +1,6 @@
 import '../../dominio/repositorio_operador.dart';
 import '../local/base_local.dart';
+import 'repositorio_movimientos_local.dart';
 
 class RepositorioOperadorLocal implements RepositorioOperador {
   RepositorioOperadorLocal(this._base);
@@ -27,4 +28,14 @@ class RepositorioOperadorLocal implements RepositorioOperador {
       }
     });
   }
+
+  @override
+  Future<void> saltarPrimeraSemana() => _base
+      .into(_base.ajustes)
+      .insertOnConflictUpdate(
+        AjustesCompanion.insert(
+          clave: RepositorioMovimientosLocal.claveSaltarPrimeraSemana,
+          valor: 'si',
+        ),
+      );
 }

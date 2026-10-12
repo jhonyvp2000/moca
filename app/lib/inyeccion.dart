@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
+import 'datos/repositorios/repositorio_movimientos_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
 import 'datos/repositorios/repositorio_primer_dia_local.dart';
+import 'dominio/modelos.dart';
+import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 
@@ -38,3 +41,20 @@ final etapaInicioProvider = StreamProvider<EtapaInicio>(
 final resumenPrimerDiaProvider = StreamProvider<ResumenPrimerDia>(
   (ref) => ref.watch(repositorioPrimerDiaProvider).observarResumen(),
 );
+
+final repositorioMovimientosProvider = Provider<RepositorioMovimientos>(
+  (ref) => RepositorioMovimientosLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final resumenInicioProvider = StreamProvider<ResumenInicio>(
+  (ref) => ref.watch(repositorioMovimientosProvider).observarInicio(),
+);
+
+/// Categorías de entró o salió, para «Escribirlo».
+final categoriasProvider = FutureProvider.autoDispose
+    .family<List<CategoriaVista>, TipoMovimiento>(
+      (ref, tipo) => ref.watch(repositorioMovimientosProvider).categorias(tipo),
+    );

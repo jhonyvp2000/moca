@@ -11,11 +11,15 @@ import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../registrar/confirmacion.dart';
 
 /// S07 · Venta de hoy, en su versión escrita. La voz llega en la entrega 4
-/// y llenará esta misma pantalla.
+/// y llenará esta misma pantalla. Sirve para la primera venta (antes del
+/// alta) y para la venta de los días siguientes, que se suma a la de hoy.
 class PantallaVentaDeHoy extends ConsumerStatefulWidget {
-  const PantallaVentaDeHoy({super.key});
+  const PantallaVentaDeHoy({super.key, this.primeraVenta = true});
+
+  final bool primeraVenta;
 
   @override
   ConsumerState<PantallaVentaDeHoy> createState() => _EstadoVentaDeHoy();
@@ -47,29 +51,50 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   Future<void> _guardar() async {
     setState(() => _guardando = true);
     try {
-      await ref
-          .read(repositorioPrimerDiaProvider)
-          .anotarPrimeraVenta(_ventaPorCuenta);
-      // Al guardar, la app pasa sola a «Guarda tu avance».
+      if (widget.primeraVenta) {
+        await ref
+            .read(repositorioPrimerDiaProvider)
+            .anotarPrimeraVenta(_ventaPorCuenta);
+        // Al guardar, la app pasa sola a «Guarda tu avance».
+        return;
+      }
+      final repo = ref.read(repositorioMovimientosProvider);
+      final guardado = await repo.anotarVentaDelDia(_ventaPorCuenta);
+      if (!mounted) return;
+      final mensajes = ScaffoldMessenger.of(context);
+      context.pop();
+      mostrarGuardado(mensajes, guardado, repo.deshacer);
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
   }
 
+  void _volver() =>
+      widget.primeraVenta ? context.go(Rutas.bienvenida) : context.pop();
+
   @override
   Widget build(BuildContext context) {
     void actualizar(String _) => setState(() {});
     final total = _total;
+    final ventaYaAnotada = widget.primeraVenta
+        ? 0
+        : ref.watch(resumenInicioProvider).value?.ventaDeHoyCentimos ?? 0;
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
         titulo: Textos.ventaDeHoy,
-        alVolver: () => context.go(Rutas.bienvenida),
+        alVolver: _volver,
       ),
       contenido: [
         const Text(Textos.cuantoVendisteHoy, style: Tipografia.tituloPantalla),
         const SizedBox(height: 6),
         const Text(Textos.ventaPorCuentaDetalle, style: Tipografia.secundario),
+        if (ventaYaAnotada > 0) ...[
+          const SizedBox(height: 12),
+          TarjetaMoca(
+            texto: Textos.hoyYaAnotaste(formatearSoles(ventaYaAnotada)),
+          ),
+        ],
         const SizedBox(height: 16),
         GrupoMontos(
           filas: [
@@ -130,10 +155,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
           onPressed: total > 0 && !_guardando ? _guardar : null,
           child: const Text(Textos.guardar),
         ),
-        BotonTexto(
-          texto: Textos.volver,
-          alTocar: () => context.go(Rutas.bienvenida),
-        ),
+        BotonTexto(texto: Textos.volver, alTocar: _volver),
       ],
     );
   }

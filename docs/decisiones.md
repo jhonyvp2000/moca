@@ -4,6 +4,8 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-12 | Estados de la entrega 3: S04 desde los 7 días o el primer arqueo (y «Saltar la primera semana» en el ajuste oculto), ojo para ocultar montos, tarjeta de Moca de plantilla hasta la entrega 8, S06 con voz, foto y QR apagados, formulario «Escribirlo», pregunta antes de dejar una cuenta en negativo, aviso «Guardado» con «Deshacer» adelantado de la entrega 6 | Jhony | `prototipo-v1.md` |
+| 2026-10-12 | «Esta semana te quedó» se compara con la semana pasada hasta el mismo día de la semana, no con la semana pasada completa | Claude Code | `prototipo-v1.md` |
 | 2026-10-12 | Estados de la entrega 2: Venta de hoy escrita hasta que llegue la voz, botones fijos sobre el teclado, validación del celular, pantalla del código con aviso de prueba, alta con nombre y tipo obligatorios, saldo pendiente declarable desde el paso 1, la app retoma el paso pendiente, demo y «Ya tengo cuenta» con mensaje | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | En el ajuste oculto, «Borrar todo» también vuelve a la Bienvenida, porque sin datos no hay negocio que mostrar | Claude Code | `prototipo-v1.md` |
 | 2026-10-12 | Estados de la entrega 1: pestañas con «Esta parte llega en la entrega N», hoja de Registrar provisional y ajuste oculto con «Borrar todo» y confirmación | Jhony | `prototipo-v1.md` |

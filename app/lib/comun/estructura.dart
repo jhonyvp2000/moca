@@ -98,9 +98,16 @@ class EncabezadoConVolver extends StatelessWidget {
 }
 
 class BotonVolver extends StatelessWidget {
-  const BotonVolver({super.key, required this.alTocar});
+  const BotonVolver({
+    super.key,
+    required this.alTocar,
+    this.icono = Icono.volver,
+  });
 
   final VoidCallback alTocar;
+
+  /// S06 usa una «X» para cerrar.
+  final Icono icono;
 
   @override
   Widget build(BuildContext context) {
@@ -118,10 +125,10 @@ class BotonVolver extends StatelessWidget {
             borderRadius: BorderRadius.circular(Medidas.radioBoton),
           ),
           onTap: alTocar,
-          child: const SizedBox.square(
+          child: SizedBox.square(
             dimension: Medidas.objetivoTactilMinimo,
             child: Center(
-              child: IconoTrazo(Icono.volver, color: Colores.textoPrincipal),
+              child: IconoTrazo(icono, color: Colores.textoPrincipal),
             ),
           ),
         ),

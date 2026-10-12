@@ -71,6 +71,12 @@ class PantallaOperador extends ConsumerWidget {
                 ),
                 const Divider(),
                 _Opcion(
+                  titulo: Textos.saltarPrimeraSemana,
+                  detalle: Textos.saltarPrimeraSemanaDetalle,
+                  alTocar: () => _saltarPrimeraSemana(context, ref),
+                ),
+                const Divider(),
+                _Opcion(
                   titulo: Textos.empezarDemo,
                   detalle: Textos.opcionLlegaEnEntrega(9),
                 ),
@@ -94,6 +100,14 @@ class PantallaOperador extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _saltarPrimeraSemana(BuildContext context, WidgetRef ref) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    await ref.read(repositorioOperadorProvider).saltarPrimeraSemana();
+    mensajes.showSnackBar(
+      const SnackBar(content: Text(Textos.primeraSemanaSaltada)),
     );
   }
 
