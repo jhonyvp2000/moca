@@ -8,7 +8,10 @@ enum Icono {
   moca,
   mas,
   volver,
-  borrar;
+  borrar,
+  check,
+  entro,
+  microfono;
 
   void _trazar(Path p) {
     switch (this) {
@@ -56,6 +59,29 @@ enum Icono {
           ..moveTo(15, 18)
           ..lineTo(9, 12)
           ..lineTo(15, 6);
+      case Icono.check:
+        p
+          ..moveTo(5, 12)
+          ..lineTo(9, 16)
+          ..lineTo(19, 6);
+      case Icono.entro:
+        p
+          ..moveTo(12, 19)
+          ..lineTo(12, 5)
+          ..moveTo(6, 11)
+          ..lineTo(12, 5)
+          ..lineTo(18, 11);
+      case Icono.microfono:
+        p
+          ..addRRect(RRect.fromLTRBR(9, 3, 15, 14, const Radius.circular(3)))
+          ..moveTo(5, 11)
+          ..arcToPoint(
+            const Offset(19, 11),
+            radius: const Radius.circular(7),
+            clockwise: false,
+          )
+          ..moveTo(12, 18)
+          ..lineTo(12, 21);
       case Icono.borrar:
         p
           ..moveTo(4, 7)

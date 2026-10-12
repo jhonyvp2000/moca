@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
+import 'datos/repositorios/repositorio_primer_dia_local.dart';
+import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 
 // El único lugar que elige qué implementación usa cada interfaz.
@@ -14,6 +16,25 @@ final baseLocalProvider = Provider<BaseLocal>((ref) {
   return base;
 });
 
+/// La hora actual. Las pruebas la fijan para que los resultados no dependan
+/// del día en que se corren.
+final relojProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 final repositorioOperadorProvider = Provider<RepositorioOperador>(
   (ref) => RepositorioOperadorLocal(ref.watch(baseLocalProvider)),
+);
+
+final repositorioPrimerDiaProvider = Provider<RepositorioPrimerDia>(
+  (ref) => RepositorioPrimerDiaLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final etapaInicioProvider = StreamProvider<EtapaInicio>(
+  (ref) => ref.watch(repositorioPrimerDiaProvider).observarEtapa(),
+);
+
+final resumenPrimerDiaProvider = StreamProvider<ResumenPrimerDia>(
+  (ref) => ref.watch(repositorioPrimerDiaProvider).observarResumen(),
 );

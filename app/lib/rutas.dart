@@ -2,14 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'comun/barra_inferior.dart';
+import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/alta/pantalla_alta.dart';
+import 'pantallas/bienvenida/pantalla_bienvenida.dart';
+import 'pantallas/guardar_avance/pantalla_codigo.dart';
+import 'pantallas/guardar_avance/pantalla_guardar_avance.dart';
 import 'pantallas/historial/pantalla_historial.dart';
 import 'pantallas/informe/pantalla_informe.dart';
 import 'pantallas/inicio/pantalla_inicio.dart';
 import 'pantallas/moca/pantalla_moca.dart';
 import 'pantallas/registrar/hoja_registrar.dart';
+import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
+import 'tema/colores.dart';
 
 abstract final class Rutas {
+  static const cargando = '/cargando';
+  static const bienvenida = '/bienvenida';
+  static const ventaDeHoy = '/bienvenida/venta-de-hoy';
+  static const guardarAvance = '/guardar-avance';
+  static const codigo = '/guardar-avance/codigo';
+  static const alta = '/alta';
   static const inicio = '/inicio';
   static const historial = '/historial';
   static const informes = '/informes';
@@ -17,9 +30,66 @@ abstract final class Rutas {
   static const operador = '/operador';
 }
 
-GoRouter crearRutas() => GoRouter(
-  initialLocation: Rutas.inicio,
+/// Qué rutas se pueden ver en cada etapa del primer día. Si la ruta actual
+/// no corresponde a la etapa, se va a la primera de la lista. Así la app
+/// retoma el paso pendiente al volver a abrirse, y «atrás» no regresa a una
+/// venta ya guardada.
+const _rutasPorEtapa = {
+  EtapaInicio.bienvenida: [Rutas.bienvenida, Rutas.ventaDeHoy],
+  EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
+  EtapaInicio.alta: [Rutas.alta],
+  EtapaInicio.listo: [
+    Rutas.inicio,
+    Rutas.historial,
+    Rutas.informes,
+    Rutas.moca,
+  ],
+};
+
+String? redirigirSegunEtapa(EtapaInicio? etapa, String ruta) {
+  // El ajuste oculto se puede abrir siempre.
+  if (ruta == Rutas.operador) return null;
+  if (etapa == null) return ruta == Rutas.cargando ? null : Rutas.cargando;
+  final permitidas = _rutasPorEtapa[etapa]!;
+  return permitidas.contains(ruta) ? null : permitidas.first;
+}
+
+GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
+  initialLocation: Rutas.cargando,
+  refreshListenable: etapa,
+  redirect: (context, estado) =>
+      redirigirSegunEtapa(etapa.value, estado.matchedLocation),
   routes: [
+    GoRoute(
+      path: Rutas.cargando,
+      builder: (context, estado) =>
+          const ColoredBox(color: Colores.fondo, child: SizedBox.expand()),
+    ),
+    GoRoute(
+      path: Rutas.bienvenida,
+      builder: (context, estado) => const PantallaBienvenida(),
+      routes: [
+        GoRoute(
+          path: 'venta-de-hoy',
+          builder: (context, estado) => const PantallaVentaDeHoy(),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: Rutas.guardarAvance,
+      builder: (context, estado) => const PantallaGuardarAvance(),
+      routes: [
+        GoRoute(
+          path: 'codigo',
+          builder: (context, estado) =>
+              PantallaCodigo(celular: estado.extra as String? ?? ''),
+        ),
+      ],
+    ),
+    GoRoute(
+      path: Rutas.alta,
+      builder: (context, estado) => const PantallaAlta(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, estado, ramas) => _ConBarraInferior(ramas: ramas),
       branches: [

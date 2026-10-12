@@ -19,4 +19,7 @@ abstract final class Colores {
   static const avisoTextoFuerte = Color(0xFF5C2C04);
   static const avisoFondo = Color(0xFFFBEEDD);
   static const sobreMarca = Color(0xFFFFFFFF);
+
+  /// Texto secundario sobre fondo azul (S00).
+  static const sobreMarcaSuave = Color(0xFFDCE7FB);
 }

@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../comun/pantalla_pendiente.dart';
-import '../../textos/textos.dart';
+import '../../inyeccion.dart';
+import '../registrar/hoja_registrar.dart';
+import 'hoja_saldo.dart';
+import 'pantalla_primer_dia.dart';
 
-/// S04 · Inicio. Llega en la entrega 3.
-class PantallaInicio extends StatelessWidget {
+/// Inicio. Durante la primera semana, hasta el primer arqueo, es S03; S04
+/// llega en la entrega 3.
+class PantallaInicio extends ConsumerWidget {
   const PantallaInicio({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const PantallaPendiente(titulo: Textos.tituloInicio, entrega: 3);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resumen = ref.watch(resumenPrimerDiaProvider).value;
+    if (resumen == null) return const SizedBox.shrink();
+
+    return PantallaPrimerDia(
+      resumen: resumen,
+      // Anotar ventas y gastos desde aquí llega con Registrar (entrega 3).
+      alAnotarVenta: () => mostrarHojaRegistrar(context),
+      alAnotarGasto: () => mostrarHojaRegistrar(context),
+      alDeclararSaldo: () => mostrarHojaSaldo(context),
+    );
   }
 }

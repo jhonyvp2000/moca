@@ -4,6 +4,8 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-12 | Estados de la entrega 2: Venta de hoy escrita hasta que llegue la voz, botones fijos sobre el teclado, validación del celular, pantalla del código con aviso de prueba, alta con nombre y tipo obligatorios, saldo pendiente declarable desde el paso 1, la app retoma el paso pendiente, demo y «Ya tengo cuenta» con mensaje | Jhony | `prototipo-v1.md` |
+| 2026-10-12 | En el ajuste oculto, «Borrar todo» también vuelve a la Bienvenida, porque sin datos no hay negocio que mostrar | Claude Code | `prototipo-v1.md` |
 | 2026-10-12 | Estados de la entrega 1: pestañas con «Esta parte llega en la entrega N», hoja de Registrar provisional y ajuste oculto con «Borrar todo» y confirmación | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | Plan del prototipo aprobado: estructura de `app/`, pantallas separadas de los datos por interfaces, paquetes, entregas 0 a 9 y orden de recorte (medición, audio, PDF) | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | El APK lo arma GitHub Actions; las entregas se publican en Releases como `entrega-N`; se firma con una llave propia guardada en los secretos de GitHub | Jhony | `app/README.md` |

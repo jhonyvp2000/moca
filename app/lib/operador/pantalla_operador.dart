@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
 import '../inyeccion.dart';
+import '../rutas.dart';
 import '../tema/colores.dart';
 import '../tema/medidas.dart';
 import '../tema/tipografia.dart';
@@ -64,7 +66,8 @@ class PantallaOperador extends ConsumerWidget {
                 const Divider(),
                 _Opcion(
                   titulo: Textos.empezarPrimerDia,
-                  detalle: Textos.opcionLlegaEnEntrega(2),
+                  detalle: Textos.empezarPrimerDiaDetalle,
+                  alTocar: () => _empezarPrimerDia(context, ref),
                 ),
                 const Divider(),
                 _Opcion(
@@ -94,11 +97,26 @@ class PantallaOperador extends ConsumerWidget {
     );
   }
 
-  Future<void> _borrarTodo(BuildContext context, WidgetRef ref) async {
+  Future<void> _empezarPrimerDia(BuildContext context, WidgetRef ref) async {
+    final confirmado = await _confirmar(
+      context,
+      titulo: Textos.confirmarPrimerDiaTitulo,
+      boton: Textos.empezarPrimerDiaBoton,
+    );
+    if (!confirmado) return;
+    await ref.read(repositorioOperadorProvider).borrarTodo();
+    if (context.mounted) context.go(Rutas.bienvenida);
+  }
+
+  Future<bool> _confirmar(
+    BuildContext context, {
+    required String titulo,
+    required String boton,
+  }) async {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(Textos.confirmarBorrarTitulo),
+        title: Text(titulo),
         content: const Text(Textos.confirmarBorrarTexto),
         actions: [
           TextButton(
@@ -107,18 +125,28 @@ class PantallaOperador extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(Textos.borrarTodoBoton),
+            child: Text(boton),
           ),
         ],
       ),
     );
-    if (confirmado != true) return;
+    return confirmado == true;
+  }
 
+  Future<void> _borrarTodo(BuildContext context, WidgetRef ref) async {
+    final confirmado = await _confirmar(
+      context,
+      titulo: Textos.confirmarBorrarTitulo,
+      boton: Textos.borrarTodoBoton,
+    );
+    if (!confirmado || !context.mounted) return;
+
+    final mensajes = ScaffoldMessenger.of(context);
     await ref.read(repositorioOperadorProvider).borrarTodo();
     ref.invalidate(conteoRegistrosProvider);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text(Textos.seBorroTodo)));
+    // Sin datos no hay negocio: la app vuelve a la Bienvenida.
+    if (context.mounted) context.go(Rutas.bienvenida);
+    mensajes.showSnackBar(const SnackBar(content: Text(Textos.seBorroTodo)));
   }
 }
 

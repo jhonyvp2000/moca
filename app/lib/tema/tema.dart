@@ -5,6 +5,12 @@ import 'colores.dart';
 import 'medidas.dart';
 import 'tipografia.dart';
 
+OutlineInputBorder _bordeCampo(Color color, double grosor) =>
+    OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Medidas.radioCampo),
+      borderSide: BorderSide(color: color, width: grosor),
+    );
+
 /// El único tema de la app. Las pantallas no definen colores ni tamaños sueltos.
 ThemeData temaMoca() {
   const esquema = ColorScheme.light(
@@ -111,6 +117,21 @@ ThemeData temaMoca() {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Medidas.radioBoton),
       ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colores.superficie,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      hintStyle: Tipografia.secundario,
+      border: _bordeCampo(Colores.bordeCampo, 1),
+      enabledBorder: _bordeCampo(Colores.bordeCampo, 1),
+      focusedBorder: _bordeCampo(Colores.marca, 2),
+      errorBorder: _bordeCampo(Colores.avisoMarca, 1),
+      focusedErrorBorder: _bordeCampo(Colores.avisoMarca, 2),
+    ),
+    timePickerTheme: const TimePickerThemeData(
+      backgroundColor: Colores.superficie,
     ),
     dividerTheme: const DividerThemeData(
       color: Colores.separador,

@@ -72,7 +72,8 @@ jobs:
         run: flutter analyze
 
       - name: Pruebas
-        run: flutter test
+        # Una prueba que se cuelga falla al minuto en vez de trabar el armado.
+        run: flutter test --timeout 60s
 
       - name: Llave de firma
         env:
