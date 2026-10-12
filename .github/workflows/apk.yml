@@ -73,11 +73,20 @@ jobs:
           KEY_PASSWORD: ${{ secrets.MOCA_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
+            if [[ "$GITHUB_REF" == refs/tags/entrega-* ]]; then
+              echo "::error::Una entrega no se publica sin la llave de Moca. Revisa los secretos MOCA_*."
+              exit 1
+            fi
             echo "::warning::Sin la llave de Moca: el APK se firma con una llave de depuración y no se podrá actualizar con uno firmado con la llave de Moca."
             echo "FIRMA=depuracion" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > android/moca.jks
+          # Comprueba que la llave se lee con su contraseña y tiene el alias indicado.
+          if ! keytool -list -keystore android/moca.jks -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null; then
+            echo "::error::La llave de Moca no se pudo leer: revisa MOCA_KEYSTORE_BASE64, MOCA_KEYSTORE_PASSWORD y MOCA_KEY_ALIAS."
+            exit 1
+          fi
           {
             echo "storeFile=moca.jks"
             echo "storePassword=$KEYSTORE_PASSWORD"
@@ -88,6 +97,16 @@ jobs:
 
       - name: Armar APK
         run: flutter build apk --release --build-number=${{ github.run_number }}
+
+      - name: Comprobar la firma
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee firma.txt
+          if [ "$FIRMA" = "moca" ] && grep -q "CN=Android Debug" firma.txt; then
+            echo "::error::El APK salió con la llave de depuración aunque había llave de Moca."
+            exit 1
+          fi
+          grep -m1 "SHA-256" firma.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Nombre del archivo
         run: |
