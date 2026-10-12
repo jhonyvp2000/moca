@@ -4,6 +4,11 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-12 | Plan del prototipo aprobado: estructura de `app/`, pantallas separadas de los datos por interfaces, paquetes, entregas 0 a 9 y orden de recorte (medición, audio, PDF) | Jhony | `prototipo-v1.md` |
+| 2026-10-12 | El APK lo arma GitHub Actions; las entregas se publican en Releases como `entrega-N`; se firma con una llave propia guardada en los secretos de GitHub | Jhony | `app/README.md` |
+| 2026-10-12 | Android 7.0 o superior; identificador de la app `pe.moca.app` (provisional hasta publicar en Play Store) | Jhony | `prototipo-v1.md` |
+| 2026-10-12 | Ajuste oculto del operador: mantener presionado 3 segundos el isotipo en la pestaña Moca | Jhony | `prototipo-v1.md` |
+| 2026-10-12 | Arqueo con «No lo sé»: el saldo pasa a ser el contado, la diferencia no cuenta como gasto ni ingreso, queda en el arqueo y genera el aviso | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | La bitácora entra en el prototipo, visible en el detalle de cada movimiento (reemplaza la decisión de dejarla para la V1 real) | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | Arqueo semanal el domingo a la hora de cierre (confirmado) | Jhony | `prototipo-v1.md` |
 | 2026-10-12 | Prototipo: voz con el reconocimiento de Android (frases de ejemplo de respaldo), lectura real del QR sin IA y resumen en audio con la voz sintética del teléfono | Jhony | `prototipo-v1.md` |

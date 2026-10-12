@@ -114,6 +114,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 - La semana va de lunes a domingo.
 - Arqueo: **domingo a la hora de cierre** (aprobado por Jhony). Ese día, el aviso de cierre ofrece el arqueo después de la venta. Se puede hacer cualquier día y cubre la semana en curso.
 - Si el lunes a las 8:00 a. m. no hay arqueo de la semana anterior, aparece «Falta el arqueo de esta semana».
+- Con una respuesta rápida que genera movimiento («La retiré para mí», «Un gasto que olvidé»), se anota ese movimiento. Con «Di mal un vuelto» o «No lo sé», el saldo pasa a ser el contado y la diferencia no cuenta como gasto ni como ingreso del mes; queda registrada en el arqueo y, con «No lo sé», genera el aviso.
 
 ### Avisos
 
@@ -160,14 +161,17 @@ Hasta que la Fase 0 defina las reales. «Retiro para mí» no es categoría: es 
 | Servicios | — | Materiales; Herramientas y repuestos |
 | Otro | — | Mercadería |
 
-## Estructura sugerida
+## Estructura (aprobada el 12-10-2026)
 
 - La app vive en `app/` dentro del repositorio. Más adelante vendrán `backend/` y `panel/`.
-- Las pantallas no conocen la fuente de datos: hablan con interfaces (repositorios o servicios), y en el prototipo esas interfaces tienen una implementación simulada.
-- Un solo tema con los colores, la tipografía y las medidas de `diseno/estilo.md`. Nada de colores sueltos en las pantallas.
-- Todos los textos en español de Perú y en un solo lugar, para poder ajustarlos después de la prueba.
-
-Esto es una sugerencia: la estructura final la propones tú en el plan y la aprueba Jhony.
+- Las pantallas no conocen la fuente de datos: hablan con interfaces (repositorios o servicios), y en el prototipo esas interfaces tienen una implementación simulada. Un solo archivo (`lib/inyeccion.dart`) elige la implementación, y una prueba automática impide que una pantalla importe datos directamente.
+- Carpetas de `app/lib/`: `tema/`, `textos/`, `comun/`, `dominio/` (modelos e interfaces), `datos/` (base local, repositorios, cálculos y simulados), `servicios/`, `moca/` (reglas de avisos y plantillas), `pais/peru/`, `pantallas/` y `operador/`.
+- Un solo tema con los colores, la tipografía y las medidas de `diseno/estilo.md`. Nada de colores sueltos en las pantallas. La fuente va incluida en la app.
+- Todos los textos en español de Perú y en un solo archivo (`lib/textos/textos.dart`), para poder ajustarlos después de la prueba.
+- Paquetes: drift (SQLite), flutter_riverpod, go_router, speech_to_text, image_picker, mobile_scanner, flutter_tts, flutter_local_notifications con timezone, pdf, share_plus, permission_handler, connectivity_plus, intl y uuid.
+- Android 7.0 o superior. Identificador `pe.moca.app`.
+- El APK lo arma GitHub Actions, firmado con la llave de Moca (ver `app/README.md`).
+- **Ajuste oculto del operador:** mantener presionado 3 segundos el isotipo en la pestaña Moca. Permite borrar todo, arrancar en Primer día o Demo, forzar foto ilegible, elegir frase de ejemplo y exportar la medición.
 
 ## Medición
 
@@ -177,18 +181,22 @@ Opcional, pero útil para la pregunta 1: un registro local de eventos (cuándo s
 
 Servidor, base de datos central, inicio de sesión real, IA real, sincronización, panel web del contador, iOS, modo Formal, planes y pagos, y todo lo de V1.1 en adelante.
 
-## Entregas sugeridas
+## Entregas (aprobadas el 12-10-2026)
 
-Cada entrega se instala y se prueba en el teléfono de Jhony antes de pasar a la siguiente.
+Cada entrega se instala y se prueba en el teléfono de Jhony antes de pasar a la siguiente. Antes de cada una, Claude Code describe los estados no dibujados que necesita y espera la aprobación.
 
-1. Proyecto Flutter, tema visual, barra inferior y datos simulados vacíos.
-2. Camino del primer día: Bienvenida → Venta de hoy → Guarda tu avance → Alta → Primer día.
-3. Inicio con saldos reales del teléfono, Registrar y escribir un movimiento.
-4. Voz simulada con duda (S07, S18) y foto simulada con confirmación e ilegible (S08, S17).
-5. Historial con filtros y «Deshacer».
-6. Arqueo semanal con respuestas rápidas.
-7. Informe del mes y pestaña Moca con avisos de plantilla.
-8. Aviso de la hora de cierre, modo Demo, APK para instalar en los teléfonos de los pilotos.
+0. Armado del APK: proyecto vacío, ícono y compilación automática en GitHub.
+1. Base: tema, fuente, barra inferior con botón central, base local vacía y ajuste oculto.
+2. Camino del primer día: Bienvenida → Venta de hoy (a mano por ahora) → Guarda tu avance → Alta → Primer día.
+3. Inicio con saldos reales del teléfono, Registrar, «Escribirlo» y retiro para mí.
+4. Voz con el reconocimiento de Android y duda (S07, S18).
+5. Foto simulada con confirmación e ilegible y QR real (S08, S17); compras «todavía lo debo».
+6. Historial con filtros, edición, «Deshacer», «Ya lo pagué», «por subir» y bitácora.
+7. Arqueo semanal con respuestas rápidas.
+8. Informe del mes con PDF y pestaña Moca con avisos, resumen y audio.
+9. Aviso de la hora de cierre, modo Demo, medición y APK para los pilotos.
+
+Si se acerca el límite de tiempo, se recorta en este orden: medición, audio y PDF. Las entregas 2, 3, 6 y 7 no se recortan.
 
 ## Prueba con pilotos
 
