@@ -41,6 +41,7 @@ class ResumenPrimerDia {
     required this.saldoPendiente,
     required this.ventaDeHoyCentimos,
     required this.diasConVenta,
+    this.conOtrosMovimientos = false,
   });
 
   final String nombreNegocio;
@@ -50,6 +51,10 @@ class ResumenPrimerDia {
   /// Cero si hoy no se anotó venta.
   final int ventaDeHoyCentimos;
   final int diasConVenta;
+
+  /// Si hay algo más que el saldo inicial y las ventas del día (gastos,
+  /// retiros, otros ingresos). Cambia cómo se explica «Tienes hoy».
+  final bool conOtrosMovimientos;
 
   bool get ventaDeHoyAnotada => ventaDeHoyCentimos > 0;
 }

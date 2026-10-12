@@ -109,6 +109,9 @@ abstract final class Textos {
       'lleva la cuenta.';
   static const notaSoloSaldo =
       'Es lo que anotaste al empezar. Desde aquí Moca lleva la cuenta.';
+  static const notaConMovimientos =
+      'Es lo que tenías al empezar, más lo que entró y menos lo que salió. '
+      'Desde aquí Moca lleva la cuenta.';
   static const notaSaldoPendiente = 'Aún no pones cuánto tenías al empezar.';
   static const mocaEmpiezaPorLaVenta =
       'Empieza por lo más fácil: dime cuánto vendiste hoy. Toma menos de '

@@ -365,6 +365,11 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       saldoPendiente: cuentas.any((c) => c.saldoInicialCentimos == null),
       ventaDeHoyCentimos: ventaDeHoy,
       diasConVenta: dias.length,
+      conOtrosMovimientos: movimientos.any(
+        (m) =>
+            m.estado == EstadoRegistro.vigente &&
+            (ventaDelDia == null || m.categoriaId != ventaDelDia.id),
+      ),
     );
   }
 }

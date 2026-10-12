@@ -300,6 +300,9 @@ void main() {
       expect(find.text(Textos.guardadoAhoraTienes('S/ 1,270')), findsOneWidget);
       expect(find.text('S/ 1,270'), findsOneWidget);
 
+      // «Tienes hoy» ya no es solo saldo más venta.
+      expect(find.text(Textos.notaConMovimientos), findsOneWidget);
+
       await tocar(tester, find.text(Textos.deshacer));
       expect(find.text(Textos.seDeshizo), findsOneWidget);
       expect(find.text('S/ 1,350'), findsOneWidget);

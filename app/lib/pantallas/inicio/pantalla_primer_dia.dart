@@ -32,6 +32,8 @@ class PantallaPrimerDia extends StatelessWidget {
   Widget build(BuildContext context) {
     final nota = resumen.saldoPendiente
         ? Textos.notaSaldoPendiente
+        : resumen.conOtrosMovimientos
+        ? Textos.notaConMovimientos
         : resumen.ventaDeHoyAnotada
         ? Textos.notaSaldoMasVenta
         : Textos.notaSoloSaldo;
