@@ -53,15 +53,15 @@ Los mockups muestran el estado ideal. El prototipo necesita además estados que 
 | Función | En el prototipo | En la V1 real |
 |---|---|---|
 | Código de acceso | Cualquier código de 6 dígitos entra | SMS o WhatsApp |
-| Voz | Se graba (para sentir el gesto), pero el resultado sale de una lista de frases de ejemplo; el operador de la prueba puede elegir cuál | Reconocimiento de voz real (Fase 0) |
+| Voz | Reconocimiento de voz de Android, en español. Moca interpreta el texto con reglas en el teléfono (monto, entró o salió, cuenta). Si el reconocimiento no está disponible (por ejemplo, sin señal), el operador de la prueba elige una frase de ejemplo | Reconocimiento de voz definido en la Fase 0 |
 | Foto | Se abre la cámara real, pero la lectura es un comprobante de ejemplo; se puede forzar el caso «foto ilegible» | Lectura con IA (Fase 0) |
-| QR | Igual que la foto | Lectura del QR |
+| QR | Lectura real del QR del comprobante electrónico de SUNAT, en el teléfono y sin IA. Si el código no es de un comprobante, Moca lo dice y ofrece tomar foto o escribirlo | Lectura del QR |
 | Textos de Moca | Plantillas fijas que se llenan con los datos | Redactados por IA a partir de cifras calculadas |
-| Resumen en audio | Botón visible; reproduce un audio de ejemplo o se omite | Por decidir en la Fase 0 |
-| Aviso de cierre | Notificación local real del teléfono a la hora de cierre, si es sencillo; si no, se simula | Notificación real |
+| Resumen en audio | La voz sintética del teléfono lee el resumen semanal | Por decidir en la Fase 0 |
+| Aviso de cierre | Notificación local real del teléfono a la hora de cierre | Notificación real |
+| Informe en PDF | PDF real generado en el teléfono y compartido con el menú de Android | Igual |
+| Sincronización | No existe. Lo que se guarda sin conexión queda marcado «por subir» y la marca no cambia | Sube al servidor cuando vuelve la señal |
 | Pagos compartidos desde Yape | No se incluye | Depende de la Fase 0 |
-
-Usar el reconocimiento de voz que trae Android puede ser una opción barata y más realista. Si te parece viable, propónlo como alternativa; decide Jhony.
 
 ## Datos
 
@@ -69,6 +69,94 @@ Usar el reconocimiento de voz que trae Android puede ser una opción barata y m�
 - Dos formas de arrancar: **«Primer día»** (vacía, para probar el alta) y **«Demo»** (con semanas de datos de ejemplo, para mostrar el Inicio, el arqueo y el informe llenos). Un ajuste oculto permite borrar todo y volver a empezar.
 - Los modelos siguen `modelo-datos.md`: montos en céntimos, cuenta en cada movimiento, nivel de confianza, fuente, estado de pago, retiro del dueño.
 - Los saldos, la semana y el informe se calculan en la capa de datos, no en las pantallas. Así, al llegar el backend, solo cambia de dónde salen las cifras.
+- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida.
+
+## Comportamiento acordado
+
+Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y contradice esta sección, cede ante esta sección.
+
+### Primer día (S00 → S07 → S01 → S02 → S03)
+
+- Las tres cuentas (efectivo, Yape, banco) existen desde la primera venta, con saldo inicial pendiente. La primera venta va a la cuenta que dijo el dueño; si no la dijo, Moca pregunta con las tres opciones.
+- El saldo inicial que se declara en S02 es el de **antes** de esa venta, con fecha de hoy. Bajo la pregunta se agrega: «Sin contar la venta que acabas de anotar».
+- S03 muestra «Tienes hoy» = saldo declarado + venta anotada, con la nota «Es lo que tenías al empezar más tu venta de hoy». En los primeros pasos, «Decir cuánta plata tienes» queda hecho si se declaró y «Anotar la venta 5 días» dice «llevas 1». Si la venta de hoy ya está anotada, la tarjeta de Moca dice «Ya anotaste la venta de hoy. Te recuerdo la siguiente a tu hora de cierre» y el botón pasa a ser «Anotar un gasto».
+- El Inicio es S03 durante la primera semana, hasta el primer arqueo; después es S04.
+- Si se deja el saldo para después, se toma como cero y el paso 1 queda pendiente.
+
+### Enlaces sin servidor (S00, S01)
+
+- «Ver una demo» abre el modo Demo.
+- «Ya tengo cuenta» pide número y código. Como no hay servidor, responde: «En esta prueba tu cuenta vive en el teléfono donde la creaste» y ofrece empezar.
+- «Ahora no, seguir probando» sigue al alta sin número. Los datos quedan en el teléfono. A los tres días aparece en la pestaña Moca una tarjeta «Guarda tu avance» que lleva a S01.
+
+### Registrar
+
+- **Texto:** es un formulario corto: entró, salió o «Retiro para mí»; monto (teclado numérico); cuenta; categoría; nota opcional. Es el camino más rápido y el que no falla sin señal.
+- **Voz:** Moca deduce entró o salió del verbo («vendí», «pagué», «saqué para mí»). Si no está segura del monto, abre S18; si falta la cuenta o el tipo, pregunta con opciones. Nunca adivina.
+- **Retiro para mí:** se anota desde Registrar, por voz («saqué 100 para mí») o en el formulario de texto.
+- **Venta del día por cuenta:** se dice en una frase («350 en efectivo y 120 por Yape») o se anota cuenta por cuenta.
+
+### Compras que todavía se deben
+
+- No bajan el saldo de ninguna cuenta hasta que se pagan, pero sí cuentan en la ganancia del mes de su comprobante.
+- En el Historial llevan la marca «Lo debes». Al abrirlas, «Ya lo pagué» pide la cuenta y la fecha (hoy por defecto) y baja el saldo ese día. En el prototipo solo se paga completo.
+- S14 muestra el total en «Lo que debes», sin el enlace «Ver a quiénes».
+
+### Aviso de cierre (S05)
+
+- Hora de cierre por defecto: 9:00 p. m.
+- La notificación pregunta «¿Cuánto vendiste hoy en efectivo?». «Escribirlo» se contesta desde la misma notificación; luego llega «¿Y por Yape?». Banco solo se pregunta si hubo ventas al banco en los últimos 30 días.
+- «Decirlo» abre la app en S07.
+- «Hoy no abrí» marca el día como cerrado y no cuenta como día sin registrar.
+
+### Semana y arqueo
+
+- La semana va de lunes a domingo.
+- Arqueo sugerido: **domingo a la hora de cierre**. Ese día, el aviso de cierre ofrece el arqueo después de la venta. Se puede hacer cualquier día y cubre la semana en curso.
+- Si el lunes a las 8:00 a. m. no hay arqueo de la semana anterior, aparece «Falta el arqueo de esta semana».
+
+### Avisos
+
+| Aviso | Cuándo | Prioridad |
+|---|---|---|
+| Falta el arqueo | Lunes 8:00 a. m. sin arqueo de la semana anterior; sigue visible hasta hacerlo | Importante |
+| Diferencia en el arqueo | Queda una diferencia de S/ 10 o más marcada «No lo sé» | Importante |
+| Días sin registrar | Dos días seguidos sin registros ni «Hoy no abrí» | Importante |
+| Gasto atípico | Un gasto de S/ 100 o más que duplica el promedio de su categoría en las últimas 8 semanas (con al menos 3 gastos previos en ella) | Para tener en cuenta |
+| Resumen semanal | Lunes 8:00 a. m. | Para tener en cuenta |
+
+- Notificaciones del teléfono: el aviso de cierre, más un aviso al día como máximo (el de mayor prioridad), entre las 8:00 a. m. y la hora de cierre. Dentro de la app, la pestaña Moca muestra todos, ordenados por prioridad y fecha.
+- El resumen semanal y los avisos no mencionan «Lo que viene», «te alcanza» ni fiado.
+
+### Informe del mes (S14)
+
+- Muestra el mes en curso hasta hoy y permite ver los meses anteriores.
+- Si no hay mes anterior: «Es tu primer mes con Moca. El próximo mes verás la comparación». Si el primer mes empezó a mitad, se indica «desde el día X».
+- Lo mismo para la semana en S04: sin semana anterior, se omite la comparación.
+- «Compartir PDF» genera el PDF en el teléfono.
+
+### Historial y cambios
+
+- «Deshacer» y las ediciones anulan el registro anterior; nada se borra.
+- La bitácora completa (quién cambió qué, con valor anterior y nuevo) se construye en la V1 real, no en el prototipo.
+
+### Textos legales (propuesta para revisar)
+
+- Al pie del alta (S02): «Tus datos se guardan solo en este teléfono. Al empezar aceptas que Moca los use para ordenar tus cuentas».
+- En el informe y en el PDF: «Moca te ayuda a ordenar tus cuentas. No reemplaza la contabilidad oficial ni da asesoría tributaria».
+- El registro de eventos de la medición no guarda montos, nombres ni números de celular.
+
+### Categorías provisionales
+
+Hasta que la Fase 0 defina las reales. «Retiro para mí» no es categoría: es un tipo de movimiento.
+
+| Tipo | Entró | Salió |
+|---|---|---|
+| Todos | Venta del día, Otro ingreso | Alquiler; Servicios (luz, agua, internet, teléfono); Personal; Transporte; Mantenimiento y reparaciones; Impuestos y trámites; Otros |
+| Bodega | — | Mercadería; Bolsas y envases |
+| Restaurante | — | Insumos de cocina; Bebidas; Gas; Descartables |
+| Servicios | — | Materiales; Herramientas y repuestos |
+| Otro | — | Mercadería |
 
 ## Estructura sugerida
 

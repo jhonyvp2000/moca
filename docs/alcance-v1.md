@@ -51,10 +51,12 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 
 ### Ajustes respecto al mockup
 
-Los mockups se dibujaron con el producto completo, así que varias pantallas de la V1 muestran elementos de versiones posteriores. Esta lista es una propuesta para revisar con Jhony antes de construir.
+Los mockups se dibujaron con el producto completo, así que varias pantallas de la V1 muestran elementos de versiones posteriores. Jhony confirmó el 12 de octubre de 2026 que estos ajustes se aplican, y que se oculta cualquier otro elemento de versiones posteriores.
 
 | Pantalla | Elemento del mockup | En la V1 |
 |---|---|---|
+| S00 | «…y si te alcanza para lo que viene» | Se cambia por «…cuánta plata tienes y cuánto te queda» |
+| S06 | «¿Te pagaron por Yape? En Yape toca Compartir…» | Se omite, igual que los pagos compartidos |
 | S01 | «Empiezas con 14 días de Moca Plus, gratis» | Se omite: no hay planes |
 | S04 | Franja «Prueba completa · te quedan 9 días · Ver planes» | Se omite |
 | S04 | Bloque «Lo que viene» con «Te alcanza» | Se omite; llega con S13 en la V1.1 |
@@ -62,12 +64,13 @@ Los mockups se dibujaron con el producto completo, así que varias pantallas de 
 | S05, S06, S07 | Pagos compartidos desde Yape | Depende de la prueba de viabilidad de la Fase 0 |
 | S06, S10, S16 | Ejemplos de fiado («Le fié 20 a doña Rosa») | Se omiten; el fiado llega en la V1.1 |
 | S14 | «Lo que te deben» y «Ver quiénes» | Se omite hasta la V1.1 |
-| S14 | «Lo que debes» | Se muestra solo el total de compras marcadas «todavía lo debo» |
+| S14 | «Lo que debes» y «Ver a quiénes» | Se muestra solo el total de compras marcadas «todavía lo debo», sin el enlace |
 | S14 | Botón «Cerrar el mes» | Se omite; llega con S15 en la V1.1 |
 | S14 | Botón «Usarlo para pedir crédito» | Se omite; queda para después |
 | S14 | Pregunta de mercadería que queda | Se mantiene solo la advertencia; la pregunta llega con el cierre de mes |
 | S16 | Enlace «Pulso» | Se omite; queda para después |
 | S16 | «Pregúntale» (preguntas libres) | Se omite; el chat es de la Fase 2 |
+| S16 | Resumen que menciona «Te alcanza» y el fiado | El resumen y los avisos no hablan de pagos futuros ni de fiado |
 
 ### Fuera de la V1
 

@@ -4,10 +4,13 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 
 ## Se resuelven en el prototipo V1
 
-- Confirmar los «Ajustes respecto al mockup» de `alcance-v1.md` (por defecto se aplican).
-- Estados no dibujados (teclado, vacíos, errores, confirmaciones): Claude Code los propone y Jhony los aprueba.
-- Si la voz usa el reconocimiento de Android o frases de ejemplo.
-- Límite de tiempo exacto del prototipo.
+- ~~Confirmar los «Ajustes respecto al mockup»~~: se aplican (12-10-2026).
+- ~~Si la voz usa el reconocimiento de Android o frases de ejemplo~~: reconocimiento de Android, con frases de ejemplo de respaldo (12-10-2026).
+- ~~Cómo funciona «Ver una demo» y qué pasa con quien sigue sin crear cuenta~~: ver «Comportamiento acordado» en `prototipo-v1.md` (12-10-2026).
+- ~~Límite de tiempo~~: dos a tres semanas, como dice `prototipo-v1.md` (12-10-2026).
+- Estados no dibujados (teclado, vacíos, errores, confirmaciones, franja de la Demo): Claude Code los propone y Jhony los aprueba.
+- Confirmar el día y la hora del arqueo (propuesta: domingo a la hora de cierre).
+- Revisar los textos legales y las categorías provisionales de `prototipo-v1.md`.
 - Fecha y negocios de la prueba con pilotos.
 
 ## Se resuelven en la Fase 0
@@ -27,13 +30,11 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven al planificar la V1
 
-- Revisar la lista «Ajustes respecto al mockup» de `alcance-v1.md`.
 - Criterio preciso para dar la V1 por terminada.
 - Revisar el borrador de `modelo-datos.md`.
 - Proveedor para enviar el código de acceso por SMS o WhatsApp.
 - Dónde se aloja el backend y el almacén de imágenes.
-- Cómo funciona «Ver una demo» de la pantalla de bienvenida.
-- Qué pasa con los datos de quien sigue sin crear cuenta (S01, «Ahora no, seguir probando»).
+- Cómo funcionan en la V1 real «Ver una demo», «Ya tengo cuenta» y «Ahora no, seguir probando» (en el prototipo ya están resueltos).
 - Textos legales: consentimiento de datos (Ley 29733) y aviso de que Moca no reemplaza la contabilidad oficial.
 - Estimación de duración de las fases 1 y 2.
 
