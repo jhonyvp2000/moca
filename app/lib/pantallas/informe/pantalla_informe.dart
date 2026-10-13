@@ -13,6 +13,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'pdf_informe.dart';
+import '../../dominio/medicion.dart';
 
 /// S14 · Informe del mes. Sin «Lo que te deben», «Ver a quiénes», «Cerrar
 /// el mes», «Usarlo para pedir crédito» ni la pregunta de la mercadería
@@ -48,6 +49,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               informe.mes.year,
             ),
           );
+      await ref.read(medicionProvider).anotar(EventoMedicion.pdfCompartido);
     } on Exception {
       mensajes.showSnackBar(const SnackBar(content: Text(Textos.pdfNoSeArmo)));
     } finally {
@@ -433,15 +435,17 @@ class _Barra extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Text(
               nombre,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: primera ? Tipografia.textoFuerte : Tipografia.texto,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            flex: 4,
+            flex: 3,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(

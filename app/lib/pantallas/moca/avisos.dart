@@ -6,6 +6,11 @@ import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../dominio/medicion.dart';
+import '../../inyeccion.dart';
+
 // Las plantillas de los avisos y del resumen. Las reglas viven en la capa
 // de datos; aquí solo se redacta (en la V1 real, lo redacta la IA).
 
@@ -35,6 +40,9 @@ String accionAviso(Aviso a) => switch (a.tipo) {
 };
 
 void abrirAviso(BuildContext context, Aviso a) {
+  ProviderScope.containerOf(context, listen: false)
+      .read(medicionProvider)
+      .anotar(EventoMedicion.avisoTocado, {'tipo': a.tipo.name});
   switch (a.tipo) {
     case TipoAviso.faltaArqueo:
       context.push(Rutas.arqueo);

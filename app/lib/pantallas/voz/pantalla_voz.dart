@@ -24,6 +24,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 import '../registrar/franja_sin_senal.dart';
+import '../../dominio/medicion.dart';
 
 /// En qué modo se abre la voz.
 enum ModoVoz {
@@ -69,9 +70,17 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
 
   bool get _esVenta => widget.modo != ModoVoz.libre;
 
+  /// Para medir una sola vez que Moca dudó del monto.
+  bool _dudaMedida = false;
+
   @override
   void initState() {
     super.initState();
+    if (_esVenta) {
+      ref.read(medicionProvider).anotar(EventoMedicion.ventaAbierta, {
+        'modo': 'voz',
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _empezar());
   }
 
@@ -194,6 +203,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       _lectura.categoria == categoriaVentaDelDia;
 
   void _corregir(List<CategoriaVista> categorias) {
+    ref.read(medicionProvider).anotar(EventoMedicion.vozCorregida);
     if (_esVentaDelDia || widget.modo == ModoVoz.primeraVenta) {
       _escribir(montos: _montosPorCuenta);
       return;
@@ -226,6 +236,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         await ref
             .read(repositorioPrimerDiaProvider)
             .anotarPrimeraVenta(_montosPorCuenta, fuente: Fuente.voz);
+        await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
+          'modo': 'voz',
+        });
         // Al guardar, la app pasa sola a «Guarda tu avance».
         return;
       }
@@ -236,6 +249,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           _montosPorCuenta,
           fuente: Fuente.voz,
         );
+        await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
+          'modo': 'voz',
+        });
       } else {
         final movimientos = [
           for (final p in _lectura.partidas)
@@ -394,6 +410,10 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   Widget _pregunta(PreguntaVoz pregunta, List<CategoriaVista> categorias) {
     switch (pregunta) {
       case PreguntaMonto(:final opciones):
+        if (!_dudaMedida) {
+          _dudaMedida = true;
+          ref.read(medicionProvider).anotar(EventoMedicion.vozConDuda);
+        }
         return _TarjetaPregunta(
           texto: Textos.noEscucheElMonto,
           pie: Textos.mocaNuncaAdivina,

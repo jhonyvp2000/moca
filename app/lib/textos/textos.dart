@@ -31,7 +31,11 @@ abstract final class Textos {
   static const sinCrearCuenta = 'Sin crear cuenta. Te toma diez segundos.';
   static const verDemo = 'Ver una demo';
   static const yaTengoCuenta = 'Ya tengo cuenta';
-  static const demoLlega = 'La demo llega en la entrega 9.';
+  static const cargandoDemo = 'Preparando la demo…';
+  static const estasViendoUnaDemo = 'Estás viendo una demo';
+  static const salir = 'Salir';
+  static const salirDeLaDemoTitulo = '¿Salir de la demo?';
+  static const salirDeLaDemoTexto = 'Se borran los datos de ejemplo.';
   static const cuentaEnTelefonoTitulo = 'Tu cuenta está en tu teléfono';
   static const cuentaEnTelefono =
       'En esta prueba tu cuenta vive en el teléfono donde la creaste.';
@@ -526,6 +530,37 @@ abstract final class Textos {
   static const verElAjuste = 'Ver el ajuste';
   static const verElGasto = 'Ver el gasto';
 
+  // S05 · Aviso de cierre
+  static const canalCierre = 'Aviso de cierre';
+  static const canalCierreDetalle =
+      'Te recuerda anotar la venta del día a tu hora de cierre.';
+  static const canalAvisos = 'Avisos de Moca';
+  static const canalAvisosDetalle =
+      'Un aviso al día como máximo: el arqueo, los días sin anotar y el '
+      'resumen de la semana.';
+  static String preguntaVentaCuenta(TipoCuenta cuenta) => switch (cuenta) {
+    TipoCuenta.efectivo => '¿Cuánto vendiste hoy en efectivo?',
+    TipoCuenta.yape => '¿Y por Yape?',
+    TipoCuenta.banco => '¿Y por banco?',
+  };
+  static String nadaPor(TipoCuenta cuenta) =>
+      'Nada por ${nombreCuenta(cuenta)}';
+  static const soles = 'Soles';
+  static const decirlo = 'Decirlo';
+  static const hoyNoAbri = 'Hoy no abrí';
+  static const noEntendiElMonto =
+      'No entendí el monto. Toca para anotarlo en la app.';
+  static String listoHoyVendiste(String monto) => 'Listo. Hoy vendiste $monto.';
+  static const resumenListo = 'Tu resumen de la semana está listo.';
+  static const permisoAvisos =
+      'Moca te recuerda anotar la venta a tu hora de cierre. Para eso '
+      'necesita permiso de avisos.';
+  static const permitirAvisos = 'Permitir avisos';
+  static const ahoraNoCorto = 'Ahora no';
+  static const sinPermisoAvisos =
+      'Sin permiso, Moca no puede recordarte la venta. Puedes darlo en los '
+      'ajustes del teléfono.';
+
   // Sin señal
   static const sinSenal =
       'Sin señal. Se guarda en tu teléfono y sube cuando vuelva.';
@@ -586,6 +621,14 @@ abstract final class Textos {
   static const sinSenalSimulada = 'Listo. La app está sin señal.';
   static const senalDelTelefono = 'Listo. La app usa la señal del teléfono.';
   static const exportarMedicion = 'Exportar la medición';
+  static const exportarMedicionDetalle =
+      'Comparte un archivo con lo que se midió en este teléfono, sin montos '
+      'ni nombres.';
+  static const medicionDeMoca = 'Medición de Moca';
+  static const empezarDemoDetalle =
+      'Borra todo y carga diez semanas de una bodega de ejemplo.';
+  static const confirmarDemoTitulo = '¿Empezar en «Demo»?';
+  static const empezarDemoBoton = 'Borrar y cargar la demo';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';
   static const confirmarBorrarTitulo = '¿Borrar todo?';
   static const confirmarBorrarTexto =

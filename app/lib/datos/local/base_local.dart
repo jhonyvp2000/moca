@@ -30,22 +30,19 @@ class BaseLocal extends _$BaseLocal {
   BaseLocal([QueryExecutor? ejecutor])
     : super(ejecutor ?? driftDatabase(name: 'moca'));
 
-  // Mientras se construye el prototipo, un cambio de versión borra y recrea
-  // las tablas: solo hay datos de prueba. Antes de entregar el APK a los
-  // pilotos, esta estrategia pasa a migrar sin perder datos.
+  // Desde el APK de los pilotos (entrega 9) los datos de un teléfono no se
+  // borran al actualizar: cada cambio de versión agrega aquí su migración.
   @override
   int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, desde, hasta) async {
-      for (final tabla in allTables.toList().reversed) {
-        await m.deleteTable(tabla.actualTableName);
-      }
-      await m.createAll();
-    },
+    onUpgrade: (m, desde, hasta) async {},
     beforeOpen: (detalles) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // El aviso de cierre puede escribir desde segundo plano mientras la
+      // app está abierta: se espera en lugar de fallar.
+      await customStatement('PRAGMA busy_timeout = 5000');
     },
   );
 }

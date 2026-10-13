@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
@@ -95,7 +98,8 @@ class PantallaOperador extends ConsumerWidget {
                 const Divider(),
                 _Opcion(
                   titulo: Textos.empezarDemo,
-                  detalle: Textos.opcionLlegaEnEntrega(9),
+                  detalle: Textos.empezarDemoDetalle,
+                  alTocar: () => _empezarDemo(context, ref),
                 ),
                 const Divider(),
                 _Opcion(
@@ -173,7 +177,8 @@ class PantallaOperador extends ConsumerWidget {
                 const Divider(),
                 _Opcion(
                   titulo: Textos.exportarMedicion,
-                  detalle: Textos.opcionLlegaEnEntrega(9),
+                  detalle: Textos.exportarMedicionDetalle,
+                  alTocar: () => _exportarMedicion(ref),
                 ),
               ],
             ),
@@ -218,6 +223,37 @@ class PantallaOperador extends ConsumerWidget {
     mensajes.showSnackBar(
       SnackBar(content: Text(Textos.fraseElegida(elegida.texto))),
     );
+  }
+
+  Future<void> _empezarDemo(BuildContext context, WidgetRef ref) async {
+    final confirmado = await _confirmar(
+      context,
+      titulo: Textos.confirmarDemoTitulo,
+      boton: Textos.empezarDemoBoton,
+    );
+    if (!confirmado) return;
+    await ref.read(repositorioOperadorProvider).cargarDemo();
+    ref.invalidate(conteoRegistrosProvider);
+    if (context.mounted) context.go(Rutas.inicio);
+  }
+
+  Future<void> _exportarMedicion(WidgetRef ref) async {
+    final csv = await ref.read(medicionProvider).exportarCsv();
+    final carpeta = await getTemporaryDirectory();
+    final hoy = ref.read(relojProvider)();
+    final archivo = File(
+      '${carpeta.path}/moca-medicion-'
+      '${hoy.year}-${hoy.month.toString().padLeft(2, '0')}-'
+      '${hoy.day.toString().padLeft(2, '0')}.csv',
+    );
+    await archivo.writeAsString(csv, flush: true);
+    await ref
+        .read(compartidorProvider)
+        .compartirArchivo(
+          archivo.path,
+          asunto: Textos.medicionDeMoca,
+          tipo: 'text/csv',
+        );
   }
 
   Future<void> _saltarPrimeraSemana(BuildContext context, WidgetRef ref) async {

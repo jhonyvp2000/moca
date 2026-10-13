@@ -5,7 +5,10 @@
 # - Una entrega se publica en Releases, con un enlace fijo para descargar el APK
 #   desde el teléfono, de dos formas: subiendo una etiqueta entrega-N, o lanzando
 #   este flujo a mano (Run workflow) con el nombre de la entrega; en ese caso
-#   GitHub crea la etiqueta sobre el commit armado.
+#   GitHub crea la etiqueta sobre el commit armado. La versión para los
+#   pilotos se publica igual, con el nombre piloto-N.
+# - Desde la entrega 9 se arma un APK por tipo de procesador, más liviano:
+#   arm64 (casi todos los teléfonos) y armeabi-v7a (teléfonos antiguos).
 #
 # Firma: si existen los secretos MOCA_KEYSTORE_BASE64, MOCA_KEYSTORE_PASSWORD,
 # MOCA_KEY_ALIAS y MOCA_KEY_PASSWORD, el APK se firma con la llave de Moca.
@@ -25,10 +28,11 @@ on:
       - ".github/workflows/apk.yml"
     tags:
       - "entrega-*"
+      - "piloto-*"
   workflow_dispatch:
     inputs:
       entrega:
-        description: "Nombre de la entrega a publicar (por ejemplo entrega-1). Vacío: solo arma el APK."
+        description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M o piloto-N). Vacío: solo arma el APK."
         required: false
         default: ""
 
@@ -44,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      ENTREGA: ${{ startsWith(github.ref, 'refs/tags/entrega-') && github.ref_name || inputs.entrega }}
+      ENTREGA: ${{ (startsWith(github.ref, 'refs/tags/entrega-') || startsWith(github.ref, 'refs/tags/piloto-')) && github.ref_name || inputs.entrega }}
     defaults:
       run:
         working-directory: app
@@ -106,30 +110,34 @@ jobs:
           echo "FIRMA=moca" >> "$GITHUB_ENV"
 
       - name: Armar APK
-        run: flutter build apk --release --build-number=${{ github.run_number }}
+        run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }}
 
       - name: Comprobar la firma
         run: |
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
-          "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee firma.txt
-          if [ "$FIRMA" = "moca" ] && grep -q "CN=Android Debug" firma.txt; then
-            echo "::error::El APK salió con la llave de depuración aunque había llave de Moca."
-            exit 1
-          fi
-          grep -m1 "SHA-256" firma.txt >> "$GITHUB_STEP_SUMMARY"
+          for abi in arm64-v8a armeabi-v7a; do
+            "$apksigner" verify --print-certs "build/app/outputs/flutter-apk/app-$abi-release.apk" | tee "firma-$abi.txt"
+            if [ "$FIRMA" = "moca" ] && grep -q "CN=Android Debug" "firma-$abi.txt"; then
+              echo "::error::El APK $abi salió con la llave de depuración aunque había llave de Moca."
+              exit 1
+            fi
+          done
+          grep -m1 "SHA-256" firma-arm64-v8a.txt >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Nombre del archivo
+      - name: Nombre de los archivos
         run: |
           nombre="moca-${ENTREGA:-${GITHUB_REF_NAME//\//-}}-${{ github.run_number }}"
           if [ "$FIRMA" = "depuracion" ]; then nombre="$nombre-depuracion"; fi
-          cp build/app/outputs/flutter-apk/app-release.apk "$nombre.apk"
-          echo "APK=app/$nombre.apk" >> "$GITHUB_ENV"
+          mkdir -p publicar
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "publicar/$nombre-arm64.apk"
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "publicar/$nombre-armeabi-v7a.apk"
+          ls -lh publicar
           echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NOMBRE }}
-          path: ${{ env.APK }}
+          path: app/publicar/*.apk
           retention-days: 30
 
       - name: Publicar en Releases
@@ -138,13 +146,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # entrega-N, o entrega-N.M para una corrección de esa entrega.
-          if [[ ! "$ENTREGA" =~ ^entrega-[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "::error::El nombre de la entrega debe ser entrega-N o entrega-N.M (por ejemplo entrega-3.1)."
+          # entrega-N, entrega-N.M (corrección de esa entrega) o piloto-N.
+          if [[ ! "$ENTREGA" =~ ^(entrega|piloto)-[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::El nombre debe ser entrega-N, entrega-N.M o piloto-N (por ejemplo entrega-3.1)."
             exit 1
           fi
-          gh release create "$ENTREGA" "$APK" \
+          notas="APK de la $ENTREGA del prototipo V1. Firma: $FIRMA.
+
+          - arm64: para casi todos los teléfonos.
+          - armeabi-v7a: solo si el teléfono es muy antiguo y el otro no se instala."
+          # La versión de los pilotos no es de prueba interna.
+          prueba=""
+          if [[ "$ENTREGA" == entrega-* ]]; then prueba="--prerelease"; fi
+          gh release create "$ENTREGA" app/publicar/*.apk \
             --target "$GITHUB_SHA" \
             --title "Moca · $ENTREGA" \
-            --notes "APK de la $ENTREGA del prototipo V1. Firma: $FIRMA." \
-            --prerelease
+            --notes "$notas" \
+            $prueba

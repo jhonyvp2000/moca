@@ -1,16 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/isotipo.dart';
+import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
 /// S00 · Bienvenida.
-class PantallaBienvenida extends StatelessWidget {
+class PantallaBienvenida extends ConsumerStatefulWidget {
   const PantallaBienvenida({super.key});
+
+  @override
+  ConsumerState<PantallaBienvenida> createState() => _EstadoBienvenida();
+}
+
+class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
+  bool _cargandoDemo = false;
+
+  /// «Ver una demo»: carga los datos de ejemplo; con ellos, la app pasa
+  /// sola al Inicio.
+  Future<void> _verDemo() async {
+    setState(() => _cargandoDemo = true);
+    try {
+      await ref.read(repositorioOperadorProvider).cargarDemo();
+    } finally {
+      if (mounted) setState(() => _cargandoDemo = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +128,14 @@ class PantallaBienvenida extends StatelessWidget {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () =>
-                                  _avisar(context, null, Textos.demoLlega),
+                              onPressed: _cargandoDemo ? null : _verDemo,
                               style: _estiloEnlace(conBorde: true),
-                              child: const Text(Textos.verDemo),
+                              child: Text(
+                                _cargandoDemo
+                                    ? Textos.cargandoDemo
+                                    : Textos.verDemo,
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -146,21 +170,6 @@ class PantallaBienvenida extends StatelessWidget {
             : BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: Tipografia.textoFuerte,
-      );
-
-  Future<void> _avisar(BuildContext context, String? titulo, String texto) =>
-      showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: titulo == null ? null : Text(titulo),
-          content: Text(texto),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(Textos.entendido),
-            ),
-          ],
-        ),
       );
 
   Future<void> _yaTengoCuenta(BuildContext context) async {

@@ -4,6 +4,11 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-13 | Estados de la entrega 9: permiso de avisos desde la tarjeta de Moca; aviso de cierre contestado en la notificación (efectivo, Yape, banco si hubo en 30 días, «Hoy no abrí») y el arqueo el domingo; un aviso al día a las 8:00 a. m.; Demo de diez semanas con franja y «Salir»; medición exportable en CSV; APK por tipo de procesador y guía para los pilotos | Jhony | `prototipo-v1.md` |
+| 2026-10-13 | Las notificaciones se programan de forma aproximada (sin el permiso de alarmas exactas) para los próximos siete días, y se vuelven a programar con cada cambio | Claude Code | `prototipo-v1.md` |
+| 2026-10-13 | La exportación de la medición incluye de la bitácora solo acción, entidad, tipo, fuente y motivos del arqueo, sin montos ni notas (se mantiene la regla de no exportar montos) | Claude Code | `prototipo-v1.md` |
+| 2026-10-13 | Desde el APK de los pilotos, una actualización no borra los datos del teléfono: los cambios de tablas llevan migración | Claude Code | `app/README.md` |
+| 2026-10-13 | La versión para los pilotos se publica en Releases como `piloto-N`, con los APK `arm64` y `armeabi-v7a` | Claude Code | `app/README.md` |
 | 2026-10-13 | Estados de la entrega 8: informe del mes con flechas de mes, comparaciones, barras, sustento y PDF compartido; pestaña Moca con el resumen de la semana (texto y voz sintética) y avisos por prioridad; el aviso más importante en la tarjeta del Inicio; «Adelantar el reloj un día» en el ajuste oculto | Jhony | `prototipo-v1.md` |
 | 2026-10-13 | Las notificaciones del teléfono (un aviso al día) pasan a la entrega 9, junto con el aviso de cierre | Jhony | `prototipo-v1.md` |
 | 2026-10-13 | El informe cuenta por fecha del comprobante y las comparaciones del mes en curso son hasta el mismo día del mes anterior; el resumen de la semana usa la semana pasada completa (la primera semana, lo que va) | Claude Code | `prototipo-v1.md` |

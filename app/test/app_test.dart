@@ -11,6 +11,7 @@ import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/conexion.dart';
 import 'package:moca/dominio/modelos.dart';
@@ -59,7 +60,30 @@ class _LocutorFalso implements Locutor {
 
 class _CompartidorFalso implements Compartidor {
   @override
-  Future<void> compartirArchivo(String ruta, {required String asunto}) async {}
+  Future<void> compartirArchivo(
+    String ruta, {
+    required String asunto,
+    String tipo = 'application/pdf',
+  }) async {}
+}
+
+/// Lo último que se programó y si el dueño da el permiso de avisos.
+var _programado = <NotificacionProgramada>[];
+var _daPermiso = true;
+void Function(DestinoNotificacion)? _abrirDesdeAviso;
+
+class _NotificadorFalso implements Notificador {
+  @override
+  Future<void> iniciar({
+    required void Function(DestinoNotificacion destino) alAbrir,
+  }) async => _abrirDesdeAviso = alAbrir;
+
+  @override
+  Future<bool> pedirPermiso() async => _daPermiso;
+
+  @override
+  Future<void> programar(List<NotificacionProgramada> plan) async =>
+      _programado = plan;
 }
 
 /// Lo que devuelve la cámara en la próxima foto.
@@ -86,7 +110,11 @@ class _VozFalsa implements ReconocedorVoz {
 
 /// Abre la app con una base en memoria. Con `listo`, el camino del primer
 /// día ya está hecho (venta de S/ 350 en efectivo y saldo de S/ 1,000).
-Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
+Future<BaseLocal> abrirApp(
+  WidgetTester tester, {
+  bool listo = false,
+  bool permisoPreguntado = true,
+}) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   _loQueDice = [const AlternativaVoz('hola')];
   _vozDisponible = DisponibilidadVoz.disponible;
@@ -94,6 +122,9 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
   _conSenal = true;
   _loQueDijo.clear();
   _hayVoz = true;
+  _programado = [];
+  _daPermiso = true;
+  _abrirDesdeAviso = null;
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -107,6 +138,15 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
       closeStreamsSynchronously: true,
     ),
   );
+  if (permisoPreguntado) {
+    await tester.runAsync(
+      () => base
+          .into(base.ajustes)
+          .insert(
+            AjustesCompanion.insert(clave: 'permiso_avisos', valor: 'si'),
+          ),
+    );
+  }
   if (listo) {
     await tester.runAsync(() async {
       final repo = RepositorioPrimerDiaLocal(base, ahora: () => _ahora);
@@ -131,6 +171,7 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
         conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
         locutorProvider.overrideWithValue(_LocutorFalso()),
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
+        notificadorProvider.overrideWithValue(_NotificadorFalso()),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         lectorFotoProvider.overrideWith(
@@ -298,6 +339,7 @@ void main() {
             baseLocalProvider.overrideWithValue(base),
             relojProvider.overrideWithValue(() => _ahora),
             conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
+            notificadorProvider.overrideWithValue(_NotificadorFalso()),
           ],
           child: const MocaApp(),
         ),
@@ -310,14 +352,8 @@ void main() {
       expect(movimientos, hasLength(1));
     });
 
-    testWidgets('«Ver una demo» y «Ya tengo cuenta» explican qué pasa', (
-      tester,
-    ) async {
+    testWidgets('«Ya tengo cuenta» explica qué pasa', (tester) async {
       await abrirApp(tester);
-      await tocar(tester, find.text(Textos.verDemo));
-      expect(find.text(Textos.demoLlega), findsOneWidget);
-      await tocar(tester, find.text(Textos.entendido));
-
       await tocar(tester, find.text(Textos.yaTengoCuenta));
       expect(find.text(Textos.cuentaEnTelefono), findsOneWidget);
       await tocar(tester, find.text(Textos.empezar));
@@ -1366,6 +1402,72 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'S14');
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(tester.takeException(), isNull, reason: 'S16');
+    });
+  });
+
+  group('Entrega 9', () {
+    /// La Demo tarda unos segundos en armarse.
+    Future<void> esperarHasta(WidgetTester tester, Finder f) async {
+      for (var i = 0; i < 100 && f.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+      }
+      await esperar(tester);
+    }
+
+    testWidgets('«Ver una demo» carga la bodega y «Salir» la borra', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      await tocar(tester, find.text(Textos.verDemo));
+      await esperarHasta(tester, find.text(Textos.estasViendoUnaDemo));
+      expect(find.text(Textos.estasViendoUnaDemo), findsOneWidget);
+      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      // En la Demo no se pide el permiso de avisos ni se programa nada.
+      expect(find.text(Textos.permitirAvisos), findsNothing);
+      expect(_programado, isEmpty);
+
+      await tocar(tester, find.text(Textos.salir));
+      expect(find.text(Textos.salirDeLaDemoTitulo), findsOneWidget);
+      await tocar(tester, find.text(Textos.salir).last);
+      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+      expect(find.text(Textos.estasViendoUnaDemo), findsNothing);
+    });
+
+    testWidgets('La primera vez pide el permiso de avisos', (tester) async {
+      await abrirApp(tester, listo: true, permisoPreguntado: false);
+      expect(find.text(Textos.permisoAvisos), findsOneWidget);
+      await tocar(tester, find.text(Textos.permitirAvisos));
+      expect(find.text(Textos.permisoAvisos), findsNothing);
+    });
+
+    testWidgets('Sin permiso, lo explica y no vuelve a pedirlo', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true, permisoPreguntado: false);
+      _daPermiso = false;
+      await tocar(tester, find.text(Textos.permitirAvisos));
+      expect(find.text(Textos.sinPermisoAvisos), findsOneWidget);
+      await tocar(tester, find.text(Textos.entendido));
+      expect(find.text(Textos.sinPermisoAvisos), findsNothing);
+    });
+
+    testWidgets('Programa el aviso de cierre de mañana y abre lo que se toca', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      // Hoy ya hay venta: el primer aviso de cierre es mañana.
+      final cierres = _programado.where(
+        (n) => n.tipo == TipoNotificacion.cierre,
+      );
+      expect(cierres.first.cuando, DateTime(2026, 10, 13, 21));
+
+      _abrirDesdeAviso!(DestinoNotificacion.arqueo);
+      await esperar(tester);
+      expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
     });
   });
 }

@@ -87,7 +87,14 @@ class RepositorioMocaLocal implements RepositorioMoca {
     }
 
     // Días seguidos sin registrar, contados hasta ayer.
-    final dias = {for (final m in vigentes) inicioDelDia(m.fechaMovimiento)};
+    // «Hoy no abrí» cuenta como día con registro.
+    final cerrados = await (_base.select(
+      _base.diasCerrados,
+    )..where((d) => d.empresaId.equals(empresa.id))).get();
+    final dias = {
+      for (final m in vigentes) inicioDelDia(m.fechaMovimiento),
+      for (final d in cerrados) inicioDelDia(d.dia),
+    };
     if (dias.isNotEmpty && !dias.contains(hoy)) {
       final primero = dias.reduce((a, b) => a.isBefore(b) ? a : b);
       var sinRegistrar = 0;

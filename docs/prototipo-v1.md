@@ -109,6 +109,13 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 - «Decirlo» abre la app en S07.
 - «Hoy no abrí» marca el día como cerrado y no cuenta como día sin registrar.
 
+Estados aprobados el 13-10-2026 (entrega 9):
+
+- La primera vez que se llega al Inicio, la tarjeta de Moca pide el permiso de avisos («Permitir avisos» / «Ahora no»); si se niega, lo explica una vez.
+- El aviso de cierre llega solo si ese día no hay venta ni «Hoy no abrí». Se programa de forma aproximada (puede llegar unos minutos tarde), sin el permiso de alarmas exactas. «Escribirlo» se contesta en la notificación: efectivo, «¿Y por Yape?» (con «Nada por Yape»), banco solo si hubo ventas al banco en 30 días, y «Listo. Hoy vendiste S/ X». Si el monto no se entiende, lo dice y lleva a la app. El domingo, después, ofrece el arqueo.
+- Un aviso al día a las 8:00 a. m. como máximo, programado por la app: «Falta el arqueo» (lunes), «Llevas N días sin anotar» o «Tu resumen de la semana está listo» (lunes, si hubo arqueo). La diferencia del arqueo y el gasto atípico solo se ven en la app.
+- En la Demo no hay notificaciones ni medición.
+
 ### Semana y arqueo
 
 - La semana va de lunes a domingo.
@@ -205,6 +212,8 @@ Hasta que la Fase 0 defina las reales. «Retiro para mí» no es categoría: es 
 ## Medición
 
 Opcional, pero útil para la pregunta 1: un registro local de eventos (cuándo se abre «Anotar la venta», cuándo se guarda, cuántas correcciones) que se pueda exportar como archivo al terminar la prueba.
+
+En la entrega 9: se anotan la app abierta, «Anotar la venta» abierta y guardada (con los segundos y si fue por voz o escrita), la duda del monto en la voz, «Corregir un dato», la foto ilegible, el arqueo abierto, el informe y la pestaña Moca abiertos, el PDF compartido, el resumen escuchado, los avisos tocados y las respuestas a la notificación. De la bitácora se exportan solo la acción, la entidad, el tipo, la fuente y los motivos del arqueo, sin montos ni notas. «Exportar la medición» del ajuste oculto comparte un CSV.
 
 ## Qué no entra
 

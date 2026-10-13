@@ -20,6 +20,7 @@ class PantallaPrimerDia extends StatelessWidget {
     required this.alAnotarGasto,
     required this.alDeclararSaldo,
     required this.alHacerArqueo,
+    this.tarjetaAvisos,
   });
 
   final ResumenPrimerDia resumen;
@@ -29,6 +30,9 @@ class PantallaPrimerDia extends StatelessWidget {
 
   /// Paso 4: el primer arqueo se puede hacer cualquier día.
   final VoidCallback alHacerArqueo;
+
+  /// El permiso de avisos, si falta pedirlo.
+  final Widget? tarjetaAvisos;
 
   static const _ventaDiasMeta = 5;
 
@@ -73,6 +77,7 @@ class PantallaPrimerDia extends StatelessWidget {
               ],
             ),
           ),
+          ?tarjetaAvisos,
           _conMargen(
             Tarjeta(
               relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

@@ -15,6 +15,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'avisos.dart';
+import '../../dominio/medicion.dart';
 
 /// S16 · Moca: el resumen de la semana, que se puede escuchar, y los avisos
 /// por prioridad. Sin «Pulso» ni «Pregúntale» (ajustes respecto al
@@ -55,6 +56,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
     }
     setState(() => _hablando = true);
     try {
+      await ref.read(medicionProvider).anotar(EventoMedicion.resumenEscuchado);
       await locutor.decir(texto);
     } finally {
       if (mounted) setState(() => _hablando = false);

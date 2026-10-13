@@ -8,6 +8,7 @@ import '../../rutas.dart';
 import 'hoja_saldo.dart';
 import 'pantalla_inicio_completa.dart';
 import 'pantalla_primer_dia.dart';
+import 'tarjeta_permiso_avisos.dart';
 
 /// Inicio: S03 durante la primera semana, hasta el primer arqueo; después,
 /// S04. La regla vive en la capa de datos.
@@ -27,6 +28,7 @@ class PantallaInicio extends ConsumerWidget {
         alAnotarVenta: anotarVenta,
         alHacerArqueo: () => context.push(Rutas.arqueo),
         aviso: ref.watch(avisosProvider).value?.firstOrNull,
+        tarjetaAvisos: const TarjetaPermisoAvisos(),
       );
     }
 
@@ -43,6 +45,7 @@ class PantallaInicio extends ConsumerWidget {
       ),
       alDeclararSaldo: () => mostrarHojaSaldo(context),
       alHacerArqueo: () => context.push(Rutas.arqueo),
+      tarjetaAvisos: const TarjetaPermisoAvisos(),
     );
   }
 }

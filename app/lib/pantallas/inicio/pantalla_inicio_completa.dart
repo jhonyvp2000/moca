@@ -22,6 +22,7 @@ class PantallaInicioCompleta extends StatefulWidget {
     required this.alAnotarVenta,
     required this.alHacerArqueo,
     this.aviso,
+    this.tarjetaAvisos,
   });
 
   final ResumenInicio resumen;
@@ -30,6 +31,9 @@ class PantallaInicioCompleta extends StatefulWidget {
 
   /// El aviso más importante, si hay alguno.
   final Aviso? aviso;
+
+  /// El permiso de avisos, si falta pedirlo.
+  final Widget? tarjetaAvisos;
 
   @override
   State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
@@ -72,6 +76,7 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
               ],
             ),
           ),
+          ?widget.tarjetaAvisos,
           _conMargen(
             Tarjeta(
               relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

@@ -15,6 +15,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../../dominio/medicion.dart';
 
 /// S12 · Arqueo de la semana. Moca propone lo calculado por cuenta, el dueño
 /// corrige lo que no coincida y explica cada diferencia con una respuesta
@@ -36,6 +37,7 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
   @override
   void initState() {
     super.initState();
+    ref.read(medicionProvider).anotar(EventoMedicion.arqueoAbierto);
     _preparar();
   }
 

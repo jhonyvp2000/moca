@@ -15,6 +15,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../../dominio/medicion.dart';
 
 enum _Fase { abriendoCamara, sinPermiso, leyendo, ilegible }
 
@@ -56,6 +57,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
           setState(() {
             _lectura = lectura;
             _fase = _Fase.ilegible;
+            ref.read(medicionProvider).anotar(EventoMedicion.fotoIlegible);
           });
         }
     }

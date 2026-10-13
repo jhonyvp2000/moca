@@ -111,6 +111,12 @@ class AccesoLocal {
       ),
   };
 
+  /// Si la app está en la Demo (los datos son de ejemplo).
+  static const claveModo = 'modo';
+  static const modoDemo = 'demo';
+
+  Future<bool> enDemo() async => await leerAjuste(claveModo) == modoDemo;
+
   /// Ajuste del operador: mostrar la tarjeta del arqueo sin esperar al
   /// domingo. Se borra al guardar un arqueo.
   static const claveArqueoPedido = 'arqueo_pedido';
@@ -204,6 +210,7 @@ class AccesoLocal {
           base.bitacora,
           base.arqueoCuentas,
           base.alertas,
+          base.diasCerrados,
         ]),
       )
       .map((_) {})

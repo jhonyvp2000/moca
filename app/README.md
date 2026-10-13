@@ -102,3 +102,9 @@ dart format lib test
 | `inyeccion.dart` | El único lugar que elige qué implementación usa cada interfaz |
 
 Una prueba automática (`test/arquitectura_test.dart`) falla si una pantalla importa algo de `datos/`.
+
+## APK por tipo de procesador (desde la entrega 9)
+
+GitHub arma dos APK más livianos en lugar de uno universal: `arm64` (casi todos los teléfonos) y `armeabi-v7a` (teléfonos antiguos). Las entregas se publican como `entrega-N` y la versión para los pilotos como `piloto-N`, lanzando el flujo a mano con ese nombre. La guía para instalarla está en [`guia-pilotos.md`](guia-pilotos.md).
+
+Desde el APK de los pilotos, actualizar la app no borra los datos del teléfono: un cambio en las tablas necesita su migración en `lib/datos/local/base_local.dart`.

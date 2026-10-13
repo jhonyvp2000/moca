@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
+import 'datos/repositorios/medicion_local.dart';
 import 'datos/repositorios/repositorio_arqueo_local.dart';
+import 'datos/repositorios/repositorio_aviso_cierre_local.dart';
 import 'datos/repositorios/repositorio_comprobantes_local.dart';
 import 'datos/repositorios/repositorio_historial_local.dart';
 import 'datos/repositorios/repositorio_informe_local.dart';
@@ -14,6 +16,8 @@ import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
 import 'dominio/ajustes.dart';
 import 'dominio/arqueo.dart';
+import 'dominio/aviso_cierre.dart';
+import 'dominio/medicion.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
 import 'dominio/historial.dart';
@@ -29,6 +33,7 @@ import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
 import 'servicios/conexion_android.dart';
 import 'servicios/locutor_android.dart';
+import 'servicios/notificador_android.dart';
 import 'servicios/voz_android.dart';
 
 // El único lugar que elige qué implementación usa cada interfaz.
@@ -95,7 +100,10 @@ final hayConexionProvider = StreamProvider<bool>(
 // --- Repositorios ----------------------------------------------------------------
 
 final repositorioOperadorProvider = Provider<RepositorioOperador>(
-  (ref) => RepositorioOperadorLocal(ref.watch(baseLocalProvider)),
+  (ref) => RepositorioOperadorLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
 );
 
 final repositorioPrimerDiaProvider = Provider<RepositorioPrimerDia>(
@@ -195,6 +203,39 @@ final locutorProvider = Provider<Locutor>((ref) => LocutorAndroid());
 
 final compartidorProvider = Provider<Compartidor>(
   (ref) => CompartidorAndroid(),
+);
+
+// --- Aviso de cierre, Demo y medición -----------------------------------------
+
+final repositorioAvisoCierreProvider = Provider<RepositorioAvisoCierre>(
+  (ref) => RepositorioAvisoCierreLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
+  ),
+);
+
+final planNotificacionesProvider = StreamProvider<List<NotificacionProgramada>>(
+  (ref) => ref.watch(repositorioAvisoCierreProvider).observarPlan(),
+);
+
+final permisoAvisosPreguntadoProvider = FutureProvider<bool>(
+  (ref) => ref.watch(repositorioAvisoCierreProvider).permisoPreguntado(),
+);
+
+final notificadorProvider = Provider<Notificador>(
+  (ref) => NotificadorAndroid(ref.watch(baseLocalProvider)),
+);
+
+final enDemoProvider = StreamProvider<bool>(
+  (ref) => ref.watch(repositorioOperadorProvider).observarDemo(),
+);
+
+final medicionProvider = Provider<Medicion>(
+  (ref) => MedicionLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
 );
 
 final repositorioAjustesProvider = Provider<RepositorioAjustes>(

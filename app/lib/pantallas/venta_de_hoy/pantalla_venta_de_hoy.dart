@@ -13,6 +13,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/franja_sin_senal.dart';
 import '../registrar/confirmacion.dart';
+import '../../dominio/medicion.dart';
 
 /// S07 · Venta de hoy, en su versión escrita. La voz llega en la entrega 4
 /// y llenará esta misma pantalla. Sirve para la primera venta (antes del
@@ -50,6 +51,9 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     _yape.text = soles(TipoCuenta.yape);
     _banco.text = soles(TipoCuenta.banco);
     _conBanco = _banco.text.isNotEmpty;
+    ref.read(medicionProvider).anotar(EventoMedicion.ventaAbierta, {
+      'modo': 'escrita',
+    });
   }
 
   @override
@@ -75,11 +79,17 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
         await ref
             .read(repositorioPrimerDiaProvider)
             .anotarPrimeraVenta(_ventaPorCuenta);
+        await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
+          'modo': 'escrita',
+        });
         // Al guardar, la app pasa sola a «Guarda tu avance».
         return;
       }
       final repo = ref.read(repositorioMovimientosProvider);
       final guardado = await repo.anotarVentaDelDia(_ventaPorCuenta);
+      await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
+        'modo': 'escrita',
+      });
       if (!mounted) return;
       final mensajes = ScaffoldMessenger.of(context);
       context.pop();

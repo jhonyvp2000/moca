@@ -27,6 +27,11 @@ import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'dominio/medicion.dart';
+import 'inyeccion.dart';
+
 abstract final class Rutas {
   static const cargando = '/cargando';
   static const bienvenida = '/bienvenida';
@@ -226,21 +231,29 @@ StatefulShellBranch _rama(String ruta, Widget pantalla) => StatefulShellBranch(
   routes: [GoRoute(path: ruta, builder: (context, estado) => pantalla)],
 );
 
-class _ConBarraInferior extends StatelessWidget {
+class _ConBarraInferior extends ConsumerWidget {
   const _ConBarraInferior({required this.ramas});
 
   final StatefulNavigationShell ramas;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: ramas,
       bottomNavigationBar: BarraInferior(
         pestanaActual: ramas.currentIndex,
-        alElegirPestana: (indice) => ramas.goBranch(
-          indice,
-          initialLocation: indice == ramas.currentIndex,
-        ),
+        alElegirPestana: (indice) {
+          // Medición: cuándo se mira el informe y la pestaña Moca.
+          final evento = switch (indice) {
+            2 => EventoMedicion.informeAbierto,
+            3 => EventoMedicion.mocaAbierta,
+            _ => null,
+          };
+          if (evento != null && indice != ramas.currentIndex) {
+            ref.read(medicionProvider).anotar(evento);
+          }
+          ramas.goBranch(indice, initialLocation: indice == ramas.currentIndex);
+        },
         alRegistrar: () => context.push(Rutas.registrar),
       ),
     );
