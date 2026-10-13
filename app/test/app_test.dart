@@ -84,7 +84,16 @@ class _NotificadorFalso implements Notificador {
   @override
   Future<void> programar(List<NotificacionProgramada> plan) async =>
       _programado = plan;
+
+  @override
+  Future<void> probarAvisoCierre() async => _avisosDePrueba++;
+
+  @override
+  Future<AvisosGuardados> guardados() async =>
+      AvisosGuardados(alAbrir: 0, ahora: [for (final n in _programado) n.id]);
 }
+
+var _avisosDePrueba = 0;
 
 /// Lo que devuelve la cámara en la próxima foto.
 ResultadoCamara _camara = const FotoTomada('/no/existe.jpg');
@@ -123,6 +132,7 @@ Future<BaseLocal> abrirApp(
   _loQueDijo.clear();
   _hayVoz = true;
   _programado = [];
+  _avisosDePrueba = 0;
   _daPermiso = true;
   _abrirDesdeAviso = null;
   // Tamaño del lienzo de los mockups: 390 × 844.
@@ -1468,6 +1478,25 @@ void main() {
       _abrirDesdeAviso!(DestinoNotificacion.arqueo);
       await esperar(tester);
       expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
+    });
+  });
+
+  group('Entrega 9.1', () {
+    testWidgets('El ajuste oculto prueba el aviso y muestra los programados', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.probarAvisoCierre));
+      expect(_avisosDePrueba, 1);
+      expect(find.text(Textos.avisoDePruebaEnviado), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.verAvisosProgramados));
+      expect(find.textContaining(Textos.guardadosAlAbrir(0)), findsOneWidget);
+      expect(
+        find.textContaining('Aviso de cierre · martes 13 de octubre'),
+        findsOneWidget,
+      );
     });
   });
 }

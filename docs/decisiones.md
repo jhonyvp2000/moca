@@ -4,6 +4,7 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-13 | Entrega 9.1: el aviso de cierre se programa aunque no queden registros vigentes (se cuenta desde el alta); en el ajuste oculto, «Probar el aviso de cierre ahora» y «Ver avisos programados» (con cuántos tenía el teléfono al abrir la app); la guía de los pilotos pide no deslizar Moca fuera de las recientes | Jhony | `app/guia-pilotos.md` |
 | 2026-10-13 | Estados de la entrega 9: permiso de avisos desde la tarjeta de Moca; aviso de cierre contestado en la notificación (efectivo, Yape, banco si hubo en 30 días, «Hoy no abrí») y el arqueo el domingo; un aviso al día a las 8:00 a. m.; Demo de diez semanas con franja y «Salir»; medición exportable en CSV; APK por tipo de procesador y guía para los pilotos | Jhony | `prototipo-v1.md` |
 | 2026-10-13 | Las notificaciones se programan de forma aproximada (sin el permiso de alarmas exactas) para los próximos siete días, y se vuelven a programar con cada cambio | Claude Code | `prototipo-v1.md` |
 | 2026-10-13 | La exportación de la medición incluye de la bitácora solo acción, entidad, tipo, fuente y motivos del arqueo, sin montos ni notas (se mantiene la regla de no exportar montos) | Claude Code | `prototipo-v1.md` |

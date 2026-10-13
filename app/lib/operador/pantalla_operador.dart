@@ -157,6 +157,26 @@ class PantallaOperador extends ConsumerWidget {
                 ],
                 const Divider(),
                 _Opcion(
+                  titulo: Textos.probarAvisoCierre,
+                  detalle: Textos.probarAvisoCierreDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref.read(notificadorProvider).probarAvisoCierre();
+                    mensajes.showSnackBar(
+                      const SnackBar(
+                        content: Text(Textos.avisoDePruebaEnviado),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.verAvisosProgramados,
+                  detalle: Textos.verAvisosProgramadosDetalle,
+                  alTocar: () => _verAvisosProgramados(context, ref),
+                ),
+                const Divider(),
+                _Opcion(
                   titulo: Textos.simularSinSenal,
                   detalle: sinSenal
                       ? Textos.simularSinSenalActivo
@@ -222,6 +242,45 @@ class PantallaOperador extends ConsumerWidget {
     ref.read(fraseElegidaProvider.notifier).elegir(elegida);
     mensajes.showSnackBar(
       SnackBar(content: Text(Textos.fraseElegida(elegida.texto))),
+    );
+  }
+
+  Future<void> _verAvisosProgramados(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final guardados = await ref.read(notificadorProvider).guardados();
+    final plan = {
+      for (final n in await ref.read(repositorioAvisoCierreProvider).plan())
+        n.id: n,
+    };
+    final lineas = [
+      if (guardados.alAbrir case final n?) Textos.guardadosAlAbrir(n),
+      if (guardados.ahora.isEmpty) Textos.sinAvisosGuardados,
+      for (final id in guardados.ahora..sort())
+        switch (plan[id]) {
+          final n? =>
+            '${Textos.nombreNotificacion(n.tipo)} · '
+                '${formatearFechaLarga(n.cuando)} · '
+                '${formatearHora(n.cuando.hour * 60 + n.cuando.minute)}',
+          null => Textos.otroAviso,
+        },
+    ];
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Textos.verAvisosProgramados),
+        content: SingleChildScrollView(
+          child: Text(lineas.join('\n\n'), style: Tipografia.texto),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(Textos.entendido),
+          ),
+        ],
+      ),
     );
   }
 

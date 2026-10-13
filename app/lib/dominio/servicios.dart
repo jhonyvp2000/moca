@@ -34,4 +34,23 @@ abstract interface class Notificador {
 
   /// Reemplaza lo programado por este plan.
   Future<void> programar(List<NotificacionProgramada> plan);
+
+  /// Ajuste oculto: muestra ya el aviso de cierre, sin esperar la hora.
+  Future<void> probarAvisoCierre();
+
+  /// Ajuste oculto: qué avisos tiene guardados el teléfono.
+  Future<AvisosGuardados> guardados();
+}
+
+/// Los avisos que el teléfono tiene guardados para mostrar más tarde.
+class AvisosGuardados {
+  const AvisosGuardados({required this.alAbrir, required this.ahora});
+
+  /// Cuántos había al abrir la app, antes de volver a programarlos. Si es
+  /// cero y debía haber, el teléfono los borró (por ejemplo, al deslizar la
+  /// app fuera de las recientes). Nulo si no se pudo saber.
+  final int? alAbrir;
+
+  /// Los identificadores de los que hay ahora.
+  final List<int> ahora;
 }

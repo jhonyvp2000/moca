@@ -76,16 +76,19 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
     final movimientos = (await _a.movimientos(empresa.id))
         .where((m) => m.estado == EstadoRegistro.vigente)
         .toList();
-    if (movimientos.isEmpty) return const [];
     final conVenta = await _diasConVenta(empresa.id);
     final cerrados = await _diasCerrados(empresa.id);
     final arqueos = await (_base.select(
       _base.arqueos,
     )..where((a) => a.empresaId.equals(empresa.id))).get();
+    // Sin registros vigentes (por ejemplo, si se deshizo la única venta)
+    // el aviso igual se programa: se cuenta desde el alta del negocio.
+    final alta = inicioDelDia(empresa.creadoEn);
     final primerDia = movimientos
         .map((m) => inicioDelDia(m.fechaMovimiento))
-        .reduce((a, b) => a.isBefore(b) ? a : b);
+        .fold(alta, (a, b) => a.isBefore(b) ? a : b);
     final ultimoConActividad = {
+      alta,
       for (final m in movimientos) inicioDelDia(m.fechaMovimiento),
       ...cerrados,
     }.reduce((a, b) => a.isAfter(b) ? a : b);

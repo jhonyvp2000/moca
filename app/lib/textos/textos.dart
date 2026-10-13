@@ -1,3 +1,4 @@
+import '../dominio/aviso_cierre.dart';
 import '../dominio/modelos.dart';
 
 /// Todos los textos de la app, en español de Perú y en un solo lugar,
@@ -611,6 +612,28 @@ abstract final class Textos {
       ? 'La app va 1 día adelantada.'
       : 'La app va $dias días adelantada.';
   static const horaReal = 'Listo. La app usa la hora real.';
+  static const probarAvisoCierre = 'Probar el aviso de cierre ahora';
+  static const probarAvisoCierreDetalle =
+      'Muestra ya la notificación de la hora de cierre, para probar '
+      '«Escribirlo», «Decirlo» y «Hoy no abrí» sin esperar.';
+  static const avisoDePruebaEnviado =
+      'Listo. Baja la barra de notificaciones del teléfono.';
+  static const verAvisosProgramados = 'Ver avisos programados';
+  static const verAvisosProgramadosDetalle =
+      'Qué avisos tiene guardados el teléfono y a qué hora saldrán.';
+  static String guardadosAlAbrir(int n) => n == 1
+      ? 'Al abrir Moca, el teléfono tenía 1 aviso guardado.'
+      : 'Al abrir Moca, el teléfono tenía $n avisos guardados.';
+  static const sinAvisosGuardados =
+      'Ahora el teléfono no tiene avisos guardados. Si hoy ya anotaste la '
+      'venta, el aviso de cierre de hoy no se programa.';
+  static String nombreNotificacion(TipoNotificacion tipo) => switch (tipo) {
+    TipoNotificacion.cierre => 'Aviso de cierre',
+    TipoNotificacion.faltaArqueo => 'Falta el arqueo',
+    TipoNotificacion.diasSinAnotar => 'Días sin anotar',
+    TipoNotificacion.resumenSemanal => 'Resumen de la semana',
+  };
+  static const otroAviso = 'Otro aviso';
   static const simularSinSenal = 'Simular sin señal';
   static const simularSinSenalDetalle =
       'Lo que se guarde queda «por subir», como si el teléfono no tuviera '

@@ -16,13 +16,15 @@ Moca te ayuda a llevar las cuentas de tu negocio: anotas tu venta del día y tus
 
 ## 3. Dejar que Moca te avise
 
-Moca te recuerda anotar la venta a tu hora de cierre (9:00 p. m., o la que elijas al empezar).
+Moca te recuerda anotar la venta a tu hora de cierre (9:00 p. m., o la que elijas al empezar). Puede llegar unos minutos tarde.
 
-1. Cuando Moca pida permiso para enviar notificaciones, toca **Permitir**.
-2. Para que el aviso llegue a su hora, quita el ahorro de batería para Moca:
-   - Mantén presionado el ícono de Moca y toca **Información de la app** (o el botón ⓘ).
-   - Entra a **Batería** y elige **Sin restricciones** (en algunos teléfonos dice **No optimizar** o **Permitir actividad en segundo plano**).
-   - En teléfonos Xiaomi, Redmi o POCO, activa además **Inicio automático** para Moca.
+1. Cuando Moca pida permiso para enviar notificaciones, toca **Permitir avisos** y luego **Permitir**.
+2. Dale permiso para trabajar en segundo plano. Abre **Ajustes** (el engranaje ⚙️) → **Aplicaciones** (o «Apps» / «Gestión de aplicaciones») → **Moca**, y revisa:
+   - **Notificaciones**: activadas.
+   - **Uso de batería** (o «Batería»): **Permitir actividad en segundo plano**, o **Sin restricciones** / «No optimizar».
+   - En **Xiaomi, Redmi o POCO**, activa además **Inicio automático**.
+   - En **Realme u Oppo**, activa además **Permitir inicio automático** o **Inicio en segundo plano**, si aparece.
+3. **No cierres Moca deslizándola** fuera de las apps recientes. Sal con el botón de inicio (el círculo). En muchos teléfonos, deslizarla borra los avisos y ya no te llega el de la noche.
 
 ## 4. Contestar el aviso sin abrir la app
 

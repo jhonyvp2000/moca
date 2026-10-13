@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -174,39 +175,45 @@ Future<void> responderEnSegundoPlano(NotificationResponse r) async {
   }
 }
 
+/// Texto, destino y botones de cada aviso programado.
+(String, String, List<AndroidNotificationAction>) _contenido(
+  TipoNotificacion tipo, {
+  int? dias,
+}) => switch (tipo) {
+  TipoNotificacion.cierre => (
+    Textos.preguntaVentaCuenta(TipoCuenta.efectivo),
+    _cargaCierre,
+    [
+      const AndroidNotificationAction(
+        _accionDecir,
+        Textos.decirlo,
+        showsUserInterface: true,
+      ),
+      _escribir(TipoCuenta.efectivo),
+      const AndroidNotificationAction(_accionHoyNoAbri, Textos.hoyNoAbri),
+    ],
+  ),
+  TipoNotificacion.faltaArqueo => (
+    Textos.mocaFaltaArqueo,
+    _cargaArqueo,
+    const <AndroidNotificationAction>[],
+  ),
+  TipoNotificacion.diasSinAnotar => (
+    '${Textos.avisoDias(dias ?? 2)}.',
+    _cargaRegistrar,
+    const <AndroidNotificationAction>[],
+  ),
+  TipoNotificacion.resumenSemanal => (
+    Textos.resumenListo,
+    _cargaMoca,
+    const <AndroidNotificationAction>[],
+  ),
+};
+
 Future<void> _programar(List<NotificacionProgramada> plan) async {
   await _plugin.cancelAllPendingNotifications();
   for (final n in plan) {
-    final (cuerpo, carga, acciones) = switch (n.tipo) {
-      TipoNotificacion.cierre => (
-        Textos.preguntaVentaCuenta(TipoCuenta.efectivo),
-        _cargaCierre,
-        [
-          const AndroidNotificationAction(
-            _accionDecir,
-            Textos.decirlo,
-            showsUserInterface: true,
-          ),
-          _escribir(TipoCuenta.efectivo),
-          const AndroidNotificationAction(_accionHoyNoAbri, Textos.hoyNoAbri),
-        ],
-      ),
-      TipoNotificacion.faltaArqueo => (
-        Textos.mocaFaltaArqueo,
-        _cargaArqueo,
-        const <AndroidNotificationAction>[],
-      ),
-      TipoNotificacion.diasSinAnotar => (
-        '${Textos.avisoDias(n.dias ?? 2)}.',
-        _cargaRegistrar,
-        const <AndroidNotificationAction>[],
-      ),
-      TipoNotificacion.resumenSemanal => (
-        Textos.resumenListo,
-        _cargaMoca,
-        const <AndroidNotificationAction>[],
-      ),
-    };
+    final (cuerpo, carga, acciones) = _contenido(n.tipo, dias: n.dias);
     await _plugin.zonedSchedule(
       id: n.id,
       title: Textos.nombreApp,
@@ -231,6 +238,14 @@ class NotificadorAndroid implements Notificador {
 
   final BaseLocal _base;
 
+  /// Se programa después de iniciar, para poder contar antes lo que el
+  /// teléfono tenía guardado.
+  final _iniciado = Completer<void>();
+  int? _guardadosAlAbrir;
+
+  /// El aviso de prueba del ajuste oculto.
+  static const _idPrueba = 99;
+
   AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
@@ -254,6 +269,7 @@ class NotificadorAndroid implements Notificador {
         onDidReceiveNotificationResponse: responder,
         onDidReceiveBackgroundNotificationResponse: responderEnSegundoPlano,
       );
+      _guardadosAlAbrir = (await _plugin.pendingNotificationRequests()).length;
       // Si la app se abrió tocando una notificación.
       final inicio = await _plugin.getNotificationAppLaunchDetails();
       final respuesta = inicio?.notificationResponse;
@@ -262,6 +278,8 @@ class NotificadorAndroid implements Notificador {
       }
     } on Exception {
       // Sin notificaciones (por ejemplo, en pruebas): la app sigue igual.
+    } finally {
+      if (!_iniciado.isCompleted) _iniciado.complete();
     }
   }
 
@@ -277,9 +295,37 @@ class NotificadorAndroid implements Notificador {
   @override
   Future<void> programar(List<NotificacionProgramada> plan) async {
     try {
+      await _iniciado.future.timeout(const Duration(seconds: 10));
       await _programar(plan);
     } on Exception {
       return;
+    }
+  }
+
+  @override
+  Future<void> probarAvisoCierre() async {
+    final (cuerpo, carga, acciones) = _contenido(TipoNotificacion.cierre);
+    await _plugin.show(
+      id: _idPrueba,
+      title: Textos.nombreApp,
+      body: cuerpo,
+      payload: carga,
+      notificationDetails: NotificationDetails(
+        android: _detalles(acciones: acciones),
+      ),
+    );
+  }
+
+  @override
+  Future<AvisosGuardados> guardados() async {
+    try {
+      final ahora = await _plugin.pendingNotificationRequests();
+      return AvisosGuardados(
+        alAbrir: _guardadosAlAbrir,
+        ahora: [for (final p in ahora) p.id],
+      );
+    } on Exception {
+      return AvisosGuardados(alAbrir: _guardadosAlAbrir, ahora: const []);
     }
   }
 }

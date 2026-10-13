@@ -7,6 +7,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/modelos.dart';
+import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 
 void main() {
@@ -121,4 +122,22 @@ void main() {
     await repo.marcarPermisoPreguntado();
     expect(await repo.permisoPreguntado(), isTrue);
   });
+
+  test(
+    'Si se deshace la única venta, el aviso de hoy igual se programa',
+    () async {
+      final venta = (await base.select(base.movimientos).get()).single;
+      await RepositorioMovimientosLocal(
+        base,
+        ahora: () => ahora,
+      ).deshacer(Guardado(ids: [venta.id], tienesHoyCentimos: 0));
+      final plan = await repo.plan();
+      expect(
+        plan.first,
+        isA<NotificacionProgramada>()
+            .having((n) => n.tipo, 'tipo', TipoNotificacion.cierre)
+            .having((n) => n.cuando, 'cuando', DateTime(2026, 10, 12, 21)),
+      );
+    },
+  );
 }
