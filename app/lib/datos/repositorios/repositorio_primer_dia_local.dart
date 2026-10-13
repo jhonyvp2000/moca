@@ -70,7 +70,10 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   // --- Camino del primer día -------------------------------------------------
 
   @override
-  Future<void> anotarPrimeraVenta(Map<TipoCuenta, int> ventaPorCuenta) async {
+  Future<void> anotarPrimeraVenta(
+    Map<TipoCuenta, int> ventaPorCuenta, {
+    Fuente fuente = Fuente.texto,
+  }) async {
     if (!ventaPorCuenta.values.any((monto) => monto > 0)) {
       throw ArgumentError('La venta necesita al menos un monto.');
     }
@@ -167,7 +170,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
                 categoriaId: Value(ventaDelDia.id),
                 // Venta del día sin comprobante: nivel D (modelo-datos.md).
                 nivelConfianza: NivelConfianza.d,
-                fuente: Fuente.texto,
+                fuente: fuente,
                 autorId: usuarioId,
                 estado: EstadoRegistro.vigente,
                 estadoSincronizacion: EstadoSincronizacion.subido,

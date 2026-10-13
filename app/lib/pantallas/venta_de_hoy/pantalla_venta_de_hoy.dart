@@ -17,9 +17,16 @@ import '../registrar/confirmacion.dart';
 /// y llenará esta misma pantalla. Sirve para la primera venta (antes del
 /// alta) y para la venta de los días siguientes, que se suma a la de hoy.
 class PantallaVentaDeHoy extends ConsumerStatefulWidget {
-  const PantallaVentaDeHoy({super.key, this.primeraVenta = true});
+  const PantallaVentaDeHoy({
+    super.key,
+    this.primeraVenta = true,
+    this.montosIniciales,
+  });
 
   final bool primeraVenta;
+
+  /// Montos ya puestos, por ejemplo al corregir lo que se dijo por voz.
+  final Map<TipoCuenta, int>? montosIniciales;
 
   @override
   ConsumerState<PantallaVentaDeHoy> createState() => _EstadoVentaDeHoy();
@@ -31,6 +38,18 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   final _banco = TextEditingController();
   bool _conBanco = false;
   bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final montos = widget.montosIniciales ?? const {};
+    String soles(TipoCuenta c) =>
+        (montos[c] ?? 0) > 0 ? separarMiles(montos[c]! ~/ 100) : '';
+    _efectivo.text = soles(TipoCuenta.efectivo);
+    _yape.text = soles(TipoCuenta.yape);
+    _banco.text = soles(TipoCuenta.banco);
+    _conBanco = _banco.text.isNotEmpty;
+  }
 
   @override
   void dispose() {

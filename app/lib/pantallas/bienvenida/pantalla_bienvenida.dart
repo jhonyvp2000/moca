@@ -86,7 +86,7 @@ class PantallaBienvenida extends StatelessWidget {
                       const Spacer(),
                       const SizedBox(height: 32),
                       FilledButton(
-                        onPressed: () => context.go(Rutas.ventaDeHoy),
+                        onPressed: () => context.go(Rutas.vozPrimeraVenta),
                         style: FilledButton.styleFrom(
                           backgroundColor: Colores.sobreMarca,
                           foregroundColor: Colores.azulOscuro,
@@ -181,6 +181,6 @@ class PantallaBienvenida extends StatelessWidget {
         ],
       ),
     );
-    if (empezar == true && context.mounted) context.go(Rutas.ventaDeHoy);
+    if (empezar == true && context.mounted) context.go(Rutas.vozPrimeraVenta);
   }
 }

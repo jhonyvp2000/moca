@@ -156,6 +156,43 @@ abstract final class Textos {
   static String hoyYaAnotaste(String monto) =>
       'Hoy ya anotaste $monto. Esto se suma.';
 
+  // S07 y S18 · Voz
+  static const registroPorVoz = 'Registro por voz';
+  static const microfonoExplicacion =
+      'Moca necesita el micrófono para escuchar lo que le dices. No guarda '
+      'el audio.';
+  static const empezarAEscuchar = 'Empezar a escuchar';
+  static const teEscucho = 'Te escucho…';
+  static const tocaParaTerminar = 'Toca cuando termines';
+  static const tocaParaGrabarOtraVez = 'Toca para grabar otra vez';
+  static const preparandoMicrofono = 'Preparando el micrófono…';
+  static const ejemploQueDecir = 'Por ejemplo: «Hoy vendí 350 en efectivo»';
+  static const prefieroEscribirlo = 'Prefiero escribirlo';
+  static const decirloOtraVez = 'Decirlo otra vez';
+  static const sinPermisoMicrofono =
+      'Sin permiso para el micrófono, Moca no puede escucharte. Puedes '
+      'escribirlo, o darle permiso en los ajustes del teléfono.';
+  static const vozNoDisponible =
+      'Tu teléfono no puede reconocer la voz en este momento. Puedes '
+      'escribirlo.';
+  static const noTeEntendi =
+      'No te entendí. Puedes decir, por ejemplo: «Hoy vendí 350 en efectivo».';
+  static const mocaEntendio = 'Moca entendió';
+  static const loQueDijiste = 'lo que dijiste';
+  static const totalQueSale = 'Total que salió';
+  static const corregirUnDato = 'Corregir un dato';
+  static const noEscucheElMonto = 'No escuché bien el monto. ¿Cuánto fue?';
+  static const otroMonto = 'Otro monto';
+  static const confirmarMonto = 'Usar este monto';
+  static const entroOSalio = '¿Entró o salió plata?';
+  static String dondeEntro(String monto) => '¿Dónde entraron los $monto?';
+  static String deDondeSalioMonto(String monto) =>
+      '¿De dónde salieron los $monto?';
+  static const enQueFue = '¿En qué fue?';
+  static const deQueFue = '¿De qué fue?';
+  static const mocaNuncaAdivina =
+      'Moca pregunta cuando no está segura. Nunca adivina un monto.';
+
   // S06 · Registrar
   static const cerrar = 'Cerrar';
   static const diloOMuestralo = 'Dilo o muéstralo';
@@ -220,6 +257,10 @@ abstract final class Textos {
   static const empezarDemo = 'Empezar en «Demo»';
   static const forzarFotoIlegible = 'Forzar «foto ilegible»';
   static const elegirFrase = 'Elegir frase de ejemplo para la voz';
+  static const elegirFraseDetalle =
+      'La próxima grabación usa esta frase en lugar del micrófono.';
+  static String fraseElegida(String frase) =>
+      'La próxima grabación usará: «$frase»';
   static const exportarMedicion = 'Exportar la medición';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';
   static const confirmarBorrarTitulo = '¿Borrar todo?';

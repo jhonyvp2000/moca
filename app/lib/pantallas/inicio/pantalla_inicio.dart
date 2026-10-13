@@ -19,7 +19,7 @@ class PantallaInicio extends ConsumerWidget {
     final inicio = ref.watch(resumenInicioProvider).value;
     if (inicio == null) return const SizedBox.shrink();
 
-    void anotarVenta() => context.push(Rutas.ventaDelDia);
+    void anotarVenta() => context.push(Rutas.vozVenta);
 
     if (!inicio.mostrarPrimerDia) {
       return PantallaInicioCompleta(

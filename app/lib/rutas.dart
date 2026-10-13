@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'comun/barra_inferior.dart';
 import 'dominio/modelos.dart';
+import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
 import 'pantallas/alta/pantalla_alta.dart';
@@ -16,12 +17,14 @@ import 'pantallas/moca/pantalla_moca.dart';
 import 'pantallas/registrar/pantalla_escribir.dart';
 import 'pantallas/registrar/pantalla_registrar.dart';
 import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
+import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
 
 abstract final class Rutas {
   static const cargando = '/cargando';
   static const bienvenida = '/bienvenida';
   static const ventaDeHoy = '/bienvenida/venta-de-hoy';
+  static const vozPrimeraVenta = '/bienvenida/voz';
   static const guardarAvance = '/guardar-avance';
   static const codigo = '/guardar-avance/codigo';
   static const alta = '/alta';
@@ -32,6 +35,13 @@ abstract final class Rutas {
   static const registrar = '/registrar';
   static const escribir = '/registrar/escribir';
   static const ventaDelDia = '/venta-del-dia';
+  static const voz = '/voz';
+
+  /// «Anotar la venta de hoy» por voz.
+  static final vozVenta = Uri(
+    path: voz,
+    queryParameters: {'modo': ModoVoz.ventaDelDia.name},
+  ).toString();
   static const operador = '/operador';
 }
 
@@ -39,8 +49,12 @@ abstract final class Rutas {
 /// no corresponde a la etapa, se va a la primera de la lista. Así la app
 /// retoma el paso pendiente al volver a abrirse, y «atrás» no regresa a una
 /// venta ya guardada.
-const _rutasPorEtapa = {
-  EtapaInicio.bienvenida: [Rutas.bienvenida, Rutas.ventaDeHoy],
+final _rutasPorEtapa = {
+  EtapaInicio.bienvenida: [
+    Rutas.bienvenida,
+    Rutas.ventaDeHoy,
+    Rutas.vozPrimeraVenta,
+  ],
   EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
   EtapaInicio.alta: [Rutas.alta],
   EtapaInicio.listo: [
@@ -51,6 +65,7 @@ const _rutasPorEtapa = {
     Rutas.registrar,
     Rutas.escribir,
     Rutas.ventaDelDia,
+    Rutas.voz,
   ],
 };
 
@@ -79,7 +94,14 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
       routes: [
         GoRoute(
           path: 'venta-de-hoy',
-          builder: (context, estado) => const PantallaVentaDeHoy(),
+          builder: (context, estado) => PantallaVentaDeHoy(
+            montosIniciales: estado.extra as Map<TipoCuenta, int>?,
+          ),
+        ),
+        GoRoute(
+          path: 'voz',
+          builder: (context, estado) =>
+              const PantallaVoz(modo: ModoVoz.primeraVenta),
         ),
       ],
     ),
@@ -119,6 +141,7 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
               tipoInicial: tipo == null
                   ? null
                   : TipoMovimiento.values.asNameMap()[tipo],
+              borrador: estado.extra as BorradorMovimiento?,
             );
           },
         ),
@@ -126,8 +149,18 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     ),
     GoRoute(
       path: Rutas.ventaDelDia,
-      builder: (context, estado) =>
-          const PantallaVentaDeHoy(primeraVenta: false),
+      builder: (context, estado) => PantallaVentaDeHoy(
+        primeraVenta: false,
+        montosIniciales: estado.extra as Map<TipoCuenta, int>?,
+      ),
+    ),
+    GoRoute(
+      path: Rutas.voz,
+      builder: (context, estado) => PantallaVoz(
+        modo: estado.uri.queryParameters['modo'] == ModoVoz.ventaDelDia.name
+            ? ModoVoz.ventaDelDia
+            : ModoVoz.libre,
+      ),
     ),
     GoRoute(
       path: Rutas.operador,

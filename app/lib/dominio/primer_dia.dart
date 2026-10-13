@@ -65,7 +65,10 @@ abstract interface class RepositorioPrimerDia {
   Stream<ResumenPrimerDia> observarResumen();
 
   /// S07: guarda la venta del día por cuenta (en céntimos) y pasa a S01.
-  Future<void> anotarPrimeraVenta(Map<TipoCuenta, int> ventaPorCuenta);
+  Future<void> anotarPrimeraVenta(
+    Map<TipoCuenta, int> ventaPorCuenta, {
+    Fuente fuente = Fuente.texto,
+  });
 
   /// S01: guarda el celular ya verificado y pasa al alta.
   Future<void> guardarCelular(String celular);

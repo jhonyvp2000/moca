@@ -10,16 +10,37 @@ import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
+import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
 import 'package:moca/textos/textos.dart';
 
 final _ahora = DateTime(2026, 10, 12, 21, 5);
 
+/// Lo que «dice» el dueño en la próxima grabación.
+var _loQueDice = [const AlternativaVoz('hola')];
+var _vozDisponible = DisponibilidadVoz.disponible;
+
+class _VozFalsa implements ReconocedorVoz {
+  @override
+  Future<DisponibilidadVoz> preparar() async => _vozDisponible;
+
+  @override
+  Stream<EventoVoz> escuchar() => Stream.fromIterable([
+    VozParcial(_loQueDice.first.texto),
+    VozFinal(_loQueDice),
+  ]);
+
+  @override
+  Future<void> detener() async {}
+}
+
 /// Abre la app con una base en memoria. Con `listo`, el camino del primer
 /// día ya está hecho (venta de S/ 350 en efectivo y saldo de S/ 1,000).
 Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  _loQueDice = [const AlternativaVoz('hola')];
+  _vozDisponible = DisponibilidadVoz.disponible;
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -54,6 +75,7 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
       overrides: [
         baseLocalProvider.overrideWithValue(base),
         relojProvider.overrideWithValue(() => _ahora),
+        reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
       ],
       child: const MocaApp(),
     ),
@@ -81,6 +103,12 @@ Future<void> tocar(WidgetTester tester, Finder f) async {
   await esperar(tester);
 }
 
+/// Desde la Bienvenida, la primera venta escrita en lugar de dicha.
+Future<void> abrirVentaEscrita(WidgetTester tester) async {
+  await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+  await tocar(tester, find.text(Textos.prefieroEscribirlo));
+}
+
 void main() {
   group('Camino del primer día', () {
     testWidgets('Un teléfono nuevo abre en la Bienvenida', (tester) async {
@@ -93,8 +121,8 @@ void main() {
         'día', (tester) async {
       final base = await abrirApp(tester);
 
-      // S00 → S07
-      await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+      // S00 → S07 escrita
+      await abrirVentaEscrita(tester);
       expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
       final guardar = find.widgetWithText(FilledButton, Textos.guardar);
       expect(tester.widget<FilledButton>(guardar).onPressed, isNull);
@@ -151,7 +179,7 @@ void main() {
     testWidgets('«Ahora no» y «lo pongo después» dejan el saldo pendiente, y '
         'el paso 1 lo pide', (tester) async {
       await abrirApp(tester);
-      await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+      await abrirVentaEscrita(tester);
       await tester.enterText(find.byType(TextField).at(0), '350');
       await tester.pump();
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -179,7 +207,7 @@ void main() {
       tester,
     ) async {
       final base = await abrirApp(tester);
-      await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+      await abrirVentaEscrita(tester);
       await tester.enterText(find.byType(TextField).at(0), '350');
       await tester.pump();
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -215,7 +243,7 @@ void main() {
       await tocar(tester, find.text(Textos.yaTengoCuenta));
       expect(find.text(Textos.cuentaEnTelefono), findsOneWidget);
       await tocar(tester, find.text(Textos.empezar));
-      expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
+      expect(find.text(Textos.microfonoExplicacion), findsOneWidget);
     });
   });
 
@@ -264,12 +292,8 @@ void main() {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       expect(find.text(Textos.diloOMuestralo), findsOneWidget);
-      expect(find.text(Textos.llegaEnLaEntrega(4)), findsOneWidget);
+      expect(find.text(Textos.llegaEnLaEntrega(4)), findsNothing);
       expect(find.text(Textos.llegaEnLaEntrega(5)), findsNWidgets(2));
-      // Las entradas que todavía no funcionan no hacen nada.
-      await tocar(tester, find.text(Textos.decirloConVoz));
-      expect(find.text(Textos.diloOMuestralo), findsOneWidget);
-
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.queFue), findsOneWidget);
     });
@@ -391,7 +415,11 @@ void main() {
 
       await tocar(tester, find.text(Textos.borrarTodo));
       await tocar(tester, find.text(Textos.cancelar));
-      expect(find.textContaining('registros guardados'), findsOneWidget);
+      // La lista se desplazó: el conteo puede quedar fuera de la vista.
+      expect(
+        find.textContaining('registros guardados', skipOffstage: false),
+        findsOneWidget,
+      );
 
       await tocar(tester, find.text(Textos.borrarTodo));
       await tocar(tester, find.text(Textos.borrarTodoBoton));
@@ -433,6 +461,7 @@ void main() {
       await tocar(tester, find.byTooltip(Textos.mostrarMontos));
 
       await tocar(tester, find.text(Textos.anotarVentaDeHoy));
+      await tocar(tester, find.text(Textos.prefieroEscribirlo));
       expect(find.text(Textos.hoyYaAnotaste('S/ 350')), findsOneWidget);
       await tester.enterText(find.byType(TextField).at(1), '120');
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -471,6 +500,151 @@ void main() {
     });
   });
 
+  group('Voz', () {
+    Future<void> decir(WidgetTester tester, List<AlternativaVoz> frase) async {
+      _loQueDice = frase;
+      final explicacion = find.text(Textos.empezarAEscuchar);
+      if (explicacion.evaluate().isNotEmpty) await tocar(tester, explicacion);
+    }
+
+    Future<void> abrirVozLibre(WidgetTester tester) async {
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.decirloConVoz));
+    }
+
+    testWidgets('La primera venta dicha por voz va por cuenta', (tester) async {
+      final base = await abrirApp(tester);
+      await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+      expect(find.text(Textos.microfonoExplicacion), findsOneWidget);
+      await decir(tester, [
+        const AlternativaVoz('Hoy vendí 350 en efectivo y 120 por Yape'),
+      ]);
+
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+      expect(find.text('S/\u00A0350'), findsOneWidget);
+      expect(find.text('S/\u00A0120'), findsOneWidget);
+      expect(find.text('S/\u00A0470'), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      expect(find.text(Textos.hoyEntraron('S/\u00A0470')), findsOneWidget);
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      expect(movimientos!.map((m) => m.fuente).toSet(), {Fuente.voz});
+    });
+
+    testWidgets('Con duda del monto, Moca pregunta (S18) y no adivina', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [
+        const AlternativaVoz('Pagué trescientos quince de mercadería', 0.4),
+        const AlternativaVoz('Pagué trescientos cincuenta de mercadería'),
+      ]);
+
+      expect(find.text(Textos.noEscucheElMonto), findsOneWidget);
+      expect(find.text(Textos.mocaNuncaAdivina), findsOneWidget);
+      expect(find.text(Textos.otroMonto), findsOneWidget);
+      await tocar(tester, find.text('S/\u00A0350'));
+
+      expect(
+        find.text(Textos.deDondeSalioMonto('S/\u00A0350')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.efectivo));
+
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+      expect(find.text('Mercadería'), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A01,000')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('«Otro monto» deja escribirlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('Pagué trescientos… de luz')]);
+      await tocar(tester, find.text(Textos.otroMonto));
+      await tester.enterText(find.byType(TextField), '320');
+      await tocar(tester, find.text(Textos.confirmarMonto));
+      expect(
+        find.text(Textos.deDondeSalioMonto('S/\u00A0320')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Si falta la cuenta la pregunta, y «Corregir un dato» abre '
+        'la venta escrita con los montos', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('vendí 200')]);
+
+      expect(find.text(Textos.dondeEntro('S/\u00A0200')), findsOneWidget);
+      await tocar(tester, find.text(Textos.yape));
+      expect(find.text('Venta del día'), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.corregirUnDato));
+      expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
+      expect(find.text('200'), findsOneWidget);
+    });
+
+    testWidgets('«Saqué 100 para mí» se guarda como retiro', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [
+        const AlternativaVoz('Saqué 100 para mí del efectivo'),
+      ]);
+      expect(find.text(Textos.retiroParaMi), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A01,250')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Si no entiende, lo dice y deja intentar otra vez', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('hola, ¿cómo estás?')]);
+      expect(find.text(Textos.noTeEntendi), findsOneWidget);
+
+      _loQueDice = [const AlternativaVoz('pagué 80 de luz en efectivo')];
+      await tocar(tester, find.text(Textos.decirloOtraVez));
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+    });
+
+    testWidgets('Sin permiso del micrófono, ofrece escribirlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      _vozDisponible = DisponibilidadVoz.sinPermiso;
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('vendí 200')]);
+      expect(find.text(Textos.sinPermisoMicrofono), findsOneWidget);
+      await tocar(tester, find.text(Textos.prefieroEscribirlo));
+      expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    testWidgets('La voz no se desborda con letra grande', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      expect(tester.takeException(), isNull, reason: 'Explicación');
+      await decir(tester, [
+        const AlternativaVoz('Pagué trescientos quince de mercadería', 0.4),
+        const AlternativaVoz('Pagué trescientos cincuenta de mercadería'),
+      ]);
+      expect(tester.takeException(), isNull, reason: 'S18');
+      await tocar(tester, find.text('S/\u00A0350'));
+      await tocar(tester, find.text(Textos.efectivo));
+      expect(tester.takeException(), isNull, reason: 'Moca entendió');
+    });
+  });
+
   testWidgets('Las pantallas del primer día no se desbordan con letra grande', (
     tester,
   ) async {
@@ -479,6 +653,8 @@ void main() {
     await abrirApp(tester);
     expect(tester.takeException(), isNull, reason: 'S00');
     await tocar(tester, find.text(Textos.anotarPrimeraVenta));
+    expect(tester.takeException(), isNull, reason: 'Voz');
+    await tocar(tester, find.text(Textos.prefieroEscribirlo));
     expect(tester.takeException(), isNull, reason: 'S07');
     await tester.enterText(find.byType(TextField).at(0), '350');
     await tester.pump();

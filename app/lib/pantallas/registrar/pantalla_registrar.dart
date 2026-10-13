@@ -71,12 +71,12 @@ class PantallaRegistrar extends StatelessWidget {
                     style: Tipografia.secundario.copyWith(fontSize: 15),
                   ),
                   const SizedBox(height: 16),
-                  const _Entrada(
+                  _Entrada(
                     icono: Icono.microfono,
                     titulo: Textos.decirloConVoz,
                     detalle: Textos.ejemplosVoz,
                     principal: true,
-                    llegaEnEntrega: 4,
+                    alTocar: () => context.pushReplacement(Rutas.voz),
                   ),
                   const SizedBox(height: 12),
                   const _Entrada(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
+import '../dominio/voz.dart';
 import '../inyeccion.dart';
 import '../rutas.dart';
 import '../tema/colores.dart';
@@ -48,9 +49,10 @@ class PantallaOperador extends ConsumerWidget {
           const Text(Textos.subtituloOperador, style: Tipografia.secundario),
           const SizedBox(height: 16),
           Tarjeta(
-            child: Text(switch (conteo) {
-              AsyncData(:final value) => Textos.registrosGuardados(value),
-              _ => Textos.contandoRegistros,
+            // Mientras se vuelve a contar, se mantiene la cifra anterior.
+            child: Text(switch (conteo.value) {
+              final int registros => Textos.registrosGuardados(registros),
+              null => Textos.contandoRegistros,
             }, style: Tipografia.texto),
           ),
           const SizedBox(height: Medidas.separacionTarjetas),
@@ -88,7 +90,8 @@ class PantallaOperador extends ConsumerWidget {
                 const Divider(),
                 _Opcion(
                   titulo: Textos.elegirFrase,
-                  detalle: Textos.opcionLlegaEnEntrega(4),
+                  detalle: Textos.elegirFraseDetalle,
+                  alTocar: () => _elegirFrase(context, ref),
                 ),
                 const Divider(),
                 _Opcion(
@@ -100,6 +103,43 @@ class PantallaOperador extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _elegirFrase(BuildContext context, WidgetRef ref) async {
+    final frases = ref.read(frasesDeEjemploProvider);
+    final mensajes = ScaffoldMessenger.of(context);
+    final elegida = await showModalBottomSheet<FraseEjemplo>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                Medidas.margenLateral,
+                0,
+                Medidas.margenLateral,
+                8,
+              ),
+              child: Text(Textos.elegirFrase, style: Tipografia.tituloPantalla),
+            ),
+            for (final frase in frases)
+              ListTile(
+                minTileHeight: Medidas.objetivoTactilMinimo + 12,
+                title: Text('«${frase.texto}»', style: Tipografia.texto),
+                onTap: () => Navigator.of(context).pop(frase),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (elegida == null) return;
+    ref.read(fraseElegidaProvider.notifier).elegir(elegida);
+    mensajes.showSnackBar(
+      SnackBar(content: Text(Textos.fraseElegida(elegida.texto))),
     );
   }
 

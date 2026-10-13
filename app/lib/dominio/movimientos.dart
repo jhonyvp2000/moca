@@ -8,6 +8,7 @@ class NuevoMovimiento {
     required this.cuenta,
     this.categoriaId,
     this.nota,
+    this.fuente = Fuente.texto,
   });
 
   final TipoMovimiento tipo;
@@ -17,6 +18,25 @@ class NuevoMovimiento {
   /// Nula en un retiro para el dueño, que no lleva categoría.
   final String? categoriaId;
   final String? nota;
+
+  /// Escrito o dicho por voz.
+  final Fuente fuente;
+}
+
+/// Lo que ya se sabe de un movimiento para abrir «Escribirlo» con los datos
+/// puestos (por ejemplo, al corregir lo que Moca entendió por voz).
+class BorradorMovimiento {
+  const BorradorMovimiento({
+    this.tipo,
+    this.montoCentimos,
+    this.cuenta,
+    this.categoriaId,
+  });
+
+  final TipoMovimiento? tipo;
+  final int? montoCentimos;
+  final TipoCuenta? cuenta;
+  final String? categoriaId;
 }
 
 class CategoriaVista {
@@ -81,7 +101,10 @@ abstract interface class RepositorioMovimientos {
 
   /// Venta del día por cuenta, después del primer día. Se suma a lo que ya
   /// se haya anotado hoy.
-  Future<Guardado> anotarVentaDelDia(Map<TipoCuenta, int> ventaPorCuenta);
+  Future<Guardado> anotarVentaDelDia(
+    Map<TipoCuenta, int> ventaPorCuenta, {
+    Fuente fuente = Fuente.texto,
+  });
 
   /// Anula lo guardado: no se borra, y el cambio queda en la bitácora.
   Future<void> deshacer(Guardado guardado);

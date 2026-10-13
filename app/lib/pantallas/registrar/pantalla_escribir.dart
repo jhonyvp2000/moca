@@ -19,10 +19,13 @@ import 'confirmacion.dart';
 /// «Escribirlo» (estado no dibujado, aprobado el 12-10-2026): entró, salió o
 /// retiro para mí; monto; cuenta; categoría y nota. La fecha es hoy.
 class PantallaEscribir extends ConsumerStatefulWidget {
-  const PantallaEscribir({super.key, this.tipoInicial});
+  const PantallaEscribir({super.key, this.tipoInicial, this.borrador});
 
   /// «Anotar un gasto» abre el formulario con «Salió» elegido.
   final TipoMovimiento? tipoInicial;
+
+  /// Datos ya puestos, por ejemplo al corregir lo que se dijo por voz.
+  final BorradorMovimiento? borrador;
 
   @override
   ConsumerState<PantallaEscribir> createState() => _EstadoEscribir();
@@ -45,7 +48,13 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   @override
   void initState() {
     super.initState();
-    _tipo = widget.tipoInicial;
+    final borrador = widget.borrador;
+    _tipo = borrador?.tipo ?? widget.tipoInicial;
+    _cuenta = borrador?.cuenta ?? _cuenta;
+    _categoriaId = borrador?.categoriaId;
+    if (borrador?.montoCentimos case final centimos?) {
+      _monto.text = separarMiles(centimos ~/ 100);
+    }
   }
 
   @override

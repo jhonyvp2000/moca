@@ -164,13 +164,17 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         // Un retiro para el dueño no lleva categoría.
         categoriaId: m.tipo == TipoMovimiento.retiro ? null : m.categoriaId,
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
+        fuente: m.fuente,
       );
       return Guardado(ids: [id], tienesHoyCentimos: await _tienesHoy());
     });
   }
 
   @override
-  Future<Guardado> anotarVentaDelDia(Map<TipoCuenta, int> ventaPorCuenta) {
+  Future<Guardado> anotarVentaDelDia(
+    Map<TipoCuenta, int> ventaPorCuenta, {
+    Fuente fuente = Fuente.texto,
+  }) {
     if (!ventaPorCuenta.values.any((monto) => monto > 0)) {
       throw ArgumentError('La venta necesita al menos un monto.');
     }
@@ -187,6 +191,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             cuenta: cuenta,
             montoCentimos: monto,
             categoriaId: venta.id,
+            fuente: fuente,
           ),
         );
       }
@@ -200,6 +205,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     required int montoCentimos,
     String? categoriaId,
     String? nota,
+    Fuente fuente = Fuente.texto,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
@@ -223,9 +229,9 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             fechaPago: Value(ahora),
             categoriaId: Value(categoriaId),
             nota: Value(nota),
-            // Escrito por el dueño, sin comprobante: nivel D.
+            // Escrito o dicho por el dueño, sin comprobante: nivel D.
             nivelConfianza: NivelConfianza.d,
-            fuente: Fuente.texto,
+            fuente: fuente,
             autorId: usuario.id,
             estado: EstadoRegistro.vigente,
             estadoSincronizacion: EstadoSincronizacion.subido,
@@ -244,6 +250,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         'montoCentimos': montoCentimos,
         'categoriaId': categoriaId,
         'nota': nota,
+        'fuente': fuente.name,
       },
     );
     return id;
