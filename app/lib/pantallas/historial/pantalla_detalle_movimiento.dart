@@ -181,7 +181,31 @@ class _EstadoDetalleMovimiento
           const FranjaInformativa(texto: Textos.guardadoPorSubir),
         ],
         const SizedBox(height: Medidas.separacionTarjetas),
-        _Datos(detalle: d),
+        if (d.ajuste case final a?) ...[
+          const FranjaInformativa(texto: Textos.ajusteExplicacion),
+          const SizedBox(height: Medidas.separacionTarjetas),
+          _TarjetaDeFilas(
+            filas: [
+              (Textos.etiquetaQueFue, Textos.ajusteDelArqueo),
+              (Textos.etiquetaCuenta, Textos.nombreCuenta(f.cuenta)),
+              (
+                Textos.etiquetaMotivo,
+                a.motivo == null
+                    ? Textos.motivoCuadre
+                    : Textos.motivoArqueo(a.motivo!),
+              ),
+              (
+                Textos.etiquetaMocaCalculaba,
+                formatearSolesComprobante(a.calculadoCentimos),
+              ),
+              (
+                Textos.etiquetaContaste,
+                formatearSolesComprobante(a.contadoCentimos),
+              ),
+            ],
+          ),
+        ] else
+          _Datos(detalle: d),
         if (d.comprobante case final c?) ...[
           const _Subtitulo(Textos.etiquetaComprobante),
           _Comprobante(comprobante: c),
@@ -190,12 +214,13 @@ class _EstadoDetalleMovimiento
         _Cambios(cambios: d.cambios),
       ],
       acciones: [
-        if (d.vigente && f.loDebes)
+        // Un ajuste del arqueo se ve, pero no se corrige ni se deshace.
+        if (d.vigente && d.ajuste == null && f.loDebes)
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
             child: const Text(Textos.yaLoPague),
           ),
-        if (d.vigente)
+        if (d.vigente && d.ajuste == null)
           Row(
             children: [
               Expanded(

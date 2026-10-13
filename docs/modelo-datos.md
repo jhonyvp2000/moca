@@ -60,7 +60,7 @@ Lista por tipo de negocio, con las iniciales definidas en la Fase 0. La empresa 
 Contraparte o texto que fija una categoría, por empresa. Se alimenta de las correcciones del dueño y del contador.
 
 ### Arqueo
-Campos: fecha, y por cuenta el saldo calculado, el saldo real, la diferencia y el motivo (retiro para mí, gasto olvidado, error de vuelto, no lo sé). Un motivo puede generar un movimiento; «no lo sé» queda como diferencia sin explicar.
+Campos: fecha, y por cuenta el saldo calculado, el saldo real, la diferencia, el motivo (retiro para mí, gasto olvidado, venta no anotada, error de vuelto, no lo sé) y el movimiento que generó. Retiro, gasto olvidado y venta no anotada generan un movimiento; error de vuelto, «no lo sé» y las diferencias menores a S/ 1 no generan movimiento: ajustan el saldo de la cuenta desde la fecha del arqueo, sin contar como gasto ni ingreso. «No lo sé» queda como diferencia sin explicar.
 
 ### Alerta
 Campos: tipo, prioridad, estado (pendiente, vista, resuelta, silenciada), texto redactado, datos que la dispararon y fecha.

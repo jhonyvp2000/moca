@@ -4,6 +4,9 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-13 | Estados de la entrega 7: arqueo desde el paso 4 del Primer día, la tarjeta de Moca (domingo o semana anterior sin arqueo) y un enlace fijo en el Inicio; S12 con «Cuadra», «Faltan» y «Sobran»; respuestas rápidas por cuenta, con «Una venta que no anoté» cuando sobra plata; «Ajuste del arqueo» de solo lectura en el Historial; «Pedir el arqueo ahora» en el ajuste oculto | Jhony | `prototipo-v1.md` |
+| 2026-10-13 | Una diferencia de arqueo menor a S/ 1 se toma como cuadre y ajusta el saldo sin preguntar; un arqueo sin saldo inicial fija el punto de partida de cada cuenta | Claude Code | `prototipo-v1.md` |
+| 2026-10-13 | Los ajustes del arqueo («Di mal un vuelto», «No lo sé» y los menores a S/ 1) no son movimientos: se guardan en el arqueo y se suman al saldo desde su fecha. Se agrega el motivo «venta no anotada» | Claude Code | `modelo-datos.md` |
 | 2026-10-13 | Estados de la entrega 6: Historial por día con filtros y «Lo debes», detalle del movimiento con comprobante y «Cambios», «Corregir» con el formulario de «Escribirlo», «Deshacer» con confirmación, «Ya lo pagué» con cuenta y día, franja «Sin señal» y «Simular sin señal» en el ajuste oculto | Jhony | `prototipo-v1.md` |
 | 2026-10-13 | Bitácora de una corrección: una sola fila en el registro anulado, con los valores anteriores, los nuevos y el registro que lo reemplaza; el nuevo apunta al anterior con «reemplaza a» | Claude Code | `modelo-datos.md` |
 | 2026-10-13 | Una compra que se debe no se puede pagar con fecha anterior a su comprobante ni al primer día con Moca; pagada otro día, se anota a mediodía de ese día | Claude Code | `prototipo-v1.md` |

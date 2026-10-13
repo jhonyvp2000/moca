@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
+import 'datos/repositorios/repositorio_arqueo_local.dart';
 import 'datos/repositorios/repositorio_comprobantes_local.dart';
 import 'datos/repositorios/repositorio_historial_local.dart';
 import 'datos/repositorios/repositorio_movimientos_local.dart';
@@ -10,6 +11,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
 import 'dominio/ajustes.dart';
+import 'dominio/arqueo.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
 import 'dominio/historial.dart';
@@ -121,6 +123,16 @@ final detalleMovimientoProvider = StreamProvider.autoDispose
     .family<DetalleMovimiento?, String>(
       (ref, id) => ref.watch(repositorioHistorialProvider).observarDetalle(id),
     );
+
+// --- Arqueo --------------------------------------------------------------------
+
+final repositorioArqueoProvider = Provider<RepositorioArqueo>(
+  (ref) => RepositorioArqueoLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
+  ),
+);
 
 final repositorioAjustesProvider = Provider<RepositorioAjustes>(
   (ref) => RepositorioAjustesLocal(ref.watch(baseLocalProvider)),

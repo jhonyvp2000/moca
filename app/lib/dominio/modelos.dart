@@ -31,7 +31,16 @@ enum EstadoSincronizacion { subido, porSubir }
 
 enum OrigenLectura { qr, foto, sire }
 
-enum MotivoArqueo { retiroParaMi, gastoOlvidado, errorDeVuelto, noLoSe }
+/// Por qué el conteo no coincide con lo calculado. Retiro, gasto olvidado y
+/// venta no anotada generan un movimiento; error de vuelto y «no lo sé»
+/// ajustan el saldo sin contar como gasto ni ingreso.
+enum MotivoArqueo {
+  retiroParaMi,
+  gastoOlvidado,
+  ventaNoAnotada,
+  errorDeVuelto,
+  noLoSe,
+}
 
 enum PrioridadAlerta { importante, paraTenerEnCuenta }
 

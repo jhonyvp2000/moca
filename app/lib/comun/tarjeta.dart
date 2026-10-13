@@ -30,9 +30,12 @@ class Tarjeta extends StatelessWidget {
 /// Lo que dice Moca va en su propia tarjeta: tinte azul con el isotipo,
 /// para que el dueño lo distinga de los datos.
 class TarjetaMoca extends StatelessWidget {
-  const TarjetaMoca({super.key, required this.texto});
+  const TarjetaMoca({super.key, required this.texto, this.accion});
 
   final String texto;
+
+  /// Un botón debajo del texto, por ejemplo «Hacer arqueo».
+  final Widget? accion;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +58,7 @@ class TarjetaMoca extends StatelessWidget {
                 const Text('Moca', style: Tipografia.etiquetaMoca),
                 const SizedBox(height: 4),
                 Text(texto, style: Tipografia.texto),
+                if (accion != null) ...[const SizedBox(height: 12), accion!],
               ],
             ),
           ),

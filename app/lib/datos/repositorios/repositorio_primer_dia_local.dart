@@ -351,6 +351,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
     final tienesHoy = AccesoLocal.saldosPorCuenta(
       cuentas,
       movimientos,
+      ajustes: await _a.ajustes(empresa.id),
     ).values.fold(0, (suma, saldo) => suma + saldo);
 
     final hoy = inicioDelDia(_ahora());

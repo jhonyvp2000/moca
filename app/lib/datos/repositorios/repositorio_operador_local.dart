@@ -1,5 +1,6 @@
 import '../../dominio/repositorio_operador.dart';
 import '../local/base_local.dart';
+import 'repositorio_arqueo_local.dart';
 import 'repositorio_movimientos_local.dart';
 
 class RepositorioOperadorLocal implements RepositorioOperador {
@@ -35,6 +36,16 @@ class RepositorioOperadorLocal implements RepositorioOperador {
       .insertOnConflictUpdate(
         AjustesCompanion.insert(
           clave: RepositorioMovimientosLocal.claveSaltarPrimeraSemana,
+          valor: 'si',
+        ),
+      );
+
+  @override
+  Future<void> pedirArqueo() => _base
+      .into(_base.ajustes)
+      .insertOnConflictUpdate(
+        AjustesCompanion.insert(
+          clave: RepositorioArqueoLocal.claveArqueoPedido,
           valor: 'si',
         ),
       );

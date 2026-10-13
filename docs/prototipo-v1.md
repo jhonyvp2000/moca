@@ -117,6 +117,14 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 - Si el lunes a las 8:00 a. m. no hay arqueo de la semana anterior, aparece «Falta el arqueo de esta semana».
 - Con una respuesta rápida que genera movimiento («La retiré para mí», «Un gasto que olvidé»), se anota ese movimiento. Con «Di mal un vuelto» o «No lo sé», el saldo pasa a ser el contado y la diferencia no cuenta como gasto ni como ingreso del mes; queda registrada en el arqueo y, con «No lo sé», genera el aviso.
 
+Estados aprobados el 13-10-2026 (entrega 7):
+
+- **Dónde se abre:** el paso 4 del Primer día («Hacer tu primer arqueo el domingo»); la tarjeta de Moca del Inicio el domingo («Hoy toca el arqueo de la semana. Son dos minutos») y desde el lunes 8:00 a. m. si la semana anterior quedó sin arqueo («Falta el arqueo de esta semana. Son dos minutos»), con el botón «Hacer arqueo»; y un enlace fijo «Hacer arqueo» bajo las cuentas del Inicio. Hecho el arqueo, la tarjeta dice «Ya hiciste el arqueo de esta semana». En el ajuste oculto, «Pedir el arqueo ahora» muestra la tarjeta sin esperar al domingo.
+- **S12:** cada cuenta trae lo calculado en soles enteros; debajo, «Cuadra» en azul o «Faltan S/ 80» / «Sobran S/ 50» en ámbar, con el campo en ámbar. Una diferencia menor a S/ 1 cuenta como cuadre y el saldo se ajusta sin preguntar. Si lo calculado es negativo, el campo viene vacío. Sin saldo inicial, los campos vienen vacíos y lo contado es el punto de partida (también completa el paso «Decir cuánta plata tienes»).
+- **Preguntas:** una tarjeta de Moca por cada cuenta con diferencia. Si faltan: «La retiré para mí» (anota un retiro), «Un gasto que olvidé» (anota un gasto y pregunta «¿En qué?»), «Di mal un vuelto», «No lo sé». Si sobran: «Una venta que no anoté» (anota una venta del día), «Di mal un vuelto», «No lo sé». Debajo, una nota según la respuesta. «Guardar arqueo» se activa cuando todo tiene respuesta.
+- **Al guardar:** vuelve al Inicio con «Arqueo guardado. Ahora tienes S/ X», sin «Deshacer» (si algo quedó mal, se hace otro arqueo). Se puede hacer más de uno por semana. Los movimientos que salen de las respuestas llevan la fecha del arqueo y fuente «arqueo», y se corrigen o deshacen como cualquier otro. Los ajustes de «Di mal un vuelto» y «No lo sé» aparecen en el Historial como «Ajuste del arqueo» (solo en «Todo»), con detalle de solo lectura: motivo, lo que Moca calculaba y lo contado.
+- Quedan para la entrega 8: el aviso «Diferencia en el arqueo», la lista de avisos de la pestaña Moca y la notificación del domingo.
+
 ### Avisos
 
 | Aviso | Cuándo | Prioridad |

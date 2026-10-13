@@ -20,6 +20,7 @@ Color colorDelMonto(TipoMovimiento tipo) =>
 /// El título de un movimiento: el proveedor, «Retiro para mí», la nota o la
 /// categoría.
 String tituloDeFila(FilaHistorial f) {
+  if (f.ajusteArqueo) return Textos.ajusteDelArqueo;
   if (f.proveedor case final proveedor?) return proveedor;
   if (f.tipo == TipoMovimiento.retiro) return Textos.retiroParaMi;
   return f.nota ?? f.categoria ?? Textos.nombreTipo(f.tipo);
@@ -29,6 +30,7 @@ String tituloDeFila(FilaHistorial f) {
 /// título. Lo que se debe no ha salido de ninguna cuenta.
 List<String> _partes(FilaHistorial f) {
   final cuenta = Textos.nombreCuenta(f.cuenta);
+  if (f.ajusteArqueo) return [Textos.ajusteNoCuenta, cuenta];
   if (f.tipo == TipoMovimiento.retiro) return [Textos.retiroNoCuenta, cuenta];
   final tituloEsCategoria =
       f.proveedor == null && f.nota == null && f.categoria != null;

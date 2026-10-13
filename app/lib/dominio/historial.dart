@@ -17,6 +17,7 @@ class FilaHistorial {
     this.categoria,
     this.nota,
     this.proveedor,
+    this.ajusteArqueo = false,
   });
 
   final String id;
@@ -36,10 +37,15 @@ class FilaHistorial {
   /// Nombre del proveedor del comprobante, si lo tiene.
   final String? proveedor;
 
+  /// Diferencia del arqueo que ajustó el saldo («Di mal un vuelto» o «No lo
+  /// sé»). No es gasto ni ingreso: solo sale en «Todo». [tipo] dice si sobró
+  /// (ingreso) o faltó (egreso).
+  final bool ajusteArqueo;
+
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,
-    FiltroHistorial.entro => tipo == TipoMovimiento.ingreso,
-    FiltroHistorial.salio => tipo != TipoMovimiento.ingreso,
+    FiltroHistorial.entro => !ajusteArqueo && tipo == TipoMovimiento.ingreso,
+    FiltroHistorial.salio => !ajusteArqueo && tipo != TipoMovimiento.ingreso,
     FiltroHistorial.porSubir => porSubir,
   };
 }
@@ -76,6 +82,21 @@ class ComprobanteVista {
   final String? numero;
   final DateTime? fechaEmision;
   final String? rutaImagen;
+}
+
+/// Lo que dice un ajuste del arqueo.
+class AjusteVista {
+  const AjusteVista({
+    required this.calculadoCentimos,
+    required this.contadoCentimos,
+    this.motivo,
+  });
+
+  final int calculadoCentimos;
+  final int contadoCentimos;
+
+  /// Nulo en una diferencia menor a S/ 1, que se ajusta sin preguntar.
+  final MotivoArqueo? motivo;
 }
 
 /// Una línea de «Cambios», sacada de la bitácora.
@@ -134,6 +155,7 @@ class DetalleMovimiento {
     this.fechaPago,
     this.primerDiaDePago,
     this.comprobante,
+    this.ajuste,
   });
 
   final FilaHistorial fila;
@@ -150,6 +172,9 @@ class DetalleMovimiento {
   /// de pago.
   final DateTime? primerDiaDePago;
   final ComprobanteVista? comprobante;
+
+  /// Si es un ajuste del arqueo: se ve, pero no se corrige ni se deshace.
+  final AjusteVista? ajuste;
 
   /// Del más antiguo al más reciente, incluidos los del registro que este
   /// reemplazó.

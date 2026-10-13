@@ -9,6 +9,7 @@ import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
 import 'pantallas/alta/pantalla_alta.dart';
+import 'pantallas/arqueo/pantalla_arqueo.dart';
 import 'pantallas/bienvenida/pantalla_bienvenida.dart';
 import 'pantallas/comprobantes/pantalla_confirmar_lectura.dart';
 import 'pantallas/comprobantes/pantalla_escaner_qr.dart';
@@ -47,6 +48,7 @@ abstract final class Rutas {
   static const confirmarLectura = '/comprobante/confirmar';
   static const movimiento = '/movimiento';
   static const corregir = '/movimiento/corregir';
+  static const arqueo = '/arqueo';
 
   /// El detalle de un movimiento del Historial.
   static String detalleMovimiento(String id) =>
@@ -86,6 +88,7 @@ final _rutasPorEtapa = {
     Rutas.confirmarLectura,
     Rutas.movimiento,
     Rutas.corregir,
+    Rutas.arqueo,
   ],
 };
 
@@ -207,6 +210,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
               PantallaEscribir(corrigiendo: estado.extra! as DetalleMovimiento),
         ),
       ],
+    ),
+    GoRoute(
+      path: Rutas.arqueo,
+      builder: (context, estado) => const PantallaArqueo(),
     ),
     GoRoute(
       path: Rutas.operador,

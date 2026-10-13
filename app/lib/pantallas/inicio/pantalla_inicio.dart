@@ -25,6 +25,7 @@ class PantallaInicio extends ConsumerWidget {
       return PantallaInicioCompleta(
         resumen: inicio,
         alAnotarVenta: anotarVenta,
+        alHacerArqueo: () => context.push(Rutas.arqueo),
       );
     }
 
@@ -40,6 +41,7 @@ class PantallaInicio extends ConsumerWidget {
         ).toString(),
       ),
       alDeclararSaldo: () => mostrarHojaSaldo(context),
+      alHacerArqueo: () => context.push(Rutas.arqueo),
     );
   }
 }

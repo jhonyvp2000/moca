@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../dominio/arqueo.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
@@ -44,8 +45,24 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       categorias: {for (final c in categorias) c.id: c.nombre},
       contrapartes: {for (final c in contrapartes) c.id: c.nombre},
       comprobantes: {for (final c in comprobantes) c.id: c},
+      ajustes: await _a.ajustes(empresa.id),
     );
   }
+
+  FilaHistorial _filaDeAjuste(_Datos d, AjusteArqueo a) => FilaHistorial(
+    id: a.id,
+    tipo: a.centimos > 0 ? TipoMovimiento.ingreso : TipoMovimiento.egreso,
+    montoCentimos: a.centimos.abs(),
+    fecha: a.fecha,
+    cuenta: d.tipoDeCuenta(a.cuentaId),
+    loDebes: false,
+    porSubir: false,
+    ajusteArqueo: true,
+  );
+
+  /// Los ajustes que se muestran: los menores a S/ 1 no dicen nada al dueño.
+  Iterable<AjusteArqueo> _ajustesVisibles(_Datos d) =>
+      d.ajustes.where((a) => a.centimos.abs() >= toleranciaArqueoCentimos);
 
   FilaHistorial _fila(_Datos d, Movimiento m) {
     final comprobante = d.comprobantes[m.comprobanteId];
@@ -69,13 +86,18 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
   ) async {
     final d = await _leer();
     if (d == null) return const ResumenHistorial(filas: []);
-    final vigentes =
-        d.movimientos.where((m) => m.estado == EstadoRegistro.vigente).toList()
-          ..sort((a, b) {
-            final porFecha = b.fechaMovimiento.compareTo(a.fechaMovimiento);
-            return porFecha != 0 ? porFecha : b.creadoEn.compareTo(a.creadoEn);
-          });
-    return ResumenHistorial(filas: [for (final m in vigentes) _fila(d, m)]);
+    final vigentes = d.movimientos.where(
+      (m) => m.estado == EstadoRegistro.vigente,
+    );
+    final filas =
+        [
+          for (final m in vigentes) (m.creadoEn, _fila(d, m)),
+          for (final a in _ajustesVisibles(d)) (a.fecha, _filaDeAjuste(d, a)),
+        ]..sort((a, b) {
+          final porFecha = b.$2.fecha.compareTo(a.$2.fecha);
+          return porFecha != 0 ? porFecha : b.$1.compareTo(a.$1);
+        });
+    return ResumenHistorial(filas: [for (final (_, f) in filas) f]);
   });
 
   @override
@@ -83,8 +105,24 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     String id,
   ) => _a.cambios().asyncMap((_) async {
     final d = await _leer();
-    final m = d?.movimiento(id);
-    if (d == null || m == null) return null;
+    if (d == null) return null;
+    final m = d.movimiento(id);
+    if (m == null) {
+      final a = d.ajustes.where((a) => a.id == id).firstOrNull;
+      if (a == null) return null;
+      return DetalleMovimiento(
+        fila: _filaDeAjuste(d, a),
+        vigente: true,
+        fuente: Fuente.arqueo,
+        cambios: [CambioCreado(a.fecha, Fuente.arqueo)],
+        saldoSiSeDeshaceCentimos: null,
+        ajuste: AjusteVista(
+          calculadoCentimos: a.calculadoCentimos,
+          contadoCentimos: a.contadoCentimos,
+          motivo: a.motivo,
+        ),
+      );
+    }
     final comprobante = d.comprobantes[m.comprobanteId];
     final pagado = m.estadoPago == EstadoPago.pagado;
     return DetalleMovimiento(
@@ -412,10 +450,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
 
   Future<int> _tienesHoy() async {
     final empresa = (await _a.empresa())!;
-    return AccesoLocal.saldosPorCuenta(
-      await _a.cuentas(empresa.id),
-      await _a.movimientos(empresa.id),
-    ).values.fold<int>(0, (suma, saldo) => suma + saldo);
+    return _a.tienesHoy(empresa.id);
   }
 }
 
@@ -427,6 +462,7 @@ class _Datos {
     required this.categorias,
     required this.contrapartes,
     required this.comprobantes,
+    required this.ajustes,
   });
 
   final Empresa empresa;
@@ -435,6 +471,7 @@ class _Datos {
   final Map<String, String> categorias;
   final Map<String, String> contrapartes;
   final Map<String, Comprobante> comprobantes;
+  final List<AjusteArqueo> ajustes;
 
   Movimiento? movimiento(String id) =>
       movimientos.where((m) => m.id == id).firstOrNull;
@@ -453,6 +490,10 @@ class _Datos {
       ?extra,
     ];
     final cuenta = cuentas.firstWhere((c) => c.id == cuentaId);
-    return AccesoLocal.saldosPorCuenta([cuenta], lista)[cuenta.tipo]!;
+    return AccesoLocal.saldosPorCuenta(
+      [cuenta],
+      lista,
+      ajustes: ajustes,
+    )[cuenta.tipo]!;
   }
 }

@@ -1065,4 +1065,152 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'Corregir');
     });
   });
+
+  group('Arqueo', () {
+    Future<void> abrirArqueoDesdeElPrimerDia(WidgetTester tester) async {
+      // Con letra grande, el paso queda más abajo de la pantalla.
+      await tester.scrollUntilVisible(
+        find.text(Textos.pasoPrimerArqueo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.pasoPrimerArqueo));
+      expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
+    }
+
+    FilledButton guardarArqueo(WidgetTester tester) =>
+        tester.widget(find.widgetWithText(FilledButton, Textos.guardarArqueo));
+
+    testWidgets('Propone lo calculado; una diferencia se explica y se guarda', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirArqueoDesdeElPrimerDia(tester);
+
+      expect(find.text(Textos.arqueoDetalle), findsOneWidget);
+      expect(find.text(Textos.cuadra), findsNWidgets(3));
+      expect(guardarArqueo(tester).onPressed, isNotNull);
+
+      await tester.enterText(find.byType(TextField).first, '1270');
+      await esperar(tester);
+      expect(find.text(Textos.faltan('S/ 80')), findsOneWidget);
+      expect(
+        find.text(Textos.preguntaFaltan('S/ 80', Textos.efectivo)),
+        findsOneWidget,
+      );
+      expect(guardarArqueo(tester).onPressed, isNull);
+
+      await tocar(
+        tester,
+        find.text(Textos.motivoArqueo(MotivoArqueo.retiroParaMi)),
+      );
+      expect(
+        find.text(Textos.notaMotivo(MotivoArqueo.retiroParaMi, faltan: true)),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.guardarArqueo));
+
+      expect(find.text(Textos.arqueoGuardado('S/ 1,270')), findsOneWidget);
+      // Con el primer arqueo, el Inicio pasa a ser el completo (S04).
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsOneWidget);
+      expect(find.textContaining(Textos.mocaArqueoHecho), findsOneWidget);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      expect(find.text(Textos.retiroParaMi), findsOneWidget);
+    });
+
+    testWidgets('«Un gasto que olvidé» pide la categoría', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirArqueoDesdeElPrimerDia(tester);
+      await tester.enterText(find.byType(TextField).first, '1270');
+      await esperar(tester);
+      await tocar(
+        tester,
+        find.text(Textos.motivoArqueo(MotivoArqueo.gastoOlvidado)),
+      );
+      expect(guardarArqueo(tester).onPressed, isNull);
+      await tocar(tester, find.text('Otros'));
+      expect(guardarArqueo(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('Si sobra plata, ofrece «Una venta que no anoté»', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirArqueoDesdeElPrimerDia(tester);
+      await tester.enterText(find.byType(TextField).at(1), '50');
+      await esperar(tester);
+      expect(find.text(Textos.sobran('S/ 50')), findsOneWidget);
+      expect(
+        find.text(Textos.motivoArqueo(MotivoArqueo.ventaNoAnotada)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.motivoArqueo(MotivoArqueo.retiroParaMi)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('«No lo sé» deja un ajuste en el Historial que no se corrige', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirArqueoDesdeElPrimerDia(tester);
+      await tester.enterText(find.byType(TextField).first, '1270');
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.motivoArqueo(MotivoArqueo.noLoSe)));
+      await tocar(tester, find.text(Textos.guardarArqueo));
+
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      expect(find.text(Textos.ajusteDelArqueo), findsOneWidget);
+      expect(
+        find.text('${Textos.ajusteNoCuenta} · ${Textos.efectivo}'),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.salio));
+      expect(find.text(Textos.ajusteDelArqueo), findsNothing);
+      await tocar(tester, find.text(Textos.filtroTodo));
+
+      await tocar(tester, find.text(Textos.ajusteDelArqueo));
+      expect(find.text(Textos.ajusteExplicacion), findsOneWidget);
+      expect(
+        find.text(Textos.motivoArqueo(MotivoArqueo.noLoSe)),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.corregir), findsNothing);
+      expect(find.text(Textos.deshacerRegistro), findsNothing);
+    });
+
+    testWidgets('«Pedir el arqueo ahora» muestra la tarjeta en el Inicio', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocar(tester, find.text(Textos.pedirArqueo));
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+
+      expect(find.text(Textos.mocaTocaArqueo), findsOneWidget);
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.hacerArqueo),
+      );
+      expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
+    });
+
+    testWidgets('El arqueo no se desborda con letra grande', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await abrirArqueoDesdeElPrimerDia(tester);
+      await tester.enterText(find.byType(TextField).first, '1270');
+      await esperar(tester);
+      await tocar(
+        tester,
+        find.text(Textos.motivoArqueo(MotivoArqueo.gastoOlvidado)),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

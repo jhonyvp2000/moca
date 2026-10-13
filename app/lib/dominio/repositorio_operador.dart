@@ -8,4 +8,7 @@ abstract interface class RepositorioOperador {
 
   /// Muestra el Inicio completo (S04) sin esperar la primera semana.
   Future<void> saltarPrimeraSemana();
+
+  /// Muestra en el Inicio la tarjeta del arqueo sin esperar al domingo.
+  Future<void> pedirArqueo();
 }

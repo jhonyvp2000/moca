@@ -388,6 +388,63 @@ abstract final class Textos {
   static String pagadoAhoraTienes(String monto, String cuenta) =>
       'Pagado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
 
+  // S12 · Arqueo de la semana
+  static const arqueoDeLaSemana = 'Arqueo de la semana';
+  static const arqueoDetalle =
+      'Moca ya puso lo que debería haber. Corrige solo lo que no coincida '
+      'con lo que tienes.';
+  static const arqueoPuntoDePartidaDetalle =
+      'Escribe cuánto tienes hoy en cada sitio. Lo que cuentes será tu punto '
+      'de partida.';
+  static const tuPuntoDePartida = 'Tu punto de partida';
+  static const escribeCuantoHay = 'Escribe cuánto hay';
+  static const cuadra = 'Cuadra';
+  static String faltan(String monto) => 'Faltan $monto';
+  static String sobran(String monto) => 'Sobran $monto';
+  static String preguntaFaltan(String monto, String cuenta) =>
+      'Faltan $monto en ${cuenta.toLowerCase()}. ¿Qué pasó con esa plata?';
+  static String preguntaSobran(String monto, String cuenta) =>
+      'Sobran $monto en ${cuenta.toLowerCase()}. ¿De dónde salió esa plata?';
+  static String motivoArqueo(MotivoArqueo motivo) => switch (motivo) {
+    MotivoArqueo.retiroParaMi => 'La retiré para mí',
+    MotivoArqueo.gastoOlvidado => 'Un gasto que olvidé',
+    MotivoArqueo.ventaNoAnotada => 'Una venta que no anoté',
+    MotivoArqueo.errorDeVuelto => 'Di mal un vuelto',
+    MotivoArqueo.noLoSe => 'No lo sé',
+  };
+  static String notaMotivo(MotivoArqueo motivo, {required bool faltan}) =>
+      switch (motivo) {
+        MotivoArqueo.retiroParaMi =>
+          'Un retiro para ti no baja la ganancia del negocio; solo la plata '
+              'en caja.',
+        MotivoArqueo.gastoOlvidado => 'Se anota como un gasto de hoy.',
+        MotivoArqueo.ventaNoAnotada => 'Se anota como una venta de hoy.',
+        MotivoArqueo.errorDeVuelto =>
+          faltan
+              ? 'Tu saldo pasa a ser lo que contaste. No cuenta como gasto.'
+              : 'Tu saldo pasa a ser lo que contaste. No cuenta como ingreso.',
+        MotivoArqueo.noLoSe =>
+          'Tu saldo pasa a ser lo que contaste. La diferencia queda sin '
+              'explicar.',
+      };
+  static const guardarArqueo = 'Guardar arqueo';
+  static String arqueoGuardado(String monto) =>
+      'Arqueo guardado. Ahora tienes $monto';
+  static const hacerArqueo = 'Hacer arqueo';
+  static const mocaTocaArqueo =
+      'Hoy toca el arqueo de la semana. Son dos minutos.';
+  static const mocaFaltaArqueo =
+      'Falta el arqueo de esta semana. Son dos minutos.';
+  static const mocaArqueoHecho = 'Ya hiciste el arqueo de esta semana.';
+  static const ajusteDelArqueo = 'Ajuste del arqueo';
+  static const ajusteNoCuenta = 'No cuenta como gasto ni ingreso';
+  static const ajusteExplicacion =
+      'No cuenta como gasto ni ingreso: tu saldo pasó a ser lo que contaste.';
+  static const etiquetaMotivo = 'Motivo';
+  static const motivoCuadre = 'Diferencia de céntimos';
+  static const etiquetaMocaCalculaba = 'Moca calculaba';
+  static const etiquetaContaste = 'Contaste';
+
   // Sin señal
   static const sinSenal =
       'Sin señal. Se guarda en tu teléfono y sube cuando vuelva.';
@@ -423,6 +480,10 @@ abstract final class Textos {
       'La próxima grabación usa esta frase en lugar del micrófono.';
   static String fraseElegida(String frase) =>
       'La próxima grabación usará: «$frase»';
+  static const pedirArqueo = 'Pedir el arqueo ahora';
+  static const pedirArqueoDetalle =
+      'Muestra en el Inicio la tarjeta del arqueo sin esperar al domingo.';
+  static const arqueoPedido = 'Listo. El Inicio pide el arqueo.';
   static const simularSinSenal = 'Simular sin señal';
   static const simularSinSenalDetalle =
       'Lo que se guarde queda «por subir», como si el teléfono no tuviera '

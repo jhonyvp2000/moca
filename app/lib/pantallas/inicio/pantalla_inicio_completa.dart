@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/arqueo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
@@ -17,10 +18,12 @@ class PantallaInicioCompleta extends StatefulWidget {
     super.key,
     required this.resumen,
     required this.alAnotarVenta,
+    required this.alHacerArqueo,
   });
 
   final ResumenInicio resumen;
   final VoidCallback alAnotarVenta;
+  final VoidCallback alHacerArqueo;
 
   @override
   State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
@@ -124,7 +127,22 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: widget.alHacerArqueo,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(
+                          0,
+                          Medidas.objetivoTactilMinimo,
+                        ),
+                        foregroundColor: Colores.marca,
+                        textStyle: Tipografia.textoFuerte,
+                      ),
+                      child: const Text(Textos.hacerArqueo),
+                    ),
+                  ),
                   const Divider(),
                   const SizedBox(height: 12),
                   ..._semana(r),
@@ -151,17 +169,35 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
           ),
           const SizedBox(height: Medidas.separacionTarjetas),
           // Los avisos reales llegan en la entrega 8; hasta entonces, una
-          // plantilla según si ya se anotó la venta.
-          _conMargen(
-            TarjetaMoca(
-              texto: r.ventaDeHoyCentimos > 0
-                  ? Textos.mocaYaAnotasteHoy
-                  : Textos.mocaFaltaVentaDeHoy,
-            ),
-          ),
+          // plantilla según la venta de hoy y el arqueo de la semana.
+          _conMargen(_tarjetaMoca(r)),
         ],
       ),
     );
+  }
+
+  Widget _tarjetaMoca(ResumenInicio r) {
+    final venta = r.ventaDeHoyCentimos > 0
+        ? Textos.mocaYaAnotasteHoy
+        : Textos.mocaFaltaVentaDeHoy;
+    final boton = FilledButton(
+      onPressed: widget.alHacerArqueo,
+      child: const Text(Textos.hacerArqueo),
+    );
+    return switch (r.estadoArqueo) {
+      EstadoArqueo.falta => TarjetaMoca(
+        texto: Textos.mocaFaltaArqueo,
+        accion: boton,
+      ),
+      EstadoArqueo.toca => TarjetaMoca(
+        texto: Textos.mocaTocaArqueo,
+        accion: boton,
+      ),
+      EstadoArqueo.hecho => TarjetaMoca(
+        texto: '$venta ${Textos.mocaArqueoHecho}',
+      ),
+      EstadoArqueo.nada => TarjetaMoca(texto: venta),
+    };
   }
 
   List<Widget> _semana(ResumenInicio r) {

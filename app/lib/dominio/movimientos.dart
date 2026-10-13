@@ -1,3 +1,4 @@
+import 'arqueo.dart';
 import 'modelos.dart';
 
 /// Lo que el dueño anota en «Escribirlo».
@@ -67,6 +68,7 @@ class ResumenInicio {
     required this.diferenciaConSemanaAnteriorCentimos,
     required this.ventaDeHoyCentimos,
     required this.mostrarPrimerDia,
+    this.estadoArqueo = EstadoArqueo.nada,
   });
 
   final String nombreNegocio;
@@ -82,6 +84,9 @@ class ResumenInicio {
 
   /// S03 se muestra la primera semana, hasta el primer arqueo.
   final bool mostrarPrimerDia;
+
+  /// Si toca, falta o ya se hizo el arqueo de la semana.
+  final EstadoArqueo estadoArqueo;
 
   int get tienesHoyCentimos =>
       saldosPorCuenta.values.fold(0, (suma, saldo) => suma + saldo);

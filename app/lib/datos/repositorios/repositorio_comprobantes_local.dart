@@ -172,10 +172,7 @@ class RepositorioComprobantesLocal implements RepositorioComprobantes {
         },
       );
 
-      final tienesHoy = AccesoLocal.saldosPorCuenta(
-        await _a.cuentas(empresa.id),
-        await _a.movimientos(empresa.id),
-      ).values.fold<int>(0, (s, v) => s + v);
+      final tienesHoy = await _a.tienesHoy(empresa.id);
       return Guardado(ids: [id], tienesHoyCentimos: tienesHoy);
     });
   }

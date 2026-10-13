@@ -80,6 +80,18 @@ class PantallaOperador extends ConsumerWidget {
                 ),
                 const Divider(),
                 _Opcion(
+                  titulo: Textos.pedirArqueo,
+                  detalle: Textos.pedirArqueoDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref.read(repositorioOperadorProvider).pedirArqueo();
+                    mensajes.showSnackBar(
+                      const SnackBar(content: Text(Textos.arqueoPedido)),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
                   titulo: Textos.empezarDemo,
                   detalle: Textos.opcionLlegaEnEntrega(9),
                 ),

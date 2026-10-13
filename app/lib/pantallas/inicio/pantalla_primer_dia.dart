@@ -19,12 +19,16 @@ class PantallaPrimerDia extends StatelessWidget {
     required this.alAnotarVenta,
     required this.alAnotarGasto,
     required this.alDeclararSaldo,
+    required this.alHacerArqueo,
   });
 
   final ResumenPrimerDia resumen;
   final VoidCallback alAnotarVenta;
   final VoidCallback alAnotarGasto;
   final VoidCallback alDeclararSaldo;
+
+  /// Paso 4: el primer arqueo se puede hacer cualquier día.
+  final VoidCallback alHacerArqueo;
 
   static const _ventaDiasMeta = 5;
 
@@ -154,10 +158,11 @@ class PantallaPrimerDia extends StatelessWidget {
                     texto: Textos.pasoPrimerGasto,
                     estado: _EstadoPaso.pendiente,
                   ),
-                  const _Paso(
+                  _Paso(
                     numero: 4,
                     texto: Textos.pasoPrimerArqueo,
                     estado: _EstadoPaso.pendiente,
+                    alTocar: alHacerArqueo,
                   ),
                   const SizedBox(height: 4),
                   const Text(

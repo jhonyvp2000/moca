@@ -90,20 +90,66 @@ class AccesoLocal {
     fecha: m.fechaPago ?? m.fechaMovimiento,
   );
 
-  /// Saldo de cada cuenta, calculado aquí y no en las pantallas.
+  /// Saldo de cada cuenta, calculado aquí y no en las pantallas. Los
+  /// [ajustes] del arqueo cambian el saldo sin ser gasto ni ingreso.
   static Map<TipoCuenta, int> saldosPorCuenta(
     List<Cuenta> cuentas,
-    List<Movimiento> movimientos,
-  ) => {
+    List<Movimiento> movimientos, {
+    List<AjusteArqueo> ajustes = const [],
+  }) => {
     for (final cuenta in cuentas)
       cuenta.tipo: saldoDeCuenta(
         saldoInicialCentimos: cuenta.saldoInicialCentimos,
         fechaSaldoInicial: cuenta.fechaSaldoInicial,
-        movimientos: movimientos
-            .where((m) => m.cuentaId == cuenta.id)
-            .map(paraSaldo),
+        movimientos: [
+          ...movimientos.where((m) => m.cuentaId == cuenta.id).map(paraSaldo),
+          for (final a in ajustes)
+            if (a.cuentaId == cuenta.id) a.paraSaldo,
+        ],
       ),
   };
+
+  /// Saldo de cada cuenta de la empresa, con los ajustes del arqueo.
+  Future<Map<TipoCuenta, int>> saldos(String empresaId) async =>
+      saldosPorCuenta(
+        await cuentas(empresaId),
+        await movimientos(empresaId),
+        ajustes: await ajustes(empresaId),
+      );
+
+  /// Cuánto tiene el dueño en total.
+  Future<int> tienesHoy(String empresaId) async =>
+      (await saldos(empresaId)).values.fold<int>(0, (s, v) => s + v);
+
+  /// Las diferencias del arqueo que ajustan el saldo: error de vuelto, «no
+  /// lo sé» y las menores a S/ 1. Las que generaron un movimiento ya están
+  /// en el saldo por ese movimiento.
+  Future<List<AjusteArqueo>> ajustes(String empresaId) async {
+    final filas =
+        await (base.select(base.arqueoCuentas).join([
+                innerJoin(
+                  base.arqueos,
+                  base.arqueos.id.equalsExp(base.arqueoCuentas.arqueoId),
+                ),
+              ])
+              ..where(base.arqueos.empresaId.equals(empresaId))
+              ..orderBy([OrderingTerm.asc(base.arqueos.fecha)]))
+            .get();
+    return [
+      for (final fila in filas)
+        if (fila.readTable(base.arqueoCuentas) case final c
+            when c.diferenciaCentimos != 0 && c.movimientoId == null)
+          AjusteArqueo(
+            id: c.id,
+            cuentaId: c.cuentaId,
+            fecha: fila.readTable(base.arqueos).fecha,
+            centimos: c.diferenciaCentimos,
+            motivo: c.motivo,
+            calculadoCentimos: c.saldoCalculadoCentimos,
+            contadoCentimos: c.saldoRealCentimos,
+          ),
+    ];
+  }
 
   /// Se emite al empezar y cada vez que cambian los datos que importan.
   Stream<void> cambios() => base
@@ -116,6 +162,7 @@ class AccesoLocal {
           base.arqueos,
           base.ajustes,
           base.bitacora,
+          base.arqueoCuentas,
         ]),
       )
       .map((_) {})
@@ -127,4 +174,35 @@ extension _ConInicio on Stream<void> {
     yield null;
     yield* this;
   }
+}
+
+/// Una diferencia del arqueo que ajusta el saldo de una cuenta.
+class AjusteArqueo {
+  const AjusteArqueo({
+    required this.id,
+    required this.cuentaId,
+    required this.fecha,
+    required this.centimos,
+    required this.motivo,
+    required this.calculadoCentimos,
+    required this.contadoCentimos,
+  });
+
+  final String id;
+  final String cuentaId;
+  final DateTime fecha;
+
+  /// Positivo si sobró plata; negativo si faltó.
+  final int centimos;
+  final MotivoArqueo? motivo;
+  final int calculadoCentimos;
+  final int contadoCentimos;
+
+  MovimientoParaSaldo get paraSaldo => MovimientoParaSaldo(
+    tipo: centimos > 0 ? TipoMovimiento.ingreso : TipoMovimiento.egreso,
+    montoCentimos: centimos.abs(),
+    estado: EstadoRegistro.vigente,
+    estadoPago: EstadoPago.pagado,
+    fecha: fecha,
+  );
 }
