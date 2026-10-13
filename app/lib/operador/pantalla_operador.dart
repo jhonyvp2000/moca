@@ -24,6 +24,7 @@ class PantallaOperador extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final conteo = ref.watch(conteoRegistrosProvider);
+    final sinSenal = ref.watch(simularSinSenalProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -98,6 +99,25 @@ class PantallaOperador extends ConsumerWidget {
                   titulo: Textos.elegirFrase,
                   detalle: Textos.elegirFraseDetalle,
                   alTocar: () => _elegirFrase(context, ref),
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.simularSinSenal,
+                  detalle: sinSenal
+                      ? Textos.simularSinSenalActivo
+                      : Textos.simularSinSenalDetalle,
+                  alTocar: () {
+                    ref.read(simularSinSenalProvider.notifier).cambiar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          sinSenal
+                              ? Textos.senalDelTelefono
+                              : Textos.sinSenalSimulada,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const Divider(),
                 _Opcion(

@@ -8,8 +8,11 @@ import '../local/base_local.dart';
 import 'acceso_local.dart';
 
 class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
-  RepositorioPrimerDiaLocal(BaseLocal base, {DateTime Function()? ahora})
-    : _a = AccesoLocal(base, ahora ?? DateTime.now);
+  RepositorioPrimerDiaLocal(
+    BaseLocal base, {
+    DateTime Function()? ahora,
+    Future<bool> Function()? hayConexion,
+  }) : _a = AccesoLocal(base, ahora ?? DateTime.now, hayConexion: hayConexion);
 
   final AccesoLocal _a;
   BaseLocal get _base => _a.base;
@@ -173,7 +176,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
                 fuente: fuente,
                 autorId: usuarioId,
                 estado: EstadoRegistro.vigente,
-                estadoSincronizacion: EstadoSincronizacion.subido,
+                estadoSincronizacion: await _a.estadoAlGuardar(),
                 creadoEn: ahora,
               ),
             );
@@ -188,6 +191,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
             'cuenta': tipo.name,
             'montoCentimos': monto,
             'categoria': categoriaVentaDelDia,
+            'fuente': fuente.name,
           },
         );
       }

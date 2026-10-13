@@ -10,13 +10,22 @@ import '../local/base_local.dart';
 /// Lo que comparten los repositorios locales: identificadores, la empresa y
 /// el usuario del teléfono, la bitácora, los ajustes y los saldos.
 class AccesoLocal {
-  AccesoLocal(this.base, this.ahora);
+  AccesoLocal(this.base, this.ahora, {Future<bool> Function()? hayConexion})
+    : _hayConexion = hayConexion ?? _siempreConectado;
 
   final BaseLocal base;
   final DateTime Function() ahora;
+  final Future<bool> Function() _hayConexion;
+  static Future<bool> _siempreConectado() async => true;
   static const _uuid = Uuid();
 
   String nuevoId() => _uuid.v4();
+
+  /// Lo guardado sin conexión queda «por subir» y la marca no cambia: en el
+  /// prototipo no hay servidor.
+  Future<EstadoSincronizacion> estadoAlGuardar() async => await _hayConexion()
+      ? EstadoSincronizacion.subido
+      : EstadoSincronizacion.porSubir;
 
   Future<Empresa?> empresa() =>
       (base.select(base.empresas)..limit(1)).getSingleOrNull();
@@ -106,6 +115,7 @@ class AccesoLocal {
           base.categorias,
           base.arqueos,
           base.ajustes,
+          base.bitacora,
         ]),
       )
       .map((_) {})

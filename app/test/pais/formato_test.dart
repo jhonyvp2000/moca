@@ -45,4 +45,33 @@ void main() {
     expect(formatearHora(12 * 60), '12:00 p. m.');
     expect(formatearHora(0), '12:00 a. m.');
   });
+
+  test('Los días del Historial', () {
+    final hoy = DateTime(2026, 10, 13, 21);
+    expect(
+      formatearDiaHistorial(DateTime(2026, 10, 13, 8), hoy),
+      'Hoy · martes 13',
+    );
+    expect(
+      formatearDiaHistorial(DateTime(2026, 10, 12), hoy),
+      'Ayer · lunes 12',
+    );
+    expect(formatearDiaHistorial(DateTime(2026, 10, 9), hoy), 'Viernes 9');
+    expect(
+      formatearDiaHistorial(DateTime(2026, 9, 28), hoy),
+      'Lunes 28 de setiembre',
+    );
+    expect(
+      formatearDiaHistorial(DateTime(2025, 12, 29), hoy),
+      'Lunes 29 de diciembre de 2025',
+    );
+    expect(
+      formatearDiaHistorial(DateTime(2026, 11, 1), DateTime(2026, 11, 2)),
+      'Ayer · domingo 1',
+    );
+    expect(
+      formatearDiaHistorial(DateTime(2026, 10, 31), DateTime(2026, 11, 1)),
+      'Ayer · sábado 31',
+    );
+  });
 }

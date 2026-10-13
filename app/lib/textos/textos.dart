@@ -284,6 +284,114 @@ abstract final class Textos {
   static const deshacer = 'Deshacer';
   static const seDeshizo = 'Listo, no se guardó.';
 
+  // S10 · Historial
+  static const filtroTodo = 'Todo';
+  static String filtroPorSubir(int n) => n > 0 ? 'Por subir · $n' : 'Por subir';
+  static const marcaPorSubir = 'por subir';
+  static const loDebes = 'Lo debes';
+  static const retiroNoCuenta = 'No cuenta como gasto del negocio';
+  static const historialVacio =
+      'Todavía no hay registros. Lo que anotes aparece aquí.';
+  static const sinEntradas = 'Todavía no hay registros de plata que entró.';
+  static const sinSalidas = 'Todavía no hay registros de plata que salió.';
+  static const nadaPorSubir = 'No hay nada por subir.';
+
+  // Detalle del movimiento (no dibujado)
+  static const tituloDetalle = 'Registro';
+  static const etiquetaQueFue = 'Qué fue';
+  static const etiquetaCuenta = 'Cuenta';
+  static const etiquetaCategoria = 'Categoría';
+  static const etiquetaFecha = 'Fecha';
+  static const etiquetaNota = 'Nota';
+  static const etiquetaComoSeAnoto = 'Cómo se anotó';
+  static const etiquetaPago = 'Pago';
+  static const etiquetaProveedor = 'Proveedor';
+  static const etiquetaComprobante = 'Comprobante';
+  static const etiquetaRuc = 'RUC';
+  static String nombreTipo(TipoMovimiento tipo) => switch (tipo) {
+    TipoMovimiento.ingreso => entro,
+    TipoMovimiento.egreso => salio,
+    TipoMovimiento.retiro => retiroParaMi,
+  };
+  static String comoSeAnoto(Fuente fuente) => switch (fuente) {
+    Fuente.voz => 'Lo dijiste por voz',
+    Fuente.texto => 'Lo escribiste',
+    Fuente.foto => 'Foto del comprobante',
+    Fuente.qr => 'QR del comprobante',
+    Fuente.sire => 'Archivo de SIRE',
+    Fuente.arqueo => 'En el arqueo',
+  };
+  static const pagado = 'Pagado';
+  static String pagadoEl(String fecha) => 'Pagado el $fecha';
+  static const todaviaLoDebes =
+      'Todavía lo debes. No baja tu saldo hasta que lo pagues.';
+  static const guardadoPorSubir =
+      'Guardado en tu teléfono. Sube cuando vuelva la señal.';
+  static const yaNoCuenta =
+      'Este registro ya no cuenta: se deshizo o se corrigió.';
+  static const yaLoPague = 'Ya lo pagué';
+  static const corregir = 'Corregir';
+  static const deshacerRegistro = 'Deshacer este registro';
+  static const deshacerTitulo = '¿Deshacer este registro?';
+  static String deshacerConSaldo(String cuenta, String monto) =>
+      'Tu saldo en ${cuenta.toLowerCase()} vuelve a $monto. Queda anotado '
+      'en Cambios.';
+  static const deshacerSinSaldo =
+      'Tu saldo no cambia, porque todavía lo debías. Queda anotado en '
+      'Cambios.';
+  static const registroDeshecho = 'Registro deshecho.';
+  static const verFoto = 'Ver la foto';
+
+  // Cambios (bitácora)
+  static const cambios = 'Cambios';
+  static const autorTu = 'Tú';
+  static String anotado(Fuente fuente) => switch (fuente) {
+    Fuente.voz => 'Lo anotaste por voz',
+    Fuente.texto => 'Lo anotaste escrito',
+    Fuente.foto => 'Lo anotaste con una foto',
+    Fuente.qr => 'Lo anotaste con el QR',
+    Fuente.sire => 'Llegó del archivo de SIRE',
+    Fuente.arqueo => 'Se anotó en el arqueo',
+  };
+  static String cambiasteTipo(String antes, String despues) =>
+      'Cambiaste qué fue: $antes → $despues';
+  static String cambiasteMonto(String antes, String despues) =>
+      'Cambiaste el monto: $antes → $despues';
+  static String cambiasteCuenta(String antes, String despues) =>
+      'Cambiaste la cuenta: $antes → $despues';
+  static String cambiasteCategoria(String antes, String despues) =>
+      'Cambiaste la categoría: $antes → $despues';
+  static String cambiasteNota(String antes, String despues) =>
+      'Cambiaste la nota: $antes → $despues';
+  static const sinNota = 'sin nota';
+  static const sinCategoria = 'sin categoría';
+  static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
+  static String pagaste(String cuenta, String fecha) =>
+      'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  static const deshiciste = 'Lo deshiciste';
+
+  // Corregir
+  static const corregirRegistro = 'Corregir registro';
+  static const guardarCambios = 'Guardar cambios';
+  static const datosDelComprobante =
+      'El monto y el tipo son los del comprobante. Si están mal, deshaz este '
+      'registro y vuelve a anotarlo.';
+  static String cambiosGuardados(String monto) =>
+      'Cambios guardados. Ahora tienes $monto';
+
+  // «Ya lo pagué»
+  static const conQuePagaste = '¿Con qué pagaste?';
+  static const cuandoPagaste = '¿Cuándo?';
+  static const hoy = 'Hoy';
+  static const ayer = 'Ayer';
+  static const otroDia = 'Otro día';
+  static String pagadoAhoraTienes(String monto, String cuenta) =>
+      'Pagado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
+
+  // Sin señal
+  static const sinSenal =
+      'Sin señal. Se guarda en tu teléfono y sube cuando vuelva.';
+
   // Ajuste oculto del operador
   static const tituloOperador = 'Ajustes de la prueba';
   static const subtituloOperador = 'Solo para quien organiza la prueba.';
@@ -315,6 +423,15 @@ abstract final class Textos {
       'La próxima grabación usa esta frase en lugar del micrófono.';
   static String fraseElegida(String frase) =>
       'La próxima grabación usará: «$frase»';
+  static const simularSinSenal = 'Simular sin señal';
+  static const simularSinSenalDetalle =
+      'Lo que se guarde queda «por subir», como si el teléfono no tuviera '
+      'señal.';
+  static const simularSinSenalActivo =
+      'Activado: todo lo que se guarde queda «por subir». Toca para volver a '
+      'la señal del teléfono.';
+  static const sinSenalSimulada = 'Listo. La app está sin señal.';
+  static const senalDelTelefono = 'Listo. La app usa la señal del teléfono.';
   static const exportarMedicion = 'Exportar la medición';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';
   static const confirmarBorrarTitulo = '¿Borrar todo?';

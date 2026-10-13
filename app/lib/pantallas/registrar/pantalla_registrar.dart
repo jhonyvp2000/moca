@@ -8,6 +8,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'franja_sin_senal.dart';
 
 /// S06 · Registrar. Sin el ejemplo de fiado ni la ayuda de Yape compartido
 /// (ajustes respecto al mockup).
@@ -71,6 +72,7 @@ class PantallaRegistrar extends StatelessWidget {
                     style: Tipografia.secundario.copyWith(fontSize: 15),
                   ),
                   const SizedBox(height: 16),
+                  const FranjaSinSenal(separacion: 12),
                   _Entrada(
                     icono: Icono.microfono,
                     titulo: Textos.decirloConVoz,

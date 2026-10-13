@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'datos/local/base_local.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/repositorio_comprobantes_local.dart';
+import 'datos/repositorios/repositorio_historial_local.dart';
 import 'datos/repositorios/repositorio_movimientos_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
 import 'datos/repositorios/repositorio_primer_dia_local.dart';
@@ -10,12 +11,15 @@ import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
 import 'dominio/ajustes.dart';
 import 'dominio/comprobantes.dart';
+import 'dominio/conexion.dart';
+import 'dominio/historial.dart';
 import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 import 'dominio/voz.dart';
 import 'servicios/camara_android.dart';
+import 'servicios/conexion_android.dart';
 import 'servicios/voz_android.dart';
 
 // El único lugar que elige qué implementación usa cada interfaz.
@@ -32,6 +36,35 @@ final baseLocalProvider = Provider<BaseLocal>((ref) {
 /// del día en que se corren.
 final relojProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
+// --- Señal ---------------------------------------------------------------------
+
+/// La señal real del teléfono. Las pruebas la reemplazan.
+final conexionTelefonoProvider = Provider<Conexion>((ref) => ConexionAndroid());
+
+/// «Simular sin señal», del ajuste oculto. Dura mientras la app esté abierta.
+final simularSinSenalProvider = NotifierProvider<SimularSinSenal, bool>(
+  SimularSinSenal.new,
+);
+
+class SimularSinSenal extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void cambiar() => state = !state;
+}
+
+final conexionProvider = Provider<Conexion>(
+  (ref) => ref.watch(simularSinSenalProvider)
+      ? const ConexionSimuladaSinSenal()
+      : ref.watch(conexionTelefonoProvider),
+);
+
+final hayConexionProvider = StreamProvider<bool>(
+  (ref) => ref.watch(conexionProvider).observar(),
+);
+
+// --- Repositorios ----------------------------------------------------------------
+
 final repositorioOperadorProvider = Provider<RepositorioOperador>(
   (ref) => RepositorioOperadorLocal(ref.watch(baseLocalProvider)),
 );
@@ -40,6 +73,7 @@ final repositorioPrimerDiaProvider = Provider<RepositorioPrimerDia>(
   (ref) => RepositorioPrimerDiaLocal(
     ref.watch(baseLocalProvider),
     ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
 );
 
@@ -55,6 +89,7 @@ final repositorioMovimientosProvider = Provider<RepositorioMovimientos>(
   (ref) => RepositorioMovimientosLocal(
     ref.watch(baseLocalProvider),
     ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
 );
 
@@ -66,6 +101,25 @@ final resumenInicioProvider = StreamProvider<ResumenInicio>(
 final categoriasProvider = FutureProvider.autoDispose
     .family<List<CategoriaVista>, TipoMovimiento>(
       (ref, tipo) => ref.watch(repositorioMovimientosProvider).categorias(tipo),
+    );
+
+// --- Historial -----------------------------------------------------------------
+
+final repositorioHistorialProvider = Provider<RepositorioHistorial>(
+  (ref) => RepositorioHistorialLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
+  ),
+);
+
+final historialProvider = StreamProvider<ResumenHistorial>(
+  (ref) => ref.watch(repositorioHistorialProvider).observarHistorial(),
+);
+
+final detalleMovimientoProvider = StreamProvider.autoDispose
+    .family<DetalleMovimiento?, String>(
+      (ref, id) => ref.watch(repositorioHistorialProvider).observarDetalle(id),
     );
 
 final repositorioAjustesProvider = Provider<RepositorioAjustes>(
@@ -111,6 +165,7 @@ final repositorioComprobantesProvider = Provider<RepositorioComprobantes>(
   (ref) => RepositorioComprobantesLocal(
     ref.watch(baseLocalProvider),
     ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
 );
 

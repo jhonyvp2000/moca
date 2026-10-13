@@ -141,7 +141,18 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 
 - «Deshacer» y las ediciones anulan el registro anterior; nada se borra.
 - La bitácora entra en el prototipo: cada alta, edición, anulación, pago de una compra y arqueo guarda quién, cuándo, el valor anterior y el nuevo, en la capa de datos.
-- Se ve en el detalle de cada movimiento, como una lista «Cambios» (estado no dibujado: se propone antes de construirlo).
+- Se ve en el detalle de cada movimiento, como una lista «Cambios», del más antiguo al más reciente, con fecha, hora y «Tú». Un registro corregido muestra también la historia del que reemplazó.
+
+Estados aprobados el 13-10-2026 (entrega 6):
+
+- **Historial (S10):** agrupado por día («Hoy · lunes 13», «Ayer · domingo 12», «Viernes 10»; de otro mes, «Lunes 29 de setiembre»). Título: el proveedor, «Retiro para mí», la nota o la categoría. Debajo, la categoría y la cuenta, y la marca «por subir». Lo que entró va en azul con «+», lo que salió con «−». Las compras que se deben llevan «Lo debes» en ámbar. Lo deshecho o reemplazado no aparece. Sin la lupa de búsqueda ni el fiado.
+- **Filtros:** Todo · Entró · Salió · Por subir. Los retiros van en «Salió». Solo «Por subir» lleva el número, cuando es mayor que cero.
+- **Listas vacías:** sin registros, «Todavía no hay registros. Lo que anotes aparece aquí» con el botón «Registrar»; un filtro vacío lo dice («No hay nada por subir»).
+- **Detalle:** el monto con su signo, el título, la fecha y la hora; cuenta, categoría, nota y cómo se anotó; el comprobante (proveedor, RUC, serie y número, fecha, total con céntimos y la foto, que se amplía); los avisos «Todavía lo debes…» y «Guardado en tu teléfono…»; y los botones «Ya lo pagué», «Corregir» y «Deshacer este registro». El nivel de confianza no se muestra aquí.
+- **Deshacer:** pregunta antes y dice cómo queda la cuenta; luego vuelve al Historial con «Registro deshecho».
+- **Corregir:** el formulario «Escribirlo» con los datos puestos y la fecha original. En una compra con comprobante, el monto y el tipo no cambian (si están mal, se deshace y se vuelve a anotar). Si no cambió nada, no se guarda nada. Termina con «Cambios guardados. Ahora tienes S/ X», sin «Deshacer».
+- **Ya lo pagué:** se elige la cuenta (viene la del comprobante) y el día: Hoy, Ayer u Otro día, nunca futuro ni antes del comprobante o del primer día con Moca. Se paga completo y avisa «Pagado. Ahora tienes S/ X en …».
+- **Sin señal:** lo guardado sin conexión queda «por subir» para siempre; un pago sin conexión también marca el registro. Registrar, «Escribirlo», la venta del día y la voz muestran «Sin señal. Se guarda en tu teléfono y sube cuando vuelva». El ajuste oculto tiene «Simular sin señal» para probarlo sin apagar el wifi.
 - La bitácora no sale en la exportación de la medición, porque tiene montos.
 
 ### Textos legales (propuesta para revisar)

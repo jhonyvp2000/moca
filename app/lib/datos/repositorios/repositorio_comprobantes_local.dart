@@ -7,8 +7,11 @@ import '../local/base_local.dart';
 import 'acceso_local.dart';
 
 class RepositorioComprobantesLocal implements RepositorioComprobantes {
-  RepositorioComprobantesLocal(BaseLocal base, {DateTime Function()? ahora})
-    : _a = AccesoLocal(base, ahora ?? DateTime.now);
+  RepositorioComprobantesLocal(
+    BaseLocal base, {
+    DateTime Function()? ahora,
+    Future<bool> Function()? hayConexion,
+  }) : _a = AccesoLocal(base, ahora ?? DateTime.now, hayConexion: hayConexion);
 
   final AccesoLocal _a;
   BaseLocal get _base => _a.base;
@@ -148,7 +151,7 @@ class RepositorioComprobantesLocal implements RepositorioComprobantes {
               fuente: l.origen == OrigenLectura.qr ? Fuente.qr : Fuente.foto,
               autorId: usuario.id,
               estado: EstadoRegistro.vigente,
-              estadoSincronizacion: EstadoSincronizacion.subido,
+              estadoSincronizacion: await _a.estadoAlGuardar(),
               creadoEn: ahora,
             ),
           );

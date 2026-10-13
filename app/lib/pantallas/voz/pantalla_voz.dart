@@ -23,6 +23,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
+import '../registrar/franja_sin_senal.dart';
 
 /// En qué modo se abre la voz.
 enum ModoVoz {
@@ -324,6 +325,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             : context.pop(),
       ),
       contenido: [
+        const FranjaSinSenal(),
         _TarjetaMicrofono(
           fase: _fase,
           textoDicho: _parcial,

@@ -9,8 +9,11 @@ import '../local/base_local.dart';
 import 'acceso_local.dart';
 
 class RepositorioMovimientosLocal implements RepositorioMovimientos {
-  RepositorioMovimientosLocal(BaseLocal base, {DateTime Function()? ahora})
-    : _a = AccesoLocal(base, ahora ?? DateTime.now);
+  RepositorioMovimientosLocal(
+    BaseLocal base, {
+    DateTime Function()? ahora,
+    Future<bool> Function()? hayConexion,
+  }) : _a = AccesoLocal(base, ahora ?? DateTime.now, hayConexion: hayConexion);
 
   final AccesoLocal _a;
   BaseLocal get _base => _a.base;
@@ -234,7 +237,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             fuente: fuente,
             autorId: usuario.id,
             estado: EstadoRegistro.vigente,
-            estadoSincronizacion: EstadoSincronizacion.subido,
+            estadoSincronizacion: await _a.estadoAlGuardar(),
             creadoEn: ahora,
           ),
         );

@@ -11,6 +11,7 @@ import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../registrar/franja_sin_senal.dart';
 import '../registrar/confirmacion.dart';
 
 /// S07 · Venta de hoy, en su versión escrita. La voz llega en la entrega 4
@@ -105,6 +106,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
         alVolver: _volver,
       ),
       contenido: [
+        const FranjaSinSenal(),
         const Text(Textos.cuantoVendisteHoy, style: Tipografia.tituloPantalla),
         const SizedBox(height: 6),
         const Text(Textos.ventaPorCuentaDetalle, style: Tipografia.secundario),

@@ -69,7 +69,7 @@ Campos: tipo, prioridad, estado (pendiente, vista, resuelta, silenciada), texto 
 Mes de una empresa, abierto o cerrado. Un periodo cerrado no admite cambios del dueño.
 
 ### Bitácora
-Quién cambió qué y cuándo, con el valor anterior y el nuevo.
+Quién cambió qué y cuándo, con el valor anterior y el nuevo. Acciones: crear, editar, anular, pagar y arquear. Al corregir un movimiento, el anterior se anula y el nuevo lo apunta con «reemplaza a»; la bitácora guarda una fila «editar» en el anterior, con los valores de antes, los de después y el id del nuevo. Así la historia de un movimiento es la de su cadena de reemplazos.
 
 ## Lo que sale del modelo
 

@@ -21,7 +21,8 @@ enum Icono {
   ojoTachado,
   abajo,
   linterna,
-  alerta;
+  alerta,
+  sinSenal;
 
   void _trazar(Path p) {
     switch (this) {
@@ -151,6 +152,28 @@ enum Icono {
           ..lineTo(11, 10)
           ..lineTo(9, 7)
           ..close();
+      case Icono.sinSenal:
+        p
+          ..moveTo(7, 18)
+          ..lineTo(17, 18)
+          ..arcToPoint(
+            const Offset(18, 10.1),
+            radius: const Radius.circular(4),
+            clockwise: false,
+          )
+          ..arcToPoint(
+            const Offset(6.5, 9),
+            radius: const Radius.circular(6),
+            clockwise: false,
+          )
+          ..arcToPoint(
+            const Offset(7, 18),
+            radius: const Radius.circular(4.5),
+            clockwise: false,
+          )
+          ..close()
+          ..moveTo(4, 4)
+          ..lineTo(20, 20);
       case Icono.alerta:
         p
           ..addOval(Rect.fromCircle(center: const Offset(12, 12), radius: 9))

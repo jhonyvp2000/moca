@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'comun/barra_inferior.dart';
 import 'dominio/comprobantes.dart';
+import 'dominio/historial.dart';
 import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
@@ -14,6 +15,7 @@ import 'pantallas/comprobantes/pantalla_escaner_qr.dart';
 import 'pantallas/comprobantes/pantalla_foto.dart';
 import 'pantallas/guardar_avance/pantalla_codigo.dart';
 import 'pantallas/guardar_avance/pantalla_guardar_avance.dart';
+import 'pantallas/historial/pantalla_detalle_movimiento.dart';
 import 'pantallas/historial/pantalla_historial.dart';
 import 'pantallas/informe/pantalla_informe.dart';
 import 'pantallas/inicio/pantalla_inicio.dart';
@@ -43,6 +45,12 @@ abstract final class Rutas {
   static const foto = '/comprobante/foto';
   static const qr = '/comprobante/qr';
   static const confirmarLectura = '/comprobante/confirmar';
+  static const movimiento = '/movimiento';
+  static const corregir = '/movimiento/corregir';
+
+  /// El detalle de un movimiento del Historial.
+  static String detalleMovimiento(String id) =>
+      Uri(path: movimiento, queryParameters: {'id': id}).toString();
 
   /// «Anotar la venta de hoy» por voz.
   static final vozVenta = Uri(
@@ -76,6 +84,8 @@ final _rutasPorEtapa = {
     Rutas.foto,
     Rutas.qr,
     Rutas.confirmarLectura,
+    Rutas.movimiento,
+    Rutas.corregir,
   ],
 };
 
@@ -185,6 +195,18 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
       builder: (context, estado) => PantallaConfirmarLectura(
         lectura: estado.extra! as LecturaComprobante,
       ),
+    ),
+    GoRoute(
+      path: Rutas.movimiento,
+      builder: (context, estado) =>
+          PantallaDetalleMovimiento(id: estado.uri.queryParameters['id'] ?? ''),
+      routes: [
+        GoRoute(
+          path: 'corregir',
+          builder: (context, estado) =>
+              PantallaEscribir(corrigiendo: estado.extra! as DetalleMovimiento),
+        ),
+      ],
     ),
     GoRoute(
       path: Rutas.operador,

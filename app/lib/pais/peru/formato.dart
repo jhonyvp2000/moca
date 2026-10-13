@@ -91,6 +91,27 @@ const _meses = [
 String formatearFechaLarga(DateTime fecha) =>
     '${_dias[fecha.weekday - 1]} ${fecha.day} de ${_meses[fecha.month - 1]}';
 
+/// «15 de octubre».
+String formatearDiaYMes(DateTime fecha) =>
+    '${fecha.day} de ${_meses[fecha.month - 1]}';
+
+String _mayuscula(String texto) =>
+    texto.isEmpty ? texto : texto[0].toUpperCase() + texto.substring(1);
+
+/// Encabezado de un día en el Historial: «Hoy · lunes 13», «Ayer · domingo
+/// 12», «Viernes 10»; de otro mes, «Lunes 29 de setiembre»; de otro año,
+/// con el año.
+String formatearDiaHistorial(DateTime dia, DateTime hoy) {
+  final d = DateTime(dia.year, dia.month, dia.day);
+  final h = DateTime(hoy.year, hoy.month, hoy.day);
+  final nombre = '${_dias[d.weekday - 1]} ${d.day}';
+  if (d == h) return 'Hoy · $nombre';
+  if (d == DateTime(h.year, h.month, h.day - 1)) return 'Ayer · $nombre';
+  if (d.year == h.year && d.month == h.month) return _mayuscula(nombre);
+  final conMes = '$nombre de ${_meses[d.month - 1]}';
+  return _mayuscula(d.year == h.year ? conMes : '$conMes de ${d.year}');
+}
+
 /// Soles con céntimos escritos por el dueño («980.50»), en céntimos.
 int? leerSolesConCentimos(String texto) {
   final limpio = texto.replaceAll(',', '').trim();

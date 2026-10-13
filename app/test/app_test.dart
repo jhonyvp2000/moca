@@ -7,9 +7,11 @@ import 'package:moca/app.dart';
 import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
 import 'package:moca/dominio/comprobantes.dart';
+import 'package:moca/dominio/conexion.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 import 'package:moca/dominio/voz.dart';
@@ -24,6 +26,17 @@ final _ahora = DateTime(2026, 10, 12, 21, 5);
 /// Lo que «dice» el dueño en la próxima grabación.
 var _loQueDice = [const AlternativaVoz('hola')];
 var _vozDisponible = DisponibilidadVoz.disponible;
+
+/// Si el teléfono «tiene señal».
+var _conSenal = true;
+
+class _SenalFalsa implements Conexion {
+  @override
+  Future<bool> hayConexion() async => _conSenal;
+
+  @override
+  Stream<bool> observar() => Stream.value(_conSenal);
+}
 
 /// Lo que devuelve la cámara en la próxima foto.
 ResultadoCamara _camara = const FotoTomada('/no/existe.jpg');
@@ -54,6 +67,7 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
   _loQueDice = [const AlternativaVoz('hola')];
   _vozDisponible = DisponibilidadVoz.disponible;
   _camara = const FotoTomada('/no/existe.jpg');
+  _conSenal = true;
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -88,6 +102,7 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
       overrides: [
         baseLocalProvider.overrideWithValue(base),
         relojProvider.overrideWithValue(() => _ahora),
+        conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         lectorFotoProvider.overrideWith(
@@ -254,6 +269,7 @@ void main() {
           overrides: [
             baseLocalProvider.overrideWithValue(base),
             relojProvider.overrideWithValue(() => _ahora),
+            conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
           ],
           child: const MocaApp(),
         ),
@@ -314,7 +330,7 @@ void main() {
     testWidgets('Cada pestaña dice en qué entrega llega', (tester) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.text(Textos.pestanaHistorial));
-      expect(find.text(Textos.llegaEnEntrega(6)), findsOneWidget);
+      expect(find.text(Textos.filtroTodo), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text(Textos.llegaEnEntrega(8)), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
@@ -852,5 +868,201 @@ void main() {
     expect(tester.takeException(), isNull, reason: 'S01');
     await tocar(tester, find.text(Textos.ahoraNo));
     expect(tester.takeException(), isNull, reason: 'S02');
+  });
+
+  group('Historial', () {
+    Future<void> abrirHistorial(WidgetTester tester) =>
+        tocar(tester, find.text(Textos.pestanaHistorial));
+
+    Future<void> anotarGasto(WidgetTester tester, String monto) async {
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, monto);
+      await tester.pump();
+      await tocar(tester, find.text('Otros'));
+      await tester.enterText(find.byType(TextField).last, 'Bolsas');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+    }
+
+    testWidgets('Muestra lo anotado por día, con filtros', (tester) async {
+      await abrirApp(tester, listo: true);
+      await anotarGasto(tester, '80');
+      await abrirHistorial(tester);
+
+      expect(find.text('Hoy · lunes 12'), findsOneWidget);
+      expect(find.text('Venta del día'), findsOneWidget);
+      expect(find.text('+ S/ 350'), findsOneWidget);
+      expect(find.text('Bolsas'), findsOneWidget);
+      expect(find.text('Otros · Efectivo'), findsOneWidget);
+      expect(find.text('− S/ 80'), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.entro));
+      expect(find.text('Bolsas'), findsNothing);
+      expect(find.text('Venta del día'), findsOneWidget);
+      await tocar(tester, find.text(Textos.salio));
+      expect(find.text('Venta del día'), findsNothing);
+      await tocar(tester, find.text(Textos.filtroPorSubir(0)));
+      expect(find.text(Textos.nadaPorSubir), findsOneWidget);
+    });
+
+    testWidgets('Sin señal se avisa y lo guardado queda por subir', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      _conSenal = false;
+      // La señal se lee al abrir: se simula desde el ajuste oculto.
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.simularSinSenal));
+      expect(find.text(Textos.sinSenalSimulada), findsOneWidget);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.sinSenal), findsOneWidget);
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.sinSenal), findsOneWidget);
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tocar(tester, find.text('Otros'));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      await abrirHistorial(tester);
+      expect(find.text(Textos.filtroPorSubir(1)), findsOneWidget);
+      expect(find.text('Efectivo · por subir'), findsOneWidget);
+      await tocar(tester, find.text('Otros'));
+      expect(find.text(Textos.guardadoPorSubir), findsOneWidget);
+    });
+
+    testWidgets('Corregir guarda los cambios y los muestra en «Cambios»', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirHistorial(tester);
+      await tocar(tester, find.text('Venta del día'));
+
+      expect(find.text(Textos.tituloDetalle), findsOneWidget);
+      expect(find.text(Textos.comoSeAnoto(Fuente.texto)), findsOneWidget);
+      expect(find.text(Textos.anotado(Fuente.texto)), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.corregir));
+      expect(find.text(Textos.corregirRegistro), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '400');
+      await tocar(tester, find.text(Textos.yape));
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.guardarCambios),
+      );
+
+      expect(find.text(Textos.cambiosGuardados('S/ 1,400')), findsOneWidget);
+      expect(find.text('+ S/ 400'), findsOneWidget);
+      expect(
+        find.text(Textos.cambiasteMonto('S/ 350', 'S/ 400')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.cambiasteCuenta(Textos.efectivo, Textos.yape)),
+        findsOneWidget,
+      );
+
+      await tocar(tester, find.byType(BotonVolver));
+      expect(find.text('+ S/ 400'), findsOneWidget);
+      expect(find.text('+ S/ 350'), findsNothing);
+    });
+
+    testWidgets('Deshacer desde el detalle pregunta y quita el registro', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await anotarGasto(tester, '80');
+      await abrirHistorial(tester);
+      await tocar(tester, find.text('Bolsas'));
+      await tocar(tester, find.text(Textos.deshacerRegistro));
+      expect(
+        find.text(Textos.deshacerConSaldo(Textos.efectivo, 'S/ 1,350')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.widgetWithText(TextButton, Textos.deshacer));
+      expect(find.text(Textos.registroDeshecho), findsOneWidget);
+      expect(find.text('Bolsas'), findsNothing);
+      expect(find.text(Textos.filtroTodo), findsOneWidget);
+    });
+
+    testWidgets('«Ya lo pagué» pide cuenta y día y quita «Lo debes»', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        final egresos = await base.select(base.categorias).get();
+        await RepositorioComprobantesLocal(
+          base,
+          ahora: () => _ahora,
+        ).guardarCompra(
+          CompraConfirmada(
+            lectura: const LecturaComprobante(
+              origen: OrigenLectura.qr,
+              emisorIdentificacion: '20100070970',
+              tipo: 'Factura',
+              serie: 'F001',
+              numero: '12345',
+              totalCentimos: 98050,
+            ),
+            totalCentimos: 98050,
+            cuenta: TipoCuenta.efectivo,
+            pagado: false,
+            categoriaId: egresos.firstWhere((c) => c.nombre == 'Mercadería').id,
+            emisorNombre: 'Distribuidora San Martín',
+            fecha: DateTime(2026, 10, 8),
+          ),
+        );
+      });
+      await abrirHistorial(tester);
+      expect(find.text('Distribuidora San Martín'), findsOneWidget);
+      expect(find.textContaining(Textos.loDebes), findsOneWidget);
+
+      await tocar(tester, find.text('Distribuidora San Martín'));
+      expect(find.text(Textos.todaviaLoDebes), findsOneWidget);
+      expect(find.text('Total S/ 980.50'), findsOneWidget);
+      expect(find.text('Factura F001-12345'), findsOneWidget);
+
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.yaLoPague));
+      expect(find.text(Textos.conQuePagaste), findsOneWidget);
+      // El primer día de pago es hoy: no se ofrece «Ayer».
+      expect(find.text(Textos.ayer), findsNothing);
+      await tocar(tester, find.text(Textos.yape).last);
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.yaLoPague).last,
+      );
+      // Yape no tiene plata: Moca pregunta.
+      await tocar(tester, find.text(Textos.guardarIgual));
+
+      expect(
+        find.text(Textos.pagadoAhoraTienes('−S/ 981', Textos.yape)),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.todaviaLoDebes), findsNothing);
+      expect(
+        find.text(Textos.pagaste(Textos.yape, '12 de octubre')),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.yaLoPague), findsNothing);
+    });
+
+    testWidgets('El Historial y el detalle no se desbordan con letra grande', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await anotarGasto(tester, '80');
+      await abrirHistorial(tester);
+      expect(tester.takeException(), isNull, reason: 'S10');
+      await tocar(tester, find.text('Bolsas'));
+      expect(tester.takeException(), isNull, reason: 'Detalle');
+      await tocar(tester, find.text(Textos.corregir));
+      expect(tester.takeException(), isNull, reason: 'Corregir');
+    });
   });
 }
