@@ -30,11 +30,15 @@ Moca te recuerda anotar la venta a tu hora de cierre (9:00 p. m., o la que elija
 
 A tu hora de cierre llega «¿Cuánto vendiste hoy en efectivo?»:
 
-- **Escribirlo**: escribe el monto ahí mismo, por ejemplo `350`, y envía. Luego pregunta por Yape.
+- **Escribirlo**: escribe el monto ahí mismo, por ejemplo `350`, y envía. Luego pregunta por Yape y, si los usaste en el último mes, por Plin, Sip u otra billetera y por el banco.
 - **Decirlo**: abre Moca para decirlo con tu voz.
 - **Hoy no abrí**: si ese día no atendiste.
 
-## 5. Si algo falla
+## 5. Plin, Sip u otra billetera
+
+Si cobras por Plin, Sip u otra billetera, elígela al empezar o agrégala después en la pestaña **Moca**, en **Mis cuentas**. Cada una lleva su propio saldo.
+
+## 6. Si algo falla
 
 Escríbenos por WhatsApp con una captura de pantalla. No borres la app: perderías lo que anotaste.
 
