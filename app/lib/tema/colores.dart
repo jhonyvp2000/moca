@@ -20,6 +20,10 @@ abstract final class Colores {
   static const avisoFondo = Color(0xFFFBEEDD);
   static const sobreMarca = Color(0xFFFFFFFF);
 
+  /// Barra de «qué tan seguras son estas cuentas» (S14): foto y sin papel.
+  static const azulMedio = Color(0xFF7FA3E8);
+  static const grisAzulado = Color(0xFFC5D0E0);
+
   /// Texto secundario sobre fondo azul (S00).
   static const sobreMarcaSuave = Color(0xFFDCE7FB);
 }

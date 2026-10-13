@@ -6,6 +6,7 @@ import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
 import '../dominio/voz.dart';
 import '../inyeccion.dart';
+import '../pais/peru/formato.dart';
 import '../rutas.dart';
 import '../tema/colores.dart';
 import '../tema/medidas.dart';
@@ -25,6 +26,7 @@ class PantallaOperador extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final conteo = ref.watch(conteoRegistrosProvider);
     final sinSenal = ref.watch(simularSinSenalProvider);
+    final diasAdelantados = ref.watch(adelantoDelRelojProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -112,6 +114,43 @@ class PantallaOperador extends ConsumerWidget {
                   detalle: Textos.elegirFraseDetalle,
                   alTocar: () => _elegirFrase(context, ref),
                 ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.adelantarReloj,
+                  detalle: Textos.adelantarRelojDetalle,
+                  alTocar: () {
+                    ref
+                        .read(adelantoDelRelojProvider.notifier)
+                        .adelantarUnDia();
+                    final hoy = ref.read(relojProvider)();
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            Textos.relojAdelantado(formatearFechaLarga(hoy)),
+                          ),
+                        ),
+                      );
+                  },
+                ),
+                if (diasAdelantados > 0) ...[
+                  const Divider(),
+                  _Opcion(
+                    titulo: Textos.volverHoraReal,
+                    detalle: Textos.volverHoraRealDetalle(diasAdelantados),
+                    alTocar: () {
+                      ref
+                          .read(adelantoDelRelojProvider.notifier)
+                          .volverALaHoraReal();
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(content: Text(Textos.horaReal)),
+                        );
+                    },
+                  ),
+                ],
                 const Divider(),
                 _Opcion(
                   titulo: Textos.simularSinSenal,

@@ -19,7 +19,7 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
 
   /// Ajuste del operador: mostrar la tarjeta del arqueo sin esperar al
   /// domingo. Se borra al guardar un arqueo.
-  static const claveArqueoPedido = 'arqueo_pedido';
+  static const claveArqueoPedido = AccesoLocal.claveArqueoPedido;
 
   @override
   Future<List<CuentaArqueo>> preparar() async {

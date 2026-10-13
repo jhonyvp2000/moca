@@ -26,6 +26,7 @@ class PantallaInicio extends ConsumerWidget {
         resumen: inicio,
         alAnotarVenta: anotarVenta,
         alHacerArqueo: () => context.push(Rutas.arqueo),
+        aviso: ref.watch(avisosProvider).value?.firstOrNull,
       );
     }
 

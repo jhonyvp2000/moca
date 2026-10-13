@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import '../../dominio/arqueo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/categorias.dart';
@@ -8,7 +7,6 @@ import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
 import '../local/base_local.dart';
 import 'acceso_local.dart';
-import 'repositorio_arqueo_local.dart';
 
 class RepositorioMovimientosLocal implements RepositorioMovimientos {
   RepositorioMovimientosLocal(
@@ -81,42 +79,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
           : null,
       ventaDeHoyCentimos: await _ventaDeHoy(empresa.id, movimientos),
       mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
-      estadoArqueo: await _estadoArqueo(empresa.id, movimientos),
+      estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
     );
-  }
-
-  /// Hecho si hay arqueo esta semana; falta desde el lunes a las 8:00 a. m.
-  /// si la semana anterior quedó sin arqueo; toca el domingo o si el
-  /// operador lo pidió.
-  Future<EstadoArqueo> _estadoArqueo(
-    String empresaId,
-    List<Movimiento> movimientos,
-  ) async {
-    final ahora = _a.ahora();
-    final lunes = inicioDeSemana(ahora);
-    final arqueos = await (_base.select(
-      _base.arqueos,
-    )..where((a) => a.empresaId.equals(empresaId))).get();
-    if (arqueos.any((a) => !a.fecha.isBefore(lunes))) {
-      return EstadoArqueo.hecho;
-    }
-    final lunesPasado = lunes.subtract(const Duration(days: 7));
-    final empezoAntes = movimientos.any(
-      (m) => m.fechaMovimiento.isBefore(lunes),
-    );
-    final semanaPasadaSinArqueo = !arqueos.any(
-      (a) => !a.fecha.isBefore(lunesPasado),
-    );
-    if (empezoAntes &&
-        semanaPasadaSinArqueo &&
-        !ahora.isBefore(lunes.add(const Duration(hours: 8)))) {
-      return EstadoArqueo.falta;
-    }
-    if (ahora.weekday == DateTime.sunday ||
-        await _a.leerAjuste(RepositorioArqueoLocal.claveArqueoPedido) != null) {
-      return EstadoArqueo.toca;
-    }
-    return EstadoArqueo.nada;
   }
 
   Future<int> _ventaDeHoy(String empresaId, List<Movimiento> movs) async {

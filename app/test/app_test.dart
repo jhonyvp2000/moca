@@ -8,14 +8,18 @@ import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
+import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
 import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/conexion.dart';
 import 'package:moca/dominio/modelos.dart';
+import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
+import 'package:moca/dominio/servicios.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
+import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
 import 'package:moca/rutas.dart';
 import 'package:moca/textos/textos.dart';
@@ -36,6 +40,26 @@ class _SenalFalsa implements Conexion {
 
   @override
   Stream<bool> observar() => Stream.value(_conSenal);
+}
+
+/// Lo que leyó la voz sintética y si el teléfono «tiene» voz en español.
+final _loQueDijo = <String>[];
+var _hayVoz = true;
+
+class _LocutorFalso implements Locutor {
+  @override
+  Future<bool> disponible() async => _hayVoz;
+
+  @override
+  Future<void> decir(String texto) async => _loQueDijo.add(texto);
+
+  @override
+  Future<void> detener() async {}
+}
+
+class _CompartidorFalso implements Compartidor {
+  @override
+  Future<void> compartirArchivo(String ruta, {required String asunto}) async {}
 }
 
 /// Lo que devuelve la cámara en la próxima foto.
@@ -68,6 +92,8 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
   _vozDisponible = DisponibilidadVoz.disponible;
   _camara = const FotoTomada('/no/existe.jpg');
   _conSenal = true;
+  _loQueDijo.clear();
+  _hayVoz = true;
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -103,6 +129,8 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
         baseLocalProvider.overrideWithValue(base),
         relojProvider.overrideWithValue(() => _ahora),
         conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
+        locutorProvider.overrideWithValue(_LocutorFalso()),
+        compartidorProvider.overrideWithValue(_CompartidorFalso()),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         lectorFotoProvider.overrideWith(
@@ -332,7 +360,7 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.filtroTodo), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      expect(find.text(Textos.llegaEnEntrega(8)), findsOneWidget);
+      expect(find.text(Textos.compartirPdf), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(find.text(Textos.subtituloMoca), findsOneWidget);
     });
@@ -1211,6 +1239,133 @@ void main() {
         find.text(Textos.motivoArqueo(MotivoArqueo.gastoOlvidado)),
       );
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Informe y Moca', () {
+    testWidgets('El informe del primer mes', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      expect(find.text('Octubre'), findsOneWidget);
+      expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
+      expect(find.text(Textos.ganaste), findsOneWidget);
+      expect(find.text(Textos.primerMesConMoca), findsOneWidget);
+      expect(find.text(Textos.loQueGanasteYRetiraste), findsOneWidget);
+      final anterior = tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip(Textos.mesAnterior),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(anterior.onPressed, isNull);
+      expect(find.text(Textos.compartirPdf), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(Textos.sinPapel(100)),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.sinPapel(100)), findsOneWidget);
+    });
+
+    testWidgets('El PDF del informe se arma en el teléfono', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      final informe = await tester.runAsync(
+        () =>
+            container.read(repositorioInformeProvider).observarMes(null).first,
+      );
+      final bytes = await tester.runAsync(
+        () => armarPdfDelInforme(
+          informe!,
+          nombreNegocio: 'Bodega Don Lucho',
+          hoy: _ahora,
+        ),
+      );
+      expect(String.fromCharCodes(bytes!.take(4)), '%PDF');
+      expect(
+        nombreDelPdf('Bodega Don Lucho', DateTime(2026, 10)),
+        'Moca-Bodega-Don-Lucho-octubre-2026.pdf',
+      );
+      expect(base, isNotNull);
+    });
+
+    testWidgets('Moca resume la semana y la lee en voz alta', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      final texto = '${Textos.estaSemanaQueda('S/ 350')}.';
+      expect(find.text(texto), findsOneWidget);
+      expect(find.text(Textos.sinAvisos), findsOneWidget);
+      await tocar(tester, find.byKey(PantallaMoca.claveEscuchar));
+      expect(_loQueDijo, [texto]);
+    });
+
+    testWidgets('Sin voz en español, lo dice', (tester) async {
+      await abrirApp(tester, listo: true);
+      _hayVoz = false;
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.byKey(PantallaMoca.claveEscuchar));
+      expect(find.text(Textos.sinVozEnEspanol), findsOneWidget);
+    });
+
+    testWidgets('Un gasto atípico avisa en Moca y en el Inicio', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        var minuto = 0;
+        final repo = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 12, 20, minuto++),
+        );
+        final mercaderia = (await repo.categorias(TipoMovimiento.egreso))
+            .firstWhere((c) => c.nombre == 'Mercadería')
+            .id;
+        for (final soles in [100, 100, 100, 300]) {
+          await repo.registrar(
+            NuevoMovimiento(
+              tipo: TipoMovimiento.egreso,
+              montoCentimos: soles * 100,
+              cuenta: TipoCuenta.efectivo,
+              categoriaId: mercaderia,
+            ),
+          );
+        }
+      });
+      final texto = Textos.avisoAtipico('S/ 300', 'Mercadería');
+
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      expect(find.text('$texto.'), findsOneWidget);
+      expect(find.text(Textos.verElGasto), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(texto), findsOneWidget);
+      expect(find.text(Textos.paraTenerEnCuenta), findsOneWidget);
+      await tocar(tester, find.text(texto));
+      expect(find.text(Textos.tituloDetalle), findsOneWidget);
+      await tocar(tester, find.byType(BotonVolver));
+
+      await tocar(tester, find.text(Textos.entendido));
+      expect(find.text(texto), findsNothing);
+      expect(find.text(Textos.sinAvisos), findsOneWidget);
+    });
+
+    testWidgets('Informe y Moca no se desbordan con letra grande', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes).last);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await esperar(tester);
+      expect(tester.takeException(), isNull, reason: 'S14');
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(tester.takeException(), isNull, reason: 'S16');
     });
   });
 }

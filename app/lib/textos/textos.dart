@@ -445,6 +445,87 @@ abstract final class Textos {
   static const etiquetaMocaCalculaba = 'Moca calculaba';
   static const etiquetaContaste = 'Contaste';
 
+  // S14 · Informe del mes
+  static const compartirPdf = 'Compartir PDF';
+  static const mesAnterior = 'Mes anterior';
+  static const mesSiguiente = 'Mes siguiente';
+  static const hastaHoy = 'Hasta hoy';
+  static String desdeElDia(int dia) => 'Desde el día $dia';
+  static String desdeElDiaHastaHoy(int dia) => 'Desde el día $dia hasta hoy';
+  static const ganaste = 'Ganaste';
+  static const perdiste = 'Perdiste';
+  static String masQueEn(String monto, String mes) => '$monto más que en $mes';
+  static String menosQueEn(String monto, String mes) =>
+      '$monto menos que en $mes';
+  static String igualQueEn(String mes) => 'Lo mismo que en $mes';
+  static const primerMesConMoca =
+      'Es tu primer mes con Moca. El próximo mes verás la comparación.';
+  static const loQueGanasteYRetiraste = 'Lo que ganaste y lo que retiraste';
+  static const ganoElNegocio = 'Ganó el negocio';
+  static const perdioElNegocio = 'Perdió el negocio';
+  static const retirasteParaTi = 'Retiraste para ti';
+  static const quedoEnElNegocio = 'Quedó en el negocio';
+  static String sacasteMas(String monto) =>
+      'Sacaste $monto más de lo que ganó el negocio.';
+  static const enQueSeFue = 'En qué se fue la plata';
+  static const loDemas = 'Lo demás';
+  static const sinGastos = 'En este mes no hubo gastos.';
+  static String subioFrente(String categoria, String monto, String mes) =>
+      '$categoria subió $monto frente a $mes.';
+  static String bajoFrente(String categoria, String monto, String mes) =>
+      '$categoria bajó $monto frente a $mes.';
+  static String casiNadaCambio(String mes) => 'Casi nada cambió frente a $mes.';
+  static const loQueDebesTitulo = 'Lo que debes';
+  static const queTanSeguras = 'Qué tan seguras son estas cuentas';
+  static String conComprobante(int n) => '$n% tiene comprobante';
+  static String conFoto(int n) => '$n% tiene foto o captura';
+  static String sinPapel(int n) => '$n% lo dijiste tú, sin papel';
+  static const advertenciaMercaderia =
+      'Compraste más mercadería que otros meses, así que la ganancia puede '
+      'verse más baja de lo real.';
+  static const mesSinRegistros = 'En este mes no hay registros.';
+  static const armandoPdf = 'Armando el PDF…';
+  static const pdfNoSeArmo = 'No se pudo armar el PDF. Intenta otra vez.';
+  static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
+  static String hechoEl(String fecha) => 'Hecho el $fecha';
+  static const pieDelPdf = 'Hecho con Moca con lo que anotaste en tu teléfono.';
+
+  // S16 · Moca
+  static String tuSemanaEn(int segundos) => 'Tu semana, en $segundos segundos';
+  static const escuchar = 'Escuchar';
+  static const detener = 'Detener';
+  static const sinVozEnEspanol =
+      'Tu teléfono no tiene voz en español; puedes leerlo aquí.';
+  static String semanaPasadaQuedo(String monto) =>
+      'La semana pasada te quedaron $monto';
+  static String semanaPasadaPerdiste(String monto) =>
+      'La semana pasada salieron $monto más de lo que entró';
+  static String estaSemanaQueda(String monto) =>
+      'En lo que va de la semana te quedan $monto';
+  static String estaSemanaPerdiste(String monto) =>
+      'En lo que va de la semana salieron $monto más de lo que entró';
+  static String masQueLaAnterior(String monto) =>
+      ', $monto más que la semana anterior.';
+  static String menosQueLaAnterior(String monto) =>
+      ', $monto menos que la semana anterior.';
+  static const igualQueLaAnterior = ', lo mismo que la semana anterior.';
+  static String loQueMasSalio(String categoria, String monto) =>
+      ' Lo que más salió fue $categoria: $monto.';
+  static const semanaPasadaSinNada = 'La semana pasada no anotaste nada.';
+  static const avisos = 'Avisos';
+  static const importante = 'Importante';
+  static const paraTenerEnCuenta = 'Para tener en cuenta';
+  static const sinAvisos =
+      'No tienes avisos. Moca te avisa cuando algo necesite tu atención.';
+  static const avisoFaltaArqueo = 'Falta el arqueo de esta semana';
+  static String avisoDiferencia(String monto, String cuenta) =>
+      'Quedaron $monto sin explicar en ${cuenta.toLowerCase()}';
+  static String avisoDias(int dias) => 'Llevas $dias días sin anotar';
+  static String avisoAtipico(String monto, String categoria) =>
+      'Gasto más alto de lo habitual: $monto en $categoria';
+  static const verElAjuste = 'Ver el ajuste';
+  static const verElGasto = 'Ver el gasto';
+
   // Sin señal
   static const sinSenal =
       'Sin señal. Se guarda en tu teléfono y sube cuando vuelva.';
@@ -484,6 +565,17 @@ abstract final class Textos {
   static const pedirArqueoDetalle =
       'Muestra en el Inicio la tarjeta del arqueo sin esperar al domingo.';
   static const arqueoPedido = 'Listo. El Inicio pide el arqueo.';
+  static const adelantarReloj = 'Adelantar el reloj un día';
+  static const adelantarRelojDetalle =
+      'Para probar avisos y cambios de semana o de mes sin esperar. Lo que '
+      'anotes queda con esa fecha.';
+  static String relojAdelantado(String fecha) =>
+      'Listo. Para la app hoy es $fecha.';
+  static const volverHoraReal = 'Volver a la hora real';
+  static String volverHoraRealDetalle(int dias) => dias == 1
+      ? 'La app va 1 día adelantada.'
+      : 'La app va $dias días adelantada.';
+  static const horaReal = 'Listo. La app usa la hora real.';
   static const simularSinSenal = 'Simular sin señal';
   static const simularSinSenalDetalle =
       'Lo que se guarde queda «por subir», como si el teléfono no tuviera '

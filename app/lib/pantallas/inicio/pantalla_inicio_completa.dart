@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
+import '../../dominio/moca.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
@@ -10,6 +11,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../moca/avisos.dart';
 
 /// S04 · Inicio. Sin la franja de planes ni «Lo que viene» (ajustes respecto
 /// al mockup), y sin la flecha para cambiar de empresa.
@@ -19,11 +21,15 @@ class PantallaInicioCompleta extends StatefulWidget {
     required this.resumen,
     required this.alAnotarVenta,
     required this.alHacerArqueo,
+    this.aviso,
   });
 
   final ResumenInicio resumen;
   final VoidCallback alAnotarVenta;
   final VoidCallback alHacerArqueo;
+
+  /// El aviso más importante, si hay alguno.
+  final Aviso? aviso;
 
   @override
   State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
@@ -168,8 +174,7 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
             ),
           ),
           const SizedBox(height: Medidas.separacionTarjetas),
-          // Los avisos reales llegan en la entrega 8; hasta entonces, una
-          // plantilla según la venta de hoy y el arqueo de la semana.
+          // El aviso más importante; si no hay, la venta de hoy y el arqueo.
           _conMargen(_tarjetaMoca(r)),
         ],
       ),
@@ -177,6 +182,15 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
   }
 
   Widget _tarjetaMoca(ResumenInicio r) {
+    if (widget.aviso case final aviso?) {
+      return TarjetaMoca(
+        texto: textoAvisoEnInicio(aviso),
+        accion: FilledButton(
+          onPressed: () => abrirAviso(context, aviso),
+          child: Text(accionAviso(aviso)),
+        ),
+      );
+    }
     final venta = r.ventaDeHoyCentimos > 0
         ? Textos.mocaYaAnotasteHoy
         : Textos.mocaFaltaVentaDeHoy;

@@ -22,7 +22,11 @@ enum Icono {
   abajo,
   linterna,
   alerta,
-  sinSenal;
+  sinSenal,
+  derecha,
+  compartir,
+  reproducir,
+  detener;
 
   void _trazar(Path p) {
     switch (this) {
@@ -136,6 +140,30 @@ enum Icono {
         p
           ..moveTo(4, 4)
           ..lineTo(20, 20);
+      case Icono.derecha:
+        p
+          ..moveTo(9, 6)
+          ..lineTo(15, 12)
+          ..lineTo(9, 18);
+      case Icono.compartir:
+        p
+          ..moveTo(12, 15)
+          ..lineTo(12, 4)
+          ..moveTo(8, 8)
+          ..lineTo(12, 4)
+          ..lineTo(16, 8)
+          ..moveTo(5, 13)
+          ..lineTo(5, 19)
+          ..lineTo(19, 19)
+          ..lineTo(19, 13);
+      case Icono.reproducir:
+        p
+          ..moveTo(8, 5)
+          ..lineTo(19, 12)
+          ..lineTo(8, 19)
+          ..close();
+      case Icono.detener:
+        p.addRRect(RRect.fromLTRBR(7, 7, 17, 17, const Radius.circular(2)));
       case Icono.abajo:
         p
           ..moveTo(6, 9)

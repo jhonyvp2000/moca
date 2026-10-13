@@ -91,6 +91,13 @@ const _meses = [
 String formatearFechaLarga(DateTime fecha) =>
     '${_dias[fecha.weekday - 1]} ${fecha.day} de ${_meses[fecha.month - 1]}';
 
+/// «octubre».
+String nombreDelMes(DateTime fecha) => _meses[fecha.month - 1];
+
+/// «Octubre».
+String nombreDelMesConMayuscula(DateTime fecha) =>
+    _mayuscula(nombreDelMes(fecha));
+
 /// «15 de octubre».
 String formatearDiaYMes(DateTime fecha) =>
     '${fecha.day} de ${_meses[fecha.month - 1]}';

@@ -28,3 +28,8 @@ const categoriasEgresoPorNegocio = {
   TipoNegocio.servicios: ['Materiales', 'Herramientas y repuestos'],
   TipoNegocio.otro: ['Mercadería'],
 };
+
+/// Las categorías de compras para vender. El informe advierte cuando suben
+/// mucho, porque bajan la ganancia del mes aunque la mercadería siga en la
+/// tienda.
+const categoriasDeMercaderia = {'Mercadería', 'Insumos de cocina'};

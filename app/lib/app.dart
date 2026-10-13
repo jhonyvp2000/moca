@@ -25,7 +25,9 @@ class _MocaAppState extends ConsumerState<MocaApp> {
     super.initState();
     ref.listenManual(
       etapaInicioProvider,
-      (_, etapa) => _etapa.value = etapa.value,
+      // Mientras se recalcula (por ejemplo, al adelantar el reloj del
+      // operador) se mantiene la etapa anterior.
+      (_, etapa) => _etapa.value = etapa.value ?? _etapa.value,
       fireImmediately: true,
     );
   }

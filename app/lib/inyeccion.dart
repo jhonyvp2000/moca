@@ -5,6 +5,8 @@ import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/repositorio_arqueo_local.dart';
 import 'datos/repositorios/repositorio_comprobantes_local.dart';
 import 'datos/repositorios/repositorio_historial_local.dart';
+import 'datos/repositorios/repositorio_informe_local.dart';
+import 'datos/repositorios/repositorio_moca_local.dart';
 import 'datos/repositorios/repositorio_movimientos_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
 import 'datos/repositorios/repositorio_primer_dia_local.dart';
@@ -15,13 +17,18 @@ import 'dominio/arqueo.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
 import 'dominio/historial.dart';
+import 'dominio/informe.dart';
+import 'dominio/moca.dart';
 import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
+import 'dominio/servicios.dart';
 import 'dominio/voz.dart';
 import 'servicios/camara_android.dart';
+import 'servicios/compartidor_android.dart';
 import 'servicios/conexion_android.dart';
+import 'servicios/locutor_android.dart';
 import 'servicios/voz_android.dart';
 
 // El único lugar que elige qué implementación usa cada interfaz.
@@ -36,7 +43,27 @@ final baseLocalProvider = Provider<BaseLocal>((ref) {
 
 /// La hora actual. Las pruebas la fijan para que los resultados no dependan
 /// del día en que se corren.
-final relojProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+final relojProvider = Provider<DateTime Function()>((ref) {
+  final dias = ref.watch(adelantoDelRelojProvider);
+  return dias == 0
+      ? DateTime.now
+      : () => DateTime.now().add(Duration(days: dias));
+});
+
+/// «Adelantar el reloj un día», del ajuste oculto: días que se suman a la
+/// hora real. Dura mientras la app esté abierta.
+final adelantoDelRelojProvider = NotifierProvider<AdelantoDelReloj, int>(
+  AdelantoDelReloj.new,
+);
+
+class AdelantoDelReloj extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void adelantarUnDia() => state++;
+
+  void volverALaHoraReal() => state = 0;
+}
 
 // --- Señal ---------------------------------------------------------------------
 
@@ -132,6 +159,42 @@ final repositorioArqueoProvider = Provider<RepositorioArqueo>(
     ahora: ref.watch(relojProvider),
     hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
+);
+
+// --- Informe y Moca -----------------------------------------------------------
+
+final repositorioInformeProvider = Provider<RepositorioInforme>(
+  (ref) => RepositorioInformeLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+/// El informe de un mes; nulo es el mes en curso.
+final informeProvider = StreamProvider.autoDispose
+    .family<InformeMes, DateTime?>(
+      (ref, mes) => ref.watch(repositorioInformeProvider).observarMes(mes),
+    );
+
+final repositorioMocaProvider = Provider<RepositorioMoca>(
+  (ref) => RepositorioMocaLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final avisosProvider = StreamProvider<List<Aviso>>(
+  (ref) => ref.watch(repositorioMocaProvider).observarAvisos(),
+);
+
+final resumenSemanaProvider = StreamProvider<ResumenSemana>(
+  (ref) => ref.watch(repositorioMocaProvider).observarResumen(),
+);
+
+final locutorProvider = Provider<Locutor>((ref) => LocutorAndroid());
+
+final compartidorProvider = Provider<Compartidor>(
+  (ref) => CompartidorAndroid(),
 );
 
 final repositorioAjustesProvider = Provider<RepositorioAjustes>(

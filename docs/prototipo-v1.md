@@ -145,6 +145,15 @@ Estados aprobados el 13-10-2026 (entrega 7):
 - Lo mismo para la semana en S04: sin semana anterior, se omite la comparación.
 - «Compartir PDF» genera el PDF en el teléfono.
 
+Estados aprobados el 13-10-2026 (entrega 8):
+
+- **S14:** el mes con flechas ‹ › (desde el primer mes con registros hasta el actual) y «Desde el día X» / «Hasta hoy». «Ganaste» o «Perdiste», contando por la fecha del comprobante, con lo que se debe y sin retiros ni ajustes del arqueo; comparación con el mes anterior hasta el mismo día (completo si el mes ya pasó). «Lo que ganaste y lo que retiraste»; si los retiros pasan la ganancia, «Sacaste S/ X más de lo que ganó el negocio». «En qué se fue la plata» con barras, hasta cinco filas («Lo demás»), y la frase de la categoría que más cambió (S/ 100 y 20 % o más) o «Casi nada cambió». «Lo que debes» (total, sin enlace). «Qué tan seguras son estas cuentas»: comprobante (A y B), foto o captura (C), sin papel (D). Advertencia de mercadería si supera en 30 % el promedio de hasta tres meses anteriores. Mes sin registros con «Registrar».
+- **PDF:** se arma en el teléfono con lo mismo de la pantalla y se comparte con el menú de Android; se llama `Moca-<negocio>-<mes>-<año>.pdf`.
+- **S16:** «Tu semana, en N segundos» con el resumen de la semana pasada (o de lo que va, la primera semana) en plantillas, sin «te alcanza» ni fiado; «Escuchar» con la voz sintética del teléfono, o «Tu teléfono no tiene voz en español» si no hay. Avisos por prioridad y fecha con «Importante» (ámbar) o «Para tener en cuenta»; al tocarlos llevan al arqueo, al ajuste, a Registrar o al gasto; la diferencia del arqueo y el gasto atípico tienen «Entendido». Sin «Pulso» ni «Pregúntale».
+- **S04:** la tarjeta de Moca muestra el aviso más importante con su botón.
+- Las notificaciones del teléfono pasan a la entrega 9, con el aviso de cierre.
+- Ajuste oculto: «Adelantar el reloj un día» y «Volver a la hora real».
+
 ### Historial y cambios
 
 - «Deshacer» y las ediciones anulan el registro anterior; nada se borra.

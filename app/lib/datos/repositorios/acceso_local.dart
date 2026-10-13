@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../dominio/arqueo.dart';
 import '../../dominio/modelos.dart';
 import '../calculos/saldos.dart';
+import '../calculos/semana.dart';
 import '../local/base_local.dart';
 
 /// Lo que comparten los repositorios locales: identificadores, la empresa y
@@ -109,6 +111,44 @@ class AccesoLocal {
       ),
   };
 
+  /// Ajuste del operador: mostrar la tarjeta del arqueo sin esperar al
+  /// domingo. Se borra al guardar un arqueo.
+  static const claveArqueoPedido = 'arqueo_pedido';
+
+  /// Hecho si hay arqueo esta semana; falta desde el lunes a las 8:00 a. m.
+  /// si la semana anterior quedó sin arqueo; toca el domingo o si el
+  /// operador lo pidió.
+  Future<EstadoArqueo> estadoArqueo(
+    String empresaId,
+    List<Movimiento> movimientos,
+  ) async {
+    final ahora = this.ahora();
+    final lunes = inicioDeSemana(ahora);
+    final arqueos = await (base.select(
+      base.arqueos,
+    )..where((a) => a.empresaId.equals(empresaId))).get();
+    if (arqueos.any((a) => !a.fecha.isBefore(lunes))) {
+      return EstadoArqueo.hecho;
+    }
+    final lunesPasado = lunes.subtract(const Duration(days: 7));
+    final empezoAntes = movimientos.any(
+      (m) => m.fechaMovimiento.isBefore(lunes),
+    );
+    final semanaPasadaSinArqueo = !arqueos.any(
+      (a) => !a.fecha.isBefore(lunesPasado),
+    );
+    if (empezoAntes &&
+        semanaPasadaSinArqueo &&
+        !ahora.isBefore(lunes.add(const Duration(hours: 8)))) {
+      return EstadoArqueo.falta;
+    }
+    if (ahora.weekday == DateTime.sunday ||
+        await leerAjuste(claveArqueoPedido) != null) {
+      return EstadoArqueo.toca;
+    }
+    return EstadoArqueo.nada;
+  }
+
   /// Saldo de cada cuenta de la empresa, con los ajustes del arqueo.
   Future<Map<TipoCuenta, int>> saldos(String empresaId) async =>
       saldosPorCuenta(
@@ -163,6 +203,7 @@ class AccesoLocal {
           base.ajustes,
           base.bitacora,
           base.arqueoCuentas,
+          base.alertas,
         ]),
       )
       .map((_) {})

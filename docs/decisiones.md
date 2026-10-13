@@ -4,6 +4,10 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-13 | Estados de la entrega 8: informe del mes con flechas de mes, comparaciones, barras, sustento y PDF compartido; pestaña Moca con el resumen de la semana (texto y voz sintética) y avisos por prioridad; el aviso más importante en la tarjeta del Inicio; «Adelantar el reloj un día» en el ajuste oculto | Jhony | `prototipo-v1.md` |
+| 2026-10-13 | Las notificaciones del teléfono (un aviso al día) pasan a la entrega 9, junto con el aviso de cierre | Jhony | `prototipo-v1.md` |
+| 2026-10-13 | El informe cuenta por fecha del comprobante y las comparaciones del mes en curso son hasta el mismo día del mes anterior; el resumen de la semana usa la semana pasada completa (la primera semana, lo que va) | Claude Code | `prototipo-v1.md` |
+| 2026-10-13 | Los avisos se calculan con reglas al abrir la app; solo se guarda en Alertas el «Entendido» (estado vista) para no volver a mostrarlos | Claude Code | `modelo-datos.md` |
 | 2026-10-13 | Estados de la entrega 7: arqueo desde el paso 4 del Primer día, la tarjeta de Moca (domingo o semana anterior sin arqueo) y un enlace fijo en el Inicio; S12 con «Cuadra», «Faltan» y «Sobran»; respuestas rápidas por cuenta, con «Una venta que no anoté» cuando sobra plata; «Ajuste del arqueo» de solo lectura en el Historial; «Pedir el arqueo ahora» en el ajuste oculto | Jhony | `prototipo-v1.md` |
 | 2026-10-13 | Una diferencia de arqueo menor a S/ 1 se toma como cuadre y ajusta el saldo sin preguntar; un arqueo sin saldo inicial fija el punto de partida de cada cuenta | Claude Code | `prototipo-v1.md` |
 | 2026-10-13 | Los ajustes del arqueo («Di mal un vuelto», «No lo sé» y los menores a S/ 1) no son movimientos: se guardan en el arqueo y se suman al saldo desde su fecha. Se agrega el motivo «venta no anotada» | Claude Code | `modelo-datos.md` |
