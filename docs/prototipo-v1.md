@@ -93,7 +93,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Registrar
 
 - **Texto:** es un formulario corto: entró, salió o «Retiro para mí»; monto (teclado numérico); cuenta; categoría; nota opcional. Es el camino más rápido y el que no falla sin señal.
-- **Voz:** Moca deduce entró o salió del verbo («vendí», «pagué», «saqué para mí»). Si no está segura del monto, abre S18; si falta la cuenta o el tipo, pregunta con opciones. Nunca adivina.
+- **Voz:** Moca deduce entró o salió del verbo («vendí», «pagué», «saqué para mí»). Si no está segura del monto, abre S18; si falta la cuenta o el tipo, pregunta con opciones. Nunca adivina. Si el reconocimiento de Android se corta sin dar el resultado final, se usa la última frase que oyó, que el dueño revisa antes de guardar.
 - **Retiro para mí:** se anota desde Registrar, por voz («saqué 100 para mí») o en el formulario de texto.
 - **Venta del día por cuenta:** se dice en una frase («350 en efectivo y 120 por Yape») o se anota cuenta por cuenta.
 
@@ -243,6 +243,7 @@ Cada entrega se instala y se prueba en el teléfono de Jhony antes de pasar a la
 9. Aviso de la hora de cierre, modo Demo, medición y APK para los pilotos.
    - 9.1: el aviso se programa aunque no queden registros y opciones para probarlo.
    - 9.2: otras billeteras (Plin, Sip u otra) y «Mis cuentas».
+   - 9.3: la voz ya no pierde la frase cuando Android se corta sin resultado final.
 
 Si se acerca el límite de tiempo, se recorta en este orden: medición, audio y PDF. Las entregas 2, 3, 6 y 7 no se recortan.
 

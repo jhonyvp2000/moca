@@ -10,7 +10,7 @@ import '../dominio/voz.dart';
 /// tenga el teléfono). Pide el permiso del micrófono la primera vez.
 class ReconocedorVozAndroid implements ReconocedorVoz {
   final _voz = SpeechToText();
-  StreamController<EventoVoz>? _eventos;
+  SesionDeEscucha? _sesion;
   String? _idioma;
 
   /// Frases que ayudan al reconocimiento a entender montos y cuentas.
@@ -52,9 +52,9 @@ class ReconocedorVozAndroid implements ReconocedorVoz {
 
   @override
   Stream<EventoVoz> escuchar() {
-    _eventos?.close();
-    final eventos = StreamController<EventoVoz>();
-    _eventos = eventos;
+    _sesion?.cancelar();
+    final sesion = SesionDeEscucha();
+    _sesion = sesion;
     _voz.listen(
       onResult: _alReconocer,
       listenOptions: SpeechListenOptions(
@@ -67,57 +67,110 @@ class ReconocedorVozAndroid implements ReconocedorVoz {
         contextualPhrases: _frasesDeAyuda,
       ),
     );
-    return eventos.stream;
+    return sesion.eventos;
   }
 
   void _alReconocer(SpeechRecognitionResult resultado) {
-    final eventos = _eventos;
-    if (eventos == null || eventos.isClosed) return;
+    final sesion = _sesion;
+    if (sesion == null) return;
     if (!resultado.finalResult) {
-      eventos.add(VozParcial(resultado.recognizedWords));
+      sesion.alParcial(resultado.recognizedWords);
       return;
     }
-    eventos
-      ..add(
-        VozFinal([
-          for (final a in resultado.alternates)
-            AlternativaVoz(
-              a.recognizedWords,
-              a.hasConfidenceRating ? a.confidence : null,
-            ),
-        ]),
-      )
-      ..close();
+    sesion.alFinal([
+      for (final a in resultado.alternates)
+        AlternativaVoz(
+          a.recognizedWords,
+          a.hasConfidenceRating ? a.confidence : null,
+        ),
+    ], resultado.recognizedWords);
   }
 
   void _alFallar(SpeechRecognitionError error) {
-    final eventos = _eventos;
-    if (eventos == null || eventos.isClosed) return;
-    final motivo = switch (error.errorMsg) {
+    _sesion?.alFallar(switch (error.errorMsg) {
       'error_permission' ||
       'error_insufficient_permissions' => FalloVoz.sinPermiso,
       'error_no_match' || 'error_speech_timeout' => FalloVoz.nadaQueEscuchar,
       _ => FalloVoz.noDisponible,
-    };
-    eventos
-      ..add(VozFallida(motivo))
-      ..close();
+    });
   }
 
   void _alCambiarEstado(String estado) {
-    // Si terminó sin resultado final, no se escuchó nada.
-    if (estado == SpeechToText.doneStatus) {
-      Future<void>.delayed(const Duration(milliseconds: 600), () {
-        final eventos = _eventos;
-        if (eventos != null && !eventos.isClosed) {
-          eventos
-            ..add(const VozFallida(FalloVoz.nadaQueEscuchar))
-            ..close();
-        }
-      });
-    }
+    if (estado == SpeechToText.doneStatus) _sesion?.alTerminar();
   }
 
   @override
   Future<void> detener() => _voz.stop();
+}
+
+/// Una grabación: junta lo que Android va avisando y entrega un solo final.
+///
+/// Muchos teléfonos avisan «terminé» o un error (`error_no_match`,
+/// `error_client`) antes del resultado final, o en lugar de él, aunque ya
+/// mostraron la frase entera como resultado parcial. En esos casos se espera
+/// un momento al final y, si no llega, se usa lo último que se oyó: el dueño
+/// igual lo revisa antes de guardar.
+class SesionDeEscucha {
+  SesionDeEscucha({this.espera = const Duration(milliseconds: 1200)});
+
+  final Duration espera;
+  final _eventos = StreamController<EventoVoz>();
+  String _ultimoParcial = '';
+  Timer? _reloj;
+
+  Stream<EventoVoz> get eventos => _eventos.stream;
+
+  void alParcial(String texto) {
+    if (_eventos.isClosed) return;
+    if (texto.trim().isNotEmpty) _ultimoParcial = texto;
+    _eventos.add(VozParcial(texto));
+  }
+
+  void alFinal(List<AlternativaVoz> alternativas, String palabras) {
+    final validas = [
+      for (final a in alternativas)
+        if (a.texto.trim().isNotEmpty) a,
+    ];
+    if (validas.isEmpty && palabras.trim().isNotEmpty) {
+      validas.add(AlternativaVoz(palabras));
+    }
+    if (validas.isEmpty) {
+      // Un final vacío después de oír algo: vale lo último que se oyó.
+      _cerrar(_conLoOido(FalloVoz.nadaQueEscuchar));
+      return;
+    }
+    _cerrar(VozFinal(validas));
+  }
+
+  void alFallar(FalloVoz motivo) {
+    if (motivo == FalloVoz.sinPermiso || _ultimoParcial.isEmpty) {
+      _cerrar(VozFallida(motivo));
+      return;
+    }
+    _esperarFinal(motivo);
+  }
+
+  /// Android dejó de escuchar; el final puede llegar un poco después.
+  void alTerminar() => _esperarFinal(FalloVoz.nadaQueEscuchar);
+
+  void cancelar() {
+    _reloj?.cancel();
+    if (!_eventos.isClosed) _eventos.close();
+  }
+
+  void _esperarFinal(FalloVoz motivo) {
+    _reloj ??= Timer(espera, () => _cerrar(_conLoOido(motivo)));
+  }
+
+  EventoVoz _conLoOido(FalloVoz motivo) => _ultimoParcial.isEmpty
+      ? VozFallida(motivo)
+      : VozFinal([AlternativaVoz(_ultimoParcial)]);
+
+  void _cerrar(EventoVoz evento) {
+    _reloj?.cancel();
+    if (_eventos.isClosed) return;
+    _eventos
+      ..add(evento)
+      ..close();
+  }
 }
