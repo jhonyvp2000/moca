@@ -51,8 +51,11 @@ void main() {
         (120000, TipoCuenta.efectivo),
       ]);
       expect(partidas(leer('vendí 300 soles por plin')), [
-        (30000, TipoCuenta.yape),
+        (30000, TipoCuenta.plin),
       ]);
+      expect(partidas(leer('vendí 90 por sip')), [(9000, TipoCuenta.sip)]);
+      // «Sip» suelto es «sí», no la billetera.
+      expect(partidas(leer('sip vendí 90')), [(9000, null)]);
     });
   });
 

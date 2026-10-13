@@ -27,29 +27,29 @@ class _HojaSaldo extends ConsumerStatefulWidget {
 }
 
 class _EstadoHojaSaldo extends ConsumerState<_HojaSaldo> {
-  final _efectivo = TextEditingController();
-  final _yape = TextEditingController();
-  final _banco = TextEditingController();
+  final _campos = {
+    for (final c in TipoCuenta.values) c: TextEditingController(),
+  };
 
   @override
   void dispose() {
-    _efectivo.dispose();
-    _yape.dispose();
-    _banco.dispose();
+    for (final c in _campos.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _guardar() async {
     await ref.read(repositorioPrimerDiaProvider).declararSaldo({
-      TipoCuenta.efectivo: leerSolesEnCentimos(_efectivo.text) ?? 0,
-      TipoCuenta.yape: leerSolesEnCentimos(_yape.text) ?? 0,
-      TipoCuenta.banco: leerSolesEnCentimos(_banco.text) ?? 0,
+      for (final cuenta in ref.read(tiposDeCuentaProvider))
+        cuenta: leerSolesEnCentimos(_campos[cuenta]!.text) ?? 0,
     });
     if (mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final cuentas = ref.watch(tiposDeCuentaProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
@@ -73,17 +73,15 @@ class _EstadoHojaSaldo extends ConsumerState<_HojaSaldo> {
               const SizedBox(height: 12),
               GrupoMontos(
                 filas: [
-                  FilaMonto(
-                    etiqueta: Textos.efectivo,
-                    controlador: _efectivo,
-                    autofocus: true,
-                  ),
-                  FilaMonto(etiqueta: Textos.yape, controlador: _yape),
-                  FilaMonto(
-                    etiqueta: Textos.banco,
-                    controlador: _banco,
-                    accionTeclado: TextInputAction.done,
-                  ),
+                  for (final (i, cuenta) in cuentas.indexed)
+                    FilaMonto(
+                      etiqueta: Textos.nombreCuenta(cuenta),
+                      controlador: _campos[cuenta]!,
+                      autofocus: i == 0,
+                      accionTeclado: i == cuentas.length - 1
+                          ? TextInputAction.done
+                          : TextInputAction.next,
+                    ),
                 ],
               ),
               const SizedBox(height: 16),

@@ -329,6 +329,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             categoriasValidas: widget.modo == ModoVoz.primeraVenta
                 ? {categoriaVentaDelDia}
                 : validas,
+            cuentasValidas: {...ref.watch(tiposDeCuentaProvider)},
           )
         : null;
     final completo = _fase == _Fase.revisando && pregunta == null;
@@ -486,7 +487,8 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               : Textos.deDondeSalioMonto(monto),
           hijo: Opciones<TipoCuenta>(
             opciones: {
-              for (final c in TipoCuenta.values) c: Textos.nombreCuenta(c),
+              for (final c in ref.watch(tiposDeCuentaProvider))
+                c: Textos.nombreCuenta(c),
             },
             elegida: null,
             alElegir: (c) =>

@@ -21,11 +21,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
   static const _claveEtapa = 'etapa';
   static const _claveSinCuentaDesde = 'sin_cuenta_desde';
 
-  static const _nombresCuenta = {
-    TipoCuenta.efectivo: 'Efectivo',
-    TipoCuenta.yape: 'Yape',
-    TipoCuenta.banco: 'Banco',
-  };
+  static const _nombresCuenta = AccesoLocal.nombresCuenta;
 
   // --- Etapa ---------------------------------------------------------------
 
@@ -120,7 +116,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       // Las tres cuentas existen desde la primera venta, con el saldo
       // inicial pendiente (decisiones.md, 12-10-2026).
       final cuentaIds = <TipoCuenta, String>{};
-      for (final (orden, tipo) in TipoCuenta.values.indexed) {
+      for (final (orden, tipo) in TipoCuenta.basicas.indexed) {
         final id = _a.nuevoId();
         cuentaIds[tipo] = id;
         await _base
@@ -265,6 +261,22 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         TipoMovimiento.egreso,
         categoriasEgresoPorNegocio[datos.tipoNegocio]!,
       );
+      // Las billeteras que usa además de Yape.
+      final existentes = await _a.cuentas(empresa.id);
+      var orden = existentes.length;
+      for (final MapEntry(key: tipo, value: nombre)
+          in datos.billeteras.entries) {
+        if (existentes.any((c) => c.tipo == tipo)) continue;
+        await _a.crearCuenta(
+          empresaId: empresa.id,
+          autorId: usuario.id,
+          tipo: tipo,
+          nombre: tipo == TipoCuenta.otra && nombre.trim().isNotEmpty
+              ? nombre.trim()
+              : _nombresCuenta[tipo]!,
+          orden: orden++,
+        );
+      }
       if (datos.saldos != null) {
         await _fijarSaldos(empresa.id, usuario.id, datos.saldos!);
       }

@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../datos/local/base_local.dart';
 import '../datos/repositorios/medicion_local.dart';
 import '../datos/repositorios/repositorio_aviso_cierre_local.dart';
+import '../datos/repositorios/repositorio_cuentas_local.dart';
 import '../dominio/aviso_cierre.dart';
 import '../dominio/medicion.dart';
 import '../dominio/modelos.dart';
@@ -87,6 +88,9 @@ Future<DestinoNotificacion?> procesarRespuesta(
   DateTime Function()? ahora,
 }) async {
   final repo = RepositorioAvisoCierreLocal(base, ahora: ahora);
+  for (final c in await RepositorioCuentasLocal(base).observar().first) {
+    if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
+  }
   final medicion = MedicionLocal(base, ahora: ahora);
   final accion = r.actionId;
 

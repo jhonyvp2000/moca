@@ -45,9 +45,19 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
   String _soles(int centimos) =>
       _ocultar ? Textos.montoOculto : formatearSoles(centimos);
 
+  /// Filas de tres; la última se completa con huecos para que las columnas
+  /// queden alineadas.
+  static List<List<TipoCuenta?>> _enFilas(List<TipoCuenta> cuentas) => [
+    for (var i = 0; i < cuentas.length; i += 3)
+      [for (var j = i; j < i + 3; j++) j < cuentas.length ? cuentas[j] : null],
+  ];
+
   @override
   Widget build(BuildContext context) {
     final r = widget.resumen;
+    final cuentas = r.saldosPorCuenta.isEmpty
+        ? TipoCuenta.basicas
+        : r.saldosPorCuenta.keys.toList();
 
     return SafeArea(
       bottom: false,
@@ -108,36 +118,48 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      for (final cuenta in TipoCuenta.values)
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                Textos.nombreCuenta(cuenta),
-                                style: Tipografia.secundario,
-                              ),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  _soles(r.saldosPorCuenta[cuenta] ?? 0),
-                                  maxLines: 1,
-                                  style: Tipografia.cifra(
-                                    Tipografia.textoFuerte.copyWith(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                  // Una columna por cuenta; con más de tres, en filas de
+                  // tres.
+                  for (final (f, fila) in _enFilas(cuentas).indexed) ...[
+                    if (f > 0) const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        for (final cuenta in fila)
+                          Expanded(
+                            child: cuenta == null
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        Textos.nombreCuenta(cuenta),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Tipografia.secundario,
+                                      ),
+                                      FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          _soles(
+                                            r.saldosPorCuenta[cuenta] ?? 0,
+                                          ),
+                                          maxLines: 1,
+                                          style: Tipografia.cifra(
+                                            Tipografia.textoFuerte.copyWith(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                            ],
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton(

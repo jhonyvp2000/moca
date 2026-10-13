@@ -27,9 +27,20 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
   final _efectivo = TextEditingController();
   final _yape = TextEditingController();
   final _banco = TextEditingController();
+  final _nombreOtra = TextEditingController();
+  final _billeteras = <TipoCuenta>{};
+  final _saldoBilletera = {
+    for (final b in TipoCuenta.billeteras) b: TextEditingController(),
+  };
   TipoNegocio? _tipo;
   int _horaCierreMinutos = 21 * 60;
   bool _guardando = false;
+
+  static const _billeterasOpciones = {
+    TipoCuenta.plin: Textos.plin,
+    TipoCuenta.sip: Textos.sip,
+    TipoCuenta.otra: Textos.otra,
+  };
 
   static const _tipos = {
     TipoNegocio.bodega: Textos.bodega,
@@ -44,10 +55,22 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
     _efectivo.dispose();
     _yape.dispose();
     _banco.dispose();
+    _nombreOtra.dispose();
+    for (final c in _saldoBilletera.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  bool get _completo => _nombre.text.trim().isNotEmpty && _tipo != null;
+  bool get _completo =>
+      _nombre.text.trim().isNotEmpty &&
+      _tipo != null &&
+      (!_billeteras.contains(TipoCuenta.otra) ||
+          _nombreOtra.text.trim().isNotEmpty);
+
+  String _nombreBilletera(TipoCuenta tipo) => tipo == TipoCuenta.otra
+      ? _nombreOtra.text.trim()
+      : Textos.nombreCuenta(tipo);
 
   Future<void> _terminar({required bool conSaldo}) async {
     if (!_completo || _guardando) return;
@@ -66,9 +89,15 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
                           leerSolesEnCentimos(_efectivo.text) ?? 0,
                       TipoCuenta.yape: leerSolesEnCentimos(_yape.text) ?? 0,
                       TipoCuenta.banco: leerSolesEnCentimos(_banco.text) ?? 0,
+                      for (final b in _billeteras)
+                        b: leerSolesEnCentimos(_saldoBilletera[b]!.text) ?? 0,
                     }
                   : null,
               horaCierreMinutos: _horaCierreMinutos,
+              billeteras: {
+                for (final b in TipoCuenta.billeteras)
+                  if (_billeteras.contains(b)) b: _nombreBilletera(b),
+              },
             ),
           );
       // Al terminar, la app pasa sola al Inicio.
@@ -139,6 +168,40 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
           alElegir: (tipo) => setState(() => _tipo = tipo),
         ),
         const SizedBox(height: 18),
+        const Text(Textos.usasOtraBilletera, style: etiqueta),
+        const SizedBox(height: 4),
+        const Text(Textos.puedesAgregarlaDespues, style: Tipografia.secundario),
+        const SizedBox(height: 8),
+        OpcionesVarias<TipoCuenta>(
+          opciones: _billeterasOpciones,
+          elegidas: _billeteras,
+          alTocar: (b) => setState(
+            () => _billeteras.contains(b)
+                ? _billeteras.remove(b)
+                : _billeteras.add(b),
+          ),
+        ),
+        if (_billeteras.contains(TipoCuenta.otra)) ...[
+          const SizedBox(height: 10),
+          TextField(
+            key: const Key('nombre-otra-billetera'),
+            controller: _nombreOtra,
+            textCapitalization: TextCapitalization.words,
+            onChanged: (_) => setState(() {}),
+            style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+            decoration: InputDecoration(
+              hintText: Textos.nombreDeLaBilletera,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
+              border: _borde(Colores.bordeCampo, 1),
+              enabledBorder: _borde(Colores.bordeCampo, 1),
+              focusedBorder: _borde(Colores.marca, 2),
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
         const Text(Textos.cuantaPlataTienes, style: etiqueta),
         const SizedBox(height: 4),
         const Text(Textos.sinContarLaVenta, style: Tipografia.secundario),
@@ -147,6 +210,14 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
           filas: [
             FilaMonto(etiqueta: Textos.efectivo, controlador: _efectivo),
             FilaMonto(etiqueta: Textos.yape, controlador: _yape),
+            for (final b in TipoCuenta.billeteras)
+              if (_billeteras.contains(b))
+                FilaMonto(
+                  etiqueta: b == TipoCuenta.otra && _nombreBilletera(b).isEmpty
+                      ? Textos.otraBilletera
+                      : _nombreBilletera(b),
+                  controlador: _saldoBilletera[b]!,
+                ),
             FilaMonto(
               etiqueta: Textos.banco,
               controlador: _banco,

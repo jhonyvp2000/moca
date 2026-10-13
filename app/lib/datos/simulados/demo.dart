@@ -15,7 +15,7 @@ import '../repositorios/repositorio_movimientos_local.dart';
 import '../repositorios/repositorio_primer_dia_local.dart';
 
 /// Modo Demo (docs/prototipo-v1.md): diez semanas de una bodega que terminan
-/// hoy, con la venta de hoy sin anotar. Se arma con los mismos repositorios
+/// hoy, con la venta de hoy sin anotar. Cobra también por Plin. Se arma con los mismos repositorios
 /// que usa la app, para que los datos cuadren igual que los reales. Siempre
 /// sale igual: los «azares» tienen semilla fija.
 Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
@@ -51,8 +51,10 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
           TipoCuenta.efectivo: 80000,
           TipoCuenta.yape: 30000,
           TipoCuenta.banco: 200000,
+          TipoCuenta.plin: 5000,
         },
         horaCierreMinutos: 21 * 60,
+        billeteras: {TipoCuenta.plin: 'Plin'},
       ),
     );
     await acceso.guardarAjuste(AccesoLocal.claveModo, AccesoLocal.modoDemo);
@@ -228,6 +230,7 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
       final venta = {
         TipoCuenta.efectivo: (fin ? entre(38, 52) : entre(25, 40)) * 1000,
         TipoCuenta.yape: (fin ? entre(15, 22) : entre(8, 16)) * 1000,
+        TipoCuenta.plin: (fin ? entre(4, 8) : entre(2, 5)) * 1000,
         if (dia.weekday == DateTime.saturday) TipoCuenta.banco: 25000,
       };
       // Las dos últimas, guardadas sin señal: quedan «por subir».

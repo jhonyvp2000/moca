@@ -35,9 +35,9 @@ class PantallaVentaDeHoy extends ConsumerStatefulWidget {
 }
 
 class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
-  final _efectivo = TextEditingController();
-  final _yape = TextEditingController();
-  final _banco = TextEditingController();
+  final _campos = {
+    for (final c in TipoCuenta.values) c: TextEditingController(),
+  };
   bool _conBanco = false;
   bool _guardando = false;
 
@@ -47,10 +47,10 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     final montos = widget.montosIniciales ?? const {};
     String soles(TipoCuenta c) =>
         (montos[c] ?? 0) > 0 ? separarMiles(montos[c]! ~/ 100) : '';
-    _efectivo.text = soles(TipoCuenta.efectivo);
-    _yape.text = soles(TipoCuenta.yape);
-    _banco.text = soles(TipoCuenta.banco);
-    _conBanco = _banco.text.isNotEmpty;
+    for (final MapEntry(key: cuenta, value: campo) in _campos.entries) {
+      campo.text = soles(cuenta);
+    }
+    _conBanco = _campos[TipoCuenta.banco]!.text.isNotEmpty;
     ref.read(medicionProvider).anotar(EventoMedicion.ventaAbierta, {
       'modo': 'escrita',
     });
@@ -58,16 +58,21 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
 
   @override
   void dispose() {
-    _efectivo.dispose();
-    _yape.dispose();
-    _banco.dispose();
+    for (final c in _campos.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
+  /// Efectivo, Yape y las billeteras que usa; el banco, si lo agregó.
+  List<TipoCuenta> get _cuentasVisibles => [
+    for (final c in ref.read(tiposDeCuentaProvider))
+      if (c != TipoCuenta.banco || _conBanco) c,
+  ];
+
   Map<TipoCuenta, int> get _ventaPorCuenta => {
-    TipoCuenta.efectivo: leerSolesEnCentimos(_efectivo.text) ?? 0,
-    TipoCuenta.yape: leerSolesEnCentimos(_yape.text) ?? 0,
-    if (_conBanco) TipoCuenta.banco: leerSolesEnCentimos(_banco.text) ?? 0,
+    for (final c in _cuentasVisibles)
+      c: leerSolesEnCentimos(_campos[c]!.text) ?? 0,
   };
 
   int get _total => _ventaPorCuenta.values.fold(0, (a, b) => a + b);
@@ -105,6 +110,8 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   @override
   Widget build(BuildContext context) {
     void actualizar(String _) => setState(() {});
+    ref.watch(tiposDeCuentaProvider);
+    final cuentas = _cuentasVisibles;
     final total = _total;
     final ventaYaAnotada = widget.primeraVenta
         ? 0
@@ -129,27 +136,16 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
         const SizedBox(height: 16),
         GrupoMontos(
           filas: [
-            FilaMonto(
-              etiqueta: Textos.efectivo,
-              controlador: _efectivo,
-              alCambiar: actualizar,
-              autofocus: true,
-            ),
-            FilaMonto(
-              etiqueta: Textos.yape,
-              controlador: _yape,
-              alCambiar: actualizar,
-              accionTeclado: _conBanco
-                  ? TextInputAction.next
-                  : TextInputAction.done,
-            ),
-            if (_conBanco)
+            for (final (i, cuenta) in cuentas.indexed)
               FilaMonto(
-                etiqueta: Textos.banco,
-                controlador: _banco,
+                etiqueta: Textos.nombreCuenta(cuenta),
+                controlador: _campos[cuenta]!,
                 alCambiar: actualizar,
-                autofocus: true,
-                accionTeclado: TextInputAction.done,
+                // El banco recién agregado toma el foco.
+                autofocus: i == 0 || cuenta == TipoCuenta.banco,
+                accionTeclado: i == cuentas.length - 1
+                    ? TextInputAction.done
+                    : TextInputAction.next,
               ),
           ],
         ),

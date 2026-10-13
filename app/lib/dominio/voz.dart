@@ -125,16 +125,18 @@ class PreguntaCategoria extends PreguntaVoz {
   const PreguntaCategoria();
 }
 
-/// Qué falta preguntar. Nulo si ya está todo. [categoriasValidas] son las
-/// del negocio: una categoría reconocida que el negocio no tiene se pregunta.
+/// Qué falta preguntar. Nulo si ya está todo. [categoriasValidas] y
+/// [cuentasValidas] son las del negocio: una categoría o una cuenta
+/// reconocida que el negocio no tiene se pregunta («por Plin» sin Plin).
 PreguntaVoz? siguientePregunta(
   LecturaVoz lectura, {
   required Set<String> categoriasValidas,
+  Set<TipoCuenta> cuentasValidas = const {...TipoCuenta.values},
 }) {
   if (lectura.montoDudoso) return PreguntaMonto(lectura.montosPosibles);
   if (lectura.tipo == null) return const PreguntaTipo();
   for (final (i, partida) in lectura.partidas.indexed) {
-    if (partida.cuenta == null) return PreguntaCuenta(i);
+    if (!cuentasValidas.contains(partida.cuenta)) return PreguntaCuenta(i);
   }
   if (lectura.tipo != TipoMovimiento.retiro &&
       !categoriasValidas.contains(lectura.categoria)) {

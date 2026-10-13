@@ -55,7 +55,7 @@ void main() {
   test('Propone lo calculado por cuenta', () async {
     await empezar(saldos: conSaldos);
     final cuentas = await repo.preparar();
-    expect(cuentas.map((c) => c.cuenta), TipoCuenta.values);
+    expect(cuentas.map((c) => c.cuenta), TipoCuenta.basicas);
     final efectivo = cuentas.first;
     expect(efectivo.calculadoCentimos, 135000);
     expect(efectivo.propuestoSoles, 1350);

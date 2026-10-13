@@ -69,7 +69,7 @@ Los mockups muestran el estado ideal. El prototipo necesita además estados que 
 - Dos formas de arrancar: **«Primer día»** (vacía, para probar el alta) y **«Demo»** (con semanas de datos de ejemplo, para mostrar el Inicio, el arqueo y el informe llenos). Un ajuste oculto permite borrar todo y volver a empezar.
 - Los modelos siguen `modelo-datos.md`: montos en céntimos, cuenta en cada movimiento, nivel de confianza, fuente, estado de pago, retiro del dueño.
 - Los saldos, la semana y el informe se calculan en la capa de datos, no en las pantallas. Así, al llegar el backend, solo cambia de dónde salen las cifras.
-- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida.
+- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida. La bodega de la Demo también cobra por Plin.
 
 ## Comportamiento acordado
 
@@ -78,6 +78,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Primer día (S00 → S07 → S01 → S02 → S03)
 
 - Las tres cuentas (efectivo, Yape, banco) existen desde la primera venta, con saldo inicial pendiente. La primera venta va a la cuenta que dijo el dueño; si no la dijo, Moca pregunta con las tres opciones.
+- En el alta, «¿Usas otra billetera además de Yape?» ofrece Plin, Sip y «Otra» (con su nombre), de a varias. Cada billetera elegida es una cuenta más, con su saldo inicial (ver «Otras billeteras»).
 - El saldo inicial que se declara en S02 es el de **antes** de esa venta, con fecha de hoy. Bajo la pregunta se agrega: «Sin contar la venta que acabas de anotar».
 - S03 muestra «Tienes hoy» = saldo declarado + venta anotada, con la nota «Es lo que tenías al empezar más tu venta de hoy». En los primeros pasos, «Decir cuánta plata tienes» queda hecho si se declaró y «Anotar la venta 5 días» dice «llevas 1». Si la venta de hoy ya está anotada, la tarjeta de Moca dice «Ya anotaste la venta de hoy. Te recuerdo la siguiente a tu hora de cierre» y el botón pasa a ser «Anotar un gasto».
 - El Inicio es S03 durante la primera semana, hasta el primer arqueo; después es S04. En la práctica: S04 aparece a los 7 días de la primera venta o con el primer arqueo, lo que ocurra antes.
@@ -96,6 +97,13 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 - **Retiro para mí:** se anota desde Registrar, por voz («saqué 100 para mí») o en el formulario de texto.
 - **Venta del día por cuenta:** se dice en una frase («350 en efectivo y 120 por Yape») o se anota cuenta por cuenta.
 
+### Otras billeteras (aprobado el 13-10-2026, entrega 9.2)
+
+- Efectivo, Yape y Banco existen siempre. Plin, Sip y otra billetera (con el nombre que escriba el dueño) solo si el dueño las usa; cada una es una cuenta con su saldo, y solo se muestran las que usa.
+- Se eligen en el alta o después en «Mis cuentas», desde la pestaña Moca: la lista de cuentas con su saldo y «Agregar una billetera». Una billetera agregada después empieza en S/ 0 desde ese día (si el saldo inicial sigue pendiente, también queda pendiente). Ninguna cuenta se borra.
+- Las billeteras aparecen como opción en la venta del día, «Escribirlo», la voz, la foto o el QR (S08), «Ya lo pagué» y el arqueo. Se muestran junto a Yape, con el banco al final; en el Inicio, las cuentas van en filas de tres.
+- Por voz, «por Plin» o «por Sip» va a esa cuenta si el negocio la tiene; si no, Moca pregunta la cuenta. «Sip» suelto se toma como «sí», no como la billetera.
+
 ### Compras que todavía se deben
 
 - No bajan el saldo de ninguna cuenta hasta que se pagan, pero sí cuentan en la ganancia del mes de su comprobante.
@@ -105,14 +113,14 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Aviso de cierre (S05)
 
 - Hora de cierre por defecto: 9:00 p. m.
-- La notificación pregunta «¿Cuánto vendiste hoy en efectivo?». «Escribirlo» se contesta desde la misma notificación; luego llega «¿Y por Yape?». Banco solo se pregunta si hubo ventas al banco en los últimos 30 días.
+- La notificación pregunta «¿Cuánto vendiste hoy en efectivo?». «Escribirlo» se contesta desde la misma notificación; luego llega «¿Y por Yape?». Después pregunta por cada billetera (Plin, Sip u otra) y por el banco, solo si tuvieron ventas en los últimos 30 días.
 - «Decirlo» abre la app en S07.
 - «Hoy no abrí» marca el día como cerrado y no cuenta como día sin registrar.
 
 Estados aprobados el 13-10-2026 (entrega 9):
 
 - La primera vez que se llega al Inicio, la tarjeta de Moca pide el permiso de avisos («Permitir avisos» / «Ahora no»); si se niega, lo explica una vez.
-- El aviso de cierre llega solo si ese día no hay venta ni «Hoy no abrí». Se programa de forma aproximada (puede llegar unos minutos tarde), sin el permiso de alarmas exactas. «Escribirlo» se contesta en la notificación: efectivo, «¿Y por Yape?» (con «Nada por Yape»), banco solo si hubo ventas al banco en 30 días, y «Listo. Hoy vendiste S/ X». Si el monto no se entiende, lo dice y lleva a la app. El domingo, después, ofrece el arqueo.
+- El aviso de cierre llega solo si ese día no hay venta ni «Hoy no abrí». Se programa de forma aproximada (puede llegar unos minutos tarde), sin el permiso de alarmas exactas. «Escribirlo» se contesta en la notificación: efectivo, «¿Y por Yape?» (con «Nada por Yape»), cada billetera y el banco solo si tuvieron ventas en 30 días, y «Listo. Hoy vendiste S/ X». Si el monto no se entiende, lo dice y lleva a la app. El domingo, después, ofrece el arqueo.
 - Un aviso al día a las 8:00 a. m. como máximo, programado por la app: «Falta el arqueo» (lunes), «Llevas N días sin anotar» o «Tu resumen de la semana está listo» (lunes, si hubo arqueo). La diferencia del arqueo y el gasto atípico solo se ven en la app.
 - En la Demo no hay notificaciones ni medición.
 
@@ -233,6 +241,8 @@ Cada entrega se instala y se prueba en el teléfono de Jhony antes de pasar a la
 7. Arqueo semanal con respuestas rápidas.
 8. Informe del mes con PDF y pestaña Moca con avisos, resumen y audio.
 9. Aviso de la hora de cierre, modo Demo, medición y APK para los pilotos.
+   - 9.1: el aviso se programa aunque no queden registros y opciones para probarlo.
+   - 9.2: otras billeteras (Plin, Sip u otra) y «Mis cuentas».
 
 Si se acerca el límite de tiempo, se recorta en este orden: medición, audio y PDF. Las entregas 2, 3, 6 y 7 no se recortan.
 

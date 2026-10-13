@@ -32,8 +32,9 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
   /// Los avisos del día salen a las 8:00 a. m.
   static const _horaAvisos = 8;
 
-  /// Banco se pregunta solo si hubo ventas al banco en los últimos 30 días.
-  static const _diasConBanco = 30;
+  /// Banco y las billeteras se preguntan solo si tuvieron ventas en los
+  /// últimos 30 días.
+  static const _diasConVentas = 30;
 
   static int _idCierre(int dia) => 100 + dia;
   static int _idManana(int dia) => 200 + dia;
@@ -157,15 +158,15 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
       }
     }
     final empresa = (await _a.empresa())!;
-    switch (cuenta) {
-      case TipoCuenta.efectivo:
-        return const PreguntarCuenta(TipoCuenta.yape);
-      case TipoCuenta.yape:
-        if (await _vendioPorBanco(empresa.id)) {
-          return const PreguntarCuenta(TipoCuenta.banco);
-        }
-      case TipoCuenta.banco:
-        break;
+    // Efectivo, Yape, cada billetera con ventas en los últimos 30 días y
+    // banco si también tuvo (decisiones.md, 13-10-2026).
+    final tipos = {for (final c in await _a.cuentas(empresa.id)) c.tipo};
+    final orden = TipoCuenta.enOrden.where(tipos.contains).toList();
+    for (final siguiente in orden.skip(orden.indexOf(cuenta) + 1)) {
+      if (siguiente == TipoCuenta.yape ||
+          await _vendioPor(empresa.id, siguiente)) {
+        return PreguntarCuenta(siguiente);
+      }
     }
     final inicio = await _movimientos.observarInicio().first;
     final ahora = _a.ahora();
@@ -181,17 +182,17 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
     );
   }
 
-  Future<bool> _vendioPorBanco(String empresaId) async {
+  Future<bool> _vendioPor(String empresaId, TipoCuenta tipo) async {
     final venta = await _categoriaVenta(empresaId);
-    final banco = (await _a.cuentas(empresaId))
-        .firstWhere((c) => c.tipo == TipoCuenta.banco)
+    final cuenta = (await _a.cuentas(empresaId))
+        .firstWhere((c) => c.tipo == tipo)
         .id;
-    final desde = _a.ahora().subtract(const Duration(days: _diasConBanco));
+    final desde = _a.ahora().subtract(const Duration(days: _diasConVentas));
     return (await _a.movimientos(empresaId)).any(
       (m) =>
           m.estado == EstadoRegistro.vigente &&
           m.categoriaId == venta &&
-          m.cuentaId == banco &&
+          m.cuentaId == cuenta &&
           m.fechaMovimiento.isAfter(desde),
     );
   }

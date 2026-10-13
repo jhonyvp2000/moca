@@ -290,7 +290,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         const SizedBox(height: 8),
         Opciones<TipoCuenta>(
           opciones: {
-            for (final cuenta in TipoCuenta.values)
+            for (final cuenta in ref.watch(tiposDeCuentaProvider))
               cuenta: Textos.nombreCuenta(cuenta),
           },
           elegida: _cuenta,

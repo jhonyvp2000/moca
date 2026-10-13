@@ -22,6 +22,7 @@ class DatosAlta {
     required this.tipoNegocio,
     required this.saldos,
     required this.horaCierreMinutos,
+    this.billeteras = const {},
   });
 
   final String nombre;
@@ -30,6 +31,9 @@ class DatosAlta {
   /// Saldo inicial por cuenta, en céntimos. Nulo: «lo pongo después».
   final Map<TipoCuenta, int>? saldos;
   final int horaCierreMinutos;
+
+  /// Las billeteras que usa además de Yape, con su nombre (Plin, Sip u otra).
+  final Map<TipoCuenta, String> billeteras;
 }
 
 /// Lo que muestran S01 y S03. Las cifras vienen calculadas de la capa de

@@ -362,7 +362,8 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
         const SizedBox(height: 8),
         OpcionesRejilla<TipoCuenta>(
           opciones: {
-            for (final c in TipoCuenta.values) c: Textos.nombreCuenta(c),
+            for (final c in ref.watch(tiposDeCuentaProvider))
+              c: Textos.nombreCuenta(c),
           },
           elegida: _cuenta,
           alElegir: (c) => setState(() => _cuenta = c),

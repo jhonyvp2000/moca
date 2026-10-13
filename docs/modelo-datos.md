@@ -23,7 +23,7 @@ Campos: nombre, tipo de negocio (bodega, restaurante, servicios, otro), modo (Si
 Une Usuario y Empresa, de muchos a muchos. Campos: rol (dueño, contador, empleado) y permisos. En la V1 solo existe el rol dueño, pero la tabla nace completa.
 
 ### Cuenta
-Dónde está la plata. Campos: tipo (efectivo, Yape, banco), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
+Dónde está la plata. Campos: tipo (efectivo, Yape, banco y, si el dueño las usa, Plin, Sip u otra billetera con el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
 
 ### Contraparte
 Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo. Su saldo pendiente se calcula a partir de los movimientos.

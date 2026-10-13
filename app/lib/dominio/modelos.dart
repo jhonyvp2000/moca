@@ -7,7 +7,26 @@ enum ModoEmpresa { simple, formal }
 
 enum Rol { dueno, contador, empleado }
 
-enum TipoCuenta { efectivo, yape, banco }
+/// Efectivo, Yape y Banco existen siempre. Plin, Sip y otra billetera (con
+/// el nombre que ponga el dueño) solo si el dueño las usa (decisiones.md,
+/// 13-10-2026).
+enum TipoCuenta {
+  efectivo,
+  yape,
+  banco,
+  plin,
+  sip,
+  otra;
+
+  /// Las cuentas que tiene todo negocio desde la primera venta.
+  static const basicas = [efectivo, yape, banco];
+
+  /// Las billeteras que el dueño puede agregar.
+  static const billeteras = [plin, sip, otra];
+
+  /// Cómo se muestran: las billeteras junto a Yape y el banco al final.
+  static const enOrden = [efectivo, yape, plin, sip, otra, banco];
+}
 
 enum TipoContraparte { cliente, proveedor }
 

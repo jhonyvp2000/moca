@@ -72,11 +72,60 @@ class AccesoLocal {
         ),
       );
 
-  Future<List<Cuenta>> cuentas(String empresaId) =>
-      (base.select(base.cuentas)
-            ..where((c) => c.empresaId.equals(empresaId))
-            ..orderBy([(c) => OrderingTerm.asc(c.orden)]))
-          .get();
+  /// El nombre que se guarda con cada cuenta. La otra billetera lleva el que
+  /// le puso el dueño.
+  static const nombresCuenta = {
+    TipoCuenta.efectivo: 'Efectivo',
+    TipoCuenta.yape: 'Yape',
+    TipoCuenta.banco: 'Banco',
+    TipoCuenta.plin: 'Plin',
+    TipoCuenta.sip: 'Sip',
+    TipoCuenta.otra: 'Otra billetera',
+  };
+
+  /// Crea una cuenta del negocio y la deja en la bitácora.
+  Future<void> crearCuenta({
+    required String empresaId,
+    required String autorId,
+    required TipoCuenta tipo,
+    required String nombre,
+    required int orden,
+    int? saldoInicialCentimos,
+    DateTime? fechaSaldoInicial,
+  }) async {
+    final id = nuevoId();
+    await base
+        .into(base.cuentas)
+        .insert(
+          CuentasCompanion.insert(
+            id: id,
+            empresaId: empresaId,
+            tipo: tipo,
+            nombre: nombre,
+            orden: orden,
+            saldoInicialCentimos: Value(saldoInicialCentimos),
+            fechaSaldoInicial: Value(fechaSaldoInicial),
+          ),
+        );
+    await anotarEnBitacora(
+      empresaId: empresaId,
+      autorId: autorId,
+      entidad: 'cuenta',
+      entidadId: id,
+      accion: AccionBitacora.crear,
+      nuevo: {'tipo': tipo.name, 'saldoInicialCentimos': saldoInicialCentimos},
+    );
+  }
+
+  /// En el orden en que se muestran ([TipoCuenta.enOrden]).
+  Future<List<Cuenta>> cuentas(String empresaId) async =>
+      (await (base.select(
+        base.cuentas,
+      )..where((c) => c.empresaId.equals(empresaId))).get())..sort(
+        (a, b) => TipoCuenta.enOrden
+            .indexOf(a.tipo)
+            .compareTo(TipoCuenta.enOrden.indexOf(b.tipo)),
+      );
 
   Future<List<Movimiento>> movimientos(String empresaId) => (base.select(
     base.movimientos,

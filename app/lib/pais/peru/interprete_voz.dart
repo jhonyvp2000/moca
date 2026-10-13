@@ -220,7 +220,10 @@ const _palabrasCuenta = {
   'yapearon': TipoCuenta.yape,
   'yapeo': TipoCuenta.yape,
   'yapeado': TipoCuenta.yape,
-  'plin': TipoCuenta.yape,
+  'plin': TipoCuenta.plin,
+  'plineo': TipoCuenta.plin,
+  'plinearon': TipoCuenta.plin,
+  'sip': TipoCuenta.sip,
   'banco': TipoCuenta.banco,
   'transferencia': TipoCuenta.banco,
   'transfirieron': TipoCuenta.banco,
@@ -231,6 +234,8 @@ const _palabrasCuenta = {
   'interbank': TipoCuenta.banco,
   'bbva': TipoCuenta.banco,
 };
+
+const _antesDeSip = {'por', 'con', 'en', 'a', 'al', 'mi', 'de', 'del'};
 
 List<_Ficha> _fichas(String texto) {
   final palabras = texto
@@ -248,7 +253,12 @@ List<_Ficha> _fichas(String texto) {
       continue;
     }
     final palabra = palabras[i].replaceAll('.', '');
-    final cuenta = _palabrasCuenta[palabra];
+    var cuenta = _palabrasCuenta[palabra];
+    // «Sip» también es «sí»: solo es la billetera tras «por», «con», «en»…
+    if (cuenta == TipoCuenta.sip &&
+        (i == 0 || !_antesDeSip.contains(palabras[i - 1]))) {
+      cuenta = null;
+    }
     fichas.add(cuenta == null ? _Palabra() : _Cuenta(cuenta));
     i++;
   }

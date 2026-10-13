@@ -1499,4 +1499,103 @@ void main() {
       );
     });
   });
+
+  group('Entrega 9.2', () {
+    testWidgets('El alta ofrece otras billeteras y la otra pide su nombre', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester);
+      await abrirVentaEscrita(tester);
+      await tester.enterText(find.byType(TextField).at(0), '350');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tocar(tester, find.text(Textos.ahoraNo));
+
+      await tester.enterText(find.byType(TextField).at(0), 'Bodega Don Lucho');
+      await tocar(tester, find.text(Textos.bodega));
+      await tocar(tester, find.text(Textos.plin));
+      await tocar(tester, find.text(Textos.otra));
+      // Sin el nombre de la otra billetera no se puede terminar.
+      final listo = find.widgetWithText(FilledButton, Textos.listoEmpezar);
+      expect(tester.widget<FilledButton>(listo).onPressed, isNull);
+      await tester.enterText(
+        find.byKey(const Key('nombre-otra-billetera')),
+        'Bim',
+      );
+      await tester.pump();
+      expect(tester.widget<FilledButton>(listo).onPressed, isNotNull);
+      // Cada billetera tiene su saldo.
+      expect(find.text(Textos.plin), findsNWidgets(2));
+      // El campo del nombre y la fila del saldo.
+      expect(find.text('Bim'), findsNWidgets(2));
+      await tocar(tester, listo);
+
+      final cuentas = await tester.runAsync(
+        () => base.select(base.cuentas).get(),
+      );
+      expect(
+        {for (final c in cuentas!) c.tipo: c.nombre},
+        {
+          TipoCuenta.efectivo: 'Efectivo',
+          TipoCuenta.yape: 'Yape',
+          TipoCuenta.banco: 'Banco',
+          TipoCuenta.plin: 'Plin',
+          TipoCuenta.otra: 'Bim',
+        },
+      );
+
+      // En el Inicio completo, cinco cuentas van en dos filas.
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
+      final plin = tester.getTopLeft(find.text(Textos.plin));
+      final bim = tester.getTopLeft(find.text('Bim'));
+      expect(plin.dy, efectivo.dy);
+      expect(bim.dy, greaterThan(efectivo.dy));
+    });
+
+    testWidgets('«Mis cuentas» agrega una billetera que aparece al anotar', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.misCuentas));
+      expect(find.text('Efectivo'), findsOneWidget);
+      expect(find.text('S/\u00A01,350'), findsOneWidget);
+
+      final agregar = find.widgetWithText(FilledButton, Textos.agregar);
+      expect(tester.widget<FilledButton>(agregar).onPressed, isNull);
+      await tocar(tester, find.text(Textos.sip));
+      await tocar(tester, agregar);
+      expect(find.text(Textos.billeteraAgregada('Sip')), findsOneWidget);
+      // Ya no se ofrece de nuevo; queda en la lista con S/ 0.
+      expect(find.text(Textos.sip), findsOneWidget);
+      expect(find.text('S/\u00A00'), findsWidgets);
+
+      await tocar(tester, find.byType(BotonVolver));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.sip), findsOneWidget);
+      expect(find.text(Textos.plin), findsNothing);
+    });
+
+    testWidgets('«Mis cuentas» no se desborda con letra grande', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.misCuentas),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text(Textos.otra));
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

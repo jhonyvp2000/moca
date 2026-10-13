@@ -150,6 +150,45 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                       ),
                     ),
                   ),
+          const SizedBox(height: 18),
+          Tarjeta(
+            relleno: EdgeInsets.zero,
+            child: Material(
+              color: Colores.superficie,
+              borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+                onTap: () => context.push(Rutas.cuentas),
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              Textos.misCuentas,
+                              style: Tipografia.textoFuerte,
+                            ),
+                            Text(
+                              Textos.misCuentasDetalle,
+                              style: Tipografia.secundario,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconoTrazo(
+                        Icono.derecha,
+                        color: Colores.textoSecundario,
+                        tamano: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

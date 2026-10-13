@@ -36,7 +36,7 @@ void main() {
 
       expect(await etapa(), EtapaInicio.guardarAvance);
       final cuentas = await base.select(base.cuentas).get();
-      expect(cuentas.map((c) => c.tipo), TipoCuenta.values);
+      expect(cuentas.map((c) => c.tipo), TipoCuenta.basicas);
       expect(cuentas.every((c) => c.saldoInicialCentimos == null), isTrue);
 
       final movimientos = await base.select(base.movimientos).get();

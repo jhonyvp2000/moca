@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'dominio/aviso_cierre.dart';
+import 'dominio/cuentas.dart';
 import 'dominio/medicion.dart';
+import 'dominio/modelos.dart';
 import 'dominio/primer_dia.dart';
 import 'inyeccion.dart';
 import 'rutas.dart';
@@ -47,6 +49,12 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     // datos.
     ref.listenManual(planNotificacionesProvider, (_, plan) {
       if (plan.value case final p?) ref.read(notificadorProvider).programar(p);
+    }, fireImmediately: true);
+    // El nombre que el dueño le puso a su otra billetera.
+    ref.listenManual(cuentasProvider, (_, cuentas) {
+      for (final c in cuentas.value ?? const <CuentaVista>[]) {
+        if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
+      }
     }, fireImmediately: true);
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);

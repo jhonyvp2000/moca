@@ -6,6 +6,7 @@ import 'datos/repositorios/medicion_local.dart';
 import 'datos/repositorios/repositorio_arqueo_local.dart';
 import 'datos/repositorios/repositorio_aviso_cierre_local.dart';
 import 'datos/repositorios/repositorio_comprobantes_local.dart';
+import 'datos/repositorios/repositorio_cuentas_local.dart';
 import 'datos/repositorios/repositorio_historial_local.dart';
 import 'datos/repositorios/repositorio_informe_local.dart';
 import 'datos/repositorios/repositorio_moca_local.dart';
@@ -20,6 +21,7 @@ import 'dominio/aviso_cierre.dart';
 import 'dominio/medicion.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
+import 'dominio/cuentas.dart';
 import 'dominio/historial.dart';
 import 'dominio/informe.dart';
 import 'dominio/moca.dart';
@@ -312,3 +314,23 @@ final lectorFotoProvider = Provider<LectorFoto>(
     forzarIlegible: () => ref.read(forzarIlegibleProvider.notifier).usar(),
   ),
 );
+
+// --- Cuentas -----------------------------------------------------------------
+
+final repositorioCuentasProvider = Provider<RepositorioCuentas>(
+  (ref) => RepositorioCuentasLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final cuentasProvider = StreamProvider<List<CuentaVista>>(
+  (ref) => ref.watch(repositorioCuentasProvider).observar(),
+);
+
+/// Las cuentas que el dueño usa, en orden. Mientras cargan, las tres básicas.
+final tiposDeCuentaProvider = Provider<List<TipoCuenta>>((ref) {
+  final cuentas = ref.watch(cuentasProvider).value;
+  if (cuentas == null || cuentas.isEmpty) return TipoCuenta.basicas;
+  return [for (final c in cuentas) c.tipo];
+});

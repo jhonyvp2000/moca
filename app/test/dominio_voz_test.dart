@@ -56,4 +56,29 @@ void main() {
       isA<PreguntaCategoria>(),
     );
   });
+
+  test('«Por Plin» sin Plin en el negocio se pregunta', () {
+    const l = LecturaVoz(
+      textoDicho: 'vendí 300 por plin',
+      tipo: TipoMovimiento.ingreso,
+      partidas: [PartidaVoz(30000, TipoCuenta.plin)],
+      categoria: 'Otros',
+    );
+    expect(
+      siguientePregunta(
+        l,
+        categoriasValidas: validas,
+        cuentasValidas: {...TipoCuenta.basicas},
+      ),
+      isA<PreguntaCuenta>(),
+    );
+    expect(
+      siguientePregunta(
+        l,
+        categoriasValidas: validas,
+        cuentasValidas: {...TipoCuenta.basicas, TipoCuenta.plin},
+      ),
+      isNull,
+    );
+  });
 }

@@ -51,10 +51,33 @@ abstract final class Textos {
   static const yape = 'Yape';
   static const banco = 'Banco';
   static const agregarBanco = '+ Banco';
+  static const plin = 'Plin';
+  static const sip = 'Sip';
+  static const otraBilletera = 'Otra billetera';
+  static const usasOtraBilletera = '¿Usas otra billetera además de Yape?';
+  static const puedesAgregarlaDespues =
+      'Si no, déjalo así. Puedes agregarla después en Moca.';
+  static const otra = 'Otra';
+  static const nombreDeLaBilletera = 'Escribe el nombre de la billetera';
+  static const misCuentas = 'Mis cuentas';
+  static const misCuentasDetalle = 'Saldo por cuenta y otras billeteras';
+  static const saldoPorPoner = 'Saldo por poner';
+  static const agregarBilletera = 'Agregar una billetera';
+  static const billeteraEmpiezaEnCero =
+      'Empieza en S/\u00A00 desde hoy. Las cuentas no se borran.';
+  static const agregar = 'Agregar';
+  static String billeteraAgregada(String nombre) => 'Listo, agregaste $nombre.';
+
+  /// El nombre que el dueño le puso a su otra billetera. Lo fija la app al
+  /// leer las cuentas.
+  static String nombreOtraBilletera = otraBilletera;
   static String nombreCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => efectivo,
     TipoCuenta.yape => yape,
     TipoCuenta.banco => banco,
+    TipoCuenta.plin => plin,
+    TipoCuenta.sip => sip,
+    TipoCuenta.otra => nombreOtraBilletera,
   };
   static const totalQueEntroHoy = 'Total que entró hoy';
   static const guardar = 'Guardar';
@@ -541,8 +564,8 @@ abstract final class Textos {
       'resumen de la semana.';
   static String preguntaVentaCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => '¿Cuánto vendiste hoy en efectivo?',
-    TipoCuenta.yape => '¿Y por Yape?',
     TipoCuenta.banco => '¿Y por banco?',
+    _ => '¿Y por ${nombreCuenta(cuenta)}?',
   };
   static String nadaPor(TipoCuenta cuenta) =>
       'Nada por ${nombreCuenta(cuenta)}';
