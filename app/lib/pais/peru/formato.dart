@@ -51,3 +51,51 @@ String formatearHora(int minutos) {
   final sufijo = h24 < 12 ? 'a. m.' : 'p. m.';
   return '$h12:${m.toString().padLeft(2, '0')}$_espacioFijo$sufijo';
 }
+
+/// Dentro del comprobante, el monto con céntimos si los tiene:
+/// «S/ 980» o «S/ 142.30».
+String formatearSolesComprobante(int centimos) {
+  final resto = centimos.abs() % 100;
+  if (resto == 0) return formatearSoles(centimos);
+  final soles = centimos.abs() ~/ 100;
+  final signo = centimos < 0 ? '−' : '';
+  return '${signo}S/$_espacioFijo${separarMiles(soles)}.'
+      '${resto.toString().padLeft(2, '0')}';
+}
+
+const _dias = [
+  'lunes',
+  'martes',
+  'miércoles',
+  'jueves',
+  'viernes',
+  'sábado',
+  'domingo',
+];
+const _meses = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'setiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/// «jueves 8 de octubre».
+String formatearFechaLarga(DateTime fecha) =>
+    '${_dias[fecha.weekday - 1]} ${fecha.day} de ${_meses[fecha.month - 1]}';
+
+/// Soles con céntimos escritos por el dueño («980.50»), en céntimos.
+int? leerSolesConCentimos(String texto) {
+  final limpio = texto.replaceAll(',', '').trim();
+  final m = RegExp(r'^(\d+)(?:\.(\d{0,2}))?$').firstMatch(limpio);
+  if (m == null) return null;
+  return int.parse(m.group(1)!) * 100 +
+      int.parse((m.group(2) ?? '').padRight(2, '0'));
+}

@@ -2,16 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
+import 'datos/repositorios/repositorio_comprobantes_local.dart';
 import 'datos/repositorios/repositorio_movimientos_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
 import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
+import 'datos/simulados/lector_foto_simulado.dart';
 import 'dominio/ajustes.dart';
+import 'dominio/comprobantes.dart';
 import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 import 'dominio/voz.dart';
+import 'servicios/camara_android.dart';
 import 'servicios/voz_android.dart';
 
 // El único lugar que elige qué implementación usa cada interfaz.
@@ -100,3 +104,40 @@ final reconocedorVozProvider = Provider<ReconocedorVoz>((ref) {
       ? ref.watch(_reconocedorAndroidProvider)
       : ReconocedorFrase(frase);
 });
+
+// --- Comprobantes -----------------------------------------------------------
+
+final repositorioComprobantesProvider = Provider<RepositorioComprobantes>(
+  (ref) => RepositorioComprobantesLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final camaraProvider = Provider<Camara>((ref) => CamaraAndroid());
+
+/// Si el operador forzó que la próxima foto salga ilegible (S17).
+final forzarIlegibleProvider = NotifierProvider<ForzarIlegible, bool>(
+  ForzarIlegible.new,
+);
+
+class ForzarIlegible extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void forzar() => state = true;
+
+  /// Devuelve si estaba forzada y la apaga: vale para una sola foto.
+  bool usar() {
+    final forzada = state;
+    state = false;
+    return forzada;
+  }
+}
+
+final lectorFotoProvider = Provider<LectorFoto>(
+  (ref) => LectorFotoSimulado(
+    ahora: ref.watch(relojProvider),
+    forzarIlegible: () => ref.read(forzarIlegibleProvider.notifier).usar(),
+  ),
+);

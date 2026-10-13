@@ -85,7 +85,13 @@ class PantallaOperador extends ConsumerWidget {
                 const Divider(),
                 _Opcion(
                   titulo: Textos.forzarFotoIlegible,
-                  detalle: Textos.opcionLlegaEnEntrega(5),
+                  detalle: Textos.forzarFotoIlegibleDetalle,
+                  alTocar: () {
+                    ref.read(forzarIlegibleProvider.notifier).forzar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text(Textos.fotoIlegibleForzada)),
+                    );
+                  },
                 ),
                 const Divider(),
                 _Opcion(

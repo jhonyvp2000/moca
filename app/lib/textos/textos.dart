@@ -193,6 +193,57 @@ abstract final class Textos {
   static const mocaNuncaAdivina =
       'Moca pregunta cuando no está segura. Nunca adivina un monto.';
 
+  // Foto y QR
+  static const leyendoComprobante = 'Leyendo el comprobante…';
+  static const abriendoCamara = 'Abriendo la cámara…';
+  static const sinPermisoCamara =
+      'Sin permiso para la cámara, Moca no puede leer el comprobante. Puedes '
+      'escribirlo, o darle permiso en los ajustes del teléfono.';
+  static const apuntaAlQr = 'Apunta al código QR del comprobante';
+  static const linterna = 'Linterna';
+  static const qrNoEsComprobante =
+      'Este código no es de un comprobante electrónico.';
+  static const comprobanteYaAnotado = 'Este comprobante ya está anotado.';
+  static const intentarOtraVez = 'Intentar otra vez';
+
+  // S08 · Confirmar lectura
+  static const revisaLaLectura = 'Revisa la lectura';
+  static const foto = 'Foto';
+  static const salioCompra = 'Salió plata · compra';
+  static const aQuien = 'A quién';
+  static const aQuienEjemplo = 'Nombre del proveedor';
+  static const queCompraste = 'Qué compraste';
+  static String productos(int n) => n == 1 ? '1 producto' : '$n productos';
+  static const tipoDeGasto = 'Tipo de gasto';
+  static const eligeTipoDeGasto = 'Elige';
+  static const yaLoPagaste = '¿Ya lo pagaste?';
+  static const siPagado = 'Sí, pagado';
+  static const todaviaLoDebo = 'Todavía lo debo';
+  static const total = 'Total';
+  static const fecha = 'Fecha';
+  static const leidoDelQr =
+      'Leído del código QR. El QR no dice qué compraste: elige el tipo de '
+      'gasto.';
+  static const leidoDeLaFoto =
+      'Leído de la foto. Revisa que el total sea el '
+      'del comprobante.';
+  static const completadoAMano =
+      'La foto no se leyó completa: lo que falta lo pones tú.';
+  static String rucDe(String ruc) => 'RUC $ruc';
+
+  // S17 · Foto ilegible
+  static const fotoBorrosa = 'La foto salió borrosa';
+  static const fotoBorrosaDetalle =
+      'Moca leyó el total, pero no el resto. No se guarda nada hasta que lo '
+      'confirmes.';
+  static const noSeLee = 'No se lee';
+  static const paraQueSalgaBien = 'Para que salga bien';
+  static const consejoMesa = 'Apoya el papel en una mesa';
+  static const consejoCompleto = 'Que se vea completo, sin dobleces';
+  static const consejoSombra = 'Sin tu sombra encima';
+  static const tomarOtraFoto = 'Tomar otra foto';
+  static const completarAMano = 'Completar a mano';
+
   // S06 · Registrar
   static const cerrar = 'Cerrar';
   static const diloOMuestralo = 'Dilo o muéstralo';
@@ -256,6 +307,9 @@ abstract final class Textos {
   static const primeraSemanaSaltada = 'Listo. El Inicio ya es el completo.';
   static const empezarDemo = 'Empezar en «Demo»';
   static const forzarFotoIlegible = 'Forzar «foto ilegible»';
+  static const forzarFotoIlegibleDetalle =
+      'La próxima foto sale borrosa y se ve la pantalla S17.';
+  static const fotoIlegibleForzada = 'Listo. La próxima foto saldrá borrosa.';
   static const elegirFrase = 'Elegir frase de ejemplo para la voz';
   static const elegirFraseDetalle =
       'La próxima grabación usa esta frase en lugar del micrófono.';

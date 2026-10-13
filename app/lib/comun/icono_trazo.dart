@@ -18,7 +18,10 @@ enum Icono {
   qr,
   lapiz,
   ojo,
-  ojoTachado;
+  ojoTachado,
+  abajo,
+  linterna,
+  alerta;
 
   void _trazar(Path p) {
     switch (this) {
@@ -132,6 +135,29 @@ enum Icono {
         p
           ..moveTo(4, 4)
           ..lineTo(20, 20);
+      case Icono.abajo:
+        p
+          ..moveTo(6, 9)
+          ..lineTo(12, 15)
+          ..lineTo(18, 9);
+      case Icono.linterna:
+        p
+          ..moveTo(9, 2)
+          ..lineTo(15, 2)
+          ..lineTo(15, 7)
+          ..lineTo(13, 10)
+          ..lineTo(13, 22)
+          ..lineTo(11, 22)
+          ..lineTo(11, 10)
+          ..lineTo(9, 7)
+          ..close();
+      case Icono.alerta:
+        p
+          ..addOval(Rect.fromCircle(center: const Offset(12, 12), radius: 9))
+          ..moveTo(12, 7.5)
+          ..lineTo(12, 13)
+          ..moveTo(12, 16.5)
+          ..lineTo(12, 16.6);
       case Icono.microfono:
         p
           ..addRRect(RRect.fromLTRBR(9, 3, 15, 14, const Radius.circular(3)))

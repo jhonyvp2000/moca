@@ -8,18 +8,30 @@ import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
+import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
+import 'package:moca/rutas.dart';
 import 'package:moca/textos/textos.dart';
+import 'package:go_router/go_router.dart';
 
 final _ahora = DateTime(2026, 10, 12, 21, 5);
 
 /// Lo que «dice» el dueño en la próxima grabación.
 var _loQueDice = [const AlternativaVoz('hola')];
 var _vozDisponible = DisponibilidadVoz.disponible;
+
+/// Lo que devuelve la cámara en la próxima foto.
+ResultadoCamara _camara = const FotoTomada('/no/existe.jpg');
+
+class _CamaraFalsa implements Camara {
+  @override
+  Future<ResultadoCamara> tomarFoto() async => _camara;
+}
 
 class _VozFalsa implements ReconocedorVoz {
   @override
@@ -41,6 +53,7 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   _loQueDice = [const AlternativaVoz('hola')];
   _vozDisponible = DisponibilidadVoz.disponible;
+  _camara = const FotoTomada('/no/existe.jpg');
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -76,6 +89,15 @@ Future<BaseLocal> abrirApp(WidgetTester tester, {bool listo = false}) async {
         baseLocalProvider.overrideWithValue(base),
         relojProvider.overrideWithValue(() => _ahora),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
+        camaraProvider.overrideWithValue(_CamaraFalsa()),
+        lectorFotoProvider.overrideWith(
+          (ref) => LectorFotoSimulado(
+            ahora: () => _ahora,
+            espera: Duration.zero,
+            forzarIlegible: () =>
+                ref.read(forzarIlegibleProvider.notifier).usar(),
+          ),
+        ),
       ],
       child: const MocaApp(),
     ),
@@ -100,6 +122,18 @@ Future<void> tocar(WidgetTester tester, Finder f) async {
   await tester.ensureVisible(f);
   await tester.pumpAndSettle();
   await tester.tap(f);
+  await esperar(tester);
+}
+
+/// Mantiene presionado el isotipo de la pestaña Moca hasta abrir el ajuste
+/// oculto.
+Future<void> abrirAjusteOculto(WidgetTester tester) async {
+  await tocar(tester, find.text(Textos.pestanaMoca).last);
+  final gesto = await tester.startGesture(
+    tester.getCenter(find.byKey(PantallaMoca.claveIsotipo)),
+  );
+  await tester.pump(PantallaMoca.esperaAjusteOculto);
+  await gesto.up();
   await esperar(tester);
 }
 
@@ -292,8 +326,8 @@ void main() {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       expect(find.text(Textos.diloOMuestralo), findsOneWidget);
-      expect(find.text(Textos.llegaEnLaEntrega(4)), findsNothing);
-      expect(find.text(Textos.llegaEnLaEntrega(5)), findsNWidgets(2));
+      expect(find.text(Textos.tomarFotoDetalle), findsOneWidget);
+      expect(find.text(Textos.leerQrDetalle), findsOneWidget);
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.queFue), findsOneWidget);
     });
@@ -380,16 +414,6 @@ void main() {
       expect(find.text(Textos.enQue), findsOneWidget);
       expect(find.text('Mercadería'), findsOneWidget);
     });
-
-    Future<void> abrirAjusteOculto(WidgetTester tester) async {
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
-      final gesto = await tester.startGesture(
-        tester.getCenter(find.byKey(PantallaMoca.claveIsotipo)),
-      );
-      await tester.pump(PantallaMoca.esperaAjusteOculto);
-      await gesto.up();
-      await esperar(tester);
-    }
 
     testWidgets('Un toque corto en el isotipo no abre el ajuste oculto', (
       tester,
@@ -642,6 +666,172 @@ void main() {
       await tocar(tester, find.text('S/\u00A0350'));
       await tocar(tester, find.text(Textos.efectivo));
       expect(tester.takeException(), isNull, reason: 'Moca entendió');
+    });
+  });
+
+  group('Foto y QR', () {
+    Future<void> tomarFoto(WidgetTester tester) async {
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.tomarFoto));
+    }
+
+    FilledButton guardar(WidgetTester tester) =>
+        tester.widget(find.widgetWithText(FilledButton, Textos.guardar));
+
+    testWidgets('La foto se lee y se confirma en S08; nada se guarda sin '
+        'elegir cuenta y si ya se pagó', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tomarFoto(tester);
+
+      expect(find.text(Textos.revisaLaLectura), findsOneWidget);
+      expect(find.text('Distribuidora San Martín'), findsOneWidget);
+      expect(find.text('S/\u00A0980'), findsOneWidget);
+      expect(find.text(Textos.productos(12)), findsOneWidget);
+      expect(find.text('Mercadería'), findsOneWidget);
+      expect(guardar(tester).onPressed, isNull);
+
+      await tocar(tester, find.text(Textos.efectivo));
+      expect(guardar(tester).onPressed, isNull);
+      await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A0370')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('«Todavía lo debo» no baja el saldo ni pregunta por '
+        'negativo', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tomarFoto(tester);
+      await tocar(tester, find.text(Textos.yape));
+      await tocar(tester, find.text(Textos.todaviaLoDebo));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A01,350')),
+        findsOneWidget,
+      );
+      final deudas = await tester.runAsync(
+        () => (base.select(
+          base.movimientos,
+        )..where((m) => m.estadoPago.equalsValue(EstadoPago.pendiente))).get(),
+      );
+      expect(deudas, hasLength(1));
+    });
+
+    testWidgets('Pagado desde una cuenta sin plata, Moca pregunta', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tomarFoto(tester);
+      await tocar(tester, find.text(Textos.yape));
+      await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(find.text(Textos.quedariaNegativoTitulo), findsOneWidget);
+    });
+
+    testWidgets('Foto ilegible (S17): lo que se leyó, consejos y completar '
+        'a mano', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.forzarFotoIlegible));
+      expect(find.text(Textos.fotoIlegibleForzada), findsOneWidget);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoBorrosa), findsOneWidget);
+      expect(find.text('S/\u00A0980'), findsOneWidget);
+      expect(find.text(Textos.noSeLee), findsNWidgets(2));
+      expect(find.text(Textos.consejoSombra), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.completarAMano));
+      expect(find.text(Textos.completadoAMano), findsOneWidget);
+      expect(find.text(Textos.eligeTipoDeGasto), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(1), 'Bodega Mayorista');
+      await tocar(tester, find.text(Textos.eligeTipoDeGasto));
+      await tocar(tester, find.text('Otros'));
+      await tocar(tester, find.text(Textos.efectivo));
+      await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A0370')),
+        findsOneWidget,
+      );
+
+      // La siguiente foto ya se lee bien.
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoBorrosa), findsNothing);
+    });
+
+    testWidgets('Si se cancela la cámara, vuelve a Registrar', (tester) async {
+      await abrirApp(tester, listo: true);
+      _camara = const FotoCancelada();
+      await tomarFoto(tester);
+      expect(find.text(Textos.diloOMuestralo), findsOneWidget);
+    });
+
+    testWidgets('Sin permiso de cámara, ofrece escribirlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      _camara = const CamaraSinPermiso();
+      await tomarFoto(tester);
+      expect(find.text(Textos.sinPermisoCamara), findsOneWidget);
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    testWidgets('Un QR leído pide el tipo de gasto y muestra el RUC', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      final contexto = tester.element(find.byType(BarraInferior));
+      GoRouter.of(contexto).push(
+        Rutas.confirmarLectura,
+        extra: LecturaComprobante(
+          origen: OrigenLectura.qr,
+          emisorIdentificacion: '20100070970',
+          tipo: 'Factura',
+          serie: 'F001',
+          numero: '12345',
+          totalCentimos: 14230,
+          fechaEmision: DateTime(2026, 10, 8),
+        ),
+      );
+      await esperar(tester);
+
+      expect(find.text('S/\u00A0142.30'), findsOneWidget);
+      expect(find.text('Factura · jueves 8 de octubre'), findsOneWidget);
+      expect(find.text(Textos.rucDe('20100070970')), findsOneWidget);
+      expect(find.text(Textos.leidoDelQr), findsOneWidget);
+      await tocar(tester, find.text(Textos.efectivo));
+      await tocar(tester, find.text(Textos.siPagado));
+      expect(guardar(tester).onPressed, isNull);
+      await tocar(tester, find.text(Textos.eligeTipoDeGasto));
+      await tocar(
+        tester,
+        find.text('Servicios (luz, agua, internet, teléfono)'),
+      );
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.guardadoAhoraTienes('S/\u00A01,208')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('S08 y S17 no se desbordan con letra grande', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await tomarFoto(tester);
+      expect(tester.takeException(), isNull, reason: 'S08');
+      await tocar(tester, find.byType(BotonVolver));
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.forzarFotoIlegible));
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoBorrosa), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: 'S17');
     });
   });
 

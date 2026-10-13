@@ -10,7 +10,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
 /// S06 · Registrar. Sin el ejemplo de fiado ni la ayuda de Yape compartido
-/// (ajustes respecto al mockup). Voz, foto y QR llegan en las entregas 4 y 5.
+/// (ajustes respecto al mockup).
 class PantallaRegistrar extends StatelessWidget {
   const PantallaRegistrar({super.key});
 
@@ -79,18 +79,18 @@ class PantallaRegistrar extends StatelessWidget {
                     alTocar: () => context.pushReplacement(Rutas.voz),
                   ),
                   const SizedBox(height: 12),
-                  const _Entrada(
+                  _Entrada(
                     icono: Icono.camara,
                     titulo: Textos.tomarFoto,
                     detalle: Textos.tomarFotoDetalle,
-                    llegaEnEntrega: 5,
+                    alTocar: () => context.pushReplacement(Rutas.foto),
                   ),
                   const SizedBox(height: 12),
-                  const _Entrada(
+                  _Entrada(
                     icono: Icono.qr,
                     titulo: Textos.leerQr,
                     detalle: Textos.leerQrDetalle,
-                    llegaEnEntrega: 5,
+                    alTocar: () => context.pushReplacement(Rutas.qr),
                   ),
                   const SizedBox(height: 12),
                   _Entrada(
@@ -116,7 +116,6 @@ class _Entrada extends StatelessWidget {
     required this.detalle,
     this.principal = false,
     this.alTocar,
-    this.llegaEnEntrega,
   });
 
   final Icono icono;
@@ -124,9 +123,6 @@ class _Entrada extends StatelessWidget {
   final String detalle;
   final bool principal;
   final VoidCallback? alTocar;
-
-  /// Si la entrada todavía no funciona, en qué entrega llega.
-  final int? llegaEnEntrega;
 
   @override
   Widget build(BuildContext context) {
@@ -190,9 +186,7 @@ class _Entrada extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          llegaEnEntrega == null
-                              ? detalle
-                              : Textos.llegaEnLaEntrega(llegaEnEntrega!),
+                          detalle,
                           style: Tipografia.secundario.copyWith(
                             color: textoSuave,
                           ),

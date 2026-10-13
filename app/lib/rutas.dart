@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'comun/barra_inferior.dart';
+import 'dominio/comprobantes.dart';
 import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
 import 'pantallas/alta/pantalla_alta.dart';
 import 'pantallas/bienvenida/pantalla_bienvenida.dart';
+import 'pantallas/comprobantes/pantalla_confirmar_lectura.dart';
+import 'pantallas/comprobantes/pantalla_escaner_qr.dart';
+import 'pantallas/comprobantes/pantalla_foto.dart';
 import 'pantallas/guardar_avance/pantalla_codigo.dart';
 import 'pantallas/guardar_avance/pantalla_guardar_avance.dart';
 import 'pantallas/historial/pantalla_historial.dart';
@@ -36,6 +40,9 @@ abstract final class Rutas {
   static const escribir = '/registrar/escribir';
   static const ventaDelDia = '/venta-del-dia';
   static const voz = '/voz';
+  static const foto = '/comprobante/foto';
+  static const qr = '/comprobante/qr';
+  static const confirmarLectura = '/comprobante/confirmar';
 
   /// «Anotar la venta de hoy» por voz.
   static final vozVenta = Uri(
@@ -66,6 +73,9 @@ final _rutasPorEtapa = {
     Rutas.escribir,
     Rutas.ventaDelDia,
     Rutas.voz,
+    Rutas.foto,
+    Rutas.qr,
+    Rutas.confirmarLectura,
   ],
 };
 
@@ -160,6 +170,20 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
         modo: estado.uri.queryParameters['modo'] == ModoVoz.ventaDelDia.name
             ? ModoVoz.ventaDelDia
             : ModoVoz.libre,
+      ),
+    ),
+    GoRoute(
+      path: Rutas.foto,
+      builder: (context, estado) => const PantallaFoto(),
+    ),
+    GoRoute(
+      path: Rutas.qr,
+      builder: (context, estado) => const PantallaEscanerQr(),
+    ),
+    GoRoute(
+      path: Rutas.confirmarLectura,
+      builder: (context, estado) => PantallaConfirmarLectura(
+        lectura: estado.extra! as LecturaComprobante,
       ),
     ),
     GoRoute(
