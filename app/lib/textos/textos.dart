@@ -313,12 +313,29 @@ abstract final class Textos {
   static const fotoBorrosaDetalle =
       'Moca leyó el total, pero no el resto. No se guarda nada hasta que lo '
       'confirmes.';
+  static const fotoNoSeLeyoTodo =
+      'Moca no pudo leer todo. Lo que falta lo pones tú; no se guarda nada '
+      'hasta que lo confirmes.';
   static const noSeLee = 'No se lee';
   static const paraQueSalgaBien = 'Para que salga bien';
   static const consejoMesa = 'Apoya el papel en una mesa';
   static const consejoCompleto = 'Que se vea completo, sin dobleces';
   static const consejoSombra = 'Sin tu sombra encima';
   static const tomarOtraFoto = 'Tomar otra foto';
+
+  // Foto que no se pudo leer (entrega 14, no dibujado)
+  static const fotoSinSenal =
+      'No pudimos leer la foto. Revisa tu señal e inténtalo otra vez, o '
+      'escríbelo tú.';
+  static const fotoNoEsComprobante =
+      'Esto no parece un comprobante. Toma otra foto o escríbelo tú.';
+  static const fotoSinCuenta =
+      'Para leer fotos, guarda tu avance con tu número. Mientras, puedes '
+      'escribirlo.';
+  static const fotoLimiteDiario =
+      'Llegaste al límite de fotos de hoy. Puedes escribirlo; mañana Moca '
+      'vuelve a leer fotos.';
+  static const escribirloYo = 'Escribirlo yo';
   static const completarAMano = 'Completar a mano';
 
   // S06 · Registrar

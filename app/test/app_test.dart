@@ -281,6 +281,18 @@ class _LlaveroFalso implements Llavero {
 /// Lo que devuelve la cámara en la próxima foto.
 ResultadoCamara _camara = const FotoTomada('/no/existe.jpg');
 
+/// Lo que responde el lector de fotos, en orden; vacía, el de la Demo.
+final _lecturas = <ResultadoLectura>[];
+
+class _LectorFalso implements LectorFoto {
+  _LectorFalso(this._deEjemplo);
+  final LectorFoto _deEjemplo;
+
+  @override
+  Future<ResultadoLectura> leer(String rutaImagen) async =>
+      _lecturas.isEmpty ? _deEjemplo.leer(rutaImagen) : _lecturas.removeAt(0);
+}
+
 class _CamaraFalsa implements Camara {
   @override
   Future<ResultadoCamara> tomarFoto() async => _camara;
@@ -311,6 +323,7 @@ Future<BaseLocal> abrirApp(
   _loQueDice = [const AlternativaVoz('hola')];
   _vozDisponible = DisponibilidadVoz.disponible;
   _camara = const FotoTomada('/no/existe.jpg');
+  _lecturas.clear();
   _conSenal = true;
   _loQueDijo.clear();
   _hayVoz = true;
@@ -380,11 +393,13 @@ Future<BaseLocal> abrirApp(
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         lectorFotoProvider.overrideWith(
-          (ref) => LectorFotoSimulado(
-            ahora: () => _ahora,
-            espera: Duration.zero,
-            forzarIlegible: () =>
-                ref.read(forzarIlegibleProvider.notifier).usar(),
+          (ref) => _LectorFalso(
+            LectorFotoSimulado(
+              ahora: () => _ahora,
+              espera: Duration.zero,
+              forzarIlegible: () =>
+                  ref.read(forzarIlegibleProvider.notifier).usar(),
+            ),
           ),
         ),
       ],
@@ -1076,6 +1091,59 @@ void main() {
       // La siguiente foto ya se lee bien.
       await tomarFoto(tester);
       expect(find.text(Textos.fotoBorrosa), findsNothing);
+    });
+
+    testWidgets('Entrega 14: sin señal, «Intentar otra vez» lee la misma '
+        'foto', (tester) async {
+      await abrirApp(tester, listo: true);
+      _lecturas.addAll([
+        const FotoNoLeida(ProblemaLectura.sinSenal),
+        const FotoLeida(
+          LecturaComprobante(
+            origen: OrigenLectura.foto,
+            emisorNombre: 'Grifo Santa Rosa',
+            totalCentimos: 6000,
+          ),
+        ),
+      ]);
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoSinSenal), findsOneWidget);
+      expect(find.text(Textos.escribirloYo), findsOneWidget);
+      await tocar(tester, find.text(Textos.intentarOtraVez));
+      expect(find.text(Textos.leidoDeLaFoto), findsOneWidget);
+      expect(find.text('Grifo Santa Rosa'), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14: lo que no es comprobante ofrece otra foto o '
+        'escribirlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      _lecturas.add(const FotoNoLeida(ProblemaLectura.noEsComprobante));
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoNoEsComprobante), findsOneWidget);
+      expect(find.text(Textos.tomarOtraFoto), findsOneWidget);
+      await tocar(tester, find.text(Textos.escribirloYo));
+      expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14: al tope del día, solo escribirlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      _lecturas.add(const FotoNoLeida(ProblemaLectura.limiteDiario));
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoLimiteDiario), findsOneWidget);
+      expect(find.text(Textos.escribirloYo), findsNothing);
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14: sin cuenta, ofrece guardar el avance', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      _lecturas.add(const FotoNoLeida(ProblemaLectura.sinCuenta));
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoSinCuenta), findsOneWidget);
+      await tocar(tester, find.text(Textos.guardarMiAvance));
+      expect(find.text(Textos.guardaTuAvance), findsWidgets);
     });
 
     testWidgets('Si se cancela la cámara, vuelve a Registrar', (tester) async {

@@ -1,7 +1,7 @@
 import '../../dominio/comprobantes.dart';
 import '../../dominio/modelos.dart';
 
-/// En el prototipo la foto no se lee con IA: cada foto devuelve uno de estos
+/// En la Demo la foto no se lee con IA: cada foto devuelve uno de estos
 /// comprobantes de ejemplo, por turno. El operador puede forzar que la
 /// próxima salga ilegible (S17).
 class LectorFotoSimulado implements LectorFoto {
@@ -66,18 +66,20 @@ class LectorFotoSimulado implements LectorFoto {
   }
 
   @override
-  Future<LecturaComprobante> leer(String rutaImagen) async {
+  Future<ResultadoLectura> leer(String rutaImagen) async {
     await Future<void>.delayed(espera);
     if (forzarIlegible()) {
       // Solo se leyó el total.
-      return LecturaComprobante(
-        origen: OrigenLectura.foto,
-        legible: false,
-        totalCentimos: 98000,
-        rutaImagen: rutaImagen,
+      return FotoLeida(
+        LecturaComprobante(
+          origen: OrigenLectura.foto,
+          legible: false,
+          totalCentimos: 98000,
+          rutaImagen: rutaImagen,
+        ),
       );
     }
     final ejemplos = _ejemplos(rutaImagen);
-    return ejemplos[_turno++ % ejemplos.length];
+    return FotoLeida(ejemplos[_turno++ % ejemplos.length]);
   }
 }

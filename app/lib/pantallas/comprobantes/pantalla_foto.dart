@@ -17,10 +17,11 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../../dominio/medicion.dart';
 
-enum _Fase { abriendoCamara, sinPermiso, leyendo, ilegible }
+enum _Fase { abriendoCamara, sinPermiso, leyendo, ilegible, noLeida }
 
-/// «Tomar foto»: abre la cámara, lee el comprobante (simulado en el
-/// prototipo) y pasa a S08, o muestra S17 si la foto salió borrosa.
+/// «Tomar foto»: abre la cámara, lee el comprobante (el QR de la foto o la
+/// IA; en la Demo, uno de ejemplo) y pasa a S08, o muestra S17 si la foto
+/// salió borrosa, o por qué no se pudo leer.
 class PantallaFoto extends ConsumerStatefulWidget {
   const PantallaFoto({super.key});
 
@@ -31,6 +32,8 @@ class PantallaFoto extends ConsumerStatefulWidget {
 class _EstadoFoto extends ConsumerState<PantallaFoto> {
   _Fase _fase = _Fase.abriendoCamara;
   LecturaComprobante? _lectura;
+  ProblemaLectura? _problema;
+  String? _ruta;
 
   @override
   void initState() {
@@ -48,18 +51,29 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
       case CamaraSinPermiso():
         setState(() => _fase = _Fase.sinPermiso);
       case FotoTomada(:final ruta):
-        setState(() => _fase = _Fase.leyendo);
-        final lectura = await ref.read(lectorFotoProvider).leer(ruta);
-        if (!mounted) return;
-        if (lectura.legible) {
-          context.pushReplacement(Rutas.confirmarLectura, extra: lectura);
-        } else {
-          setState(() {
-            _lectura = lectura;
-            _fase = _Fase.ilegible;
-            ref.read(medicionProvider).anotar(EventoMedicion.fotoIlegible);
-          });
-        }
+        _ruta = ruta;
+        await _leer();
+    }
+  }
+
+  Future<void> _leer() async {
+    setState(() => _fase = _Fase.leyendo);
+    final resultado = await ref.read(lectorFotoProvider).leer(_ruta!);
+    if (!mounted) return;
+    switch (resultado) {
+      case FotoLeida(:final lectura) when lectura.legible:
+        context.pushReplacement(Rutas.confirmarLectura, extra: lectura);
+      case FotoLeida(:final lectura):
+        setState(() {
+          _lectura = lectura;
+          _fase = _Fase.ilegible;
+          ref.read(medicionProvider).anotar(EventoMedicion.fotoIlegible);
+        });
+      case FotoNoLeida(:final problema):
+        setState(() {
+          _problema = problema;
+          _fase = _Fase.noLeida;
+        });
     }
   }
 
@@ -76,6 +90,16 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
         _Fase.leyendo => const [_Esperando(Textos.leyendoComprobante)],
         _Fase.sinPermiso => const [Aviso(texto: Textos.sinPermisoCamara)],
         _Fase.ilegible => _ilegible(_lectura!),
+        _Fase.noLeida => [
+          Aviso(
+            texto: switch (_problema!) {
+              ProblemaLectura.sinSenal => Textos.fotoSinSenal,
+              ProblemaLectura.noEsComprobante => Textos.fotoNoEsComprobante,
+              ProblemaLectura.sinCuenta => Textos.fotoSinCuenta,
+              ProblemaLectura.limiteDiario => Textos.fotoLimiteDiario,
+            },
+          ),
+        ],
       },
       acciones: [
         if (ilegible) ...[
@@ -116,8 +140,41 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
             onPressed: () => context.pushReplacement(Rutas.escribir),
             child: const Text(Textos.escribirlo),
           ),
+        if (_fase == _Fase.noLeida) ..._accionesNoLeida(_problema!),
       ],
     );
+  }
+
+  /// Qué hacer cuando no se pudo leer: siempre se puede escribir.
+  List<Widget> _accionesNoLeida(ProblemaLectura problema) {
+    void escribir() => context.pushReplacement(Rutas.escribir);
+    final principal = switch (problema) {
+      ProblemaLectura.sinSenal => FilledButton(
+        onPressed: _leer,
+        child: const Text(Textos.intentarOtraVez),
+      ),
+      ProblemaLectura.noEsComprobante => FilledButton.icon(
+        onPressed: _tomarFoto,
+        icon: const IconoTrazo(Icono.camara, color: Colores.sobreMarca),
+        label: const Text(Textos.tomarOtraFoto),
+      ),
+      ProblemaLectura.sinCuenta => FilledButton(
+        onPressed: () => context.pushReplacement(Rutas.cuenta),
+        child: const Text(Textos.guardarMiAvance),
+      ),
+      ProblemaLectura.limiteDiario => FilledButton(
+        onPressed: escribir,
+        child: const Text(Textos.escribirlo),
+      ),
+    };
+    return [
+      principal,
+      if (problema != ProblemaLectura.limiteDiario)
+        OutlinedButton(
+          onPressed: escribir,
+          child: const Text(Textos.escribirloYo),
+        ),
+    ];
   }
 
   /// S17 · Foto ilegible: lo que sí se leyó, «No se lee» en lo demás y
@@ -182,7 +239,9 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    Textos.fotoBorrosaDetalle,
+                    l.totalCentimos == null
+                        ? Textos.fotoNoSeLeyoTodo
+                        : Textos.fotoBorrosaDetalle,
                     style: Tipografia.texto.copyWith(
                       color: Colores.avisoTextoFuerte,
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
+import 'datos/remoto/lector_foto_remoto.dart';
 import 'datos/remoto/servicio_cuenta_remoto.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/medicion_local.dart';
@@ -33,6 +34,7 @@ import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 import 'dominio/servicios.dart';
 import 'dominio/voz.dart';
+import 'servicios/buscador_qr_android.dart';
 import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
 import 'servicios/conexion_android.dart';
@@ -311,10 +313,21 @@ class ForzarIlegible extends Notifier<bool> {
   }
 }
 
+final buscadorQrProvider = Provider<BuscadorQr>((ref) => BuscadorQrAndroid());
+
+/// QR dentro de la foto, y si no hay, la IA del servidor (entrega 14). En
+/// la Demo, los comprobantes de ejemplo.
 final lectorFotoProvider = Provider<LectorFoto>(
-  (ref) => LectorFotoSimulado(
+  (ref) => LectorFotoRemoto(
+    ref.watch(baseLocalProvider),
+    llavero: ref.watch(llaveroProvider),
+    buscadorQr: ref.watch(buscadorQrProvider),
+    deEjemplo: LectorFotoSimulado(
+      ahora: ref.watch(relojProvider),
+      forzarIlegible: () => ref.read(forzarIlegibleProvider.notifier).usar(),
+    ),
     ahora: ref.watch(relojProvider),
-    forzarIlegible: () => ref.read(forzarIlegibleProvider.notifier).usar(),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
 );
 

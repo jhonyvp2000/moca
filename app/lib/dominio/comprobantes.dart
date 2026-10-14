@@ -83,8 +83,41 @@ abstract interface class RepositorioComprobantes {
 }
 
 /// Lectura de fotos de comprobantes. En el prototipo es simulada.
+/// Por qué no se pudo leer una foto (entrega 14).
+enum ProblemaLectura {
+  /// Sin señal, o el servidor no respondió.
+  sinSenal,
+  noEsComprobante,
+
+  /// Leer fotos usa IA: solo con cuenta.
+  sinCuenta,
+
+  /// El tope de fotos leídas por día.
+  limiteDiario,
+}
+
+sealed class ResultadoLectura {
+  const ResultadoLectura();
+}
+
+/// Leída, entera o en parte ([LecturaComprobante.legible]).
+final class FotoLeida extends ResultadoLectura {
+  const FotoLeida(this.lectura);
+  final LecturaComprobante lectura;
+}
+
+final class FotoNoLeida extends ResultadoLectura {
+  const FotoNoLeida(this.problema);
+  final ProblemaLectura problema;
+}
+
+/// Busca un código QR dentro de una foto, en el teléfono.
+abstract interface class BuscadorQr {
+  Future<String?> buscar(String rutaImagen);
+}
+
 abstract interface class LectorFoto {
-  Future<LecturaComprobante> leer(String rutaImagen);
+  Future<ResultadoLectura> leer(String rutaImagen);
 }
 
 sealed class ResultadoCamara {
