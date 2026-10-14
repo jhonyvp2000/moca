@@ -2,6 +2,7 @@ import { crearApp } from './app.js';
 import { aislamientoActivo, crearPool } from './base/conexion.js';
 import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
+import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
 
 // Arranque en Render: migra la base, revisa el aislamiento y abre el puerto.
 const config = leerConfig();
@@ -18,6 +19,12 @@ if (!(await aislamientoActivo(pool))) {
   process.exit(1);
 }
 
-const app = crearApp({ pool, version: config.version });
+const twilio = leerConfigTwilio();
+if (!twilio) console.warn('Twilio no está configurado: no se pueden crear cuentas.');
+const app = crearApp({
+  pool,
+  version: config.version,
+  verificador: twilio ? verificadorTwilio(twilio) : null,
+});
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

@@ -37,3 +37,10 @@ Los archivos de `migraciones/` se aplican en orden, una sola vez cada uno y cada
 | Ruta | Para qué |
 |---|---|
 | `GET /salud` | Si el servidor, la base y el aislamiento están bien, y qué versión corre. Render la usa para saber si el servidor está vivo. |
+| `POST /cuenta/codigo` | Envía el código por SMS al celular (`{celular}`, 9 dígitos). Máximo 5 pedidos por número y 20 por conexión en una hora. |
+| `POST /cuenta/verificar` | Comprueba el código (`{celular, codigo, usuarioId}`) y devuelve la llave del teléfono, sus empresas y si el número ya tenía cuenta desde otro teléfono. |
+| `POST /datos/subir` | Con la llave (`Authorization: Bearer …`), guarda todo lo que el teléfono tiene de su empresa. Repetirlo no duplica nada. |
+
+## Twilio
+
+El código lo envía y lo comprueba Twilio Verify: el servidor nunca lo conoce. Se configura en Render con `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_VERIFY_SID`. Sin ellos, el servidor no da cuentas (nunca hay un código de prueba). Las llaves de los teléfonos se guardan solo como huella.

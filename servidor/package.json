@@ -1,6 +1,6 @@
 {
   "name": "moca-servidor",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "description": "Servidor de Moca: datos de las empresas, sincronización y cifras calculadas.",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "compilar": "tsc -p tsconfig.json",
-    "revisar": "tsc -p tsconfig.json --noEmit",
+    "revisar": "tsc -p tsconfig.pruebas.json",
     "migrar": "node dist/base/migrar.js",
     "iniciar": "node dist/servidor.js",
     "probar": "vitest run"

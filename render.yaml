@@ -20,6 +20,14 @@ services:
         fromDatabase:
           name: moca-base
           property: connectionString
+      # Twilio Verify, para el código por SMS (entrega 11). Jhony los pega en
+      # Render; no van en el repositorio.
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_VERIFY_SID
+        sync: false
 
 databases:
   - name: moca-base

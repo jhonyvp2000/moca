@@ -1,14 +1,24 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { aislamientoActivo, type Pool } from './base/conexion.js';
+import { rutasCuenta } from './cuenta/rutas.js';
+import type { Verificador } from './cuenta/verificador.js';
+import { rutasDatos } from './datos/subir.js';
 
 export interface Dependencias {
   pool: Pool;
   version: string;
+  /** Quien envía el código; nulo si Twilio no está configurado. */
+  verificador?: Verificador | null;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
-export function crearApp({ pool, version }: Dependencias): FastifyInstance {
-  const app = Fastify({ logger: false });
+export function crearApp({
+  pool,
+  version,
+  verificador = null,
+}: Dependencias): FastifyInstance {
+  // Render pasa la conexión del teléfono por un proxy.
+  const app = Fastify({ logger: false, trustProxy: true });
 
   // Para Render y para quien quiera saber si el servidor está bien.
   app.get('/salud', async (_peticion, respuesta) => {
@@ -27,6 +37,9 @@ export function crearApp({ pool, version }: Dependencias): FastifyInstance {
       aislamiento,
     });
   });
+
+  rutasCuenta(app, pool, verificador);
+  rutasDatos(app, pool);
 
   return app;
 }
