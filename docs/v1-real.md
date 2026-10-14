@@ -15,7 +15,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 
 ## Infraestructura
 
-- **Alojamiento:** Render, en la región Virginia: el servidor Node y PostgreSQL (`render.yaml`). Se empieza con los planes gratuitos; la base gratuita de Render vence a las pocas semanas, así que antes de los pilotos se pasa al plan pagado más pequeño. Redis y el almacén de imágenes (propuesta: Cloudflare R2) se suman en la entrega 14.
+- **Alojamiento:** Render, en la región Virginia: el servidor Node y PostgreSQL (`render.yaml`). Servidor de pruebas: `https://moca-servidor.onrender.com` (creado por Jhony el 14-10-2026, desde la rama de trabajo). Se empieza con los planes gratuitos; la base gratuita de Render vence a las pocas semanas, así que antes de los pilotos se pasa al plan pagado más pequeño. Redis y el almacén de imágenes (propuesta: Cloudflare R2) se suman en la entrega 14.
 - **Distribución:** Play Store, en prueba cerrada. Necesita una cuenta de Google Play Console a nombre de Jhony y confirmar que la marca está libre (prueba 14 de la Fase 0).
 
 ## Entregas
