@@ -30,6 +30,22 @@ export function leerConfigTwilio(
  * Twilio Verify. Por ahora solo SMS: WhatsApp se suma cuando Meta apruebe a
  * Moca como remitente (decisiones.md, 14-10-2026).
  */
+/**
+ * El error de Twilio, con su código (por ejemplo 21608: número no
+ * verificado en una cuenta de prueba; 60605: país no habilitado). Las
+ * claves nunca van en el mensaje.
+ */
+async function errorDeTwilio(accion: string, respuesta: Response): Promise<Error> {
+  let detalle = '';
+  try {
+    const cuerpo = (await respuesta.json()) as { code?: number; message?: string };
+    detalle = ` código ${cuerpo.code ?? '?'}: ${cuerpo.message ?? ''}`;
+  } catch {
+    // Sin cuerpo JSON: basta con el estado.
+  }
+  return new Error(`Twilio no ${accion} (${respuesta.status})${detalle}`);
+}
+
 export function verificadorTwilio(
   config: ConfigTwilio,
   pedir: typeof fetch = fetch,
@@ -54,9 +70,7 @@ export function verificadorTwilio(
         Channel: 'sms',
       });
       if (respuesta.status === 429) return 'demasiados';
-      if (!respuesta.ok) {
-        throw new Error(`Twilio no envió el código: ${respuesta.status} ${await respuesta.text()}`);
-      }
+      if (!respuesta.ok) throw await errorDeTwilio('envió el código', respuesta);
       return 'enviado';
     },
 
@@ -68,9 +82,7 @@ export function verificadorTwilio(
       // 404: no hay un código pendiente (venció, ya se usó o se agotaron
       // los intentos). 429: demasiados intentos con este código.
       if (respuesta.status === 404 || respuesta.status === 429) return 'vencido';
-      if (!respuesta.ok) {
-        throw new Error(`Twilio no comprobó el código: ${respuesta.status} ${await respuesta.text()}`);
-      }
+      if (!respuesta.ok) throw await errorDeTwilio('comprobó el código', respuesta);
       const datos = (await respuesta.json()) as { status?: string };
       return datos.status === 'approved' ? 'aprobado' : 'incorrecto';
     },

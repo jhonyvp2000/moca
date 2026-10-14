@@ -25,6 +25,7 @@ const app = crearApp({
   pool,
   version: config.version,
   verificador: twilio ? verificadorTwilio(twilio) : null,
+  registrar: true,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

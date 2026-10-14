@@ -44,6 +44,16 @@ describe('Twilio Verify', () => {
     }
   });
 
+  it('el error de envío dice el código de Twilio', async () => {
+    const { pedir } = fetchFalso(400, {
+      code: 21608,
+      message: 'The number is unverified. Trial accounts cannot send messages to unverified numbers',
+    });
+    await expect(verificadorTwilio(config, pedir).enviar('+51987654321')).rejects.toThrow(
+      /Twilio no envió el código \(400\) código 21608: The number is unverified/,
+    );
+  });
+
   it('un error de Twilio no se toma como código aprobado', async () => {
     const { pedir } = fetchFalso(500);
     await expect(

@@ -9,6 +9,8 @@ export interface Dependencias {
   version: string;
   /** Quien envía el código; nulo si Twilio no está configurado. */
   verificador?: Verificador | null;
+  /** Escribe los errores en el registro (en Render; no en las pruebas). */
+  registrar?: boolean;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -16,9 +18,14 @@ export function crearApp({
   pool,
   version,
   verificador = null,
+  registrar = false,
 }: Dependencias): FastifyInstance {
-  // Render pasa la conexión del teléfono por un proxy.
-  const app = Fastify({ logger: false, trustProxy: true });
+  // Render pasa la conexión del teléfono por un proxy. El registro guarda
+  // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
+  const app = Fastify({
+    logger: registrar ? { level: 'warn' } : false,
+    trustProxy: true,
+  });
 
   // Para Render y para quien quiera saber si el servidor está bien.
   app.get('/salud', async (_peticion, respuesta) => {
