@@ -37,7 +37,9 @@ services:
 databases:
   - name: moca-base
     region: virginia
-    plan: free
+    # 0.1 CPU y 256 MB (USD 6 al mes), «0.1c-256mb» en el panel de Render:
+    # con respaldos y sin vencimiento (14-10-2026).
+    plan: basic-256mb
     databaseName: moca
     postgresMajorVersion: "16"
     # Solo el servidor de Render entra a la base; nadie desde internet.
