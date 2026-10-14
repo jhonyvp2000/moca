@@ -39,6 +39,23 @@ class RepositorioMocaLocal implements RepositorioMoca {
   Future<List<Aviso>> _avisos() async {
     final empresa = await _a.empresa();
     if (empresa == null) return const [];
+    final vistos = {
+      for (final a
+          in await (_base.select(_base.alertas)..where(
+                (x) =>
+                    x.empresaId.equals(empresa.id) &
+                    x.estado.equalsValue(EstadoAlerta.vista),
+              ))
+              .get())
+        a.id,
+    };
+    // Las del servidor, si valen (entrega 13).
+    if (await _a.cifrasDelServidor() case final cifras?) {
+      return [
+        for (final a in cifras.avisos)
+          if (!vistos.contains(a.clave)) a,
+      ];
+    }
     final ahora = _a.ahora();
     final hoy = inicioDelDia(ahora);
     final movimientos = await _a.movimientos(empresa.id);
@@ -150,21 +167,16 @@ class RepositorioMocaLocal implements RepositorioMoca {
       );
     }
 
-    final vistos = {
-      for (final a
-          in await (_base.select(_base.alertas)..where(
-                (x) =>
-                    x.empresaId.equals(empresa.id) &
-                    x.estado.equalsValue(EstadoAlerta.vista),
-              ))
-              .get())
-        a.id,
-    };
-    return avisos.where((a) => !vistos.contains(a.clave)).toList()
-      ..sort((a, b) {
-        final porPrioridad = a.prioridad.index.compareTo(b.prioridad.index);
-        return porPrioridad != 0 ? porPrioridad : b.fecha.compareTo(a.fecha);
-      });
+    // Empates: por clave, igual que en el servidor.
+    return avisos.where((a) => !vistos.contains(a.clave)).toList()..sort(
+      (a, b) => switch (a.prioridad.index.compareTo(b.prioridad.index)) {
+        0 => switch (b.fecha.compareTo(a.fecha)) {
+          0 => a.clave.compareTo(b.clave),
+          final porFecha => porFecha,
+        },
+        final porPrioridad => porPrioridad,
+      },
+    );
   }
 
   @override
@@ -198,6 +210,9 @@ class RepositorioMocaLocal implements RepositorioMoca {
         conMovimientos: false,
         quedoCentimos: 0,
       );
+    }
+    if (await _a.cifrasDelServidor() case final cifras?) {
+      return cifras.resumenSemana;
     }
     final ahora = _a.ahora();
     final lunes = inicioDeSemana(ahora);
@@ -249,9 +264,16 @@ class RepositorioMocaLocal implements RepositorioMoca {
       if (nombre == null) continue;
       porCategoria[nombre] = (porCategoria[nombre] ?? 0) + m.montoCentimos;
     }
+    // Empates: el primero por nombre, igual que en el servidor.
     final top = porCategoria.entries.isEmpty
         ? null
-        : porCategoria.entries.reduce((a, b) => a.value >= b.value ? a : b);
+        : porCategoria.entries.reduce(
+            (a, b) =>
+                a.value > b.value ||
+                    (a.value == b.value && a.key.compareTo(b.key) <= 0)
+                ? a
+                : b,
+          );
 
     return ResumenSemana(
       semanaPasada: semanaPasada,

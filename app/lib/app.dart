@@ -76,7 +76,12 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
 
   Future<void> _subirSiHaceFalta() async {
     final servicio = ref.read(servicioCuentaProvider);
-    if (await servicio.hayCambiosSinSubir()) await servicio.subirTodo();
+    // Las cifras llegan con la subida; sin nada que subir, se piden.
+    if (await servicio.hayCambiosSinSubir()) {
+      await servicio.subirTodo();
+    } else {
+      await servicio.actualizarCifras();
+    }
   }
 
   @override

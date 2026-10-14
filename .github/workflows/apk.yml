@@ -79,6 +79,10 @@ jobs:
         # Una prueba que se cuelga falla al minuto en vez de trabar el armado.
         run: flutter test --timeout 60s
 
+      - name: Paridad con el servidor
+        # Las cifras de la Demo se comparan en la hora del Perú.
+        run: TZ=America/Lima flutter test test/datos/paridad_servidor_test.dart
+
       - name: Llave de firma
         env:
           KEYSTORE_BASE64: ${{ secrets.MOCA_KEYSTORE_BASE64 }}

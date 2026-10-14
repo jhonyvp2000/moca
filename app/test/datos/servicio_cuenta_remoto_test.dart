@@ -9,10 +9,15 @@ import 'package:http/testing.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
+import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
+import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
+import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/demo.dart';
+import 'package:moca/dominio/cifras.dart';
 import 'package:moca/dominio/cuenta_real.dart';
 import 'package:moca/dominio/modelos.dart';
+import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 
 class _Llavero implements Llavero {
@@ -34,6 +39,11 @@ void main() {
 
   Map<String, Object?>? paraBajar;
 
+  /// Las cifras que responde el servidor (entrega 13), y cuántas veces se
+  /// pidieron aparte.
+  Map<String, Object?>? cifrasDelServidor;
+  var pedidosDeCifras = 0;
+
   Future<http.Response> servidor(http.Request pedido) async {
     final bytes = pedido.headers['Content-Encoding'] == 'gzip'
         ? gzip.decode(pedido.bodyBytes)
@@ -51,10 +61,23 @@ void main() {
         }),
         200,
       ),
-      '/datos/bajar' => http.Response(jsonEncode({'datos': paraBajar}), 200),
+      '/datos/bajar' => http.Response(
+        jsonEncode({'datos': paraBajar, 'cifras': cifrasDelServidor}),
+        200,
+      ),
       '/datos/subir' => () {
         subidas.add(cuerpo);
-        return http.Response('{"recibidos":{}}', 200);
+        return http.Response(
+          jsonEncode({
+            'recibidos': <String, int>{},
+            'cifras': cifrasDelServidor,
+          }),
+          200,
+        );
+      }(),
+      '/cifras' => () {
+        pedidosDeCifras++;
+        return http.Response(jsonEncode({'cifras': cifrasDelServidor}), 200);
       }(),
       _ => http.Response('', 404),
     };
@@ -78,6 +101,8 @@ void main() {
     base = BaseLocal(NativeDatabase.memory());
     llavero = _Llavero();
     subidas = [];
+    cifrasDelServidor = null;
+    pedidosDeCifras = 0;
     servicio = ServicioCuentaRemoto(
       base,
       llavero: llavero,
@@ -299,4 +324,197 @@ void main() {
       expect(situacion.mostrarTarjeta, isTrue);
     },
   );
+
+  group('Entrega 13: cifras del servidor', () {
+    /// Cifras distintas de las del teléfono, para saber de dónde salen.
+    Map<String, Object?> cifras({required int efectivo, DateTime? dia}) => {
+      'dia': Cifras.textoDia(dia ?? ahora),
+      'saldos': {'efectivo': efectivo, 'yape': 0, 'banco': 0},
+      'inicio': {
+        'semanaEntroCentimos': 777700,
+        'semanaSalioCentimos': 0,
+        'semanaConMovimientos': true,
+        'diferenciaConSemanaAnteriorCentimos': null,
+        'ventaDeHoyCentimos': 35000,
+        'estadoArqueo': 'nada',
+      },
+      'resumenSemana': {
+        'semanaPasada': false,
+        'conMovimientos': true,
+        'quedoCentimos': 777700,
+        'diferenciaCentimos': null,
+        'categoriaTop': null,
+        'categoriaTopCentimos': null,
+      },
+      'avisos': <Object>[],
+      'informes': [
+        {
+          'mes': '2026-10',
+          'enCurso': true,
+          'sinRegistros': false,
+          'desdeDia': 12,
+          'mesAnterior': null,
+          'diferenciaConAnteriorCentimos': null,
+          'entroCentimos': 777700,
+          'salioCentimos': 0,
+          'retirosCentimos': 0,
+          'gastos': <Object>[],
+          'cambio': null,
+          'loQueDebesCentimos': 0,
+          'confianza': null,
+          'advertenciaMercaderia': false,
+          'mesPrevio': null,
+          'mesSiguiente': null,
+        },
+      ],
+    };
+
+    Future<ResumenInicio> inicio([DateTime? cuando]) =>
+        RepositorioMovimientosLocal(
+          base,
+          ahora: () => cuando ?? ahora,
+        ).observarInicio().first;
+
+    test('Con todo subido, el Inicio, Moca y el informe muestran las del '
+        'servidor', () async {
+      await primerDia();
+      await servicio.verificar('987654321', '123456');
+      cifrasDelServidor = cifras(efectivo: 999900);
+      expect(await servicio.subirTodo(), isTrue);
+
+      final resumen = await inicio();
+      expect(resumen.saldosPorCuenta[TipoCuenta.efectivo], 999900);
+      expect(resumen.semanaEntroCentimos, 777700);
+      final semana = await RepositorioMocaLocal(
+        base,
+        ahora: () => ahora,
+      ).observarResumen().first;
+      expect(semana.quedoCentimos, 777700);
+      final informe = await RepositorioInformeLocal(
+        base,
+        ahora: () => ahora,
+      ).observarMes(DateTime(2026, 9)).first;
+      expect(informe.entroCentimos, 777700);
+      expect(informe.mes, DateTime(2026, 10));
+    });
+
+    test(
+      'Con algo por subir o al día siguiente, calcula el teléfono',
+      () async {
+        await primerDia();
+        await servicio.verificar('987654321', '123456');
+        cifrasDelServidor = cifras(efectivo: 999900);
+        await servicio.subirTodo();
+        // Saldo inicial de S/ 1,000 más la venta de S/ 350.
+        const delTelefono = 135000;
+
+        // Al día siguiente ya no valen.
+        expect(
+          (await inicio(ahora.add(const Duration(days: 1))))
+              .saldosPorCuenta[TipoCuenta.efectivo],
+          delTelefono,
+        );
+
+        // Sin señal, un cambio queda por subir: las cifras del servidor no lo
+        // tienen.
+        final empresa = (await AccesoLocal(base, () => ahora).empresa())!;
+        await base
+            .into(base.diasCerrados)
+            .insert(
+              DiasCerradosCompanion.insert(
+                id: '6f1c3e1a-0000-4000-8000-000000000002',
+                empresaId: empresa.id,
+                dia: DateTime(2026, 10, 11),
+              ),
+            );
+        expect(
+          (await inicio()).saldosPorCuenta[TipoCuenta.efectivo],
+          delTelefono,
+        );
+        // Al subir llegan las nuevas.
+        cifrasDelServidor = cifras(efectivo: 888800);
+        await servicio.subirTodo();
+        expect((await inicio()).saldosPorCuenta[TipoCuenta.efectivo], 888800);
+      },
+    );
+
+    test('Las pide solo si las del teléfono no valen', () async {
+      await primerDia();
+      await servicio.verificar('987654321', '123456');
+      await servicio.subirTodo();
+      cifrasDelServidor = cifras(efectivo: 999900);
+
+      await servicio.actualizarCifras();
+      expect(pedidosDeCifras, 1);
+      expect((await inicio()).saldosPorCuenta[TipoCuenta.efectivo], 999900);
+      await servicio.actualizarCifras();
+      expect(pedidosDeCifras, 1);
+    });
+
+    test('Sin cuenta o en la Demo no se piden', () async {
+      await primerDia();
+      await servicio.actualizarCifras();
+      expect(pedidosDeCifras, 0);
+    });
+
+    test(
+      'Un aviso marcado «Entendido» sube y baja en el otro teléfono',
+      () async {
+        await cargarDemo(base, ahora);
+        await base
+            .into(base.ajustes)
+            .insertOnConflictUpdate(
+              AjustesCompanion.insert(clave: 'modo', valor: 'real'),
+            );
+        await servicio.verificar('987654321', '123456');
+        await servicio.subirTodo();
+        final moca = RepositorioMocaLocal(base, ahora: () => ahora);
+        final aviso = (await moca.observarAvisos().first).firstWhere(
+          (a) => a.descartable,
+        );
+        await moca.descartar(aviso);
+        expect(await servicio.hayCambiosSinSubir(), isTrue);
+        await servicio.subirTodo();
+        final alertas = subidas.last['alertas']! as List;
+        final subida = alertas.single as Map;
+        expect(subida['clave'], aviso.clave);
+        expect(subida['estado'], 'vista');
+        // El mismo id cada vez: repetir la subida no duplica.
+        await servicio.subirTodo();
+        expect(
+          ((subidas.last['alertas']! as List).single as Map)['id'],
+          subida['id'],
+        );
+
+        final original = AccesoLocal(base, () => ahora);
+        final membresia = await base.select(base.membresias).getSingle();
+        paraBajar = {
+          ...subidas.last,
+          'usuario': {'id': (await original.usuario()).id},
+          'membresia': {
+            'id': membresia.id,
+            'empresa_id': membresia.empresaId,
+            'rol': 'dueno',
+          },
+        };
+        driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+        final otraBase = BaseLocal(NativeDatabase.memory());
+        addTearDown(otraBase.close);
+        final otro = ServicioCuentaRemoto(
+          otraBase,
+          llavero: _Llavero(),
+          cliente: MockClient(servidor),
+          ahora: () => ahora,
+        );
+        await otro.verificar('987654321', '123456', entrar: true);
+        expect(await otro.bajarTodo(), ResultadoBajada.listo);
+        final avisos = await RepositorioMocaLocal(
+          otraBase,
+          ahora: () => ahora,
+        ).observarAvisos().first;
+        expect(avisos.map((a) => a.clave), isNot(contains(aviso.clave)));
+        expect(await otro.hayCambiosSinSubir(), isFalse);
+      },
+    );
+  });
 }

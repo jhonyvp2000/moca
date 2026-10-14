@@ -1,3 +1,4 @@
+import '../../dominio/cifras.dart';
 import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
 import '../../pais/peru/categorias.dart';
@@ -31,6 +32,23 @@ class RepositorioInformeLocal implements RepositorioInforme {
       m.fechaComprobante ?? m.fechaMovimiento;
 
   Future<InformeMes> _calcular(DateTime? pedido) async {
+    // Los del servidor, si valen (entrega 13): el mes pedido, sin salirse
+    // del primero ni del actual.
+    if (await _a.cifrasDelServidor() case Cifras(:final informes)
+        when informes.isNotEmpty) {
+      if (pedido == null) return informes.last;
+      final mes = DateTime(pedido.year, pedido.month);
+      if (mes.isBefore(informes.first.mes)) return informes.first;
+      return informes.firstWhere(
+        (i) => i.mes == mes,
+        orElse: () => informes.last,
+      );
+    }
+    return calcularMes(pedido);
+  }
+
+  /// El informe de un mes calculado en el teléfono.
+  Future<InformeMes> calcularMes(DateTime? pedido) async {
     final ahora = _a.ahora();
     final actual = DateTime(ahora.year, ahora.month);
     final empresa = await _a.empresa();
@@ -110,7 +128,10 @@ class RepositorioInformeLocal implements RepositorioInforme {
       }) {
         final c =
             (ahoraPorCategoria[nombre] ?? 0) - (antesPorCategoria[nombre] ?? 0);
-        if (c.abs() > mayorCambio.abs()) {
+        if (c.abs() > mayorCambio.abs() ||
+            (c != 0 &&
+                c.abs() == mayorCambio.abs() &&
+                nombre.compareTo(mayor!) < 0)) {
           mayor = nombre;
           mayorCambio = c;
         }
@@ -126,8 +147,14 @@ class RepositorioInformeLocal implements RepositorioInforme {
     }
 
     // En qué se fue la plata: a lo más cinco filas.
+    // Empates: por nombre, igual que en el servidor.
     final ordenadas = porCategoria(delMes).entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort(
+        (a, b) => switch (b.value.compareTo(a.value)) {
+          0 => a.key.compareTo(b.key),
+          final c => c,
+        },
+      );
     final gastos = ordenadas.length <= _filasDeGastos
         ? [
             for (final e in ordenadas)

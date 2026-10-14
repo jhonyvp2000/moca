@@ -45,6 +45,24 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     final ahora = _a.ahora();
     final cuentas = await _a.cuentas(empresa.id);
     final movimientos = await _a.movimientos(empresa.id);
+
+    // Las cifras del servidor, si valen (entrega 13).
+    if (await _a.cifrasDelServidor() case final cifras?) {
+      final i = cifras.inicio;
+      return ResumenInicio(
+        nombreNegocio: empresa.nombre,
+        saldosPorCuenta: cifras.saldos,
+        semanaEntroCentimos: i.semanaEntroCentimos,
+        semanaSalioCentimos: i.semanaSalioCentimos,
+        semanaConMovimientos: i.semanaConMovimientos,
+        diferenciaConSemanaAnteriorCentimos:
+            i.diferenciaConSemanaAnteriorCentimos,
+        ventaDeHoyCentimos: i.ventaDeHoyCentimos,
+        mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
+        estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
+      );
+    }
+
     final paraCalculo = movimientos.map(AccesoLocal.paraSaldo).toList();
 
     final lunes = inicioDeSemana(ahora);

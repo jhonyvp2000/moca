@@ -79,6 +79,11 @@ abstract interface class ServicioCuenta {
 
   /// Si hay algo anotado o cambiado que el servidor todavía no tiene.
   Future<bool> hayCambiosSinSubir();
+
+  /// Pide al servidor las cifras de lo que ya tiene, si las del teléfono no
+  /// valen (otro día o algo cambió). Con algo por subir no hace nada: las
+  /// cifras llegan con la subida (entrega 13).
+  Future<void> actualizarCifras();
 }
 
 /// Donde el teléfono guarda la llave de su cuenta, cifrada.

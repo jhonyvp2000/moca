@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../dominio/arqueo.dart';
+import '../../dominio/cifras.dart';
 import '../../dominio/modelos.dart';
 import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
@@ -38,6 +39,83 @@ class AccesoLocal {
 
   /// El celular verificado de verdad (entrega 11). Sin él, no hay cuenta.
   static const claveCuentaVerificada = 'cuenta_verificada';
+
+  /// Las últimas cifras del servidor, con la huella de lo que tenía el
+  /// teléfono cuando llegaron (entrega 13).
+  static const claveCifras = 'cifras';
+
+  Future<void> guardarCifras(Map<String, Object?> cifras, String huella) =>
+      guardarAjuste(
+        claveCifras,
+        jsonEncode({'huella': huella, 'cifras': cifras}),
+      );
+
+  /// Lo último leído, para no volver a leer el mismo texto en cada cambio.
+  static String? _textoLeido;
+  static ({String huella, Cifras cifras})? _leidas;
+
+  /// Las cifras del servidor, si valen para lo que hay hoy en el teléfono:
+  /// con cuenta, fuera de la Demo, del mismo día y sin nada por subir. Si
+  /// no, nulas: el teléfono calcula lo mismo con las mismas reglas.
+  Future<Cifras?> cifrasDelServidor() async {
+    if (await leerAjuste(claveCuentaVerificada) == null) return null;
+    if (await enDemo()) return null;
+    final texto = await leerAjuste(claveCifras);
+    if (texto == null) return null;
+    if (texto != _textoLeido) {
+      try {
+        final guardado = jsonDecode(texto) as Map<String, Object?>;
+        _leidas = (
+          huella: guardado['huella']! as String,
+          cifras: Cifras.fromJson(guardado['cifras']! as Map<String, Object?>),
+        );
+      } on Object {
+        // Algo que esta versión de la app no entiende: se calcula aquí.
+        _leidas = null;
+      }
+      _textoLeido = texto;
+    }
+    final leidas = _leidas;
+    if (leidas == null) return null;
+    if (leidas.cifras.dia != Cifras.textoDia(ahora())) return null;
+    if (await hayPorSubir() || leidas.huella != await huella()) return null;
+    return leidas.cifras;
+  }
+
+  /// Si hay movimientos que el servidor todavía no tiene.
+  Future<bool> hayPorSubir() async =>
+      (await (base.select(base.movimientos)
+                ..where(
+                  (m) => m.estadoSincronizacion.equalsValue(
+                    EstadoSincronizacion.porSubir,
+                  ),
+                )
+                ..limit(1))
+              .get())
+          .isNotEmpty;
+
+  /// Cambia con cada cambio de lo que se sube: la bitácora registra cada
+  /// cambio; los días cerrados, los avisos vistos y la empresa se suman
+  /// aparte.
+  Future<String> huella() async {
+    Future<int> contar(TableInfo tabla) async {
+      final total = countAll();
+      final consulta = base.selectOnly(tabla)..addColumns([total]);
+      return (await consulta.getSingle()).read(total)!;
+    }
+
+    final empresa = await this.empresa();
+    return [
+      await contar(base.bitacora),
+      await contar(base.movimientos),
+      await contar(base.diasCerrados),
+      await contar(base.cuentas),
+      await contar(base.alertas),
+      empresa?.nombre,
+      empresa?.tipoNegocio.name,
+      empresa?.horaCierreMinutos,
+    ].join('|');
+  }
 
   Future<Empresa?> empresa() =>
       (base.select(base.empresas)..limit(1)).getSingleOrNull();
@@ -187,6 +265,14 @@ class AccesoLocal {
     String empresaId,
     List<Movimiento> movimientos,
   ) async {
+    if (await cifrasDelServidor() case final cifras?) {
+      final estado = cifras.inicio.estadoArqueo;
+      if (estado == EstadoArqueo.nada &&
+          await leerAjuste(claveArqueoPedido) != null) {
+        return EstadoArqueo.toca;
+      }
+      return estado;
+    }
     final ahora = this.ahora();
     final lunes = inicioDeSemana(ahora);
     final arqueos = await (base.select(
@@ -216,6 +302,7 @@ class AccesoLocal {
 
   /// Saldo de cada cuenta de la empresa, con los ajustes del arqueo.
   Future<Map<TipoCuenta, int>> saldos(String empresaId) async =>
+      (await cifrasDelServidor())?.saldos ??
       saldosPorCuenta(
         await cuentas(empresaId),
         await movimientos(empresaId),

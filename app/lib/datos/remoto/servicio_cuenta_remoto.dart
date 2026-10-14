@@ -4,6 +4,7 @@ import 'dart:io' show gzip;
 
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/modelos.dart';
@@ -50,6 +51,9 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   /// llave de este.
   static const _claveCerrada = 'cuenta_cerrada_en_otro';
 
+  /// Para que un aviso marcado «Entendido» suba siempre con el mismo id.
+  static const _uuid = Uuid();
+
   /// A los cuántos días de «Ahora no» aparece la tarjeta de Moca.
   static const diasParaRecordar = 3;
 
@@ -73,6 +77,20 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           body: comprimir ? gzip.encode(bytes) : bytes,
         )
         .timeout(_espera);
+  }
+
+  Future<http.Response> _pedir(String ruta, String llave) => _cliente
+      .get(_servidor.resolve(ruta), headers: {'Authorization': 'Bearer $llave'})
+      .timeout(_espera);
+
+  /// Guarda las cifras que vinieron en la respuesta, si vinieron.
+  Future<void> _guardarCifras(
+    Map<String, Object?> cuerpo,
+    String huella,
+  ) async {
+    if (cuerpo['cifras'] case final Map<String, Object?> cifras) {
+      await _a.guardarCifras(cifras, huella);
+    }
   }
 
   static Map<String, Object?> _cuerpo(http.Response r) {
@@ -171,21 +189,18 @@ class ServicioCuentaRemoto implements ServicioCuenta {
     if (!await _hayConexion()) return ResultadoBajada.sinSenal;
     final http.Response respuesta;
     try {
-      respuesta = await _cliente
-          .get(
-            _servidor.resolve('/datos/bajar'),
-            headers: {'Authorization': 'Bearer $llave'},
-          )
-          .timeout(_espera);
+      respuesta = await _pedir('/datos/bajar', llave);
     } on TimeoutException {
       return ResultadoBajada.sinSenal;
     } on http.ClientException {
       return ResultadoBajada.sinSenal;
     }
     if (respuesta.statusCode != 200) return ResultadoBajada.error;
-    final datos = _cuerpo(respuesta)['datos'];
+    final cuerpo = _cuerpo(respuesta);
+    final datos = cuerpo['datos'];
     if (datos is! Map<String, Object?>) return ResultadoBajada.error;
     await _guardarBajada(datos, celular);
+    await _guardarCifras(cuerpo, await _a.huella());
     _celularPorEntrar = null;
     return ResultadoBajada.listo;
   }
@@ -252,7 +267,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       final empresa = await _a.empresa();
       if (empresa == null) return false;
       final datos = await _datosParaSubir(empresa);
-      final huella = await _huella();
+      final huella = await _a.huella();
       final respuesta = await _enviar(
         '/datos/subir',
         datos,
@@ -265,6 +280,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         return false;
       }
       if (respuesta.statusCode != 200) return false;
+      final cuerpo = _cuerpo(respuesta);
       // Solo lo que existía al armar la subida queda marcado como subido.
       final subidos = [
         for (final m in datos['movimientos']! as List)
@@ -279,6 +295,9 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           ),
         );
         await _a.guardarAjuste(_claveHuellaSubida, huella);
+        // Las cifras con lo subido (entrega 13): valen mientras no cambie
+        // nada en el teléfono.
+        await _guardarCifras(cuerpo, huella);
       });
       return true;
     } on TimeoutException {
@@ -294,37 +313,39 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   /// distinta. La bitácora registra cada cambio; los días cerrados y la
   /// empresa se suman aparte.
   @override
-  Future<bool> hayCambiosSinSubir() async {
-    final porSubir =
-        await (_base.select(_base.movimientos)
-              ..where(
-                (m) => m.estadoSincronizacion.equalsValue(
-                  EstadoSincronizacion.porSubir,
-                ),
-              )
-              ..limit(1))
-            .get();
-    return porSubir.isNotEmpty ||
-        await _huella() != await _a.leerAjuste(_claveHuellaSubida);
-  }
+  Future<bool> hayCambiosSinSubir() async =>
+      await _a.hayPorSubir() ||
+      await _a.huella() != await _a.leerAjuste(_claveHuellaSubida);
 
-  Future<String> _huella() async {
-    Future<int> contar(TableInfo tabla) async {
-      final total = countAll();
-      final consulta = _base.selectOnly(tabla)..addColumns([total]);
-      return (await consulta.getSingle()).read(total)!;
+  bool _pidiendoCifras = false;
+
+  @override
+  Future<void> actualizarCifras() async {
+    if (_pidiendoCifras || _subiendo) return;
+    if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null) return;
+    if (await _a.enDemo() || await _a.leerAjuste(_claveCerrada) != null) return;
+    if (await hayCambiosSinSubir()) return;
+    if (await _a.cifrasDelServidor() != null) return;
+    if (!await _hayConexion()) return;
+    final llave = await _llavero.leer();
+    if (llave == null) return;
+    _pidiendoCifras = true;
+    try {
+      final huella = await _a.huella();
+      final respuesta = await _pedir('/cifras', llave);
+      if (respuesta.statusCode == 401) {
+        await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
+        return;
+      }
+      if (respuesta.statusCode != 200) return;
+      await _guardarCifras(_cuerpo(respuesta), huella);
+    } on TimeoutException {
+      return;
+    } on http.ClientException {
+      return;
+    } finally {
+      _pidiendoCifras = false;
     }
-
-    final empresa = await _a.empresa();
-    return [
-      await contar(_base.bitacora),
-      await contar(_base.movimientos),
-      await contar(_base.diasCerrados),
-      await contar(_base.cuentas),
-      empresa?.nombre,
-      empresa?.tipoNegocio.name,
-      empresa?.horaCierreMinutos,
-    ].join('|');
   }
 
   // --- Lo que se baja ------------------------------------------------------
@@ -561,6 +582,20 @@ class ServicioCuentaRemoto implements ServicioCuenta {
               dia: _desdeDia(d['dia'])!,
             ),
         ]);
+        // Los avisos marcados «Entendido»: en el teléfono, su id es la clave.
+        lote.insertAll(_base.alertas, [
+          for (final a in filas('alertas'))
+            AlertasCompanion.insert(
+              id: a['clave']! as String,
+              empresaId: empresaId,
+              tipo: a['tipo']! as String,
+              prioridad: _enum(PrioridadAlerta.values, a['prioridad']),
+              estado: _enum(EstadoAlerta.values, a['estado']),
+              texto: a['texto']! as String,
+              datos: _aTexto(a['datos']) ?? '{}',
+              creadoEn: _desdeFecha(a['creado_en']),
+            ),
+        ]);
         lote.insertAll(_base.bitacora, [
           for (final b in filas('bitacora'))
             BitacoraCompanion.insert(
@@ -587,7 +622,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         )..where((a) => a.clave.equals(clave))).go();
       }
       // Lo que acaba de bajar ya está en el servidor.
-      await _a.guardarAjuste(_claveHuellaSubida, await _huella());
+      await _a.guardarAjuste(_claveHuellaSubida, await _a.huella());
     });
   }
 
@@ -745,6 +780,21 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           _base.diasCerrados,
         )..where((d) => d.empresaId.equals(id))).get())
           {'id': d.id, 'dia': _dia(d.dia)},
+      ],
+      'alertas': [
+        for (final a in await (_base.select(
+          _base.alertas,
+        )..where((a) => a.empresaId.equals(id))).get())
+          {
+            'id': _uuid.v5(id, a.id),
+            'clave': a.id,
+            'tipo': a.tipo,
+            'prioridad': a.prioridad.name,
+            'estado': a.estado.name,
+            'texto': a.texto,
+            'datos': _json(a.datos),
+            'creado_en': _fecha(a.creadoEn),
+          },
       ],
       'bitacora': [
         for (final b in await (_base.select(
