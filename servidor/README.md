@@ -42,6 +42,7 @@ Los archivos de `migraciones/` se aplican en orden, una sola vez cada uno y cada
 | `POST /datos/subir` | Con la llave (`Authorization: Bearer …`), guarda todo lo que el teléfono tiene de su empresa, incluidos los avisos marcados «Entendido». Repetirlo no duplica nada. Acepta el cuerpo comprimido (`Content-Encoding: gzip`). |
 | `GET /datos/bajar` | Con la llave, devuelve todo lo de la empresa con las mismas tablas y columnas que se suben, y sus cifras, comprimido si el teléfono lo acepta. |
 | `GET /cifras` | Con la llave, las cifras de la empresa en este momento: saldos, Inicio, resumen de la semana, avisos (sin los marcados «Entendido») e informe de cada mes. `POST /datos/subir` también las devuelve, con lo recién subido. |
+| `POST /comprobantes/leer` | Con la llave, lee la foto de un comprobante (`{imagen, tipo, categorias}`, imagen en base64): primero Claude Haiku 5.5 y, si lo leído no cuadra, Claude Sonnet 5.5. Responde `leido`, `ilegible` (con lo que sí se leyó) o `no_es_comprobante`. Máximo 30 fotos por usuario al día (429). Sin `ANTHROPIC_API_KEY`, 503. La foto no se guarda; cada lectura queda en `lecturas`. |
 
 ## Cifras (entrega 13)
 

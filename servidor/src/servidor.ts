@@ -1,4 +1,5 @@
 import { crearApp } from './app.js';
+import { lectorAnthropic } from './comprobantes/lector.js';
 import { aislamientoActivo, crearPool } from './base/conexion.js';
 import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
@@ -21,10 +22,14 @@ if (!(await aislamientoActivo(pool))) {
 
 const twilio = leerConfigTwilio();
 if (!twilio) console.warn('Twilio no está configurado: no se pueden crear cuentas.');
+// La lectura de fotos con IA (entrega 14).
+const llaveAnthropic = process.env.ANTHROPIC_API_KEY;
+if (!llaveAnthropic) console.warn('Falta ANTHROPIC_API_KEY: no se pueden leer fotos.');
 const app = crearApp({
   pool,
   version: config.version,
   verificador: twilio ? verificadorTwilio(twilio) : null,
+  lector: llaveAnthropic ? lectorAnthropic(llaveAnthropic) : null,
   registrar: true,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });

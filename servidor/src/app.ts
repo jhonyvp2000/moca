@@ -4,6 +4,8 @@ import { aislamientoActivo, type Pool } from './base/conexion.js';
 import { rutasCuenta } from './cuenta/rutas.js';
 import type { Verificador } from './cuenta/verificador.js';
 import { rutasCifras } from './cifras/rutas.js';
+import type { Lector } from './comprobantes/lector.js';
+import { rutasComprobantes } from './comprobantes/rutas.js';
 import { rutasBajada } from './datos/bajar.js';
 import { rutasDatos } from './datos/subir.js';
 
@@ -16,6 +18,8 @@ export interface Dependencias {
   registrar?: boolean;
   /** El reloj de las cifras; las pruebas lo fijan. */
   ahora?: () => Date;
+  /** Quien lee las fotos con IA; nulo si no hay llave de Anthropic. */
+  lector?: Lector | null;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -25,6 +29,7 @@ export function crearApp({
   verificador = null,
   registrar = false,
   ahora = () => new Date(),
+  lector = null,
 }: Dependencias): FastifyInstance {
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
@@ -67,6 +72,7 @@ export function crearApp({
   rutasDatos(app, pool, ahora);
   rutasBajada(app, pool, ahora);
   rutasCifras(app, pool, ahora);
+  rutasComprobantes(app, pool, lector, ahora);
 
   return app;
 }

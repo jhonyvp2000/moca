@@ -30,6 +30,9 @@ services:
         sync: false
       - key: TWILIO_VERIFY_SID
         sync: false
+      # Lectura de fotos con Claude (entrega 14). Jhony la pega en Render.
+      - key: ANTHROPIC_API_KEY
+        sync: false
 
 databases:
   - name: moca-base
