@@ -33,6 +33,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que escribe dire
 | Archivo | Contenido |
 |---|---|
 | `docs/prototipo-v1.md` | La etapa actual: objetivo, pantallas, qué se simula, entregas |
+| `docs/v1-real.md` | Plan de la V1 real: servidor, entregas 10 a 16 y lo que falta decidir |
 | `docs/decisiones.md` | Registro de decisiones con fecha |
 | `docs/producto.md` | Análisis completo: decisiones, modos, fuentes de datos, agente, arquitectura, modelo comercial, riesgos |
 | `docs/alcance-v1.md` | Corte de versiones y detalle de las 15 pantallas de la V1, con los ajustes respecto al mockup |

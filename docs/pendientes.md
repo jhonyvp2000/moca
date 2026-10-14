@@ -33,7 +33,7 @@ Ver `fase-0.md`. En resumen:
 - Criterio preciso para dar la V1 por terminada.
 - Revisar el borrador de `modelo-datos.md`.
 - Proveedor para enviar el código de acceso por SMS o WhatsApp.
-- Dónde se aloja el backend y el almacén de imágenes.
+- ~~Dónde se aloja el backend y el almacén de imágenes~~: plataforma gestionada y simple, con almacén de imágenes aparte; el proveedor se propone en la entrega 10 (14-10-2026, ver `v1-real.md`).
 - Cómo funcionan en la V1 real «Ver una demo», «Ya tengo cuenta» y «Ahora no, seguir probando» (en el prototipo ya están resueltos).
 - Textos legales: consentimiento de datos (Ley 29733) y aviso de que Moca no reemplaza la contabilidad oficial.
 - Estimación de duración de las fases 1 y 2.
