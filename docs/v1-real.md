@@ -24,7 +24,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 |---|---|---|
 | 10 | Servidor base: proyecto Node, base PostgreSQL con el modelo de `modelo-datos.md` y aislamiento por empresa (RLS), pruebas y un servidor de pruebas publicado | — |
 | 11 | Cuenta real: código por SMS en «Guarda tu avance» (Twilio Verify; WhatsApp cuando Meta apruebe), tarjeta en Moca para guardar el avance o confirmar el número, y subida automática de lo anotado | Proveedor del código |
-| 12 | Sincronización: subidas por partes y bajada; «Ya tengo cuenta» de verdad, para entrar desde otro teléfono y recuperar todo | 11 |
+| 12 | «Ya tengo cuenta» de verdad (entrar desde otro teléfono y bajar todo), un teléfono por cuenta y subidas comprimidas | 11 |
 | 13 | Cifras en el servidor: saldos, semana, informe y avisos por reglas, precalculados; la app los lee | 12 |
 | 14 | Lectura de fotos con IA: imagen al almacén, cola de trabajos, lectura con un modelo económico y uno mayor si la confianza es baja | Prueba 1 de la Fase 0 |
 | 15 | Moca redacta con IA los avisos y el resumen semanal; audio si lo aprueba la Fase 0 | Prueba 7 de la Fase 0 |

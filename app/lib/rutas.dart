@@ -15,6 +15,7 @@ import 'pantallas/comprobantes/pantalla_confirmar_lectura.dart';
 import 'pantallas/comprobantes/pantalla_escaner_qr.dart';
 import 'pantallas/comprobantes/pantalla_foto.dart';
 import 'pantallas/cuentas/pantalla_mis_cuentas.dart';
+import 'pantallas/guardar_avance/modo_cuenta.dart';
 import 'pantallas/guardar_avance/pantalla_codigo.dart';
 import 'pantallas/guardar_avance/pantalla_guardar_avance.dart';
 import 'pantallas/historial/pantalla_detalle_movimiento.dart';
@@ -38,6 +39,10 @@ abstract final class Rutas {
   static const bienvenida = '/bienvenida';
   static const ventaDeHoy = '/bienvenida/venta-de-hoy';
   static const vozPrimeraVenta = '/bienvenida/voz';
+
+  /// «Ya tengo cuenta» (entrega 12).
+  static const entrar = '/bienvenida/entrar';
+  static const entrarCodigo = '/bienvenida/entrar/codigo';
   static const guardarAvance = '/guardar-avance';
   static const codigo = '/guardar-avance/codigo';
   static const alta = '/alta';
@@ -82,6 +87,8 @@ final _rutasPorEtapa = {
     Rutas.bienvenida,
     Rutas.ventaDeHoy,
     Rutas.vozPrimeraVenta,
+    Rutas.entrar,
+    Rutas.entrarCodigo,
   ],
   EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
   EtapaInicio.alta: [Rutas.alta],
@@ -139,6 +146,20 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
           path: 'voz',
           builder: (context, estado) =>
               const PantallaVoz(modo: ModoVoz.primeraVenta),
+        ),
+        GoRoute(
+          path: 'entrar',
+          builder: (context, estado) =>
+              const PantallaGuardarAvance(modo: ModoCuenta.entrar),
+          routes: [
+            GoRoute(
+              path: 'codigo',
+              builder: (context, estado) => PantallaCodigo(
+                celular: estado.extra as String? ?? '',
+                modo: ModoCuenta.entrar,
+              ),
+            ),
+          ],
         ),
       ],
     ),
@@ -233,14 +254,14 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
       path: Rutas.cuenta,
       builder: (context, estado) => PantallaGuardarAvance(
         celularInicial: estado.extra as String?,
-        desdeMoca: true,
+        modo: ModoCuenta.desdeMoca,
       ),
       routes: [
         GoRoute(
           path: 'codigo',
           builder: (context, estado) => PantallaCodigo(
             celular: estado.extra as String? ?? '',
-            desdeMoca: true,
+            modo: ModoCuenta.desdeMoca,
           ),
         ),
       ],

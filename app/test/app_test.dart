@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show gzip;
 
 import 'package:drift/drift.dart'
     show DatabaseConnection, Value, driftRuntimeOptions;
@@ -110,20 +111,42 @@ class _ServidorFalso {
   int estadoAlPedir = 200;
   bool cuentaExistente = false;
 
+  /// Lo que baja «Ya tengo cuenta»; nulo: el número no tiene cuenta.
+  Map<String, Object?>? cuentaParaEntrar;
+
+  /// La próxima bajada se corta a medio camino.
+  bool cortarBajada = false;
+
+  /// La cuenta se abrió en otro teléfono: la llave de este ya no sirve.
+  bool sesionRevocada = false;
+
   Future<http.Response> responder(http.Request pedido) async {
-    final cuerpo = jsonDecode(pedido.body) as Map<String, Object?>;
+    final bytes = pedido.headers['Content-Encoding'] == 'gzip'
+        ? gzip.decode(pedido.bodyBytes)
+        : pedido.bodyBytes;
+    final cuerpo = bytes.isEmpty
+        ? const <String, Object?>{}
+        : jsonDecode(utf8.decode(bytes)) as Map<String, Object?>;
+    final conLlave =
+        pedido.headers['Authorization'] == 'Bearer llave-de-prueba' &&
+        !sesionRevocada;
     switch (pedido.url.path) {
       case '/cuenta/codigo':
         codigosPedidos.add(cuerpo['celular']! as String);
         return http.Response(jsonEncode({'canal': 'sms'}), estadoAlPedir);
       case '/cuenta/verificar':
+        final entrar = cuerpo['modo'] == 'entrar';
         return switch (cuerpo['codigo']) {
+          '123456' when entrar && cuentaParaEntrar == null => http.Response(
+            jsonEncode({'error': 'sin_cuenta'}),
+            404,
+          ),
           '123456' => http.Response(
             jsonEncode({
-              'llave': 'llave-de-prueba',
+              if (!cuentaExistente || entrar) 'llave': 'llave-de-prueba',
               'usuarioId': cuerpo['usuarioId'],
               'empresas': <String>[],
-              'cuentaExistente': cuentaExistente,
+              'cuentaExistente': cuentaExistente && !entrar,
             }),
             200,
           ),
@@ -134,14 +157,112 @@ class _ServidorFalso {
           _ => http.Response(jsonEncode({'error': 'codigo_incorrecto'}), 400),
         };
       case '/datos/subir':
-        if (pedido.headers['Authorization'] != 'Bearer llave-de-prueba') {
+        if (!conLlave) {
           return http.Response(jsonEncode({'error': 'sin_sesion'}), 401);
         }
         subidas.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+      case '/datos/bajar':
+        if (cortarBajada) {
+          cortarBajada = false;
+          throw http.ClientException('Se cortó la señal');
+        }
+        return http.Response(jsonEncode({'datos': cuentaParaEntrar}), 200);
     }
     return http.Response('', 404);
   }
+}
+
+/// Lo que tiene en el servidor la cuenta de Don Lucho: S/ 1,000 al empezar
+/// y una venta de S/ 350.
+Map<String, Object?> _cuentaDeLucho() {
+  const usuario = '0f0e0d0c-0000-4000-8000-000000000001';
+  const empresa = '0f0e0d0c-0000-4000-8000-000000000002';
+  const efectivo = '0f0e0d0c-0000-4000-8000-000000000003';
+  const venta = '0f0e0d0c-0000-4000-8000-000000000004';
+  const categoria = '0f0e0d0c-0000-4000-8000-000000000005';
+  final dia = _ahora.toUtc().toIso8601String();
+  return {
+    'usuario': {'id': usuario, 'celular': '+51987654321'},
+    'membresia': {
+      'id': '0f0e0d0c-0000-4000-8000-000000000006',
+      'empresa_id': empresa,
+      'rol': 'dueno',
+    },
+    'empresa': {
+      'id': empresa,
+      'nombre': 'Bodega Don Lucho',
+      'tipo_negocio': 'bodega',
+      'modo': 'simple',
+      'pais': 'PE',
+      'moneda': 'PEN',
+      'regimen': null,
+      'hora_cierre_minutos': 1260,
+      'identificacion_fiscal': null,
+      'creado_en': dia,
+    },
+    'cuentas': [
+      {
+        'id': efectivo,
+        'tipo': 'efectivo',
+        'nombre': 'Efectivo',
+        'orden': 0,
+        'saldo_inicial_centimos': 100000,
+        'fecha_saldo_inicial': _ahora
+            .subtract(const Duration(hours: 1))
+            .toUtc()
+            .toIso8601String(),
+      },
+    ],
+    'categorias': [
+      {
+        'id': categoria,
+        'nombre': 'Venta del día',
+        'tipo_movimiento': 'ingreso',
+        'orden': 0,
+        'activa': true,
+      },
+    ],
+    'movimientos': [
+      {
+        'id': venta,
+        'tipo': 'ingreso',
+        'cuenta_id': efectivo,
+        'monto_centimos': 35000,
+        'fecha_movimiento': dia,
+        'fecha_comprobante': null,
+        'estado_pago': 'pagado',
+        'monto_pagado_centimos': 35000,
+        'fecha_vencimiento': null,
+        'fecha_pago': dia,
+        'categoria_id': categoria,
+        'contraparte_id': null,
+        'comprobante_id': null,
+        'nivel_confianza': 'd',
+        'fuente': 'voz',
+        'autor_id': usuario,
+        'nota': null,
+        'estado': 'vigente',
+        'reemplaza_a': null,
+        'creado_en': dia,
+      },
+    ],
+    'dias_cerrados': [
+      {'id': '0f0e0d0c-0000-4000-8000-000000000007', 'dia': '2026-10-11'},
+    ],
+    'bitacora': [
+      {
+        'id': '0f0e0d0c-0000-4000-8000-000000000008',
+        'autor_id': usuario,
+        'entidad': 'movimiento',
+        'entidad_id': venta,
+        'accion': 'crear',
+        'valor_anterior': null,
+        'valor_nuevo': {'montoCentimos': 35000},
+        'fecha': dia,
+      },
+    ],
+  };
 }
 
 var _servidor = _ServidorFalso();
@@ -455,11 +576,21 @@ void main() {
       expect(movimientos, hasLength(1));
     });
 
-    testWidgets('«Ya tengo cuenta» explica qué pasa', (tester) async {
+    testWidgets('«Ya tengo cuenta» con un número sin cuenta lleva a la '
+        'primera venta', (tester) async {
       await abrirApp(tester);
       await tocar(tester, find.text(Textos.yaTengoCuenta));
-      expect(find.text(Textos.cuentaEnTelefono), findsOneWidget);
-      await tocar(tester, find.text(Textos.empezar));
+      expect(find.text(Textos.entraATuCuentaDetalle), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
+      );
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+      expect(find.text(Textos.numeroSinCuenta), findsOneWidget);
+      await tocar(tester, find.text(Textos.anotarMiPrimeraVenta));
       expect(find.text(Textos.microfonoExplicacion), findsOneWidget);
     });
   });
@@ -1835,6 +1966,89 @@ void main() {
         for (final m in _servidor.subidas.last['movimientos']! as List)
           (m as Map)['monto_centimos'],
       ], contains(8000));
+    });
+  });
+
+  group('Entrega 12', () {
+    Future<void> entrar(WidgetTester tester) async {
+      await tocar(tester, find.text(Textos.yaTengoCuenta));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
+      );
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+    }
+
+    testWidgets('«Ya tengo cuenta» baja todo y abre el Inicio', (tester) async {
+      final base = await abrirApp(tester);
+      _servidor.cuentaParaEntrar = _cuentaDeLucho();
+      await entrar(tester);
+
+      expect(find.text(Textos.yaTienesTodo), findsOneWidget);
+      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.byType(BarraInferior), findsOneWidget);
+      // S/ 1,000 al empezar más la venta de S/ 350.
+      expect(find.text('S/\u00A01,350'), findsWidgets);
+
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      expect(
+        movimientos!.single.estadoSincronizacion,
+        EstadoSincronizacion.subido,
+      );
+      // Lo que bajó no se vuelve a subir.
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      expect(_servidor.subidas, isEmpty);
+      expect(await _llavero.leer(), 'llave-de-prueba');
+    });
+
+    testWidgets('Si se corta la señal al bajar, se intenta otra vez', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      _servidor
+        ..cuentaParaEntrar = _cuentaDeLucho()
+        ..cortarBajada = true;
+      await entrar(tester);
+      expect(find.text(Textos.seCortoLaSenal), findsOneWidget);
+      await tocar(tester, find.text(Textos.intentarOtraVez));
+      expect(find.text(Textos.yaTienesTodo), findsOneWidget);
+      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+    });
+
+    testWidgets('Si la cuenta se abrió en otro teléfono, lo dice y no sube', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester);
+      _servidor.cuentaParaEntrar = _cuentaDeLucho();
+      await entrar(tester);
+
+      // Otro teléfono entra a la cuenta: la llave de este deja de servir.
+      _servidor.sesionRevocada = true;
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.entro));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.efectivo));
+      await tocar(tester, find.text('Venta del día'));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      expect(_servidor.subidas, isEmpty);
+
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.cuentaAbiertaEnOtro), findsOneWidget);
+      // Ya no intenta subir.
+      await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      expect(_servidor.subidas, isEmpty);
     });
   });
 }

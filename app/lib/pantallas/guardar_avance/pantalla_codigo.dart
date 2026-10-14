@@ -13,6 +13,7 @@ import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'modo_cuenta.dart';
 
 /// Código de acceso (estado no dibujado, aprobado el 12-10-2026). Desde la
 /// entrega 11 el código llega por SMS y lo comprueba el servidor; al
@@ -21,14 +22,15 @@ class PantallaCodigo extends ConsumerStatefulWidget {
   const PantallaCodigo({
     super.key,
     required this.celular,
-    this.desdeMoca = false,
+    this.modo = ModoCuenta.primerDia,
   });
 
   /// Los 9 dígitos, sin espacios.
   final String celular;
 
-  /// Abierta desde la tarjeta de Moca: al terminar vuelve a Moca.
-  final bool desdeMoca;
+  /// Desde la tarjeta de Moca vuelve a Moca al terminar; para entrar
+  /// («Ya tengo cuenta») baja los datos de la cuenta.
+  final ModoCuenta modo;
 
   /// Segundos antes de poder pedir otro código.
   static const esperaParaReenviar = 30;
@@ -37,7 +39,16 @@ class PantallaCodigo extends ConsumerStatefulWidget {
   ConsumerState<PantallaCodigo> createState() => _EstadoCodigo();
 }
 
-enum _Fase { escribiendo, comprobando, guardando }
+enum _Fase {
+  escribiendo,
+  comprobando,
+  guardando,
+
+  /// «Ya tengo cuenta» (entrega 12).
+  bajando,
+  bajadaFallida,
+  sinCuenta,
+}
 
 class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
   final _codigo = TextEditingController();
@@ -99,15 +110,26 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       _nota = null;
     });
     final servicio = ref.read(servicioCuentaProvider);
-    final resultado = await servicio.verificar(widget.celular, _codigo.text);
+    final resultado = await servicio.verificar(
+      widget.celular,
+      _codigo.text,
+      entrar: _entrar,
+    );
     if (!mounted) return;
+    if (resultado == ResultadoVerificacion.sinCuenta) {
+      setState(() => _fase = _Fase.sinCuenta);
+      return;
+    }
     if (resultado != ResultadoVerificacion.verificado) {
       setState(() {
         _fase = _Fase.escribiendo;
         _codigo.clear();
         _error = switch (resultado) {
           ResultadoVerificacion.incorrecto => Textos.codigoIncorrecto,
-          ResultadoVerificacion.sinSenal => Textos.necesitasSenalParaGuardar,
+          ResultadoVerificacion.sinSenal =>
+            _entrar
+                ? Textos.necesitasSenalParaEntrar
+                : Textos.necesitasSenalParaGuardar,
           ResultadoVerificacion.otraCuenta => Textos.otraCuentaConEsteNumero,
           _ => Textos.noPudimosComprobar,
         };
@@ -119,6 +141,7 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       }
       return;
     }
+    if (_entrar) return _bajar();
     setState(() => _fase = _Fase.guardando);
     // Si se corta la señal, lo que falta se sube después solo.
     await servicio.subirTodo();
@@ -126,7 +149,7 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
     final mensajes = ScaffoldMessenger.of(context);
     await ref.read(repositorioPrimerDiaProvider).guardarCelular(widget.celular);
     // Desde el primer día, la app pasa sola al alta.
-    if (widget.desdeMoca && mounted) {
+    if (widget.modo == ModoCuenta.desdeMoca && mounted) {
       context.go(Rutas.moca);
       mensajes.showSnackBar(
         const SnackBar(content: Text(Textos.avanceGuardado)),
@@ -134,11 +157,25 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
     }
   }
 
+  bool get _entrar => widget.modo == ModoCuenta.entrar;
+
+  /// Baja todo lo de la cuenta. Al terminar, la app pasa sola al Inicio.
+  Future<void> _bajar() async {
+    setState(() => _fase = _Fase.bajando);
+    final mensajes = ScaffoldMessenger.of(context);
+    final resultado = await ref.read(servicioCuentaProvider).bajarTodo();
+    if (resultado == ResultadoBajada.listo) {
+      mensajes.showSnackBar(const SnackBar(content: Text(Textos.yaTienesTodo)));
+      return;
+    }
+    if (mounted) setState(() => _fase = _Fase.bajadaFallida);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
-        titulo: Textos.guardaTuAvance,
+        titulo: _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
         alVolver: () => context.pop(),
       ),
       contenido: [
@@ -189,6 +226,14 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           const SizedBox(height: 12),
           Aviso(texto: error),
         ],
+        if (_fase == _Fase.sinCuenta) ...[
+          const SizedBox(height: 12),
+          const Aviso(texto: Textos.numeroSinCuenta),
+        ],
+        if (_fase == _Fase.bajadaFallida) ...[
+          const SizedBox(height: 12),
+          const Aviso(texto: Textos.seCortoLaSenal),
+        ],
         if (_nota case final nota?) ...[
           const SizedBox(height: 12),
           Text(nota, style: Tipografia.secundario),
@@ -216,13 +261,19 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       ],
       acciones: [
         FilledButton(
-          onPressed: _completo && _fase == _Fase.escribiendo
-              ? _confirmar
-              : null,
+          onPressed: switch (_fase) {
+            _Fase.escribiendo => _completo ? _confirmar : null,
+            _Fase.sinCuenta => () => context.go(Rutas.vozPrimeraVenta),
+            _Fase.bajadaFallida => _bajar,
+            _ => null,
+          },
           child: Text(switch (_fase) {
             _Fase.escribiendo => Textos.confirmar,
             _Fase.comprobando => Textos.comprobando,
             _Fase.guardando => Textos.guardandoLoAnotado,
+            _Fase.bajando => Textos.bajandoTusDatos,
+            _Fase.bajadaFallida => Textos.intentarOtraVez,
+            _Fase.sinCuenta => Textos.anotarMiPrimeraVenta,
           }),
         ),
       ],

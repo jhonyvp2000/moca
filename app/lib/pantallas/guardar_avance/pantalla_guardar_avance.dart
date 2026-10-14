@@ -13,20 +13,21 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'modo_cuenta.dart';
 
 /// S01 · Guarda tu avance. Sin la franja de Moca Plus: en la V1 no hay planes.
 /// Desde la entrega 11 el código llega de verdad por SMS. También se abre
-/// desde la tarjeta de la pestaña Moca ([desdeMoca]), con el celular ya
-/// escrito si lo había.
+/// desde la tarjeta de la pestaña Moca, con el celular ya escrito si lo
+/// había, y para entrar a una cuenta desde «Ya tengo cuenta» (entrega 12).
 class PantallaGuardarAvance extends ConsumerStatefulWidget {
   const PantallaGuardarAvance({
     super.key,
     this.celularInicial,
-    this.desdeMoca = false,
+    this.modo = ModoCuenta.primerDia,
   });
 
   final String? celularInicial;
-  final bool desdeMoca;
+  final ModoCuenta modo;
 
   @override
   ConsumerState<PantallaGuardarAvance> createState() => _EstadoGuardarAvance();
@@ -64,15 +65,15 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     final valido = esCelularValido(_digitos);
 
     return PantallaConAcciones(
-      encabezado: widget.desdeMoca
-          ? EncabezadoConVolver(
-              titulo: Textos.guardaTuAvance,
+      encabezado: _primerDia
+          ? null
+          : EncabezadoConVolver(
+              titulo: _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
               alVolver: () => context.pop(),
-            )
-          : null,
-      rellenoSuperior: widget.desdeMoca ? 4 : 40,
+            ),
+      rellenoSuperior: _primerDia ? 40 : 4,
       contenido: [
-        if (!widget.desdeMoca) ...[
+        if (_primerDia) ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -127,7 +128,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
         Semantics(
           header: true,
           child: Text(
-            Textos.guardaTuAvance,
+            _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
             style: Tipografia.tituloPantalla.copyWith(
               fontSize: 26,
               height: 1.2,
@@ -136,7 +137,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
         ),
         const SizedBox(height: 6),
         Text(
-          Textos.sinCorreoNiContrasena,
+          _entrar ? Textos.entraATuCuentaDetalle : Textos.sinCorreoNiContrasena,
           style: Tipografia.secundario.copyWith(fontSize: 15),
         ),
         const SizedBox(height: 20),
@@ -210,14 +211,17 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           child: Text(_enviando ? Textos.enviando : Textos.enviarmeCodigo),
         ),
         BotonTexto(
-          texto: Textos.ahoraNo,
-          alTocar: widget.desdeMoca
-              ? () => context.pop()
-              : () => ref.read(repositorioPrimerDiaProvider).seguirSinCuenta(),
+          texto: _entrar ? Textos.volver : Textos.ahoraNo,
+          alTocar: _primerDia
+              ? () => ref.read(repositorioPrimerDiaProvider).seguirSinCuenta()
+              : () => context.pop(),
         ),
       ],
     );
   }
+
+  bool get _primerDia => widget.modo == ModoCuenta.primerDia;
+  bool get _entrar => widget.modo == ModoCuenta.entrar;
 
   Future<void> _enviarCodigo() async {
     final celular = _digitos;
@@ -232,12 +236,17 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     setState(() => _enviando = false);
     switch (resultado) {
       case ResultadoPedido.enviado:
-        context.push(
-          widget.desdeMoca ? Rutas.cuentaCodigo : Rutas.codigo,
-          extra: celular,
-        );
+        context.push(switch (widget.modo) {
+          ModoCuenta.primerDia => Rutas.codigo,
+          ModoCuenta.desdeMoca => Rutas.cuentaCodigo,
+          ModoCuenta.entrar => Rutas.entrarCodigo,
+        }, extra: celular);
       case ResultadoPedido.sinSenal:
-        setState(() => _error = Textos.necesitasSenalParaGuardar);
+        setState(
+          () => _error = _entrar
+              ? Textos.necesitasSenalParaEntrar
+              : Textos.necesitasSenalParaGuardar,
+        );
       case ResultadoPedido.demasiados:
         setState(() => _error = Textos.demasiadosCodigos);
       case ResultadoPedido.invalido:

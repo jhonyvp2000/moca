@@ -37,9 +37,6 @@ abstract final class Textos {
   static const salir = 'Salir';
   static const salirDeLaDemoTitulo = '¿Salir de la demo?';
   static const salirDeLaDemoTexto = 'Se borran los datos de ejemplo.';
-  static const cuentaEnTelefonoTitulo = 'Tu cuenta está en tu teléfono';
-  static const cuentaEnTelefono =
-      'En esta prueba tu cuenta vive en el teléfono donde la creaste.';
   static const empezar = 'Empezar';
 
   // S07 · Venta de hoy (escrita, hasta que llegue la voz)
@@ -126,6 +123,25 @@ abstract final class Textos {
       'mezclar lo anotado, lo de este teléfono sigue aquí. Pronto podrás '
       'entrar a esa cuenta.';
   static const guardandoLoAnotado = 'Guardando lo que anotaste…';
+
+  // «Ya tengo cuenta» (estados de la entrega 12, aprobados el 14-10-2026)
+  static const entraATuCuenta = 'Entra a tu cuenta';
+  static const entraATuCuentaDetalle =
+      'Escribe el celular con el que guardaste tu avance. Te llega un código '
+      'por SMS.';
+  static const necesitasSenalParaEntrar =
+      'Necesitas señal para entrar a tu cuenta.';
+  static const numeroSinCuenta =
+      'Este número no tiene una cuenta de Moca. Empieza anotando tu venta de '
+      'hoy.';
+  static const anotarMiPrimeraVenta = 'Anotar mi primera venta';
+  static const bajandoTusDatos = 'Bajando tus datos…';
+  static const seCortoLaSenal =
+      'Se cortó la señal. Intenta otra vez: no se perdió nada.';
+  static const yaTienesTodo = 'Listo. Ya tienes aquí todo lo que anotaste.';
+  static const cuentaAbiertaEnOtro = 'Tu cuenta se abrió en otro teléfono';
+  static const cuentaAbiertaEnOtroDetalle =
+      'Lo que anotes aquí desde ahora no se guarda en tu cuenta.';
   static const avanceGuardado = 'Listo. Tu avance está guardado.';
 
   // Tarjeta de la pestaña Moca (entrega 11)

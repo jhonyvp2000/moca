@@ -172,24 +172,6 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
         textStyle: Tipografia.textoFuerte,
       );
 
-  Future<void> _yaTengoCuenta(BuildContext context) async {
-    final empezar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(Textos.cuentaEnTelefonoTitulo),
-        content: const Text(Textos.cuentaEnTelefono),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(Textos.cancelar),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(Textos.empezar),
-          ),
-        ],
-      ),
-    );
-    if (empezar == true && context.mounted) context.go(Rutas.vozPrimeraVenta);
-  }
+  /// «Ya tengo cuenta»: entra con el celular y baja todo (entrega 12).
+  void _yaTengoCuenta(BuildContext context) => context.push(Rutas.entrar);
 }

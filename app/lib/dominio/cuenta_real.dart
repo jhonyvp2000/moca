@@ -8,11 +8,18 @@ enum ResultadoVerificacion {
   vencido,
   sinSenal,
 
-  /// El número ya tiene cuenta desde otro teléfono: no se mezclan los datos
-  /// (la recuperación llega en la entrega 12).
+  /// El número ya tiene cuenta desde otro teléfono y este teléfono tiene sus
+  /// propios datos: no se mezclan.
   otraCuenta,
+
+  /// Para entrar («Ya tengo cuenta»): el número no tiene una cuenta con
+  /// datos.
+  sinCuenta,
   error,
 }
+
+/// Al bajar los datos de la cuenta a este teléfono (entrega 12).
+enum ResultadoBajada { listo, sinSenal, error }
 
 enum EstadoCuenta {
   /// Siguió con «Ahora no»: lo anotado vive solo en el teléfono.
@@ -24,6 +31,10 @@ enum EstadoCuenta {
 
   /// El número está verificado y lo anotado se sube al servidor.
   guardada,
+
+  /// La cuenta se abrió en otro teléfono: este ya no sube nada (un teléfono
+  /// por cuenta, entrega 12).
+  cerradaEnOtro,
 }
 
 class SituacionCuenta {
@@ -48,8 +59,17 @@ abstract interface class ServicioCuenta {
   Future<ResultadoPedido> pedirCodigo(String celular);
 
   /// Si el código es correcto, guarda la llave del teléfono. No sube nada:
-  /// para eso está [subirTodo].
-  Future<ResultadoVerificacion> verificar(String celular, String codigo);
+  /// para eso está [subirTodo]. Con [entrar] («Ya tengo cuenta»), no crea
+  /// cuentas y después se baja todo con [bajarTodo].
+  Future<ResultadoVerificacion> verificar(
+    String celular,
+    String codigo, {
+    bool entrar = false,
+  });
+
+  /// Reemplaza lo del teléfono por lo de la cuenta (el teléfono está en la
+  /// Bienvenida: no tiene datos propios).
+  Future<ResultadoBajada> bajarTodo();
 
   Stream<SituacionCuenta> observar();
 

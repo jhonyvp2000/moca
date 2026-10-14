@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show gzip;
 
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
@@ -45,20 +46,34 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   static const _claveHuellaSubida = 'subida_huella';
   static const _claveSinCuentaDesde = 'sin_cuenta_desde';
 
+  /// La cuenta se abrió en otro teléfono y el servidor ya no acepta la
+  /// llave de este.
+  static const _claveCerrada = 'cuenta_cerrada_en_otro';
+
   /// A los cuántos días de «Ahora no» aparece la tarjeta de Moca.
   static const diasParaRecordar = 3;
 
-  Future<http.Response> _enviar(String ruta, Object cuerpo, {String? llave}) =>
-      _cliente
-          .post(
-            _servidor.resolve(ruta),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': ?(llave == null ? null : 'Bearer $llave'),
-            },
-            body: jsonEncode(cuerpo),
-          )
-          .timeout(_espera);
+  /// Con [comprimir], el cuerpo va en gzip: lo que se anota en un año pesa
+  /// menos que una foto (entrega 12).
+  Future<http.Response> _enviar(
+    String ruta,
+    Object cuerpo, {
+    String? llave,
+    bool comprimir = false,
+  }) {
+    final bytes = utf8.encode(jsonEncode(cuerpo));
+    return _cliente
+        .post(
+          _servidor.resolve(ruta),
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Encoding': ?(comprimir ? 'gzip' : null),
+            'Authorization': ?(llave == null ? null : 'Bearer $llave'),
+          },
+          body: comprimir ? gzip.encode(bytes) : bytes,
+        )
+        .timeout(_espera);
+  }
 
   static Map<String, Object?> _cuerpo(http.Response r) {
     try {
@@ -87,15 +102,23 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   }
 
   @override
-  Future<ResultadoVerificacion> verificar(String celular, String codigo) async {
+  Future<ResultadoVerificacion> verificar(
+    String celular,
+    String codigo, {
+    bool entrar = false,
+  }) async {
     if (!await _hayConexion()) return ResultadoVerificacion.sinSenal;
-    final usuario = await _a.usuario();
     final http.Response respuesta;
     try {
       respuesta = await _enviar('/cuenta/verificar', {
         'celular': celular,
         'codigo': codigo,
-        'usuarioId': usuario.id,
+        if (entrar)
+          'modo': 'entrar'
+        else ...{
+          'modo': 'guardar',
+          'usuarioId': (await _a.usuario()).id,
+        },
       });
     } on TimeoutException {
       return ResultadoVerificacion.sinSenal;
@@ -105,10 +128,15 @@ class ServicioCuentaRemoto implements ServicioCuenta {
     final cuerpo = _cuerpo(respuesta);
     switch (respuesta.statusCode) {
       case 200:
-        if (cuerpo['cuentaExistente'] == true) {
+        if (cuerpo['cuentaExistente'] == true || cuerpo['llave'] == null) {
           return ResultadoVerificacion.otraCuenta;
         }
         await _llavero.guardar(cuerpo['llave']! as String);
+        if (entrar) {
+          // La cuenta queda verificada cuando termina de bajar.
+          _celularPorEntrar = celular;
+          return ResultadoVerificacion.verificado;
+        }
         await _a.guardarAjuste(AccesoLocal.claveCuentaVerificada, celular);
         // Lo anotado antes de la cuenta queda por subir.
         await _base
@@ -123,11 +151,43 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         return cuerpo['error'] == 'codigo_vencido'
             ? ResultadoVerificacion.vencido
             : ResultadoVerificacion.incorrecto;
+      case 404:
+        return ResultadoVerificacion.sinCuenta;
       case 409:
         return ResultadoVerificacion.otraCuenta;
       default:
         return ResultadoVerificacion.error;
     }
+  }
+
+  /// El celular con el que se entró, mientras se bajan los datos.
+  String? _celularPorEntrar;
+
+  @override
+  Future<ResultadoBajada> bajarTodo() async {
+    final llave = await _llavero.leer();
+    final celular = _celularPorEntrar;
+    if (llave == null || celular == null) return ResultadoBajada.error;
+    if (!await _hayConexion()) return ResultadoBajada.sinSenal;
+    final http.Response respuesta;
+    try {
+      respuesta = await _cliente
+          .get(
+            _servidor.resolve('/datos/bajar'),
+            headers: {'Authorization': 'Bearer $llave'},
+          )
+          .timeout(_espera);
+    } on TimeoutException {
+      return ResultadoBajada.sinSenal;
+    } on http.ClientException {
+      return ResultadoBajada.sinSenal;
+    }
+    if (respuesta.statusCode != 200) return ResultadoBajada.error;
+    final datos = _cuerpo(respuesta)['datos'];
+    if (datos is! Map<String, Object?>) return ResultadoBajada.error;
+    await _guardarBajada(datos, celular);
+    _celularPorEntrar = null;
+    return ResultadoBajada.listo;
   }
 
   @override
@@ -137,6 +197,13 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   Future<SituacionCuenta> _situacion() async {
     final verificado = await _a.leerAjuste(AccesoLocal.claveCuentaVerificada);
     if (verificado != null) {
+      if (await _a.leerAjuste(_claveCerrada) != null) {
+        return SituacionCuenta(
+          estado: EstadoCuenta.cerradaEnOtro,
+          celular: verificado,
+          mostrarTarjeta: true,
+        );
+      }
       return SituacionCuenta(
         estado: EstadoCuenta.guardada,
         celular: verificado,
@@ -177,6 +244,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       return false;
     }
     if (await _a.enDemo() || !await _hayConexion()) return false;
+    if (await _a.leerAjuste(_claveCerrada) != null) return false;
     final llave = await _llavero.leer();
     if (llave == null) return false;
     _subiendo = true;
@@ -185,7 +253,17 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       if (empresa == null) return false;
       final datos = await _datosParaSubir(empresa);
       final huella = await _huella();
-      final respuesta = await _enviar('/datos/subir', datos, llave: llave);
+      final respuesta = await _enviar(
+        '/datos/subir',
+        datos,
+        llave: llave,
+        comprimir: true,
+      );
+      if (respuesta.statusCode == 401) {
+        // La cuenta se abrió en otro teléfono.
+        await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
+        return false;
+      }
       if (respuesta.statusCode != 200) return false;
       // Solo lo que existía al armar la subida queda marcado como subido.
       final subidos = [
@@ -247,6 +325,270 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       empresa?.tipoNegocio.name,
       empresa?.horaCierreMinutos,
     ].join('|');
+  }
+
+  // --- Lo que se baja ------------------------------------------------------
+
+  static DateTime _desdeFecha(Object? v) =>
+      DateTime.parse(v! as String).toLocal();
+
+  static DateTime? _desdeFechaONulo(Object? v) =>
+      v == null ? null : _desdeFecha(v);
+
+  /// «2026-10-11» como medianoche del teléfono.
+  static DateTime? _desdeDia(Object? v) {
+    if (v == null) return null;
+    final [anio, mes, dia] = (v as String).split('-').map(int.parse).toList();
+    return DateTime(anio, mes, dia);
+  }
+
+  static String? _aTexto(Object? json) =>
+      json == null ? null : jsonEncode(json);
+
+  static T _enum<T extends Enum>(List<T> valores, Object? nombre) =>
+      valores.byName(nombre! as String);
+
+  /// Reemplaza lo del teléfono por lo que bajó de la cuenta, en una sola
+  /// transacción: si algo falla, el teléfono queda como estaba.
+  Future<void> _guardarBajada(
+    Map<String, Object?> datos,
+    String celular,
+  ) async {
+    List<Map<String, Object?>> filas(String tabla) => [
+      for (final f in (datos[tabla] as List? ?? const []))
+        f as Map<String, Object?>,
+    ];
+    final usuario = datos['usuario']! as Map<String, Object?>;
+    final membresia = datos['membresia']! as Map<String, Object?>;
+    final empresa = datos['empresa']! as Map<String, Object?>;
+    final usuarioId = usuario['id']! as String;
+    final empresaId = empresa['id']! as String;
+
+    await _base.transaction(() async {
+      // El teléfono viene de la Bienvenida: no hay datos propios que perder.
+      for (final TableInfo tabla in [
+        _base.bitacora,
+        _base.arqueoCuentas,
+        _base.arqueos,
+        _base.movimientos,
+        _base.itemsComprobante,
+        _base.comprobantes,
+        _base.contrapartes,
+        _base.categorias,
+        _base.cuentas,
+        _base.diasCerrados,
+        _base.alertas,
+        _base.membresias,
+        _base.empresas,
+        _base.usuarios,
+      ]) {
+        await _base.delete(tabla).go();
+      }
+
+      await _base
+          .into(_base.usuarios)
+          .insert(
+            UsuariosCompanion.insert(
+              id: usuarioId,
+              celular: Value(celular),
+              creadoEn: _a.ahora(),
+            ),
+          );
+      await _base
+          .into(_base.empresas)
+          .insert(
+            EmpresasCompanion.insert(
+              id: empresaId,
+              nombre: empresa['nombre']! as String,
+              tipoNegocio: _enum(TipoNegocio.values, empresa['tipo_negocio']),
+              modo: _enum(ModoEmpresa.values, empresa['modo']),
+              pais: empresa['pais']! as String,
+              moneda: empresa['moneda']! as String,
+              regimen: Value(empresa['regimen'] as String?),
+              horaCierreMinutos: empresa['hora_cierre_minutos']! as int,
+              identificacionFiscal: Value(
+                empresa['identificacion_fiscal'] as String?,
+              ),
+              creadoEn: _desdeFecha(empresa['creado_en']),
+            ),
+          );
+      await _base
+          .into(_base.membresias)
+          .insert(
+            MembresiasCompanion.insert(
+              id: membresia['id']! as String,
+              usuarioId: usuarioId,
+              empresaId: empresaId,
+              rol: _enum(Rol.values, membresia['rol']),
+            ),
+          );
+      await _base.batch((lote) {
+        lote.insertAll(_base.cuentas, [
+          for (final c in filas('cuentas'))
+            CuentasCompanion.insert(
+              id: c['id']! as String,
+              empresaId: empresaId,
+              tipo: _enum(TipoCuenta.values, c['tipo']),
+              nombre: c['nombre']! as String,
+              orden: c['orden']! as int,
+              saldoInicialCentimos: Value(c['saldo_inicial_centimos'] as int?),
+              fechaSaldoInicial: Value(
+                _desdeFechaONulo(c['fecha_saldo_inicial']),
+              ),
+            ),
+        ]);
+        lote.insertAll(_base.categorias, [
+          for (final c in filas('categorias'))
+            CategoriasCompanion.insert(
+              id: c['id']! as String,
+              empresaId: empresaId,
+              nombre: c['nombre']! as String,
+              tipoMovimiento: _enum(
+                TipoMovimiento.values,
+                c['tipo_movimiento'],
+              ),
+              orden: c['orden']! as int,
+              activa: Value(c['activa']! as bool),
+            ),
+        ]);
+        lote.insertAll(_base.contrapartes, [
+          for (final c in filas('contrapartes'))
+            ContrapartesCompanion.insert(
+              id: c['id']! as String,
+              empresaId: empresaId,
+              nombre: c['nombre']! as String,
+              identificacionFiscal: Value(
+                c['identificacion_fiscal'] as String?,
+              ),
+              tipo: _enum(TipoContraparte.values, c['tipo']),
+            ),
+        ]);
+        lote.insertAll(_base.comprobantes, [
+          for (final c in filas('comprobantes'))
+            ComprobantesCompanion.insert(
+              id: c['id']! as String,
+              empresaId: empresaId,
+              emisorIdentificacion: Value(
+                c['emisor_identificacion'] as String?,
+              ),
+              emisorNombre: Value(c['emisor_nombre'] as String?),
+              tipo: Value(c['tipo'] as String?),
+              serie: Value(c['serie'] as String?),
+              numero: Value(c['numero'] as String?),
+              fechaEmision: Value(_desdeDia(c['fecha_emision'])),
+              subtotalCentimos: Value(c['subtotal_centimos'] as int?),
+              impuestoCentimos: Value(c['impuesto_centimos'] as int?),
+              totalCentimos: c['total_centimos']! as int,
+              origenLectura: _enum(OrigenLectura.values, c['origen_lectura']),
+              creadoEn: _desdeFecha(c['creado_en']),
+            ),
+        ]);
+        lote.insertAll(_base.itemsComprobante, [
+          for (final i in filas('items_comprobante'))
+            ItemsComprobanteCompanion.insert(
+              id: i['id']! as String,
+              comprobanteId: i['comprobante_id']! as String,
+              descripcion: i['descripcion']! as String,
+              cantidad: Value((i['cantidad'] as num?)?.toDouble()),
+              precioUnitarioCentimos: Value(
+                i['precio_unitario_centimos'] as int?,
+              ),
+              importeCentimos: i['importe_centimos']! as int,
+            ),
+        ]);
+        lote.insertAll(_base.movimientos, [
+          for (final m in filas('movimientos'))
+            MovimientosCompanion.insert(
+              id: m['id']! as String,
+              empresaId: empresaId,
+              tipo: _enum(TipoMovimiento.values, m['tipo']),
+              cuentaId: m['cuenta_id']! as String,
+              montoCentimos: m['monto_centimos']! as int,
+              fechaMovimiento: _desdeFecha(m['fecha_movimiento']),
+              fechaComprobante: Value(_desdeFechaONulo(m['fecha_comprobante'])),
+              estadoPago: _enum(EstadoPago.values, m['estado_pago']),
+              montoPagadoCentimos: m['monto_pagado_centimos']! as int,
+              fechaVencimiento: Value(_desdeFechaONulo(m['fecha_vencimiento'])),
+              fechaPago: Value(_desdeFechaONulo(m['fecha_pago'])),
+              categoriaId: Value(m['categoria_id'] as String?),
+              contraparteId: Value(m['contraparte_id'] as String?),
+              comprobanteId: Value(m['comprobante_id'] as String?),
+              nivelConfianza: _enum(
+                NivelConfianza.values,
+                m['nivel_confianza'],
+              ),
+              fuente: _enum(Fuente.values, m['fuente']),
+              autorId: m['autor_id']! as String,
+              nota: Value(m['nota'] as String?),
+              estado: _enum(EstadoRegistro.values, m['estado']),
+              reemplazaA: Value(m['reemplaza_a'] as String?),
+              estadoSincronizacion: EstadoSincronizacion.subido,
+              creadoEn: _desdeFecha(m['creado_en']),
+            ),
+        ]);
+        lote.insertAll(_base.arqueos, [
+          for (final a in filas('arqueos'))
+            ArqueosCompanion.insert(
+              id: a['id']! as String,
+              empresaId: empresaId,
+              fecha: _desdeFecha(a['fecha']),
+              autorId: a['autor_id']! as String,
+              creadoEn: _desdeFecha(a['creado_en']),
+            ),
+        ]);
+        lote.insertAll(_base.arqueoCuentas, [
+          for (final a in filas('arqueo_cuentas'))
+            ArqueoCuentasCompanion.insert(
+              id: a['id']! as String,
+              arqueoId: a['arqueo_id']! as String,
+              cuentaId: a['cuenta_id']! as String,
+              saldoCalculadoCentimos: a['saldo_calculado_centimos']! as int,
+              saldoRealCentimos: a['saldo_real_centimos']! as int,
+              diferenciaCentimos: a['diferencia_centimos']! as int,
+              motivo: Value(
+                a['motivo'] == null
+                    ? null
+                    : _enum(MotivoArqueo.values, a['motivo']),
+              ),
+              movimientoId: Value(a['movimiento_id'] as String?),
+            ),
+        ]);
+        lote.insertAll(_base.diasCerrados, [
+          for (final d in filas('dias_cerrados'))
+            DiasCerradosCompanion.insert(
+              id: d['id']! as String,
+              empresaId: empresaId,
+              dia: _desdeDia(d['dia'])!,
+            ),
+        ]);
+        lote.insertAll(_base.bitacora, [
+          for (final b in filas('bitacora'))
+            BitacoraCompanion.insert(
+              id: b['id']! as String,
+              empresaId: empresaId,
+              autorId: b['autor_id']! as String,
+              entidad: b['entidad']! as String,
+              entidadId: b['entidad_id']! as String,
+              accion: _enum(AccionBitacora.values, b['accion']),
+              valorAnterior: Value(_aTexto(b['valor_anterior'])),
+              valorNuevo: Value(_aTexto(b['valor_nuevo'])),
+              fecha: _desdeFecha(b['fecha']),
+            ),
+        ]);
+      });
+
+      // Una cuenta que se guardó antes del alta sigue en el alta.
+      final conAlta = (empresa['nombre']! as String).isNotEmpty;
+      await _a.guardarAjuste('etapa', conAlta ? 'listo' : 'alta');
+      await _a.guardarAjuste(AccesoLocal.claveCuentaVerificada, celular);
+      for (final clave in [_claveSinCuentaDesde, _claveCerrada]) {
+        await (_base.delete(
+          _base.ajustes,
+        )..where((a) => a.clave.equals(clave))).go();
+      }
+      // Lo que acaba de bajar ya está en el servidor.
+      await _a.guardarAjuste(_claveHuellaSubida, await _huella());
+    });
   }
 
   // --- Lo que se sube ------------------------------------------------------

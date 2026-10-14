@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -32,8 +32,15 @@ void main() {
   late ServicioCuentaRemoto servicio;
   final ahora = DateTime(2026, 10, 12, 21, 5);
 
+  Map<String, Object?>? paraBajar;
+
   Future<http.Response> servidor(http.Request pedido) async {
-    final cuerpo = jsonDecode(pedido.body) as Map<String, Object?>;
+    final bytes = pedido.headers['Content-Encoding'] == 'gzip'
+        ? gzip.decode(pedido.bodyBytes)
+        : pedido.bodyBytes;
+    final cuerpo = bytes.isEmpty
+        ? const <String, Object?>{}
+        : jsonDecode(utf8.decode(bytes)) as Map<String, Object?>;
     return switch (pedido.url.path) {
       '/cuenta/verificar' => http.Response(
         jsonEncode({
@@ -44,6 +51,7 @@ void main() {
         }),
         200,
       ),
+      '/datos/bajar' => http.Response(jsonEncode({'datos': paraBajar}), 200),
       '/datos/subir' => () {
         subidas.add(cuerpo);
         return http.Response('{"recibidos":{}}', 200);
@@ -206,4 +214,89 @@ void main() {
       ).writeAsStringSync(jsonEncode({'usuarioId': usuario, 'datos': datos}));
     }
   });
+
+  test(
+    'Otro teléfono baja la Demo y queda igual: saldos, historial y etapa',
+    () async {
+      await cargarDemo(base, ahora);
+      await base
+          .into(base.ajustes)
+          .insertOnConflictUpdate(
+            AjustesCompanion.insert(clave: 'modo', valor: 'real'),
+          );
+      await servicio.verificar('987654321', '123456');
+      expect(await servicio.subirTodo(), isTrue);
+      final subida = subidas.single;
+      final original = AccesoLocal(base, () => ahora);
+      final empresa = (await original.empresa())!;
+      final usuario = await original.usuario();
+      final membresia = await base.select(base.membresias).getSingle();
+      // Lo que el servidor devuelve: lo subido, más el usuario y su membresía.
+      paraBajar = {
+        ...subida,
+        'usuario': {'id': usuario.id, 'celular': '+51987654321'},
+        'membresia': {
+          'id': membresia.id,
+          'empresa_id': empresa.id,
+          'rol': 'dueno',
+        },
+      };
+
+      // Dos teléfonos, dos bases: a propósito.
+      driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+      final otraBase = BaseLocal(NativeDatabase.memory());
+      addTearDown(otraBase.close);
+      final otro = ServicioCuentaRemoto(
+        otraBase,
+        llavero: _Llavero(),
+        cliente: MockClient(servidor),
+        ahora: () => ahora,
+      );
+      expect(
+        await otro.verificar('987654321', '123456', entrar: true),
+        ResultadoVerificacion.verificado,
+      );
+      expect(await otro.bajarTodo(), ResultadoBajada.listo);
+
+      final copia = AccesoLocal(otraBase, () => ahora);
+      expect(await copia.saldos(empresa.id), await original.saldos(empresa.id));
+      expect(
+        (await otraBase.select(otraBase.movimientos).get()).length,
+        (await base.select(base.movimientos).get()).length,
+      );
+      expect(
+        (await otraBase.select(otraBase.bitacora).get()).length,
+        (await base.select(base.bitacora).get()).length,
+      );
+      expect(await copia.leerAjuste('etapa'), 'listo');
+      expect(
+        await copia.leerAjuste(AccesoLocal.claveCuentaVerificada),
+        '987654321',
+      );
+      // Lo que bajó ya está en el servidor: no hay nada que subir.
+      expect(await otro.hayCambiosSinSubir(), isFalse);
+      expect((await otro.observar().first).estado, EstadoCuenta.guardada);
+    },
+  );
+
+  test(
+    'Si el servidor rechaza la llave, la cuenta se abrió en otro teléfono',
+    () async {
+      await primerDia();
+      await servicio.verificar('987654321', '123456');
+      llavero.llave = 'llave-revocada';
+      final cerrado = ServicioCuentaRemoto(
+        base,
+        llavero: llavero,
+        cliente: MockClient(
+          (pedido) async => http.Response('{"error":"sin_sesion"}', 401),
+        ),
+        ahora: () => ahora,
+      );
+      expect(await cerrado.subirTodo(), isFalse);
+      final situacion = await cerrado.observar().first;
+      expect(situacion.estado, EstadoCuenta.cerradaEnOtro);
+      expect(situacion.mostrarTarjeta, isTrue);
+    },
+  );
 }
