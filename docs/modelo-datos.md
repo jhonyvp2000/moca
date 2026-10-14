@@ -82,6 +82,16 @@ Quién cambió qué y cuándo, con el valor anterior y el nuevo. Acciones: crear
 
 Cambia el cálculo de la ganancia: en NRUS el IGV pagado es costo; en MYPE o régimen general no lo es. Esta regla vive en el paquete de país.
 
+## Cómo quedó en el servidor (entrega 10)
+
+La primera migración (`servidor/migraciones/001_esquema_inicial.sql`) crea todas las entidades de arriba, con estos ajustes respecto al borrador:
+
+- Los valores fijos usan los mismos nombres que la app (`plin`, `retiroParaMi`, `paraTenerEnCuenta`), para que la sincronización no traduzca nada.
+- `items_comprobante` y `arqueo_cuentas` también llevan `empresa_id`, como toda tabla de negocio.
+- Se suman, del prototipo: los días cerrados («Hoy no abrí»), la clave de cada aviso (para no repetirlo) y la fuente «arqueo» en los movimientos.
+- El movimiento guarda cuándo llegó al servidor; el estado «por subir» vive solo en el teléfono.
+- Las referencias entre tablas incluyen la empresa, y un `DELETE` falla en toda tabla de negocio.
+
 ## Entidades que llegan después
 
 Plan y suscripción (V1.1), pagos fijos y préstamos (V1.1), apartados (V1.1), carga de archivo SIRE y conciliación (V2), referidos y comisiones (después).

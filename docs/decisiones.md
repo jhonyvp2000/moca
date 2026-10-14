@@ -4,6 +4,8 @@ Una línea por decisión, la más reciente arriba. Lo anota quien la tome o la r
 
 | Fecha | Decisión | Quién | Documento afectado |
 |---|---|---|---|
+| 2026-10-14 | Entrega 10: el servidor se aloja en Render (servidor Node y PostgreSQL en Virginia, la región más cercana a Perú), con planes gratuitos para empezar; la base no acepta conexiones desde internet. Redis y el almacén de imágenes se suman en la entrega 14 | Jhony | `v1-real.md`, `render.yaml` |
+| 2026-10-14 | El servidor usa TypeScript y Fastify. El aislamiento por empresa, las referencias dentro de la empresa, «nada se borra» y la bitácora fija los hace cumplir la base de datos; el servidor no arranca con un rol que se salte el aislamiento | Claude Code | `servidor/README.md`, `modelo-datos.md` |
 | 2026-10-14 | Plan de la V1 real: el servidor se construye en paralelo a los pilotos y a la Fase 0, en las entregas 10 a 16; la IA (fotos y redacción) espera los resultados de la Fase 0 | Jhony | `v1-real.md` |
 | 2026-10-14 | Los registros que los pilotos hicieron en el prototipo se suben al servidor al crear su cuenta real; no empiezan de cero | Jhony | `v1-real.md` |
 | 2026-10-14 | El servidor se aloja en una plataforma gestionada y simple (Node, PostgreSQL y Redis) con un almacén de imágenes aparte; el proveedor se propone en la entrega 10 | Jhony | `v1-real.md` |

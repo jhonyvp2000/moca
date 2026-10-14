@@ -1,0 +1,31 @@
+# Infraestructura de Moca en Render (docs/v1-real.md). Render lee este archivo
+# al crear el «Blueprint»: un servidor web y su base PostgreSQL.
+# Redis y el almacén de imágenes llegan con la lectura de fotos (entrega 14).
+services:
+  - type: web
+    name: moca-servidor
+    runtime: node
+    region: virginia
+    plan: free
+    rootDir: servidor
+    buildCommand: npm ci && npm run compilar
+    # Al arrancar migra la base y se niega a abrir si el rol se salta el
+    # aislamiento por empresa.
+    startCommand: npm run iniciar
+    healthCheckPath: /salud
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moca-base
+          property: connectionString
+
+databases:
+  - name: moca-base
+    region: virginia
+    plan: free
+    databaseName: moca
+    postgresMajorVersion: "16"
+    # Solo el servidor de Render entra a la base; nadie desde internet.
+    ipAllowList: []

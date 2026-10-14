@@ -1,0 +1,27 @@
+{
+  "name": "moca-servidor",
+  "version": "0.10.0",
+  "private": true,
+  "description": "Servidor de Moca: datos de las empresas, sincronización y cifras calculadas.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "compilar": "tsc -p tsconfig.json",
+    "revisar": "tsc -p tsconfig.json --noEmit",
+    "migrar": "node dist/base/migrar.js",
+    "iniciar": "node dist/servidor.js",
+    "probar": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "^5.12.7",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
