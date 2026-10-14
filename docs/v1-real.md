@@ -32,7 +32,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 
 ## Pendiente de decidir
 
-- Twilio para los pilotos: perfil de cumplimiento («Primary Compliance Profile») y salir del modo prueba, para enviar a cualquier número sin verificarlo antes.
+- ~~Twilio para los pilotos: salir del modo prueba~~: Jhony pasó la cuenta «Moca» a pagada el 14-10-2026 (USD 20 de saldo); los códigos llegan a cualquier celular. El perfil de cumplimiento se llena solo si Twilio lo pide.
 - Textos legales (Ley 29733), revisados por un abogado, incluida la posible inscripción del banco de datos personales.
 - Criterio para dar la V1 por terminada.
 - Revisión del borrador de `modelo-datos.md` (entrega 10).
