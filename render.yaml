@@ -6,7 +6,9 @@ services:
     name: moca-servidor
     runtime: node
     region: virginia
-    plan: free
+    # Starter (0.5 CPU, 512 MB, USD 7 al mes): no se duerme, así el código
+    # y las subidas responden en segundos (14-10-2026).
+    plan: starter
     rootDir: servidor
     buildCommand: npm ci && npm run compilar
     # Al arrancar migra la base y se niega a abrir si el rol se salta el
