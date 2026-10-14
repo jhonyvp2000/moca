@@ -4,7 +4,7 @@ import { aInternacional, esCelularPeru } from './celular.js';
 import { crearSesion } from './sesiones.js';
 import type { Verificador } from './verificador.js';
 
-/** Límites de pedidos de código en una hora. */
+/** Límites de códigos enviados en una hora. */
 export const limites = { porCelular: 5, porConexion: 20 };
 
 const esUuid = (v: string) =>
@@ -40,13 +40,15 @@ export function rutasCuenta(
     ) {
       return respuesta.code(429).send({ error: 'demasiados_pedidos' });
     }
+    if ((await verificador.enviar(internacional)) === 'demasiados') {
+      return respuesta.code(429).send({ error: 'demasiados_pedidos' });
+    }
+    // Solo cuenta lo que de verdad se envió: un intento que Twilio rechazó
+    // no le quita pedidos al dueño.
     await pool.query('INSERT INTO pedidos_codigo (celular, ip) VALUES ($1, $2)', [
       internacional,
       peticion.ip,
     ]);
-    if ((await verificador.enviar(internacional)) === 'demasiados') {
-      return respuesta.code(429).send({ error: 'demasiados_pedidos' });
-    }
     return { canal: 'sms' };
   });
 

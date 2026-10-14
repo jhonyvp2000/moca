@@ -58,6 +58,29 @@ describe('Cuenta con el celular', () => {
     expect((await pedir('933333333', '10.2.0.1')).statusCode).toBe(429);
   });
 
+  it('un envío que Twilio rechaza no cuenta para el límite', async () => {
+    const rechaza = crearApp({
+      pool: base.pool,
+      version: 'prueba',
+      verificador: {
+        ...verificador,
+        enviar: async () => {
+          throw new Error('Twilio no envió el código (403) código 21608');
+        },
+      },
+    });
+    for (let i = 0; i < limites.porCelular + 1; i++) {
+      const fallo = await rechaza.inject({
+        method: 'POST',
+        url: '/cuenta/codigo',
+        payload: { celular: '999000111' },
+        remoteAddress: '10.3.0.1',
+      });
+      expect(fallo.statusCode).toBe(500);
+    }
+    expect((await pedir('999000111', '10.3.0.2')).statusCode).toBe(200);
+  });
+
   it('un código incorrecto o vencido no entra', async () => {
     const usuario = randomUUID();
     expect((await verificar('944444444', '111111', usuario)).json()).toEqual({

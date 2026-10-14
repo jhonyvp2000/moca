@@ -109,15 +109,16 @@ abstract final class Textos {
   // Código (no dibujado; estados de la entrega 11, aprobados el 14-10-2026)
   static const escribeElCodigo = 'Escribe el código';
   static String codigoEnviadoA(String celular) =>
-      'Te lo enviamos por SMS al $celular.';
+      'Te lo enviamos por SMS al $celular. Vale 10 minutos.';
   static const codigo = 'Código de 6 dígitos';
   static const comprobando = 'Comprobando…';
   static const codigoIncorrecto =
       'Ese código no es. Revisa el mensaje e intenta otra vez.';
   static const codigoVencido = 'El código venció. Te enviamos uno nuevo.';
   static const codigoReenviado = 'Te enviamos un código nuevo.';
-  static const reenviarCodigo = 'Reenviar código';
-  static String reenviarEn(int segundos) => 'Reenviar código en $segundos s';
+  static const reenviarCodigo = '¿No te llegó? Reenviar';
+  static String reenviarEn(int segundos) =>
+      '¿No te llegó? Reenviar en $segundos s';
   static const noPudimosComprobar =
       'No pudimos comprobar el código. Intenta otra vez en un momento.';
   static const otraCuentaConEsteNumero =

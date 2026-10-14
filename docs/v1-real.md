@@ -32,6 +32,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 
 ## Pendiente de decidir
 
+- Twilio para los pilotos: perfil de cumplimiento («Primary Compliance Profile») y salir del modo prueba, para enviar a cualquier número sin verificarlo antes.
 - Textos legales (Ley 29733), revisados por un abogado, incluida la posible inscripción del banco de datos personales.
 - Criterio para dar la V1 por terminada.
 - Revisión del borrador de `modelo-datos.md` (entrega 10).
