@@ -15,6 +15,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'avisos.dart';
+import 'tarjeta_guardar_avance.dart';
 import '../../dominio/medicion.dart';
 
 /// S16 · Moca: el resumen de la semana, que se puede escuchar, y los avisos
@@ -112,6 +113,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
             ],
           ),
           const SizedBox(height: 14),
+          const TarjetaGuardarAvance(),
           if (resumen != null) _tarjetaSemana(resumenEnTexto(resumen)),
           const SizedBox(height: 18),
           Semantics(

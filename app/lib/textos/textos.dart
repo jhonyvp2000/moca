@@ -97,13 +97,45 @@ abstract final class Textos {
   static const enviarmeCodigo = 'Enviarme el código';
   static const ahoraNo = 'Ahora no, seguir probando';
 
-  // Código (no dibujado)
+  static const enviando = 'Enviando…';
+  static const necesitasSenalParaGuardar =
+      'Necesitas señal para guardar tu avance. Lo que anotaste sigue en tu '
+      'teléfono.';
+  static const demasiadosCodigos =
+      'Pediste muchos códigos. Intenta otra vez en una hora.';
+  static const noPudimosEnviar =
+      'No pudimos enviar el código. Intenta otra vez en un momento.';
+
+  // Código (no dibujado; estados de la entrega 11, aprobados el 14-10-2026)
   static const escribeElCodigo = 'Escribe el código';
-  static String codigoEnviadoA(String celular) => 'Te lo enviamos al $celular.';
-  static const codigoEnPrueba =
-      'En esta prueba no llega ningún mensaje: escribe cualquier número '
-      'de 6 dígitos.';
+  static String codigoEnviadoA(String celular) =>
+      'Te lo enviamos por SMS al $celular.';
   static const codigo = 'Código de 6 dígitos';
+  static const comprobando = 'Comprobando…';
+  static const codigoIncorrecto =
+      'Ese código no es. Revisa el mensaje e intenta otra vez.';
+  static const codigoVencido = 'El código venció. Te enviamos uno nuevo.';
+  static const codigoReenviado = 'Te enviamos un código nuevo.';
+  static const reenviarCodigo = 'Reenviar código';
+  static String reenviarEn(int segundos) => 'Reenviar código en $segundos s';
+  static const noPudimosComprobar =
+      'No pudimos comprobar el código. Intenta otra vez en un momento.';
+  static const otraCuentaConEsteNumero =
+      'Este número ya tiene una cuenta de Moca en otro teléfono. Para no '
+      'mezclar lo anotado, lo de este teléfono sigue aquí. Pronto podrás '
+      'entrar a esa cuenta.';
+  static const guardandoLoAnotado = 'Guardando lo que anotaste…';
+  static const avanceGuardado = 'Listo. Tu avance está guardado.';
+
+  // Tarjeta de la pestaña Moca (entrega 11)
+  static const confirmaTuNumero = 'Confirma tu número para guardar tu avance';
+  static const confirmaTuNumeroDetalle =
+      'En la prueba, el código era de ejemplo. Confírmalo para no perder lo '
+      'anotado si cambias de teléfono.';
+  static const confirmarMiNumero = 'Confirmar mi número';
+  static const guardaTuAvanceDetalle =
+      'Así no pierdes lo anotado si cambias de teléfono o se pierde.';
+  static const guardarMiAvance = 'Guardar mi avance';
   static const confirmar = 'Confirmar';
   static const cambiarNumero = 'Cambiar número';
 

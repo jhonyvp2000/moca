@@ -213,7 +213,10 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         anterior: {'celular': usuario.celular},
         nuevo: {'celular': celular},
       );
-      await _pasarA(EtapaInicio.alta);
+      // Desde la tarjeta de Moca, el camino del primer día ya terminó.
+      if (await _a.leerAjuste(_claveEtapa) == EtapaInicio.guardarAvance.name) {
+        await _pasarA(EtapaInicio.alta);
+      }
     });
   }
 

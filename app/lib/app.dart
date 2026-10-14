@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'dominio/aviso_cierre.dart';
+import 'dominio/cuenta_real.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/medicion.dart';
 import 'dominio/modelos.dart';
@@ -56,8 +59,24 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
       }
     }, fireImmediately: true);
+    // Con cuenta, lo anotado se sube solo unos segundos después de cada
+    // cambio, al abrir la app y al volver a ella (entrega 11).
+    ref.listenManual(situacionCuentaProvider, (_, situacion) {
+      if (situacion.value?.estado != EstadoCuenta.guardada) return;
+      _subida?.cancel();
+      _subida = Timer(esperaParaSubir, _subirSiHaceFalta);
+    }, fireImmediately: true);
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);
+  }
+
+  /// Tiempo sin cambios antes de subir: junta varios registros seguidos.
+  static const esperaParaSubir = Duration(seconds: 5);
+  Timer? _subida;
+
+  Future<void> _subirSiHaceFalta() async {
+    final servicio = ref.read(servicioCuentaProvider);
+    if (await servicio.hayCambiosSinSubir()) await servicio.subirTodo();
   }
 
   @override
@@ -126,6 +145,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _subida?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _rutas.dispose();
     _etapa.dispose();

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
+import 'datos/remoto/servicio_cuenta_remoto.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/medicion_local.dart';
 import 'datos/repositorios/repositorio_arqueo_local.dart';
@@ -21,6 +22,7 @@ import 'dominio/aviso_cierre.dart';
 import 'dominio/medicion.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
+import 'dominio/cuenta_real.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/historial.dart';
 import 'dominio/informe.dart';
@@ -34,6 +36,7 @@ import 'dominio/voz.dart';
 import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
 import 'servicios/conexion_android.dart';
+import 'servicios/llavero_android.dart';
 import 'servicios/locutor_android.dart';
 import 'servicios/notificador_android.dart';
 import 'servicios/voz_android.dart';
@@ -334,3 +337,20 @@ final tiposDeCuentaProvider = Provider<List<TipoCuenta>>((ref) {
   if (cuentas == null || cuentas.isEmpty) return TipoCuenta.basicas;
   return [for (final c in cuentas) c.tipo];
 });
+
+// --- Cuenta real (entrega 11) ------------------------------------------------
+
+final llaveroProvider = Provider<Llavero>((ref) => LlaveroAndroid());
+
+final servicioCuentaProvider = Provider<ServicioCuenta>(
+  (ref) => ServicioCuentaRemoto(
+    ref.watch(baseLocalProvider),
+    llavero: ref.watch(llaveroProvider),
+    ahora: ref.watch(relojProvider),
+    hayConexion: ref.watch(conexionProvider).hayConexion,
+  ),
+);
+
+final situacionCuentaProvider = StreamProvider<SituacionCuenta>(
+  (ref) => ref.watch(servicioCuentaProvider).observar(),
+);

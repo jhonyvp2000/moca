@@ -57,6 +57,10 @@ abstract final class Rutas {
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
 
+  /// «Guarda tu avance» desde la tarjeta de Moca (entrega 11).
+  static const cuenta = '/cuenta';
+  static const cuentaCodigo = '/cuenta/codigo';
+
   /// El detalle de un movimiento del Historial.
   static String detalleMovimiento(String id) =>
       Uri(path: movimiento, queryParameters: {'id': id}).toString();
@@ -97,6 +101,8 @@ final _rutasPorEtapa = {
     Rutas.corregir,
     Rutas.arqueo,
     Rutas.cuentas,
+    Rutas.cuenta,
+    Rutas.cuentaCodigo,
   ],
 };
 
@@ -222,6 +228,22 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.arqueo,
       builder: (context, estado) => const PantallaArqueo(),
+    ),
+    GoRoute(
+      path: Rutas.cuenta,
+      builder: (context, estado) => PantallaGuardarAvance(
+        celularInicial: estado.extra as String?,
+        desdeMoca: true,
+      ),
+      routes: [
+        GoRoute(
+          path: 'codigo',
+          builder: (context, estado) => PantallaCodigo(
+            celular: estado.extra as String? ?? '',
+            desdeMoca: true,
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: Rutas.cuentas,

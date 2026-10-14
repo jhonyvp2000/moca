@@ -74,7 +74,8 @@ abstract interface class RepositorioPrimerDia {
     Fuente fuente = Fuente.texto,
   });
 
-  /// S01: guarda el celular ya verificado y pasa al alta.
+  /// S01: guarda el celular ya verificado y, si viene del primer día, pasa
+  /// al alta.
   Future<void> guardarCelular(String celular);
 
   /// S01: «Ahora no, seguir probando».

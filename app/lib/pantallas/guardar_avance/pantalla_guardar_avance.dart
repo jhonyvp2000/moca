@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
+import '../../dominio/cuenta_real.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -14,8 +15,18 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
 /// S01 · Guarda tu avance. Sin la franja de Moca Plus: en la V1 no hay planes.
+/// Desde la entrega 11 el código llega de verdad por SMS. También se abre
+/// desde la tarjeta de la pestaña Moca ([desdeMoca]), con el celular ya
+/// escrito si lo había.
 class PantallaGuardarAvance extends ConsumerStatefulWidget {
-  const PantallaGuardarAvance({super.key});
+  const PantallaGuardarAvance({
+    super.key,
+    this.celularInicial,
+    this.desdeMoca = false,
+  });
+
+  final String? celularInicial;
+  final bool desdeMoca;
 
   @override
   ConsumerState<PantallaGuardarAvance> createState() => _EstadoGuardarAvance();
@@ -23,6 +34,14 @@ class PantallaGuardarAvance extends ConsumerStatefulWidget {
 
 class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
   final _celular = TextEditingController();
+  bool _enviando = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _celular.text = formatearCelular(widget.celularInicial ?? '');
+  }
 
   @override
   void dispose() {
@@ -45,58 +64,66 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     final valido = esCelularValido(_digitos);
 
     return PantallaConAcciones(
-      rellenoSuperior: 40,
+      encabezado: widget.desdeMoca
+          ? EncabezadoConVolver(
+              titulo: Textos.guardaTuAvance,
+              alVolver: () => context.pop(),
+            )
+          : null,
+      rellenoSuperior: widget.desdeMoca ? 4 : 40,
       contenido: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colores.tinteAzul,
-            borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Colores.marca,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: IconoTrazo(
-                    Icono.check,
-                    color: Colores.sobreMarca,
-                    grosor: 2.6,
+        if (!widget.desdeMoca) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colores.tinteAzul,
+              borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Colores.marca,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: IconoTrazo(
+                      Icono.check,
+                      color: Colores.sobreMarca,
+                      grosor: 2.6,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      Textos.primeraVentaAnotada,
-                      style: Tipografia.tituloTarjeta,
-                    ),
-                    if (resumen != null)
-                      Text(
-                        Textos.hoyEntraron(
-                          formatearSoles(resumen.ventaDeHoyCentimos),
-                        ),
-                        style: Tipografia.cifra(
-                          Tipografia.textoFuerte.copyWith(
-                            color: Colores.azulOscuro,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        Textos.primeraVentaAnotada,
+                        style: Tipografia.tituloTarjeta,
+                      ),
+                      if (resumen != null)
+                        Text(
+                          Textos.hoyEntraron(
+                            formatearSoles(resumen.ventaDeHoyCentimos),
+                          ),
+                          style: Tipografia.cifra(
+                            Tipografia.textoFuerte.copyWith(
+                              color: Colores.azulOscuro,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
+        ],
         Semantics(
           header: true,
           child: Text(
@@ -138,10 +165,10 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
             Expanded(
               child: TextField(
                 controller: _celular,
-                autofocus: true,
+                autofocus: widget.celularInicial == null,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [_FormateadorCelular()],
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _error = null),
                 onSubmitted: valido ? (_) => _enviarCodigo() : null,
                 style: Tipografia.cifra(_estiloCelular),
                 decoration: InputDecoration(
@@ -172,22 +199,53 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           const SizedBox(height: 8),
           const TextoError(Textos.celularInvalido),
         ],
+        if (_error case final error?) ...[
+          const SizedBox(height: 12),
+          Aviso(texto: error),
+        ],
       ],
       acciones: [
         FilledButton(
-          onPressed: valido ? _enviarCodigo : null,
-          child: const Text(Textos.enviarmeCodigo),
+          onPressed: valido && !_enviando ? _enviarCodigo : null,
+          child: Text(_enviando ? Textos.enviando : Textos.enviarmeCodigo),
         ),
         BotonTexto(
           texto: Textos.ahoraNo,
-          alTocar: () =>
-              ref.read(repositorioPrimerDiaProvider).seguirSinCuenta(),
+          alTocar: widget.desdeMoca
+              ? () => context.pop()
+              : () => ref.read(repositorioPrimerDiaProvider).seguirSinCuenta(),
         ),
       ],
     );
   }
 
-  void _enviarCodigo() => context.push(Rutas.codigo, extra: _digitos);
+  Future<void> _enviarCodigo() async {
+    final celular = _digitos;
+    setState(() {
+      _enviando = true;
+      _error = null;
+    });
+    final resultado = await ref
+        .read(servicioCuentaProvider)
+        .pedirCodigo(celular);
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    switch (resultado) {
+      case ResultadoPedido.enviado:
+        context.push(
+          widget.desdeMoca ? Rutas.cuentaCodigo : Rutas.codigo,
+          extra: celular,
+        );
+      case ResultadoPedido.sinSenal:
+        setState(() => _error = Textos.necesitasSenalParaGuardar);
+      case ResultadoPedido.demasiados:
+        setState(() => _error = Textos.demasiadosCodigos);
+      case ResultadoPedido.invalido:
+        setState(() => _error = Textos.celularInvalido);
+      case ResultadoPedido.error:
+        setState(() => _error = Textos.noPudimosEnviar);
+    }
+  }
 
   static const _estiloCelular = TextStyle(
     fontFamily: Tipografia.familia,

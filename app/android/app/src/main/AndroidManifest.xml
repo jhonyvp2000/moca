@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Desde la V1 real (entrega 11): la cuenta y la subida al servidor. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Micrófono para registrar por voz (entrega 4). No se guarda el audio. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Aviso de la hora de cierre (entrega 9): notificaciones programadas

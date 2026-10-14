@@ -1,12 +1,18 @@
-import 'package:drift/drift.dart' show DatabaseConnection, driftRuntimeOptions;
+import 'dart:convert';
+
+import 'package:drift/drift.dart'
+    show DatabaseConnection, Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:moca/app.dart';
 import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
@@ -14,6 +20,7 @@ import 'package:moca/datos/simulados/lector_foto_simulado.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/conexion.dart';
+import 'package:moca/dominio/cuenta_real.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
@@ -26,7 +33,8 @@ import 'package:moca/rutas.dart';
 import 'package:moca/textos/textos.dart';
 import 'package:go_router/go_router.dart';
 
-final _ahora = DateTime(2026, 10, 12, 21, 5);
+final _ahoraInicial = DateTime(2026, 10, 12, 21, 5);
+var _ahora = _ahoraInicial;
 
 /// Lo que «dice» el dueño en la próxima grabación.
 var _loQueDice = [const AlternativaVoz('hola')];
@@ -95,6 +103,60 @@ class _NotificadorFalso implements Notificador {
 
 var _avisosDePrueba = 0;
 
+/// El servidor de Moca, simulado: «123456» entra y «000000» venció.
+class _ServidorFalso {
+  final subidas = <Map<String, Object?>>[];
+  final codigosPedidos = <String>[];
+  int estadoAlPedir = 200;
+  bool cuentaExistente = false;
+
+  Future<http.Response> responder(http.Request pedido) async {
+    final cuerpo = jsonDecode(pedido.body) as Map<String, Object?>;
+    switch (pedido.url.path) {
+      case '/cuenta/codigo':
+        codigosPedidos.add(cuerpo['celular']! as String);
+        return http.Response(jsonEncode({'canal': 'sms'}), estadoAlPedir);
+      case '/cuenta/verificar':
+        return switch (cuerpo['codigo']) {
+          '123456' => http.Response(
+            jsonEncode({
+              'llave': 'llave-de-prueba',
+              'usuarioId': cuerpo['usuarioId'],
+              'empresas': <String>[],
+              'cuentaExistente': cuentaExistente,
+            }),
+            200,
+          ),
+          '000000' => http.Response(
+            jsonEncode({'error': 'codigo_vencido'}),
+            400,
+          ),
+          _ => http.Response(jsonEncode({'error': 'codigo_incorrecto'}), 400),
+        };
+      case '/datos/subir':
+        if (pedido.headers['Authorization'] != 'Bearer llave-de-prueba') {
+          return http.Response(jsonEncode({'error': 'sin_sesion'}), 401);
+        }
+        subidas.add(cuerpo);
+        return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+    }
+    return http.Response('', 404);
+  }
+}
+
+var _servidor = _ServidorFalso();
+var _llavero = _LlaveroFalso();
+
+class _LlaveroFalso implements Llavero {
+  String? _llave;
+
+  @override
+  Future<String?> leer() async => _llave;
+
+  @override
+  Future<void> guardar(String llave) async => _llave = llave;
+}
+
 /// Lo que devuelve la cámara en la próxima foto.
 ResultadoCamara _camara = const FotoTomada('/no/existe.jpg');
 
@@ -135,6 +197,9 @@ Future<BaseLocal> abrirApp(
   _avisosDePrueba = 0;
   _daPermiso = true;
   _abrirDesdeAviso = null;
+  _servidor = _ServidorFalso();
+  _ahora = _ahoraInicial;
+  _llavero = _LlaveroFalso();
   // Tamaño del lienzo de los mockups: 390 × 844.
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -182,6 +247,15 @@ Future<BaseLocal> abrirApp(
         locutorProvider.overrideWithValue(_LocutorFalso()),
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
         notificadorProvider.overrideWithValue(_NotificadorFalso()),
+        servicioCuentaProvider.overrideWith(
+          (ref) => ServicioCuentaRemoto(
+            base,
+            llavero: _llavero,
+            cliente: MockClient(_servidor.responder),
+            ahora: () => _ahora,
+            hayConexion: ref.watch(conexionProvider).hayConexion,
+          ),
+        ),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         lectorFotoProvider.overrideWith(
@@ -274,10 +348,20 @@ void main() {
       expect(find.text('987 654 321'), findsOneWidget);
       await tocar(tester, enviar);
 
-      // Código
-      expect(find.text(Textos.codigoEnPrueba), findsOneWidget);
+      // Código, enviado de verdad por el servidor
+      expect(_servidor.codigosPedidos, ['987654321']);
+      expect(find.text(Textos.codigoEnviadoA('987 654 321')), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '111111');
+      await esperar(tester);
+      expect(find.text(Textos.codigoIncorrecto), findsOneWidget);
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
+      // Al verificar, sube lo anotado: la venta de S/ 470.
+      expect(_servidor.subidas, hasLength(1));
+      expect([
+        for (final m in _servidor.subidas.single['movimientos']! as List)
+          (m as Map)['monto_centimos'],
+      ], unorderedEquals([35000, 12000]));
 
       // S02
       expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
@@ -350,6 +434,15 @@ void main() {
             relojProvider.overrideWithValue(() => _ahora),
             conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
             notificadorProvider.overrideWithValue(_NotificadorFalso()),
+            servicioCuentaProvider.overrideWith(
+              (ref) => ServicioCuentaRemoto(
+                base,
+                llavero: _llavero,
+                cliente: MockClient(_servidor.responder),
+                ahora: () => _ahora,
+                hayConexion: ref.watch(conexionProvider).hayConexion,
+              ),
+            ),
           ],
           child: const MocaApp(),
         ),
@@ -1596,6 +1689,152 @@ void main() {
       await tocar(tester, find.text(Textos.misCuentas));
       await tocar(tester, find.text(Textos.otra));
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Entrega 11', () {
+    /// Desde la Bienvenida hasta la pantalla del código.
+    Future<void> hastaElCodigo(WidgetTester tester) async {
+      await abrirVentaEscrita(tester);
+      await tester.enterText(find.byType(TextField).at(0), '350');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+    }
+
+    Finder enviar() => find.widgetWithText(FilledButton, Textos.enviarmeCodigo);
+
+    testWidgets('Sin señal o con muchos pedidos, el código no se envía', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      await hastaElCodigo(tester);
+      _conSenal = false;
+      await tocar(tester, enviar());
+      expect(find.text(Textos.necesitasSenalParaGuardar), findsOneWidget);
+      expect(_servidor.codigosPedidos, isEmpty);
+
+      _conSenal = true;
+      _servidor.estadoAlPedir = 429;
+      await tocar(tester, enviar());
+      expect(find.text(Textos.demasiadosCodigos), findsOneWidget);
+      expect(find.text(Textos.escribeElCodigo), findsNothing);
+    });
+
+    testWidgets('Un código vencido se reemplaza solo y se puede reenviar', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      await hastaElCodigo(tester);
+      await tocar(tester, enviar());
+      expect(find.text(Textos.reenviarEn(30)), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '000000');
+      await esperar(tester);
+      expect(find.text(Textos.codigoVencido), findsOneWidget);
+      expect(_servidor.codigosPedidos, hasLength(2));
+
+      // A los 30 segundos se puede pedir otro.
+      await tester.pump(const Duration(seconds: 31));
+      await tocar(tester, find.text(Textos.reenviarCodigo));
+      expect(find.text(Textos.codigoReenviado), findsOneWidget);
+      expect(_servidor.codigosPedidos, hasLength(3));
+    });
+
+    testWidgets('Un número con cuenta en otro teléfono no mezcla datos', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      await hastaElCodigo(tester);
+      await tocar(tester, enviar());
+      _servidor.cuentaExistente = true;
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+      expect(find.text(Textos.otraCuentaConEsteNumero), findsOneWidget);
+      expect(_servidor.subidas, isEmpty);
+      expect(await _llavero.leer(), isNull);
+    });
+
+    testWidgets('A los tres días de «Ahora no», Moca pide guardar el avance', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.guardarMiAvance), findsNothing);
+
+      _ahora = _ahora.add(const Duration(days: 3));
+      await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.guardarMiAvance));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(tester, enviar());
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+
+      // Vuelve a Moca, sin la tarjeta, y lo anotado ya está en el servidor.
+      expect(find.text(Textos.avanceGuardado), findsOneWidget);
+      expect(find.text(Textos.subtituloMoca), findsOneWidget);
+      expect(find.text(Textos.guardarMiAvance), findsNothing);
+      expect(_servidor.subidas, hasLength(1));
+      expect(
+        (_servidor.subidas.single['empresa']! as Map)['nombre'],
+        'Bodega Don Lucho',
+      );
+    });
+
+    testWidgets('Quien usó el código de prueba confirma su número', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(
+        () => base
+            .update(base.usuarios)
+            .write(const UsuariosCompanion(celular: Value('912345678'))),
+      );
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.confirmaTuNumero), findsOneWidget);
+      await tocar(tester, find.text(Textos.confirmarMiNumero));
+      expect(find.text('912 345 678'), findsOneWidget);
+    });
+
+    testWidgets('Con cuenta, lo anotado se sube solo', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      _ahora = _ahora.add(const Duration(days: 3));
+      await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.guardarMiAvance));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(tester, enviar());
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+      // El cambio de celular queda en la bitácora y también se sube; después
+      // no hay más subidas si nada cambia.
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      final antes = _servidor.subidas.length;
+      await tester.pump(const Duration(seconds: 20));
+      await esperar(tester);
+      expect(_servidor.subidas, hasLength(antes));
+
+      // Un gasto nuevo se sube unos segundos después.
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.efectivo));
+      await tocar(tester, find.text('Transporte'));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      expect(_servidor.subidas, hasLength(antes + 1));
+      expect([
+        for (final m in _servidor.subidas.last['movimientos']! as List)
+          (m as Map)['monto_centimos'],
+      ], contains(8000));
     });
   });
 }

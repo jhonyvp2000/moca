@@ -23,11 +23,21 @@ class AccesoLocal {
 
   String nuevoId() => _uuid.v4();
 
-  /// Lo guardado sin conexión queda «por subir» y la marca no cambia: en el
-  /// prototipo no hay servidor.
-  Future<EstadoSincronizacion> estadoAlGuardar() async => await _hayConexion()
-      ? EstadoSincronizacion.subido
-      : EstadoSincronizacion.porSubir;
+  /// Sin cuenta, lo guardado sin conexión queda «por subir» y la marca no
+  /// cambia, como en el prototipo.
+  Future<EstadoSincronizacion> estadoAlGuardar() async {
+    // Con cuenta, todo queda «por subir» hasta que el servidor lo recibe
+    // (entrega 11).
+    if (await leerAjuste(claveCuentaVerificada) != null) {
+      return EstadoSincronizacion.porSubir;
+    }
+    return await _hayConexion()
+        ? EstadoSincronizacion.subido
+        : EstadoSincronizacion.porSubir;
+  }
+
+  /// El celular verificado de verdad (entrega 11). Sin él, no hay cuenta.
+  static const claveCuentaVerificada = 'cuenta_verificada';
 
   Future<Empresa?> empresa() =>
       (base.select(base.empresas)..limit(1)).getSingleOrNull();
@@ -250,6 +260,7 @@ class AccesoLocal {
   Stream<void> cambios() => base
       .tableUpdates(
         TableUpdateQuery.onAllTables([
+          base.usuarios,
           base.empresas,
           base.cuentas,
           base.movimientos,
