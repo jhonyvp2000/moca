@@ -52,79 +52,95 @@ export function rutasCuenta(
     return { canal: 'sms' };
   });
 
-  app.post<{ Body: { celular?: unknown; codigo?: unknown; usuarioId?: unknown } }>(
-    '/cuenta/verificar',
-    async (peticion, respuesta) => {
-      if (!verificador) return respuesta.code(503).send({ error: 'sin_verificador' });
-      const celular = String(peticion.body?.celular ?? '');
-      const codigo = String(peticion.body?.codigo ?? '');
-      const usuarioDelTelefono = String(peticion.body?.usuarioId ?? '');
-      if (!esCelularPeru(celular) || !/^\d{6}$/.test(codigo) || !esUuid(usuarioDelTelefono)) {
-        return respuesta.code(400).send({ error: 'datos_invalidos' });
-      }
-      const internacional = aInternacional(celular);
-      const comprobacion = await verificador.comprobar(internacional, codigo);
-      if (comprobacion !== 'aprobado') {
-        return respuesta.code(400).send({
-          error: comprobacion === 'vencido' ? 'codigo_vencido' : 'codigo_incorrecto',
-        });
-      }
+  app.post<{
+    Body: { celular?: unknown; codigo?: unknown; usuarioId?: unknown; modo?: unknown };
+  }>('/cuenta/verificar', async (peticion, respuesta) => {
+    if (!verificador) return respuesta.code(503).send({ error: 'sin_verificador' });
+    const celular = String(peticion.body?.celular ?? '');
+    const codigo = String(peticion.body?.codigo ?? '');
+    // «guardar»: el teléfono guarda su avance (S01). «entrar»: «Ya tengo
+    // cuenta», desde un teléfono sin datos (entrega 12).
+    const entrar = peticion.body?.modo === 'entrar';
+    const usuarioDelTelefono = String(peticion.body?.usuarioId ?? '');
+    if (
+      !esCelularPeru(celular) ||
+      !/^\d{6}$/.test(codigo) ||
+      (!entrar && !esUuid(usuarioDelTelefono))
+    ) {
+      return respuesta.code(400).send({ error: 'datos_invalidos' });
+    }
+    const internacional = aInternacional(celular);
+    const comprobacion = await verificador.comprobar(internacional, codigo);
+    if (comprobacion !== 'aprobado') {
+      return respuesta.code(400).send({
+        error: comprobacion === 'vencido' ? 'codigo_vencido' : 'codigo_incorrecto',
+      });
+    }
 
-      const cliente = await pool.connect();
-      let usuarioId: string;
-      let empresas: string[];
-      try {
-        await cliente.query('BEGIN');
-        await cliente.query(
-          `SELECT set_config('app.celular', $1, true),
-                  set_config('app.usuario_id', $2, true)`,
-          [internacional, usuarioDelTelefono],
-        );
-        const existente = await cliente.query<{ id: string }>(
-          'SELECT id FROM usuarios WHERE celular = $1',
-          [internacional],
-        );
-        if (existente.rows[0]) {
-          usuarioId = existente.rows[0].id;
-        } else {
-          const ocupado = await cliente.query(
-            'SELECT 1 FROM usuarios WHERE id = $1',
-            [usuarioDelTelefono],
-          );
-          if (ocupado.rowCount) {
-            // El teléfono ya tiene cuenta con otro número.
-            await cliente.query('ROLLBACK');
-            return respuesta.code(409).send({ error: 'usuario_con_otro_celular' });
-          }
-          await cliente.query('INSERT INTO usuarios (id, celular) VALUES ($1, $2)', [
-            usuarioDelTelefono,
-            internacional,
-          ]);
-          usuarioId = usuarioDelTelefono;
-        }
-        await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
-        empresas = (
-          await cliente.query<{ empresa_id: string }>(
-            'SELECT empresa_id FROM membresias WHERE usuario_id = $1',
-            [usuarioId],
-          )
-        ).rows.map((f) => f.empresa_id);
-        await cliente.query('COMMIT');
-      } catch (error) {
+    const cliente = await pool.connect();
+    let usuarioId: string;
+    let empresas: string[];
+    try {
+      await cliente.query('BEGIN');
+      await cliente.query(
+        `SELECT set_config('app.celular', $1, true),
+                set_config('app.usuario_id', $2, true)`,
+        [internacional, entrar ? '' : usuarioDelTelefono],
+      );
+      const existente = await cliente.query<{ id: string }>(
+        'SELECT id FROM usuarios WHERE celular = $1',
+        [internacional],
+      );
+      if (existente.rows[0]) {
+        usuarioId = existente.rows[0].id;
+      } else if (entrar) {
+        // Entrar no crea cuentas.
         await cliente.query('ROLLBACK');
-        throw error;
-      } finally {
-        cliente.release();
+        return respuesta.code(404).send({ error: 'sin_cuenta' });
+      } else {
+        const ocupado = await cliente.query('SELECT 1 FROM usuarios WHERE id = $1', [
+          usuarioDelTelefono,
+        ]);
+        if (ocupado.rowCount) {
+          // El teléfono ya tiene cuenta con otro número.
+          await cliente.query('ROLLBACK');
+          return respuesta.code(409).send({ error: 'usuario_con_otro_celular' });
+        }
+        await cliente.query('INSERT INTO usuarios (id, celular) VALUES ($1, $2)', [
+          usuarioDelTelefono,
+          internacional,
+        ]);
+        usuarioId = usuarioDelTelefono;
       }
+      await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+      empresas = (
+        await cliente.query<{ empresa_id: string }>(
+          'SELECT empresa_id FROM membresias WHERE usuario_id = $1',
+          [usuarioId],
+        )
+      ).rows.map((f) => f.empresa_id);
+      await cliente.query('COMMIT');
+    } catch (error) {
+      await cliente.query('ROLLBACK');
+      throw error;
+    } finally {
+      cliente.release();
+    }
 
-      return {
-        llave: await crearSesion(pool, usuarioId),
-        usuarioId,
-        empresas,
-        // El número ya tenía una cuenta creada desde otro teléfono: la app
-        // no mezcla los datos (la recuperación llega en la entrega 12).
-        cuentaExistente: usuarioId !== usuarioDelTelefono,
-      };
-    },
-  );
+    if (entrar && !empresas.length) {
+      // Una cuenta sin datos todavía: para entrar no hay nada que bajar.
+      return respuesta.code(404).send({ error: 'sin_cuenta' });
+    }
+    if (!entrar && usuarioId !== usuarioDelTelefono) {
+      // El número ya tenía una cuenta en otro teléfono, y este teléfono
+      // tiene sus propios datos: no se mezclan ni se le da llave.
+      return { usuarioId, empresas, cuentaExistente: true };
+    }
+    return {
+      llave: await crearSesion(pool, usuarioId),
+      usuarioId,
+      empresas,
+      cuentaExistente: false,
+    };
+  });
 }

@@ -38,8 +38,9 @@ Los archivos de `migraciones/` se aplican en orden, una sola vez cada uno y cada
 |---|---|
 | `GET /salud` | Si el servidor, la base y el aislamiento están bien, y qué versión corre. Render la usa para saber si el servidor está vivo. |
 | `POST /cuenta/codigo` | Envía el código por SMS al celular (`{celular}`, 9 dígitos). Máximo 5 pedidos por número y 20 por conexión en una hora. |
-| `POST /cuenta/verificar` | Comprueba el código (`{celular, codigo, usuarioId}`) y devuelve la llave del teléfono, sus empresas y si el número ya tenía cuenta desde otro teléfono. |
-| `POST /datos/subir` | Con la llave (`Authorization: Bearer …`), guarda todo lo que el teléfono tiene de su empresa. Repetirlo no duplica nada. |
+| `POST /cuenta/verificar` | Comprueba el código. Con `modo: "guardar"` (`{celular, codigo, usuarioId}`) crea la cuenta o reconoce que el número ya tenía otra (entonces no da llave). Con `modo: "entrar"` («Ya tengo cuenta») no crea nada: si el número no tiene cuenta con datos, responde 404. Cada llave nueva revoca la de cualquier otro teléfono. |
+| `POST /datos/subir` | Con la llave (`Authorization: Bearer …`), guarda todo lo que el teléfono tiene de su empresa. Repetirlo no duplica nada. Acepta el cuerpo comprimido (`Content-Encoding: gzip`). |
+| `GET /datos/bajar` | Con la llave, devuelve todo lo de la empresa con las mismas tablas y columnas que se suben, comprimido si el teléfono lo acepta. |
 
 ## Twilio
 

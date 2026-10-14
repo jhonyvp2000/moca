@@ -1,7 +1,9 @@
+import { createGunzip } from 'node:zlib';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { aislamientoActivo, type Pool } from './base/conexion.js';
 import { rutasCuenta } from './cuenta/rutas.js';
 import type { Verificador } from './cuenta/verificador.js';
+import { rutasBajada } from './datos/bajar.js';
 import { rutasDatos } from './datos/subir.js';
 
 export interface Dependencias {
@@ -45,8 +47,21 @@ export function crearApp({
     });
   });
 
+  // El teléfono sube comprimido (entrega 12). Fastify compara el largo
+  // recibido con Content-Length: el flujo descomprimido lleva el largo
+  // original.
+  app.addHook('preParsing', async (peticion, _respuesta, cuerpo) => {
+    if (peticion.headers['content-encoding'] !== 'gzip') return cuerpo;
+    const descomprimido = Object.assign(createGunzip(), { receivedEncodedLength: 0 });
+    cuerpo.on('data', (trozo: Buffer) => {
+      descomprimido.receivedEncodedLength += trozo.length;
+    });
+    return cuerpo.pipe(descomprimido);
+  });
+
   rutasCuenta(app, pool, verificador);
   rutasDatos(app, pool);
+  rutasBajada(app, pool);
 
   return app;
 }

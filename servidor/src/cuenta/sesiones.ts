@@ -3,13 +3,32 @@ import type { Pool } from '../base/conexion.js';
 
 const huella = (llave: string) => createHash('sha256').update(llave).digest();
 
-/** Crea la llave del teléfono. Solo se guarda su huella. */
+/**
+ * Crea la llave del teléfono. Solo se guarda su huella. Un teléfono por
+ * cuenta (entrega 12): la llave de cualquier otro teléfono queda revocada,
+ * así dos teléfonos no se pisan los datos.
+ */
 export async function crearSesion(pool: Pool, usuarioId: string): Promise<string> {
   const llave = randomBytes(32).toString('base64url');
-  await pool.query('INSERT INTO sesiones (usuario_id, huella) VALUES ($1, $2)', [
-    usuarioId,
-    huella(llave),
-  ]);
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(
+      `UPDATE sesiones SET revocada_en = now()
+        WHERE usuario_id = $1 AND revocada_en IS NULL`,
+      [usuarioId],
+    );
+    await cliente.query('INSERT INTO sesiones (usuario_id, huella) VALUES ($1, $2)', [
+      usuarioId,
+      huella(llave),
+    ]);
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
   return llave;
 }
 

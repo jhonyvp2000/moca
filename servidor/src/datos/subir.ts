@@ -7,7 +7,7 @@ import { usuarioDeLlave } from '../cuenta/sesiones.js';
  * guardan. Las referencias se revisan al cerrar la transacción (migración
  * 002), así el orden no importa para la base.
  */
-const tablas = {
+export const tablas = {
   cuentas: ['id', 'empresa_id', 'tipo', 'nombre', 'orden', 'saldo_inicial_centimos', 'fecha_saldo_inicial'],
   categorias: ['id', 'empresa_id', 'nombre', 'tipo_movimiento', 'orden', 'activa'],
   contrapartes: ['id', 'empresa_id', 'nombre', 'identificacion_fiscal', 'tipo'],
@@ -45,7 +45,7 @@ type Fila = Record<string, unknown>;
 /** La bitácora no se modifica: lo que ya está, se deja. */
 const soloAgregar = new Set<Tabla>(['bitacora']);
 
-const columnasEmpresa = [
+export const columnasEmpresa = [
   'id', 'nombre', 'tipo_negocio', 'modo', 'pais', 'moneda', 'regimen',
   'hora_cierre_minutos', 'identificacion_fiscal', 'creado_en',
 ];
@@ -146,7 +146,7 @@ export async function subir(
 }
 
 /** Lee la llave del teléfono («Authorization: Bearer …»). */
-async function autenticar(pool: Pool, peticion: FastifyRequest): Promise<string | null> {
+export async function autenticar(pool: Pool, peticion: FastifyRequest): Promise<string | null> {
   const [tipo, llave] = (peticion.headers.authorization ?? '').split(' ');
   if (tipo !== 'Bearer' || !llave) return null;
   return usuarioDeLlave(pool, llave);

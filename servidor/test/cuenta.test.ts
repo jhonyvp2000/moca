@@ -111,6 +111,32 @@ describe('Cuenta con el celular', () => {
       usuarioId: primero,
       cuentaExistente: true,
     });
+    // Sin llave: ese teléfono no puede tocar la cuenta.
+    expect(otroTelefono.json().llave).toBeUndefined();
+  });
+
+  it('para entrar, un número sin cuenta no crea nada', async () => {
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular: '901010101', codigo: '123456', modo: 'entrar' },
+    });
+    expect(respuesta.statusCode).toBe(404);
+    expect(respuesta.json()).toEqual({ error: 'sin_cuenta' });
+    const { rows } = await base.poolAdmin.query(
+      `SELECT 1 FROM usuarios WHERE celular = '+51901010101'`,
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('para entrar, una cuenta sin datos tampoco tiene nada que bajar', async () => {
+    await verificar('902020202', '123456', randomUUID());
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular: '902020202', codigo: '123456', modo: 'entrar' },
+    });
+    expect(respuesta.statusCode).toBe(404);
   });
 
   it('un teléfono con cuenta no puede tomar otro número', async () => {

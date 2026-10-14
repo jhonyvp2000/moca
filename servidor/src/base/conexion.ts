@@ -1,5 +1,12 @@
 import pg from 'pg';
 
+// Los montos son bigint y PostgreSQL los entrega como texto: aquí vuelven a
+// ser números (los céntimos caben de sobra). Las fechas sin hora quedan como
+// texto «2026-10-11», sin zona horaria que las corra un día.
+pg.types.setTypeParser(pg.types.builtins.INT8, (v) => Number(v));
+pg.types.setTypeParser(pg.types.builtins.NUMERIC, (v) => Number(v));
+pg.types.setTypeParser(pg.types.builtins.DATE, (v) => v);
+
 export type Pool = pg.Pool;
 export type Cliente = pg.PoolClient;
 
