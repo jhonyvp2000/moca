@@ -1,6 +1,7 @@
-import { gzipSync } from 'node:zlib';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from '../base/conexion.js';
+import { calcularCifras, type DatosEmpresa } from '../cifras/calcular.js';
+import { enviarJson } from '../cifras/rutas.js';
 import { autenticar, columnasEmpresa, tablas } from './subir.js';
 
 /**
@@ -51,16 +52,16 @@ export async function bajar(
   }
 }
 
-export function rutasBajada(app: FastifyInstance, pool: Pool): void {
+export function rutasBajada(app: FastifyInstance, pool: Pool, ahora: () => Date): void {
   app.get('/datos/bajar', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
-    const cuerpo = JSON.stringify({ datos: await bajar(pool, usuarioId) });
-    respuesta.header('content-type', 'application/json; charset=utf-8');
-    // Comprimido: un año de registros pesa menos que una foto.
-    if (/\bgzip\b/.test(String(peticion.headers['accept-encoding'] ?? ''))) {
-      return respuesta.header('content-encoding', 'gzip').send(gzipSync(cuerpo));
-    }
-    return respuesta.send(cuerpo);
+    const datos = await bajar(pool, usuarioId);
+    // Con las cifras ya calculadas (entrega 13). Comprimido: un año de
+    // registros pesa menos que una foto.
+    return enviarJson(peticion, respuesta, {
+      datos,
+      cifras: datos && calcularCifras(datos as unknown as DatosEmpresa, ahora()),
+    });
   });
 }

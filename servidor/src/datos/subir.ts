@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
+import { cifrasDe, enviarJson } from '../cifras/rutas.js';
 import { usuarioDeLlave } from '../cuenta/sesiones.js';
 
 /**
@@ -33,6 +34,8 @@ export const tablas = {
     'saldo_real_centimos', 'diferencia_centimos', 'motivo', 'movimiento_id',
   ],
   dias_cerrados: ['id', 'empresa_id', 'dia'],
+  // Los avisos que el dueño marcó «Entendido» (entrega 13).
+  alertas: ['id', 'empresa_id', 'clave', 'tipo', 'prioridad', 'estado', 'texto', 'datos', 'creado_en'],
   bitacora: [
     'id', 'empresa_id', 'autor_id', 'entidad', 'entidad_id', 'accion',
     'valor_anterior', 'valor_nuevo', 'fecha',
@@ -154,7 +157,7 @@ export async function autenticar(pool: Pool, peticion: FastifyRequest): Promise<
 
 const listaDeFilas = { type: 'array', items: { type: 'object' } } as const;
 
-export function rutasDatos(app: FastifyInstance, pool: Pool): void {
+export function rutasDatos(app: FastifyInstance, pool: Pool, ahora: () => Date): void {
   app.post<{ Body: Subida }>(
     '/datos/subir',
     {
@@ -178,7 +181,12 @@ export function rutasDatos(app: FastifyInstance, pool: Pool): void {
       const usuarioId = await autenticar(pool, peticion);
       if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
       try {
-        return { recibidos: await subir(pool, usuarioId, peticion.body) };
+        const recibidos = await subir(pool, usuarioId, peticion.body);
+        // Las cifras con lo recién subido (entrega 13).
+        return enviarJson(peticion, respuesta, {
+          recibidos,
+          cifras: await cifrasDe(pool, usuarioId, ahora()),
+        });
       } catch (error) {
         if (error instanceof ErrorDeSubida) {
           return respuesta.code(error.codigo).send({ error: error.clave });

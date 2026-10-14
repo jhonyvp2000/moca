@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { aislamientoActivo, type Pool } from './base/conexion.js';
 import { rutasCuenta } from './cuenta/rutas.js';
 import type { Verificador } from './cuenta/verificador.js';
+import { rutasCifras } from './cifras/rutas.js';
 import { rutasBajada } from './datos/bajar.js';
 import { rutasDatos } from './datos/subir.js';
 
@@ -13,6 +14,8 @@ export interface Dependencias {
   verificador?: Verificador | null;
   /** Escribe los errores en el registro (en Render; no en las pruebas). */
   registrar?: boolean;
+  /** El reloj de las cifras; las pruebas lo fijan. */
+  ahora?: () => Date;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -21,6 +24,7 @@ export function crearApp({
   version,
   verificador = null,
   registrar = false,
+  ahora = () => new Date(),
 }: Dependencias): FastifyInstance {
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
@@ -60,8 +64,9 @@ export function crearApp({
   });
 
   rutasCuenta(app, pool, verificador);
-  rutasDatos(app, pool);
-  rutasBajada(app, pool);
+  rutasDatos(app, pool, ahora);
+  rutasBajada(app, pool, ahora);
+  rutasCifras(app, pool, ahora);
 
   return app;
 }

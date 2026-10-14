@@ -11,7 +11,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 - El servidor se construye **en paralelo** a la prueba con pilotos y a la Fase 0. Lo que no depende de la Fase 0 va primero; la IA espera sus resultados.
 - Entregas pequeñas, como en el prototipo. Antes de cada una, Claude Code propone lo que no está decidido y espera la aprobación.
 - Los registros que los pilotos hicieron en el prototipo **se conservan**: al crear su cuenta real, la app sube lo que tiene en el teléfono. El prototipo ya usa identificadores generados en el teléfono, que evitan duplicados.
-- El servidor tiene la cifra oficial. La app guarda lo último que recibió y suma lo pendiente de subir, para seguir funcionando sin señal (por aprobar en la entrega 13).
+- El servidor tiene la cifra oficial. Con todo subido, la app muestra las cifras que le mandó el servidor; con algo por subir (sin señal) o desde otro día, calcula lo mismo en el teléfono con las mismas reglas, sin avisar nada. Una prueba compara los dos cálculos con la Demo (entrega 13).
 
 ## Infraestructura
 

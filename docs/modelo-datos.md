@@ -91,6 +91,7 @@ La primera migración (`servidor/migraciones/001_esquema_inicial.sql`) crea toda
 - Se suman, del prototipo: los días cerrados («Hoy no abrí»), la clave de cada aviso (para no repetirlo) y la fuente «arqueo» en los movimientos.
 - El movimiento guarda cuándo llegó al servidor; el estado «por subir» vive solo en el teléfono.
 - Las referencias entre tablas incluyen la empresa, y un `DELETE` falla en toda tabla de negocio.
+- Entrega 13: las alertas suben solo cuando el dueño marca un aviso «Entendido». En el teléfono su id es la clave del aviso; en el servidor el id se deriva de la empresa y la clave (uuid v5), así repetir la subida no duplica.
 
 ## Entidades que llegan después
 
