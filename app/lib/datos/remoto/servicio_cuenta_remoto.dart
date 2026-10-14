@@ -20,14 +20,13 @@ const direccionServidor = String.fromEnvironment(
 class ServicioCuentaRemoto implements ServicioCuenta {
   ServicioCuentaRemoto(
     BaseLocal base, {
-    required Llavero llavero,
+    required this._llavero,
     http.Client? cliente,
     DateTime Function()? ahora,
     Future<bool> Function()? hayConexion,
     String servidor = direccionServidor,
   }) : _base = base,
        _a = AccesoLocal(base, ahora ?? DateTime.now),
-       _llavero = llavero,
        _cliente = cliente ?? http.Client(),
        _hayConexion = hayConexion ?? (() async => true),
        _servidor = Uri.parse(servidor);
