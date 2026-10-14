@@ -37,9 +37,9 @@ Plus Jakarta Sans, pesos 400, 500, 600 y 700.
 | Título de tarjeta | 16 a 17 px | 700 |
 | Texto | 15 px | 400 a 600 |
 | Texto secundario y etiquetas | 14 px | 400 a 700 |
-| Etiquetas de la barra inferior | 13 px | — |
+| Etiquetas de la barra inferior | 14 px | 500 a 600 |
 
-Mínimo 14 px en todo texto, salvo las etiquetas de la barra inferior. Las cifras usan números tabulares.
+Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026; antes las etiquetas de la barra inferior usaban 13 px). Las cifras usan números tabulares.
 
 ## Forma
 

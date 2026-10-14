@@ -23,7 +23,7 @@ Campos: nombre, tipo de negocio (bodega, restaurante, servicios, otro), modo (Si
 Une Usuario y Empresa, de muchos a muchos. Campos: rol (dueño, contador, empleado) y permisos. En la V1 solo existe el rol dueño, pero la tabla nace completa.
 
 ### Cuenta
-Dónde está la plata. Campos: tipo (efectivo, Yape, banco), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
+Dónde está la plata. Campos: tipo (efectivo, Yape, banco y, si el dueño las usa, Plin, Sip u otra billetera con el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
 
 ### Contraparte
 Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo. Su saldo pendiente se calcula a partir de los movimientos.
@@ -60,16 +60,16 @@ Lista por tipo de negocio, con las iniciales definidas en la Fase 0. La empresa 
 Contraparte o texto que fija una categoría, por empresa. Se alimenta de las correcciones del dueño y del contador.
 
 ### Arqueo
-Campos: fecha, y por cuenta el saldo calculado, el saldo real, la diferencia y el motivo (retiro para mí, gasto olvidado, error de vuelto, no lo sé). Un motivo puede generar un movimiento; «no lo sé» queda como diferencia sin explicar.
+Campos: fecha, y por cuenta el saldo calculado, el saldo real, la diferencia, el motivo (retiro para mí, gasto olvidado, venta no anotada, error de vuelto, no lo sé) y el movimiento que generó. Retiro, gasto olvidado y venta no anotada generan un movimiento; error de vuelto, «no lo sé» y las diferencias menores a S/ 1 no generan movimiento: ajustan el saldo de la cuenta desde la fecha del arqueo, sin contar como gasto ni ingreso. «No lo sé» queda como diferencia sin explicar.
 
 ### Alerta
-Campos: tipo, prioridad, estado (pendiente, vista, resuelta, silenciada), texto redactado, datos que la dispararon y fecha.
+Campos: tipo, prioridad, estado (pendiente, vista, resuelta, silenciada), texto redactado, datos que la dispararon y fecha. En el prototipo, las reglas se evalúan sobre los datos cada vez y solo se guarda la alerta marcada «Entendido» (vista), con su clave como identificador.
 
 ### Periodo
 Mes de una empresa, abierto o cerrado. Un periodo cerrado no admite cambios del dueño.
 
 ### Bitácora
-Quién cambió qué y cuándo, con el valor anterior y el nuevo.
+Quién cambió qué y cuándo, con el valor anterior y el nuevo. Acciones: crear, editar, anular, pagar y arquear. Al corregir un movimiento, el anterior se anula y el nuevo lo apunta con «reemplaza a»; la bitácora guarda una fila «editar» en el anterior, con los valores de antes, los de después y el id del nuevo. Así la historia de un movimiento es la de su cadena de reemplazos.
 
 ## Lo que sale del modelo
 

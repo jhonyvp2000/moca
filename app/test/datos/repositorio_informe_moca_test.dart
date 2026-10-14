@@ -1,0 +1,242 @@
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/repositorio_arqueo_local.dart';
+import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
+import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
+import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
+import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
+import 'package:moca/dominio/arqueo.dart';
+import 'package:moca/dominio/modelos.dart';
+import 'package:moca/dominio/moca.dart';
+import 'package:moca/dominio/movimientos.dart';
+import 'package:moca/dominio/primer_dia.dart';
+
+void main() {
+  late BaseLocal base;
+  late RepositorioMovimientosLocal movimientos;
+  late RepositorioInformeLocal informe;
+  late RepositorioMocaLocal moca;
+  late Map<String, String> categorias;
+  // Lunes 12 de octubre de 2026.
+  var ahora = DateTime(2026, 10, 12, 21);
+
+  setUp(() async {
+    ahora = DateTime(2026, 10, 12, 21);
+    base = BaseLocal(NativeDatabase.memory());
+    final primerDia = RepositorioPrimerDiaLocal(base, ahora: () => ahora);
+    await primerDia.anotarPrimeraVenta({TipoCuenta.efectivo: 35000});
+    await primerDia.seguirSinCuenta();
+    await primerDia.completarAlta(
+      const DatosAlta(
+        nombre: 'Bodega Don Lucho',
+        tipoNegocio: TipoNegocio.bodega,
+        saldos: {TipoCuenta.efectivo: 500000},
+        horaCierreMinutos: 21 * 60,
+      ),
+    );
+    movimientos = RepositorioMovimientosLocal(base, ahora: () => ahora);
+    informe = RepositorioInformeLocal(base, ahora: () => ahora);
+    moca = RepositorioMocaLocal(base, ahora: () => ahora);
+    categorias = {
+      for (final tipo in [TipoMovimiento.ingreso, TipoMovimiento.egreso])
+        for (final c in await movimientos.categorias(tipo)) c.nombre: c.id,
+    };
+  });
+
+  tearDown(() => base.close());
+
+  Future<String> anotar(
+    TipoMovimiento tipo,
+    int soles, {
+    String? categoria,
+    DateTime? el,
+  }) async {
+    if (el != null) ahora = el;
+    final guardado = await movimientos.registrar(
+      NuevoMovimiento(
+        tipo: tipo,
+        montoCentimos: soles * 100,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: categoria == null ? null : categorias[categoria],
+      ),
+    );
+    return guardado.ids.single;
+  }
+
+  group('Informe del mes', () {
+    test(
+      'El primer mes: ganancia, retiros, desde qué día y sustento',
+      () async {
+        await anotar(TipoMovimiento.egreso, 80, categoria: 'Transporte');
+        await anotar(TipoMovimiento.retiro, 100);
+        final i = await informe.observarMes(null).first;
+        expect(i.mes, DateTime(2026, 10));
+        expect(i.enCurso, isTrue);
+        expect(i.desdeDia, 12);
+        expect(i.mesAnterior, isNull);
+        expect(i.diferenciaConAnteriorCentimos, isNull);
+        expect(i.entroCentimos, 35000);
+        expect(i.salioCentimos, 8000);
+        expect(i.gananciaCentimos, 27000);
+        expect(i.retirosCentimos, 10000);
+        expect(i.quedoCentimos, 17000);
+        expect(i.gastos.single.nombre, 'Transporte');
+        expect(i.confianza?.sinPapel, 100);
+        expect(i.mesPrevio, isNull);
+        expect(i.mesSiguiente, isNull);
+      },
+    );
+
+    test('Se compara con el mes anterior hasta el mismo día', () async {
+      await anotar(
+        TipoMovimiento.ingreso,
+        200,
+        categoria: 'Otro ingreso',
+        el: DateTime(2026, 10, 20),
+      );
+      ahora = DateTime(2026, 11, 15, 10);
+      await anotar(TipoMovimiento.ingreso, 900, categoria: 'Venta del día');
+      final noviembre = await informe.observarMes(null).first;
+      expect(noviembre.mesAnterior, DateTime(2026, 10));
+      // Octubre hasta el 15: solo la venta del 12.
+      expect(noviembre.diferenciaConAnteriorCentimos, 90000 - 35000);
+      expect(noviembre.desdeDia, isNull);
+      expect(noviembre.mesPrevio, DateTime(2026, 10));
+
+      final octubre = await informe.observarMes(DateTime(2026, 10)).first;
+      expect(octubre.enCurso, isFalse);
+      expect(octubre.entroCentimos, 55000);
+      expect(octubre.mesSiguiente, DateTime(2026, 11));
+    });
+
+    test('Más de cinco categorías se juntan en «Lo demás»', () async {
+      for (final (i, c) in [
+        'Alquiler',
+        'Personal',
+        'Transporte',
+        'Mercadería',
+        'Otros',
+        'Bolsas y envases',
+      ].indexed) {
+        await anotar(TipoMovimiento.egreso, 100 + i * 10, categoria: c);
+      }
+      final i = await informe.observarMes(null).first;
+      expect(i.gastos, hasLength(5));
+      expect(i.gastos.first.nombre, 'Bolsas y envases');
+      expect(i.gastos.last.nombre, isNull);
+      expect(i.gastos.last.centimos, 10000 + 11000);
+    });
+
+    test('Cambio de categoría y advertencia de mercadería', () async {
+      await anotar(
+        TipoMovimiento.egreso,
+        500,
+        categoria: 'Mercadería',
+        el: DateTime(2026, 10, 14),
+      );
+      ahora = DateTime(2026, 11, 20);
+      await anotar(TipoMovimiento.egreso, 1200, categoria: 'Mercadería');
+      final i = await informe.observarMes(null).first;
+      expect(i.cambio?.nombre, 'Mercadería');
+      expect(i.cambio?.centimos, 70000);
+      expect(i.advertenciaMercaderia, isTrue);
+    });
+
+    test('Mes sin registros', () async {
+      ahora = DateTime(2026, 11, 3);
+      final i = await informe.observarMes(null).first;
+      expect(i.sinRegistros, isTrue);
+      expect(i.cambio, isNull);
+    });
+  });
+
+  group('Avisos', () {
+    test('Dos días sin anotar dan aviso, y se va al anotar', () async {
+      ahora = DateTime(2026, 10, 14, 9);
+      expect(await moca.observarAvisos().first, isEmpty);
+      ahora = DateTime(2026, 10, 15, 9);
+      final avisos = await moca.observarAvisos().first;
+      expect(avisos.single.tipo, TipoAviso.diasSinRegistrar);
+      expect(avisos.single.dias, 2);
+      await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+      expect(await moca.observarAvisos().first, isEmpty);
+    });
+
+    test('Gasto atípico, y «Entendido» lo quita', () async {
+      for (final d in [5, 6, 7]) {
+        await anotar(
+          TipoMovimiento.egreso,
+          100,
+          categoria: 'Mercadería',
+          el: DateTime(2026, 10, 12 + d - 5, 20),
+        );
+      }
+      final id = await anotar(
+        TipoMovimiento.egreso,
+        300,
+        categoria: 'Mercadería',
+        el: DateTime(2026, 10, 15, 20),
+      );
+      final avisos = await moca.observarAvisos().first;
+      final atipico = avisos.single;
+      expect(atipico.tipo, TipoAviso.gastoAtipico);
+      expect(atipico.destinoId, id);
+      expect(atipico.categoria, 'Mercadería');
+      expect(atipico.prioridad, PrioridadAlerta.paraTenerEnCuenta);
+      await moca.descartar(atipico);
+      expect(await moca.observarAvisos().first, isEmpty);
+    });
+
+    test(
+      '«No lo sé» con S/ 10 o más avisa; falta el arqueo va primero',
+      () async {
+        await RepositorioArqueoLocal(base, ahora: () => ahora).guardar(const [
+          ConteoCuenta(
+            cuenta: TipoCuenta.efectivo,
+            contadoCentimos: 520000,
+            motivo: MotivoArqueo.noLoSe,
+          ),
+        ]);
+        var avisos = await moca.observarAvisos().first;
+        expect(avisos.single.tipo, TipoAviso.diferenciaArqueo);
+        expect(avisos.single.montoCentimos, 15000);
+        expect(avisos.single.cuenta, TipoCuenta.efectivo);
+
+        // Dos semanas después, sin arqueo la semana anterior.
+        ahora = DateTime(2026, 10, 26, 9);
+        await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+        avisos = await moca.observarAvisos().first;
+        expect(avisos.first.tipo, TipoAviso.faltaArqueo);
+        expect(avisos.map((a) => a.tipo), contains(TipoAviso.diferenciaArqueo));
+      },
+    );
+  });
+
+  group('Resumen de la semana', () {
+    test('La primera semana resume lo que va', () async {
+      await anotar(TipoMovimiento.egreso, 80, categoria: 'Transporte');
+      final r = await moca.observarResumen().first;
+      expect(r.semanaPasada, isFalse);
+      expect(r.quedoCentimos, 27000);
+      expect(r.categoriaTop, 'Transporte');
+      expect(r.diferenciaCentimos, isNull);
+    });
+
+    test('Después resume la semana pasada y la compara', () async {
+      await anotar(
+        TipoMovimiento.ingreso,
+        100,
+        categoria: 'Venta del día',
+        el: DateTime(2026, 10, 20),
+      );
+      await anotar(TipoMovimiento.egreso, 50, categoria: 'Personal');
+      ahora = DateTime(2026, 10, 27);
+      final r = await moca.observarResumen().first;
+      expect(r.semanaPasada, isTrue);
+      expect(r.quedoCentimos, 5000);
+      expect(r.diferenciaCentimos, 5000 - 35000);
+      expect(r.categoriaTop, 'Personal');
+    });
+  });
+}
