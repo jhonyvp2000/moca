@@ -32,7 +32,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 
 ## Pendiente de decidir
 
-- ~~Twilio para los pilotos: salir del modo prueba~~: Jhony pasó la cuenta «Moca» a pagada el 14-10-2026 (USD 20 de saldo); los códigos llegan a cualquier celular. El perfil de cumplimiento se llena solo si Twilio lo pide.
+- Twilio para los pilotos: Jhony pasó la cuenta «Moca» a pagada el 14-10-2026 (USD 20 de saldo), pero Twilio sigue rechazando los números no verificados (error 21608) hasta que apruebe el perfil de cumplimiento («Primary Customer Profile», en Trust Hub). Mientras tanto, cada número del piloto se agrega como «Verified Caller ID» en la cuenta «Moca».
 - Textos legales (Ley 29733), revisados por un abogado, incluida la posible inscripción del banco de datos personales. Deben decir que las fotos de los comprobantes se envían a un proveedor de IA (Anthropic) para leerlas.
 - Antes del lanzamiento abierto, pasar Moca a su propio workspace de Anthropic, con su límite de gasto. Para el piloto usa una llave propia (`moca-render`) dentro del workspace «Default», compartido con TVSamGo (14-10-2026).
 - Criterio para dar la V1 por terminada.
