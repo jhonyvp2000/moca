@@ -50,7 +50,9 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     for (final MapEntry(key: cuenta, value: campo) in _campos.entries) {
       campo.text = soles(cuenta);
     }
-    _conBanco = _campos[TipoCuenta.banco]!.text.isNotEmpty;
+    _conBanco = _campos.entries.any(
+      (e) => e.key.esBanco && e.value.text.isNotEmpty,
+    );
     ref.read(medicionProvider).anotar(EventoMedicion.ventaAbierta, {
       'modo': 'escrita',
     });
@@ -64,10 +66,10 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     super.dispose();
   }
 
-  /// Efectivo, Yape y las billeteras que usa; el banco, si lo agregó.
+  /// Efectivo, Yape y las billeteras que usa; los bancos, si tocó «+ Banco».
   List<TipoCuenta> get _cuentasVisibles => [
     for (final c in ref.read(tiposDeCuentaProvider))
-      if (c != TipoCuenta.banco || _conBanco) c,
+      if (!c.esBanco || _conBanco) c,
   ];
 
   Map<TipoCuenta, int> get _ventaPorCuenta => {

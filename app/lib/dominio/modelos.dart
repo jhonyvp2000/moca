@@ -7,16 +7,23 @@ enum ModoEmpresa { simple, formal }
 
 enum Rol { dueno, contador, empleado }
 
-/// Efectivo, Yape y Banco existen siempre. Plin, Sip y otra billetera (con
-/// el nombre que ponga el dueño) solo si el dueño las usa (decisiones.md,
-/// 13-10-2026).
+/// Efectivo, Yape y el BCP (`banco`) existen siempre. Plin, Sip y otra
+/// billetera, y los otros bancos (Interbank, BBVA, Scotiabank y otro banco o
+/// caja), solo si el dueño los usa. La otra billetera y el otro banco llevan
+/// el nombre que ponga el dueño (decisiones.md, 13-10-2026 y 15-10-2026).
 enum TipoCuenta {
   efectivo,
   yape,
+
+  /// El BCP. Se llamaba «Banco» hasta la entrega 14.1.
   banco,
   plin,
   sip,
-  otra;
+  otra,
+  interbank,
+  bbva,
+  scotiabank,
+  otroBanco;
 
   /// Las cuentas que tiene todo negocio desde la primera venta.
   static const basicas = [efectivo, yape, banco];
@@ -24,8 +31,30 @@ enum TipoCuenta {
   /// Las billeteras que el dueño puede agregar.
   static const billeteras = [plin, sip, otra];
 
-  /// Cómo se muestran: las billeteras junto a Yape y el banco al final.
-  static const enOrden = [efectivo, yape, plin, sip, otra, banco];
+  /// Los bancos que el dueño puede agregar además del BCP.
+  static const otrosBancos = [interbank, bbva, scotiabank, otroBanco];
+
+  /// Todo lo que se puede agregar después del alta.
+  static const agregables = [...billeteras, ...otrosBancos];
+
+  /// Cómo se muestran: las billeteras junto a Yape y los bancos al final.
+  static const enOrden = [
+    efectivo,
+    yape,
+    plin,
+    sip,
+    otra,
+    banco,
+    interbank,
+    bbva,
+    scotiabank,
+    otroBanco,
+  ];
+
+  bool get esBanco => this == banco || otrosBancos.contains(this);
+
+  /// La cuenta que lleva el nombre que escribe el dueño.
+  bool get conNombrePropio => this == otra || this == otroBanco;
 }
 
 enum TipoContraparte { cliente, proveedor }

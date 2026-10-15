@@ -161,4 +161,55 @@ void main() {
     expect(leer('hola cómo estás').entendida, isFalse);
     expect(interpretarVoz(const []).entendida, isFalse);
   });
+
+  group('Entrega 14.1: bancos', () {
+    test('Cada banco por su nombre', () {
+      expect(partidas(leer('vendí 200 por Interbank')), [
+        (20000, TipoCuenta.interbank),
+      ]);
+      expect(partidas(leer('vendí 200 por BBVA')), [(20000, TipoCuenta.bbva)]);
+      expect(partidas(leer('vendí 200 por Scotiabank')), [
+        (20000, TipoCuenta.scotiabank),
+      ]);
+      expect(partidas(leer('vendí 200 por BCP')), [(20000, TipoCuenta.banco)]);
+    });
+
+    test('«Por transferencia» va al banco sin decir cuál', () {
+      final l = leer('me pagaron 200 por transferencia');
+      expect(partidas(l), [(20000, TipoCuenta.banco)]);
+      expect(l.partidas.single.bancoSinNombre, isTrue);
+      expect(leer('vendí 200 por BCP').partidas.single.bancoSinNombre, isFalse);
+    });
+
+    test('Con un solo banco no pregunta; con varios, pregunta cuál', () {
+      final l = leer('hoy vendí 200 por transferencia');
+      const basicas = {TipoCuenta.efectivo, TipoCuenta.yape, TipoCuenta.banco};
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: {l.categoria!},
+          cuentasValidas: basicas,
+        ),
+        isNull,
+      );
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: {l.categoria!},
+          cuentasValidas: {...basicas, TipoCuenta.interbank},
+        ),
+        isA<PreguntaCuenta>(),
+      );
+      // Nombrar un banco que el negocio no tiene también se pregunta.
+      final bbva = leer('hoy vendí 200 por BBVA');
+      expect(
+        siguientePregunta(
+          bbva,
+          categoriasValidas: {bbva.categoria!},
+          cuentasValidas: basicas,
+        ),
+        isA<PreguntaCuenta>(),
+      );
+    });
+  });
 }

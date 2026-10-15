@@ -165,10 +165,14 @@ class AccesoLocal {
   static const nombresCuenta = {
     TipoCuenta.efectivo: 'Efectivo',
     TipoCuenta.yape: 'Yape',
-    TipoCuenta.banco: 'Banco',
+    TipoCuenta.banco: 'BCP',
     TipoCuenta.plin: 'Plin',
     TipoCuenta.sip: 'Sip',
     TipoCuenta.otra: 'Otra billetera',
+    TipoCuenta.interbank: 'Interbank',
+    TipoCuenta.bbva: 'BBVA',
+    TipoCuenta.scotiabank: 'Scotiabank',
+    TipoCuenta.otroBanco: 'Otro banco o caja',
   };
 
   /// Crea una cuenta del negocio y la deja en la bitácora.

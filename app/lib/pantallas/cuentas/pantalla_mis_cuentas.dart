@@ -15,7 +15,8 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
 /// «Mis cuentas» (estado no dibujado, aprobado el 13-10-2026): las cuentas
-/// del negocio con su saldo y agregar una billetera. Nada se borra.
+/// del negocio con su saldo y agregar una billetera o un banco (entrega
+/// 14.1). Nada se borra.
 class PantallaMisCuentas extends ConsumerStatefulWidget {
   const PantallaMisCuentas({super.key});
 
@@ -37,13 +38,13 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
   bool get _sePuedeAgregar =>
       _elegida != null &&
       !_guardando &&
-      (_elegida != TipoCuenta.otra || _nombreOtra.text.trim().isNotEmpty);
+      (!_elegida!.conNombrePropio || _nombreOtra.text.trim().isNotEmpty);
 
   Future<void> _agregar() async {
     final tipo = _elegida!;
     setState(() => _guardando = true);
     try {
-      final nombre = tipo == TipoCuenta.otra
+      final nombre = tipo.conNombrePropio
           ? _nombreOtra.text.trim()
           : Textos.nombreCuenta(tipo);
       await ref
@@ -63,11 +64,17 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
   @override
   Widget build(BuildContext context) {
     final cuentas = ref.watch(cuentasProvider).value ?? const <CuentaVista>[];
-    final faltan = {
-      for (final b in TipoCuenta.billeteras)
-        if (!cuentas.any((c) => c.tipo == b))
-          b: b == TipoCuenta.otra ? Textos.otra : Textos.nombreCuenta(b),
+    Map<TipoCuenta, String> faltan(List<TipoCuenta> tipos) => {
+      for (final t in tipos)
+        if (!cuentas.any((c) => c.tipo == t))
+          t: switch (t) {
+            TipoCuenta.otra => Textos.otra,
+            TipoCuenta.otroBanco => Textos.otroBanco,
+            _ => Textos.nombreCuenta(t),
+          },
     };
+    final billeteras = faltan(TipoCuenta.billeteras);
+    final bancos = faltan(TipoCuenta.otrosBancos);
     const etiqueta = TextStyle(
       fontFamily: Tipografia.familia,
       fontSize: 15,
@@ -120,38 +127,54 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             ],
           ),
         ),
-        if (faltan.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          const Text(Textos.agregarBilletera, style: etiqueta),
-          const SizedBox(height: 4),
+        if (billeteras.isNotEmpty || bancos.isNotEmpty) ...[
+          const SizedBox(height: 8),
           const Text(
             Textos.billeteraEmpiezaEnCero,
             style: Tipografia.secundario,
           ),
-          const SizedBox(height: 10),
-          Opciones<TipoCuenta>(
-            opciones: faltan,
-            elegida: _elegida,
-            alElegir: (b) => setState(() => _elegida = b),
-          ),
-          if (_elegida == TipoCuenta.otra) ...[
-            const SizedBox(height: 10),
-            TextField(
-              key: const Key('nombre-otra-billetera'),
-              controller: _nombreOtra,
-              autofocus: true,
-              textCapitalization: TextCapitalization.words,
-              onChanged: (_) => setState(() {}),
-              style: Tipografia.textoFuerte.copyWith(fontSize: 16),
-              decoration: const InputDecoration(
-                hintText: Textos.nombreDeLaBilletera,
-              ),
-            ),
-          ],
         ],
+        for (final (titulo, opciones) in [
+          (Textos.agregarBilletera, billeteras),
+          (Textos.agregarUnBanco, bancos),
+        ])
+          if (opciones.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Text(titulo, style: etiqueta),
+            const SizedBox(height: 10),
+            Opciones<TipoCuenta>(
+              opciones: opciones,
+              elegida: opciones.containsKey(_elegida) ? _elegida : null,
+              alElegir: (t) => setState(() {
+                if (_elegida != t) _nombreOtra.clear();
+                _elegida = t;
+              }),
+            ),
+            if (opciones.containsKey(_elegida) &&
+                _elegida!.conNombrePropio) ...[
+              const SizedBox(height: 10),
+              TextField(
+                key: Key(
+                  _elegida == TipoCuenta.otra
+                      ? 'nombre-otra-billetera'
+                      : 'nombre-otro-banco',
+                ),
+                controller: _nombreOtra,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+                style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: _elegida == TipoCuenta.otra
+                      ? Textos.nombreDeLaBilletera
+                      : Textos.nombreDelBanco,
+                ),
+              ),
+            ],
+          ],
       ],
       acciones: [
-        if (faltan.isNotEmpty)
+        if (billeteras.isNotEmpty || bancos.isNotEmpty)
           FilledButton(
             onPressed: _sePuedeAgregar ? _agregar : null,
             child: const Text(Textos.agregar),

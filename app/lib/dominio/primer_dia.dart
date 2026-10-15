@@ -32,7 +32,8 @@ class DatosAlta {
   final Map<TipoCuenta, int>? saldos;
   final int horaCierreMinutos;
 
-  /// Las billeteras que usa además de Yape, con su nombre (Plin, Sip u otra).
+  /// Las billeteras y los bancos que usa además de Yape y el BCP, con su
+  /// nombre (Plin, Sip u otra; Interbank, BBVA, Scotiabank u otro banco).
   final Map<TipoCuenta, String> billeteras;
 }
 

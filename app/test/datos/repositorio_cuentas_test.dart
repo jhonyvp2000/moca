@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
@@ -63,7 +64,7 @@ void main() {
       'Yape',
       'Plin',
       'Bim',
-      'Banco',
+      'BCP',
     ]);
     expect(cuentas[2].saldoCentimos, 5000);
     expect(cuentas[3].saldoCentimos, 2000);
@@ -143,5 +144,76 @@ void main() {
     expect((banco as PreguntarCuenta).cuenta, TipoCuenta.banco);
     final listo = await aviso.responderVenta(TipoCuenta.banco, null);
     expect((listo as VentaLista).ventaDeHoyCentimos, 34000);
+  });
+
+  group('Entrega 14.1: bancos', () {
+    test('El alta crea los bancos elegidos después del BCP', () async {
+      await alta(
+        saldos: {TipoCuenta.efectivo: 100000, TipoCuenta.interbank: 30000},
+        billeteras: {
+          TipoCuenta.interbank: 'Interbank',
+          TipoCuenta.otroBanco: ' Caja Maynas ',
+        },
+      );
+      final cuentas = await repo.observar().first;
+      expect(cuentas.map((c) => c.nombre), [
+        'Efectivo',
+        'Yape',
+        'BCP',
+        'Interbank',
+        'Caja Maynas',
+      ]);
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.interbank).saldoCentimos,
+        30000,
+      );
+    });
+
+    test('Un banco agregado después empieza en S/ 0 y no se repite', () async {
+      await alta();
+      await repo.agregarBilletera(TipoCuenta.bbva);
+      await repo.agregarBilletera(TipoCuenta.bbva);
+      await repo.agregarBilletera(TipoCuenta.otroBanco, nombre: 'Mibanco');
+      final cuentas = await repo.observar().first;
+      expect(cuentas.where((c) => c.tipo == TipoCuenta.bbva), hasLength(1));
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.bbva).saldoCentimos,
+        0,
+      );
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.otroBanco).nombre,
+        'Mibanco',
+      );
+    });
+
+    test('El banco guardado como «Banco» se muestra como BCP', () async {
+      await alta();
+      await (base.update(base.cuentas)
+            ..where((c) => c.tipo.equalsValue(TipoCuenta.banco)))
+          .write(const CuentasCompanion(nombre: Value('Banco')));
+      final cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.banco).nombre,
+        'BCP',
+      );
+    });
+
+    test('El aviso de cierre pregunta por cada banco con ventas', () async {
+      await alta();
+      await repo.agregarBilletera(TipoCuenta.interbank);
+      await repo.agregarBilletera(TipoCuenta.scotiabank);
+      await RepositorioMovimientosLocal(
+        base,
+        ahora: () => ahora,
+      ).anotarVentaDelDia({TipoCuenta.interbank: 6000});
+      ahora = DateTime(2026, 10, 13, 21, 5);
+      final aviso = RepositorioAvisoCierreLocal(base, ahora: () => ahora);
+      await aviso.responderVenta(TipoCuenta.efectivo, '300');
+      // El BCP no tuvo ventas y Scotiabank tampoco: solo Interbank.
+      final interbank = await aviso.responderVenta(TipoCuenta.yape, null);
+      expect((interbank as PreguntarCuenta).cuenta, TipoCuenta.interbank);
+      final listo = await aviso.responderVenta(TipoCuenta.interbank, null);
+      expect(listo, isA<VentaLista>());
+    });
   });
 }

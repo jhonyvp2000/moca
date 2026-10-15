@@ -1830,7 +1830,7 @@ void main() {
         {
           TipoCuenta.efectivo: 'Efectivo',
           TipoCuenta.yape: 'Yape',
-          TipoCuenta.banco: 'Banco',
+          TipoCuenta.banco: 'BCP',
           TipoCuenta.plin: 'Plin',
           TipoCuenta.otra: 'Bim',
         },
@@ -1871,6 +1871,37 @@ void main() {
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.sip), findsOneWidget);
       expect(find.text(Textos.plin), findsNothing);
+    });
+
+    testWidgets('Entrega 14.1: «Mis cuentas» agrega un banco con su nombre '
+        'y aparece al anotar', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.misCuentas));
+      expect(find.text(Textos.banco), findsOneWidget);
+      expect(find.text(Textos.agregarUnBanco), findsOneWidget);
+
+      final agregar = find.widgetWithText(FilledButton, Textos.agregar);
+      await tocar(tester, find.text(Textos.otroBanco));
+      // Sin nombre no se puede agregar.
+      expect(tester.widget<FilledButton>(agregar).onPressed, isNull);
+      await tester.enterText(
+        find.byKey(const Key('nombre-otro-banco')),
+        'Caja Maynas',
+      );
+      await tester.pump();
+      await tocar(tester, agregar);
+      expect(
+        find.text(Textos.billeteraAgregada('Caja Maynas')),
+        findsOneWidget,
+      );
+      expect(find.text('Caja Maynas'), findsOneWidget);
+
+      await tocar(tester, find.byType(BotonVolver));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text('Caja Maynas'), findsOneWidget);
+      expect(find.text(Textos.banco), findsOneWidget);
     });
 
     testWidgets('«Mis cuentas» no se desborda con letra grande', (

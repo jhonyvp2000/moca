@@ -204,9 +204,10 @@ class _Numero extends _Ficha {
 }
 
 class _Cuenta extends _Ficha {
-  _Cuenta(this.cuenta);
+  _Cuenta(this.cuenta, {this.bancoSinNombre = false});
 
   final TipoCuenta cuenta;
+  final bool bancoSinNombre;
 }
 
 class _Palabra extends _Ficha {}
@@ -231,8 +232,21 @@ const _palabrasCuenta = {
   'depositaron': TipoCuenta.banco,
   'tarjeta': TipoCuenta.banco,
   'bcp': TipoCuenta.banco,
-  'interbank': TipoCuenta.banco,
-  'bbva': TipoCuenta.banco,
+  'interbank': TipoCuenta.interbank,
+  'bbva': TipoCuenta.bbva,
+  'continental': TipoCuenta.bbva,
+  'scotiabank': TipoCuenta.scotiabank,
+  'scotia': TipoCuenta.scotiabank,
+};
+
+/// Palabras de banco que no dicen cuál (decisiones.md, 15-10-2026).
+const _bancoSinNombre = {
+  'banco',
+  'transferencia',
+  'transfirieron',
+  'deposito',
+  'depositaron',
+  'tarjeta',
 };
 
 const _antesDeSip = {'por', 'con', 'en', 'a', 'al', 'mi', 'de', 'del'};
@@ -259,7 +273,11 @@ List<_Ficha> _fichas(String texto) {
         (i == 0 || !_antesDeSip.contains(palabras[i - 1]))) {
       cuenta = null;
     }
-    fichas.add(cuenta == null ? _Palabra() : _Cuenta(cuenta));
+    fichas.add(
+      cuenta == null
+          ? _Palabra()
+          : _Cuenta(cuenta, bancoSinNombre: _bancoSinNombre.contains(palabra)),
+    );
     i++;
   }
   return fichas;
@@ -274,24 +292,24 @@ List<PartidaVoz> _partidas(List<_Ficha> fichas) {
   ];
   final cuentas = [
     for (final (i, f) in fichas.indexed)
-      if (f is _Cuenta) (i, f.cuenta),
+      if (f is _Cuenta) (i, f.cuenta, f.bancoSinNombre),
   ];
   final usadas = <int>{};
   final resultado = <PartidaVoz>[];
   for (final (posicion, centimos) in numeros) {
     if (centimos <= 0) continue;
-    (int, TipoCuenta)? cercana;
+    (int, TipoCuenta, bool)? cercana;
     for (final (j, cuenta) in cuentas.indexed) {
       if (usadas.contains(j)) continue;
       final distancia = (cuenta.$1 - posicion).abs();
       if (cercana == null || distancia < (cercana.$1 - posicion).abs()) {
-        cercana = (cuenta.$1, cuenta.$2);
+        cercana = cuenta;
       }
     }
     if (cercana != null) {
       usadas.add(cuentas.indexWhere((c) => c.$1 == cercana!.$1));
     }
-    resultado.add(PartidaVoz(centimos, cercana?.$2));
+    resultado.add(PartidaVoz(centimos, cercana?.$2, cercana?.$3 ?? false));
   }
   return resultado;
 }

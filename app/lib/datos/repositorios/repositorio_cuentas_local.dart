@@ -23,7 +23,10 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
       for (final c in cuentas)
         CuentaVista(
           tipo: c.tipo,
-          nombre: c.nombre,
+          // El BCP se guardaba como «Banco» antes de la entrega 14.1.
+          nombre: c.tipo.conNombrePropio
+              ? c.nombre
+              : AccesoLocal.nombresCuenta[c.tipo]!,
           saldoCentimos: c.saldoInicialCentimos == null ? null : saldos[c.tipo],
         ),
     ];
@@ -31,7 +34,7 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
 
   @override
   Future<void> agregarBilletera(TipoCuenta tipo, {String? nombre}) async {
-    assert(TipoCuenta.billeteras.contains(tipo));
+    assert(TipoCuenta.agregables.contains(tipo));
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
     await _a.base.transaction(() async {
@@ -44,7 +47,7 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
         autorId: usuario.id,
         tipo: tipo,
         nombre: switch (tipo) {
-          TipoCuenta.otra when limpio.isNotEmpty => limpio,
+          _ when tipo.conNombrePropio && limpio.isNotEmpty => limpio,
           _ => AccesoLocal.nombresCuenta[tipo]!,
         },
         orden: cuentas.length,

@@ -88,9 +88,10 @@ Future<DestinoNotificacion?> procesarRespuesta(
   DateTime Function()? ahora,
 }) async {
   final repo = RepositorioAvisoCierreLocal(base, ahora: ahora);
-  for (final c in await RepositorioCuentasLocal(base).observar().first) {
-    if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
-  }
+  Textos.recordarNombres([
+    for (final c in await RepositorioCuentasLocal(base).observar().first)
+      (tipo: c.tipo, nombre: c.nombre),
+  ]);
   final medicion = MedicionLocal(base, ahora: ahora);
   final accion = r.actionId;
 

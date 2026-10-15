@@ -28,9 +28,12 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
   final _yape = TextEditingController();
   final _banco = TextEditingController();
   final _nombreOtra = TextEditingController();
+  final _nombreOtroBanco = TextEditingController();
+
+  /// Las billeteras y los bancos que usa además de Yape y el BCP.
   final _billeteras = <TipoCuenta>{};
   final _saldoBilletera = {
-    for (final b in TipoCuenta.billeteras) b: TextEditingController(),
+    for (final b in TipoCuenta.agregables) b: TextEditingController(),
   };
   TipoNegocio? _tipo;
   int _horaCierreMinutos = 21 * 60;
@@ -40,6 +43,13 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
     TipoCuenta.plin: Textos.plin,
     TipoCuenta.sip: Textos.sip,
     TipoCuenta.otra: Textos.otra,
+  };
+
+  static const _bancosOpciones = {
+    TipoCuenta.interbank: Textos.interbank,
+    TipoCuenta.bbva: Textos.bbva,
+    TipoCuenta.scotiabank: Textos.scotiabank,
+    TipoCuenta.otroBanco: Textos.otroBanco,
   };
 
   static const _tipos = {
@@ -56,6 +66,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
     _yape.dispose();
     _banco.dispose();
     _nombreOtra.dispose();
+    _nombreOtroBanco.dispose();
     for (final c in _saldoBilletera.values) {
       c.dispose();
     }
@@ -66,11 +77,22 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
       _nombre.text.trim().isNotEmpty &&
       _tipo != null &&
       (!_billeteras.contains(TipoCuenta.otra) ||
-          _nombreOtra.text.trim().isNotEmpty);
+          _nombreOtra.text.trim().isNotEmpty) &&
+      (!_billeteras.contains(TipoCuenta.otroBanco) ||
+          _nombreOtroBanco.text.trim().isNotEmpty);
 
-  String _nombreBilletera(TipoCuenta tipo) => tipo == TipoCuenta.otra
-      ? _nombreOtra.text.trim()
-      : Textos.nombreCuenta(tipo);
+  String _nombreBilletera(TipoCuenta tipo) => switch (tipo) {
+    TipoCuenta.otra => _nombreOtra.text.trim(),
+    TipoCuenta.otroBanco => _nombreOtroBanco.text.trim(),
+    _ => Textos.nombreCuenta(tipo),
+  };
+
+  /// El nombre en la fila del saldo, aunque todavía no lo haya escrito.
+  String _etiquetaSaldo(TipoCuenta tipo) => switch (_nombreBilletera(tipo)) {
+    '' when tipo == TipoCuenta.otra => Textos.otraBilletera,
+    '' => Textos.otroBanco,
+    final nombre => nombre,
+  };
 
   Future<void> _terminar({required bool conSaldo}) async {
     if (!_completo || _guardando) return;
@@ -95,7 +117,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
                   : null,
               horaCierreMinutos: _horaCierreMinutos,
               billeteras: {
-                for (final b in TipoCuenta.billeteras)
+                for (final b in TipoCuenta.agregables)
                   if (_billeteras.contains(b)) b: _nombreBilletera(b),
               },
             ),
@@ -181,26 +203,32 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
                 : _billeteras.add(b),
           ),
         ),
-        if (_billeteras.contains(TipoCuenta.otra)) ...[
-          const SizedBox(height: 10),
-          TextField(
-            key: const Key('nombre-otra-billetera'),
-            controller: _nombreOtra,
-            textCapitalization: TextCapitalization.words,
-            onChanged: (_) => setState(() {}),
-            style: Tipografia.textoFuerte.copyWith(fontSize: 16),
-            decoration: InputDecoration(
-              hintText: Textos.nombreDeLaBilletera,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 14,
-              ),
-              border: _borde(Colores.bordeCampo, 1),
-              enabledBorder: _borde(Colores.bordeCampo, 1),
-              focusedBorder: _borde(Colores.marca, 2),
-            ),
+        if (_billeteras.contains(TipoCuenta.otra))
+          _campoNombre(
+            const Key('nombre-otra-billetera'),
+            _nombreOtra,
+            Textos.nombreDeLaBilletera,
           ),
-        ],
+        const SizedBox(height: 18),
+        const Text(Textos.usasOtroBanco, style: etiqueta),
+        const SizedBox(height: 4),
+        const Text(Textos.puedesAgregarlaDespues, style: Tipografia.secundario),
+        const SizedBox(height: 8),
+        OpcionesVarias<TipoCuenta>(
+          opciones: _bancosOpciones,
+          elegidas: _billeteras,
+          alTocar: (b) => setState(
+            () => _billeteras.contains(b)
+                ? _billeteras.remove(b)
+                : _billeteras.add(b),
+          ),
+        ),
+        if (_billeteras.contains(TipoCuenta.otroBanco))
+          _campoNombre(
+            const Key('nombre-otro-banco'),
+            _nombreOtroBanco,
+            Textos.nombreDelBanco,
+          ),
         const SizedBox(height: 18),
         const Text(Textos.cuantaPlataTienes, style: etiqueta),
         const SizedBox(height: 4),
@@ -213,16 +241,22 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             for (final b in TipoCuenta.billeteras)
               if (_billeteras.contains(b))
                 FilaMonto(
-                  etiqueta: b == TipoCuenta.otra && _nombreBilletera(b).isEmpty
-                      ? Textos.otraBilletera
-                      : _nombreBilletera(b),
+                  etiqueta: _etiquetaSaldo(b),
                   controlador: _saldoBilletera[b]!,
                 ),
             FilaMonto(
               etiqueta: Textos.banco,
               controlador: _banco,
-              accionTeclado: TextInputAction.done,
+              accionTeclado: _billeteras.any((b) => b.esBanco)
+                  ? TextInputAction.next
+                  : TextInputAction.done,
             ),
+            for (final b in TipoCuenta.otrosBancos)
+              if (_billeteras.contains(b))
+                FilaMonto(
+                  etiqueta: _etiquetaSaldo(b),
+                  controlador: _saldoBilletera[b]!,
+                ),
           ],
         ),
         const SizedBox(height: 18),
@@ -294,6 +328,29 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
       ],
     );
   }
+
+  /// El nombre de la otra billetera o del otro banco.
+  Widget _campoNombre(Key key, TextEditingController c, String ayuda) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: TextField(
+          key: key,
+          controller: c,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => setState(() {}),
+          style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+          decoration: InputDecoration(
+            hintText: ayuda,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            border: _borde(Colores.bordeCampo, 1),
+            enabledBorder: _borde(Colores.bordeCampo, 1),
+            focusedBorder: _borde(Colores.marca, 2),
+          ),
+        ),
+      );
 
   static OutlineInputBorder _borde(Color color, double grosor) =>
       OutlineInputBorder(

@@ -11,10 +11,14 @@ class AlternativaVoz {
 
 /// Un monto dicho, con la cuenta si se dijo.
 class PartidaVoz {
-  const PartidaVoz(this.centimos, [this.cuenta]);
+  const PartidaVoz(this.centimos, [this.cuenta, this.bancoSinNombre = false]);
 
   final int centimos;
   final TipoCuenta? cuenta;
+
+  /// Dijo «banco», «transferencia» o «tarjeta» sin decir cuál: va al BCP,
+  /// salvo que el negocio tenga más de un banco (entonces se pregunta).
+  final bool bancoSinNombre;
 
   PartidaVoz conCuenta(TipoCuenta cuenta) => PartidaVoz(centimos, cuenta);
 }
@@ -135,8 +139,12 @@ PreguntaVoz? siguientePregunta(
 }) {
   if (lectura.montoDudoso) return PreguntaMonto(lectura.montosPosibles);
   if (lectura.tipo == null) return const PreguntaTipo();
+  final variosBancos = cuentasValidas.where((c) => c.esBanco).length > 1;
   for (final (i, partida) in lectura.partidas.indexed) {
-    if (!cuentasValidas.contains(partida.cuenta)) return PreguntaCuenta(i);
+    if (!cuentasValidas.contains(partida.cuenta) ||
+        (partida.bancoSinNombre && variosBancos)) {
+      return PreguntaCuenta(i);
+    }
   }
   if (lectura.tipo != TipoMovimiento.retiro &&
       !categoriasValidas.contains(lectura.categoria)) {

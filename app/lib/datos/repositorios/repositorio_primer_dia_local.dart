@@ -264,7 +264,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         TipoMovimiento.egreso,
         categoriasEgresoPorNegocio[datos.tipoNegocio]!,
       );
-      // Las billeteras que usa además de Yape.
+      // Las billeteras y los bancos que usa además de Yape y el BCP.
       final existentes = await _a.cuentas(empresa.id);
       var orden = existentes.length;
       for (final MapEntry(key: tipo, value: nombre)
@@ -274,7 +274,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           empresaId: empresa.id,
           autorId: usuario.id,
           tipo: tipo,
-          nombre: tipo == TipoCuenta.otra && nombre.trim().isNotEmpty
+          nombre: tipo.conNombrePropio && nombre.trim().isNotEmpty
               ? nombre.trim()
               : _nombresCuenta[tipo]!,
           orden: orden++,

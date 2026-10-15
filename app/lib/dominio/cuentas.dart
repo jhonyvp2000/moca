@@ -21,7 +21,8 @@ abstract interface class RepositorioCuentas {
   /// En el orden en que se muestran.
   Stream<List<CuentaVista>> observar();
 
-  /// Agrega Plin, Sip u otra billetera (con [nombre]). Empieza en S/ 0 desde
-  /// hoy; si el saldo inicial del negocio sigue pendiente, queda pendiente.
+  /// Agrega Plin, Sip u otra billetera, o un banco además del BCP (la otra
+  /// billetera y el otro banco con [nombre]). Empieza en S/ 0 desde hoy; si
+  /// el saldo inicial del negocio sigue pendiente, queda pendiente.
   Future<void> agregarBilletera(TipoCuenta tipo, {String? nombre});
 }

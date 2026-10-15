@@ -46,7 +46,11 @@ abstract final class Textos {
       'Escribe cuánto entró en cada sitio. Lo que no usaste, déjalo vacío.';
   static const efectivo = 'Efectivo';
   static const yape = 'Yape';
-  static const banco = 'Banco';
+  static const banco = 'BCP';
+  static const interbank = 'Interbank';
+  static const bbva = 'BBVA';
+  static const scotiabank = 'Scotiabank';
+  static const otroBanco = 'Otro banco o caja';
   static const agregarBanco = '+ Banco';
   static const plin = 'Plin';
   static const sip = 'Sip';
@@ -57,9 +61,12 @@ abstract final class Textos {
   static const otra = 'Otra';
   static const nombreDeLaBilletera = 'Escribe el nombre de la billetera';
   static const misCuentas = 'Mis cuentas';
-  static const misCuentasDetalle = 'Saldo por cuenta y otras billeteras';
+  static const misCuentasDetalle = 'Saldo por cuenta, billeteras y bancos';
   static const saldoPorPoner = 'Saldo por poner';
   static const agregarBilletera = 'Agregar una billetera';
+  static const agregarUnBanco = 'Agregar un banco';
+  static const usasOtroBanco = '¿Usas otro banco además del BCP?';
+  static const nombreDelBanco = 'Escribe el nombre del banco o la caja';
   static const billeteraEmpiezaEnCero =
       'Empieza en S/\u00A00 desde hoy. Las cuentas no se borran.';
   static const agregar = 'Agregar';
@@ -68,6 +75,18 @@ abstract final class Textos {
   /// El nombre que el dueño le puso a su otra billetera. Lo fija la app al
   /// leer las cuentas.
   static String nombreOtraBilletera = otraBilletera;
+
+  /// El nombre del otro banco o caja del dueño, igual que la otra billetera.
+  static String nombreOtroBanco = otroBanco;
+
+  /// Fija los nombres propios al leer las cuentas.
+  static void recordarNombres(Iterable<({TipoCuenta tipo, String nombre})> c) {
+    for (final cuenta in c) {
+      if (cuenta.tipo == TipoCuenta.otra) nombreOtraBilletera = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.otroBanco) nombreOtroBanco = cuenta.nombre;
+    }
+  }
+
   static String nombreCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => efectivo,
     TipoCuenta.yape => yape,
@@ -75,6 +94,10 @@ abstract final class Textos {
     TipoCuenta.plin => plin,
     TipoCuenta.sip => sip,
     TipoCuenta.otra => nombreOtraBilletera,
+    TipoCuenta.interbank => interbank,
+    TipoCuenta.bbva => bbva,
+    TipoCuenta.scotiabank => scotiabank,
+    TipoCuenta.otroBanco => nombreOtroBanco,
   };
   static const totalQueEntroHoy = 'Total que entró hoy';
   static const guardar = 'Guardar';
@@ -630,7 +653,6 @@ abstract final class Textos {
       'resumen de la semana.';
   static String preguntaVentaCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => '¿Cuánto vendiste hoy en efectivo?',
-    TipoCuenta.banco => '¿Y por banco?',
     _ => '¿Y por ${nombreCuenta(cuenta)}?',
   };
   static String nadaPor(TipoCuenta cuenta) =>

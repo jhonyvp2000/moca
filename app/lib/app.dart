@@ -9,7 +9,6 @@ import 'dominio/aviso_cierre.dart';
 import 'dominio/cuenta_real.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/medicion.dart';
-import 'dominio/modelos.dart';
 import 'dominio/primer_dia.dart';
 import 'inyeccion.dart';
 import 'rutas.dart';
@@ -55,9 +54,10 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     }, fireImmediately: true);
     // El nombre que el dueño le puso a su otra billetera.
     ref.listenManual(cuentasProvider, (_, cuentas) {
-      for (final c in cuentas.value ?? const <CuentaVista>[]) {
-        if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
-      }
+      Textos.recordarNombres([
+        for (final c in cuentas.value ?? const <CuentaVista>[])
+          (tipo: c.tipo, nombre: c.nombre),
+      ]);
     }, fireImmediately: true);
     // Con cuenta, lo anotado se sube solo unos segundos después de cada
     // cambio, al abrir la app y al volver a ella (entrega 11).
