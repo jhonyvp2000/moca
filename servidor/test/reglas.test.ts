@@ -108,4 +108,25 @@ describe('Reglas que la base hace cumplir', () => {
       ),
     ).rejects.toThrow(/duplicate key/);
   });
+
+  it('acepta los bancos de la entrega 14.1 y nada fuera de la app', async () => {
+    for (const [orden, tipo] of ['interbank', 'bbva', 'scotiabank', 'otroBanco'].entries()) {
+      await conEmpresa(base.pool, lucho, (c) =>
+        c.query(
+          `INSERT INTO cuentas (id, empresa_id, tipo, nombre, orden)
+           VALUES ($1, $2, $3, $3, $4)`,
+          [randomUUID(), lucho.empresaId, tipo, 10 + orden],
+        ),
+      );
+    }
+    await expect(
+      conEmpresa(base.pool, lucho, (c) =>
+        c.query(
+          `INSERT INTO cuentas (id, empresa_id, tipo, nombre, orden)
+           VALUES ($1, $2, 'mibanco', 'Mibanco', 20)`,
+          [randomUUID(), lucho.empresaId],
+        ),
+      ),
+    ).rejects.toThrow(/check constraint/);
+  });
 });
