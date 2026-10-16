@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
+import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
@@ -12,11 +14,13 @@ import 'franja_sin_senal.dart';
 
 /// S06 · Registrar. Sin el ejemplo de fiado ni la ayuda de Yape compartido
 /// (ajustes respecto al mockup).
-class PantallaRegistrar extends StatelessWidget {
+class PantallaRegistrar extends ConsumerWidget {
   const PantallaRegistrar({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Sin cuenta, cuántas fotos de prueba quedan (entrega 14.2).
+    final pruebas = ref.watch(fotosDePruebaProvider).value;
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -84,7 +88,11 @@ class PantallaRegistrar extends StatelessWidget {
                   _Entrada(
                     icono: Icono.camara,
                     titulo: Textos.tomarFoto,
-                    detalle: Textos.tomarFotoDetalle,
+                    detalle: switch (pruebas) {
+                      null => Textos.tomarFotoDetalle,
+                      0 => Textos.guardaTuAvanceParaFotos,
+                      final n => Textos.fotosDePruebaQuedan(n),
+                    },
                     alTocar: () => context.pushReplacement(Rutas.foto),
                   ),
                   const SizedBox(height: 12),

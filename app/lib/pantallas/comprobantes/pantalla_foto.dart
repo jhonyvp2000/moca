@@ -97,6 +97,9 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
               ProblemaLectura.noEsComprobante => Textos.fotoNoEsComprobante,
               ProblemaLectura.sinCuenta => Textos.fotoSinCuenta,
               ProblemaLectura.limiteDiario => Textos.fotoLimiteDiario,
+              ProblemaLectura.pruebasAgotadas => Textos.fotosDePruebaAgotadas(
+                fotosDePruebaPorTelefono,
+              ),
             },
           ),
         ],
@@ -158,7 +161,8 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
         icon: const IconoTrazo(Icono.camara, color: Colores.sobreMarca),
         label: const Text(Textos.tomarOtraFoto),
       ),
-      ProblemaLectura.sinCuenta => FilledButton(
+      ProblemaLectura.sinCuenta ||
+      ProblemaLectura.pruebasAgotadas => FilledButton(
         onPressed: () => context.pushReplacement(Rutas.cuenta),
         child: const Text(Textos.guardarMiAvance),
       ),

@@ -173,13 +173,78 @@ void main() {
     expect(pedidos, isEmpty);
   });
 
-  test('Sin cuenta no se usa la IA', () async {
-    await (base.delete(
-      base.ajustes,
-    )..where((a) => a.clave.equals(AccesoLocal.claveCuentaVerificada))).go();
-    final resultado = await lector().leer('/foto.jpg');
-    expect((resultado as FotoNoLeida).problema, ProblemaLectura.sinCuenta);
-    expect(pedidos, isEmpty);
+  group('Sin cuenta, fotos de prueba (entrega 14.2)', () {
+    setUp(() async {
+      await (base.delete(
+        base.ajustes,
+      )..where((a) => a.clave.equals(AccesoLocal.claveCuentaVerificada))).go();
+      llavero.llave = null;
+    });
+
+    http.Response deprueba(int restantes) => http.Response(
+      jsonEncode({
+        'resultado': 'leido',
+        'lectura': factura,
+        'pruebasRestantes': restantes,
+      }),
+      200,
+    );
+
+    test('Lee con la ruta de prueba, sin llave, y dice cuál fue', () async {
+      final acceso = AccesoLocal(base, () => ahora);
+      expect(await acceso.fotosDePrueba(), 3);
+      responder = () => deprueba(2);
+      final lectura = ((await lector().leer('/foto.jpg')) as FotoLeida).lectura;
+      expect(lectura.fotoDePrueba, 1);
+      expect(lectura.totalCentimos, 9800);
+      final pedido = pedidos.single;
+      expect(pedido.url.path, '/comprobantes/leer-prueba');
+      expect(pedido.headers.containsKey('Authorization'), isFalse);
+      final cuerpo = jsonDecode(pedido.body) as Map<String, Object?>;
+      expect(cuerpo['telefono'], (await acceso.usuario()).id);
+      expect(await acceso.fotosDePrueba(), 2);
+    });
+
+    test('Sin pruebas, no llama al servidor', () async {
+      responder = () => deprueba(0);
+      await lector().leer('/foto.jpg');
+      pedidos.clear();
+      final resultado = await lector().leer('/otra.jpg');
+      expect(
+        (resultado as FotoNoLeida).problema,
+        ProblemaLectura.pruebasAgotadas,
+      );
+      expect(pedidos, isEmpty);
+    });
+
+    test('Si el servidor dice que se agotaron, se agotaron', () async {
+      responder = () => http.Response('{"error":"pruebas_agotadas"}', 429);
+      final resultado = await lector().leer('/foto.jpg');
+      expect(
+        (resultado as FotoNoLeida).problema,
+        ProblemaLectura.pruebasAgotadas,
+      );
+      expect(await AccesoLocal(base, () => ahora).fotosDePrueba(), 0);
+    });
+
+    test('Con los topes de conexión, pide guardar el avance', () async {
+      responder = () =>
+          http.Response('{"error":"pruebas_no_disponibles"}', 429);
+      final resultado = await lector().leer('/foto.jpg');
+      expect((resultado as FotoNoLeida).problema, ProblemaLectura.sinCuenta);
+      expect(await AccesoLocal(base, () => ahora).fotosDePrueba(), 3);
+    });
+
+    test('El QR de la foto no gasta pruebas', () async {
+      qr.contenido = '20100070970|01|F001|00000245|14.95|98.00|2026-10-13|6|1|';
+      await lector().leer('/foto.jpg');
+      expect(pedidos, isEmpty);
+      expect(await AccesoLocal(base, () => ahora).fotosDePrueba(), 3);
+    });
+  });
+
+  test('Con cuenta no hay fotos de prueba', () async {
+    expect(await AccesoLocal(base, () => ahora).fotosDePrueba(), isNull);
   });
 
   test('En la Demo se usan los comprobantes de ejemplo', () async {

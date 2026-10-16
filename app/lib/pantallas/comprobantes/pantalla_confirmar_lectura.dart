@@ -209,6 +209,10 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
         alVolver: () => context.pop(),
       ),
       contenido: [
+        if (l.fotoDePrueba case final n?) ...[
+          Aviso(texto: Textos.fotoDePrueba(n, fotosDePruebaPorTelefono)),
+          const SizedBox(height: 14),
+        ],
         Tarjeta(
           relleno: const EdgeInsets.all(14),
           child: Row(

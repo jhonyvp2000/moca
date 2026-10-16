@@ -359,6 +359,17 @@ abstract final class Textos {
       'Llegaste al límite de fotos de hoy. Puedes escribirlo; mañana Moca '
       'vuelve a leer fotos.';
   static const escribirloYo = 'Escribirlo yo';
+
+  // Fotos de prueba sin cuenta (entrega 14.2, no dibujado)
+  static String fotosDePruebaQuedan(int n) =>
+      n == 1 ? 'Te queda 1 foto de prueba' : 'Te quedan $n fotos de prueba';
+  static const guardaTuAvanceParaFotos = 'Guarda tu avance para leer fotos';
+  static String fotoDePrueba(int n, int de) =>
+      'Foto de prueba $n de $de. Guarda tu avance con tu número para leer '
+      'todas las que quieras.';
+  static String fotosDePruebaAgotadas(int n) =>
+      'Usaste tus $n fotos de prueba. Guarda tu avance con tu número para '
+      'seguir leyendo fotos.';
   static const completarAMano = 'Completar a mano';
 
   // S06 · Registrar

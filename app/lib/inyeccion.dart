@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/remoto/lector_foto_remoto.dart';
+import 'datos/repositorios/acceso_local.dart';
 import 'datos/remoto/servicio_cuenta_remoto.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/medicion_local.dart';
@@ -314,6 +315,16 @@ class ForzarIlegible extends Notifier<bool> {
 }
 
 final buscadorQrProvider = Provider<BuscadorQr>((ref) => BuscadorQrAndroid());
+
+/// Las fotos de prueba que le quedan al teléfono sin cuenta; nulo con cuenta
+/// o en la Demo (entrega 14.2).
+final fotosDePruebaProvider = StreamProvider<int?>((ref) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  return acceso.cambios().asyncMap((_) => acceso.fotosDePrueba());
+});
 
 /// QR dentro de la foto, y si no hay, la IA del servidor (entrega 14). En
 /// la Demo, los comprobantes de ejemplo.

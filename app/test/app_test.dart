@@ -13,6 +13,7 @@ import 'package:moca/app.dart';
 import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
@@ -655,7 +656,8 @@ void main() {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       expect(find.text(Textos.diloOMuestralo), findsOneWidget);
-      expect(find.text(Textos.tomarFotoDetalle), findsOneWidget);
+      // Sin cuenta, la foto dice cuántas pruebas quedan (entrega 14.2).
+      expect(find.text(Textos.fotosDePruebaQuedan(3)), findsOneWidget);
       expect(find.text(Textos.leerQrDetalle), findsOneWidget);
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.queFue), findsOneWidget);
@@ -1142,6 +1144,45 @@ void main() {
       _lecturas.add(const FotoNoLeida(ProblemaLectura.sinCuenta));
       await tomarFoto(tester);
       expect(find.text(Textos.fotoSinCuenta), findsOneWidget);
+      await tocar(tester, find.text(Textos.guardarMiAvance));
+      expect(find.text(Textos.guardaTuAvance), findsWidgets);
+    });
+
+    testWidgets('Entrega 14.2: la foto de prueba se avisa al confirmar', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      _lecturas.add(
+        const FotoLeida(
+          LecturaComprobante(
+            origen: OrigenLectura.foto,
+            emisorNombre: 'Grifo Santa Rosa',
+            totalCentimos: 6000,
+            fotoDePrueba: 2,
+          ),
+        ),
+      );
+      await tomarFoto(tester);
+      expect(find.text(Textos.fotoDePrueba(2, 3)), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14.2: usadas las pruebas, pide guardar el avance', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(
+        () => AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveFotosDePrueba, '0'),
+      );
+      await esperar(tester);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.guardaTuAvanceParaFotos), findsOneWidget);
+      _lecturas.add(const FotoNoLeida(ProblemaLectura.pruebasAgotadas));
+      await tocar(tester, find.text(Textos.tomarFoto));
+      expect(find.text(Textos.fotosDePruebaAgotadas(3)), findsOneWidget);
+      expect(find.text(Textos.escribirloYo), findsOneWidget);
       await tocar(tester, find.text(Textos.guardarMiAvance));
       expect(find.text(Textos.guardaTuAvance), findsWidgets);
     });

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../dominio/arqueo.dart';
 import '../../dominio/cifras.dart';
+import '../../dominio/comprobantes.dart' show fotosDePruebaPorTelefono;
 import '../../dominio/modelos.dart';
 import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
@@ -39,6 +40,19 @@ class AccesoLocal {
 
   /// El celular verificado de verdad (entrega 11). Sin él, no hay cuenta.
   static const claveCuentaVerificada = 'cuenta_verificada';
+
+  /// Fotos de prueba que le quedan al teléfono sin cuenta (entrega 14.2).
+  static const claveFotosDePrueba = 'fotos_de_prueba';
+  static const fotosDePruebaIniciales = fotosDePruebaPorTelefono;
+
+  /// Las fotos de prueba que quedan; nulo con cuenta o en la Demo, donde no
+  /// hay tope de prueba.
+  Future<int?> fotosDePrueba() async {
+    if (await leerAjuste(claveCuentaVerificada) != null) return null;
+    if (await enDemo()) return null;
+    return int.tryParse(await leerAjuste(claveFotosDePrueba) ?? '') ??
+        fotosDePruebaIniciales;
+  }
 
   /// Las últimas cifras del servidor, con la huella de lo que tenía el
   /// teléfono cuando llegaron (entrega 13).

@@ -80,30 +80,39 @@ class LectorFotoRemoto implements LectorFoto {
   }
 
   Future<ResultadoLectura> _conIa(String rutaImagen) async {
-    if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null) {
+    // Sin cuenta, unas pocas fotos de prueba (entrega 14.2).
+    final conCuenta =
+        await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) != null;
+    final llave = conCuenta ? await _llavero.leer() : null;
+    if (conCuenta && llave == null) {
       return const FotoNoLeida(ProblemaLectura.sinCuenta);
     }
-    final llave = await _llavero.leer();
-    if (llave == null) return const FotoNoLeida(ProblemaLectura.sinCuenta);
+    final quedan = await _a.fotosDePrueba();
+    if (!conCuenta && quedan == 0) {
+      return const FotoNoLeida(ProblemaLectura.pruebasAgotadas);
+    }
     if (!await _hayConexion()) {
       return const FotoNoLeida(ProblemaLectura.sinSenal);
     }
 
     final http.Response respuesta;
     try {
-      final imagen = base64Encode(await _leerArchivo(rutaImagen));
+      final cuerpo = {
+        'imagen': base64Encode(await _leerArchivo(rutaImagen)),
+        'tipo': 'image/jpeg',
+        'categorias': await _categoriasDeGasto(),
+        if (!conCuenta) 'telefono': (await _a.usuario()).id,
+      };
       respuesta = await _cliente
           .post(
-            _servidor.resolve('/comprobantes/leer'),
+            _servidor.resolve(
+              conCuenta ? '/comprobantes/leer' : '/comprobantes/leer-prueba',
+            ),
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer $llave',
+              'Authorization': ?(llave == null ? null : 'Bearer $llave'),
             },
-            body: jsonEncode({
-              'imagen': imagen,
-              'tipo': 'image/jpeg',
-              'categorias': await _categoriasDeGasto(),
-            }),
+            body: jsonEncode(cuerpo),
           )
           .timeout(_espera);
     } on TimeoutException {
@@ -112,20 +121,51 @@ class LectorFotoRemoto implements LectorFoto {
       return const FotoNoLeida(ProblemaLectura.sinSenal);
     }
 
+    final cuerpo = switch (respuesta.body) {
+      '' => const <String, Object?>{},
+      final texto => jsonDecode(texto) as Map<String, Object?>,
+    };
     if (respuesta.statusCode == 429) {
-      return const FotoNoLeida(ProblemaLectura.limiteDiario);
+      return switch (cuerpo['error']) {
+        'pruebas_agotadas' => () async {
+          await _a.guardarAjuste(AccesoLocal.claveFotosDePrueba, '0');
+          return const FotoNoLeida(ProblemaLectura.pruebasAgotadas);
+        }(),
+        // Los topes por conexión o del día: que guarde su avance.
+        'pruebas_no_disponibles' => const FotoNoLeida(
+          ProblemaLectura.sinCuenta,
+        ),
+        _ => const FotoNoLeida(ProblemaLectura.limiteDiario),
+      };
     }
     if (respuesta.statusCode != 200) {
       return const FotoNoLeida(ProblemaLectura.sinSenal);
     }
-    final cuerpo = jsonDecode(respuesta.body) as Map<String, Object?>;
+
+    // De prueba: cuál fue y cuántas quedan, según el servidor.
+    int? fotoDePrueba;
+    if (!conCuenta) {
+      final restantes = cuerpo['pruebasRestantes'] as int? ?? 0;
+      await _a.guardarAjuste(AccesoLocal.claveFotosDePrueba, '$restantes');
+      fotoDePrueba = AccesoLocal.fotosDePruebaIniciales - restantes;
+    }
     final lectura = cuerpo['lectura'] as Map<String, Object?>?;
     return switch (cuerpo['resultado']) {
       'leido' when lectura != null => FotoLeida(
-        _lectura(lectura, rutaImagen, legible: true),
+        _lectura(
+          lectura,
+          rutaImagen,
+          legible: true,
+          fotoDePrueba: fotoDePrueba,
+        ),
       ),
       'ilegible' => FotoLeida(
-        _lectura(lectura ?? const {}, rutaImagen, legible: false),
+        _lectura(
+          lectura ?? const {},
+          rutaImagen,
+          legible: false,
+          fotoDePrueba: fotoDePrueba,
+        ),
       ),
       'no_es_comprobante' => const FotoNoLeida(ProblemaLectura.noEsComprobante),
       _ => const FotoNoLeida(ProblemaLectura.sinSenal),
@@ -136,6 +176,7 @@ class LectorFotoRemoto implements LectorFoto {
     Map<String, Object?> l,
     String rutaImagen, {
     required bool legible,
+    int? fotoDePrueba,
   }) => LecturaComprobante(
     origen: OrigenLectura.foto,
     legible: legible,
@@ -150,6 +191,7 @@ class LectorFotoRemoto implements LectorFoto {
     cantidadItems: l['cantidad_items'] as int?,
     categoria: l['categoria'] as String?,
     rutaImagen: rutaImagen,
+    fotoDePrueba: fotoDePrueba,
   );
 
   /// «2026-10-13» como medianoche del teléfono.
