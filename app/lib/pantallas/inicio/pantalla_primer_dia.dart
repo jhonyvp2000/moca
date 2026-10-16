@@ -46,6 +46,21 @@ class PantallaPrimerDia extends StatelessWidget {
         ? Textos.notaSaldoMasVenta
         : Textos.notaSoloSaldo;
 
+    // Cada paso se marca con lo anotado; el primero que falta es el actual
+    // (decisiones.md, 16-10-2026).
+    final hechos = [
+      !resumen.saldoPendiente,
+      resumen.diasConVenta >= _ventaDiasMeta,
+      resumen.gastoConComprobante,
+      resumen.arqueoHecho,
+    ];
+    final actual = hechos.indexOf(false);
+    _EstadoPaso estadoDelPaso(int i) => hechos[i]
+        ? _EstadoPaso.hecho
+        : i == actual
+        ? _EstadoPaso.actual
+        : _EstadoPaso.pendiente;
+
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -144,29 +159,23 @@ class PantallaPrimerDia extends StatelessWidget {
                   _Paso(
                     numero: 1,
                     texto: Textos.pasoDecirPlata,
-                    estado: resumen.saldoPendiente
-                        ? _EstadoPaso.actual
-                        : _EstadoPaso.hecho,
+                    estado: estadoDelPaso(0),
                     alTocar: resumen.saldoPendiente ? alDeclararSaldo : null,
                   ),
                   _Paso(
                     numero: 2,
                     texto: Textos.pasoVentaCincoDias(resumen.diasConVenta),
-                    estado: resumen.diasConVenta >= _ventaDiasMeta
-                        ? _EstadoPaso.hecho
-                        : resumen.saldoPendiente
-                        ? _EstadoPaso.pendiente
-                        : _EstadoPaso.actual,
+                    estado: estadoDelPaso(1),
                   ),
-                  const _Paso(
+                  _Paso(
                     numero: 3,
                     texto: Textos.pasoPrimerGasto,
-                    estado: _EstadoPaso.pendiente,
+                    estado: estadoDelPaso(2),
                   ),
                   _Paso(
                     numero: 4,
                     texto: Textos.pasoPrimerArqueo,
-                    estado: _EstadoPaso.pendiente,
+                    estado: estadoDelPaso(3),
                     alTocar: alHacerArqueo,
                   ),
                   const SizedBox(height: 4),

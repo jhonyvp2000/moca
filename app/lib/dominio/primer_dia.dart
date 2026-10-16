@@ -47,6 +47,8 @@ class ResumenPrimerDia {
     required this.ventaDeHoyCentimos,
     required this.diasConVenta,
     this.conOtrosMovimientos = false,
+    this.gastoConComprobante = false,
+    this.arqueoHecho = false,
   });
 
   final String nombreNegocio;
@@ -60,6 +62,12 @@ class ResumenPrimerDia {
   /// Si hay algo más que el saldo inicial y las ventas del día (gastos,
   /// retiros, otros ingresos). Cambia cómo se explica «Tienes hoy».
   final bool conOtrosMovimientos;
+
+  /// Paso 3: hay un gasto vigente anotado desde un comprobante (foto o QR).
+  final bool gastoConComprobante;
+
+  /// Paso 4: ya hay un arqueo.
+  final bool arqueoHecho;
 
   bool get ventaDeHoyAnotada => ventaDeHoyCentimos > 0;
 }

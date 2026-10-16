@@ -103,6 +103,23 @@ void main() {
     expect(await base.select(base.comprobantes).get(), hasLength(1));
   });
 
+  test(
+    'Paso 3 de los primeros pasos: un gasto con comprobante lo marca',
+    () async {
+      final primerDia = RepositorioPrimerDiaLocal(base, ahora: () => ahora);
+      Future<bool> paso3() async =>
+          (await primerDia.observarResumen().first).gastoConComprobante;
+      expect(await paso3(), isFalse);
+
+      final guardado = await repo.guardarCompra(compra(qr));
+      expect(await paso3(), isTrue);
+      // Deshecho, vuelve a faltar.
+      await movimientos.deshacer(guardado);
+      expect(await paso3(), isFalse);
+      expect((await primerDia.observarResumen().first).arqueoHecho, isFalse);
+    },
+  );
+
   test('Una foto ilegible completada a mano queda con nivel C', () async {
     const ilegible = LecturaComprobante(
       origen: OrigenLectura.foto,

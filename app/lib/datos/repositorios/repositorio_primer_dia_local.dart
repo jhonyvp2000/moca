@@ -393,6 +393,15 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
             m.estado == EstadoRegistro.vigente &&
             (ventaDelDia == null || m.categoriaId != ventaDelDia.id),
       ),
+      gastoConComprobante: movimientos.any(
+        (m) =>
+            m.estado == EstadoRegistro.vigente &&
+            m.tipo == TipoMovimiento.egreso &&
+            (m.fuente == Fuente.foto || m.fuente == Fuente.qr),
+      ),
+      arqueoHecho: (await (_base.select(
+        _base.arqueos,
+      )..where((a) => a.empresaId.equals(empresa.id))).get()).isNotEmpty,
     );
   }
 }
