@@ -22,7 +22,8 @@ String textoAviso(Aviso a) => switch (a.tipo) {
   ),
   TipoAviso.diasSinRegistrar => Textos.avisoDias(a.dias ?? 2),
   TipoAviso.gastoAtipico => Textos.avisoAtipico(
-    formatearSoles(a.montoCentimos ?? 0),
+    // Un solo gasto: con sus céntimos si los tiene.
+    formatearSolesComprobante(a.montoCentimos ?? 0),
     a.categoria ?? Textos.otro,
   ),
 };

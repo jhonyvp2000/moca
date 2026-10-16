@@ -11,7 +11,8 @@ import '../../textos/textos.dart';
 /// símbolo no se separan de la cifra.
 String montoConSigno(TipoMovimiento tipo, int centimos) =>
     '${tipo == TipoMovimiento.ingreso ? '+' : '−'} '
-    '${formatearSoles(centimos.abs())}';
+    // Cada registro con sus céntimos si los tiene (decisiones.md, 16-10-2026).
+    '${formatearSolesComprobante(centimos.abs())}';
 
 /// Lo que entró va en azul; lo que salió, en el color del texto.
 Color colorDelMonto(TipoMovimiento tipo) =>

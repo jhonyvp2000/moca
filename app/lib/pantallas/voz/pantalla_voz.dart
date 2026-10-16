@@ -448,7 +448,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 )
               : Opciones<int>(
                   opciones: {
-                    for (final o in opciones) o: formatearSoles(o),
+                    for (final o in opciones) o: formatearSolesComprobante(o),
                     -1: Textos.otroMonto,
                   },
                   elegida: null,
@@ -480,7 +480,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
         );
       case PreguntaCuenta(:final indicePartida):
-        final monto = formatearSoles(_lectura.partidas[indicePartida].centimos);
+        final monto = formatearSolesComprobante(
+          _lectura.partidas[indicePartida].centimos,
+        );
         return _TarjetaPregunta(
           texto: _lectura.tipo == TipoMovimiento.ingreso
               ? Textos.dondeEntro(monto)
@@ -534,7 +536,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           icono: tipo == TipoMovimiento.ingreso ? Icono.entro : Icono.salio,
           titulo: titulo,
           detalle: '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
-          monto: formatearSoles(p.centimos),
+          monto: formatearSolesComprobante(p.centimos),
         ),
         const SizedBox(height: 8),
       ],
@@ -552,7 +554,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 ),
               ),
               Text(
-                formatearSoles(total),
+                formatearSolesComprobante(total),
                 style: Tipografia.cifra(
                   Tipografia.textoFuerte.copyWith(fontWeight: FontWeight.w700),
                 ),

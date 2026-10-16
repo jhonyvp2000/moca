@@ -67,7 +67,7 @@ Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026;
 ## Redacción
 
 - Palabras del dueño: «lo que te deben», «entró», «salió», «te quedó», «plata».
-- Montos en soles enteros con el formato `S/ 4,250`; céntimos solo dentro del comprobante.
+- Montos con el formato `S/ 4,250`. Saldos, totales e informes en soles enteros; cada registro (Historial, su detalle, la voz, el comprobante) con sus céntimos si los tiene: `S/ 3.40`, `S/ 980` (decisiones.md, 16-10-2026).
 - Moca habla en tono neutro y profesional, sin jerga contable y sin exclamaciones.
 - Los avisos tienen dos prioridades visibles: «Importante» y «Para tener en cuenta».
 - Cuando Moca duda, pregunta y ofrece opciones.

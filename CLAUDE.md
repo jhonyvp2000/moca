@@ -64,7 +64,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que escribe dire
 - Azules como color de marca; ámbar solo para avisos. Sin verde y sin negro.
 - Texto de 14 px como mínimo; objetivos táctiles de 44 px como mínimo.
 - Palabras del dueño, no del contador: «lo que te deben», no «cuentas por cobrar».
-- Montos en soles enteros, con el símbolo pegado a la cifra (`S/ 4,250`, sin que se partan en dos líneas); céntimos solo dentro del comprobante.
+- Montos con el símbolo pegado a la cifra (`S/ 4,250`, sin que se partan en dos líneas). Saldos, totales e informes en soles enteros; cada registro (Historial, su detalle, la voz, el comprobante) con sus céntimos si los tiene (`S/ 3.40`).
 - Tono de Moca: neutro y profesional, sin jerga contable.
 
 El detalle está en `diseno/estilo.md`.
