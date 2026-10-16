@@ -146,3 +146,77 @@ describe('Cuenta con el celular', () => {
     expect(otroNumero.statusCode).toBe(409);
   });
 });
+
+describe('Número con cuenta desde un teléfono con datos propios (entrega 14.4)', () => {
+  let base: BaseDePrueba;
+  let app: FastifyInstance;
+  const original = randomUUID();
+
+  const verificar = (celular: string, usuarioId: string) =>
+    app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular, codigo: '123456', usuarioId },
+    });
+  const conPase = (pase: string, accion: string, usuarioId?: string) =>
+    app.inject({ method: 'POST', url: '/cuenta/con-pase', payload: { pase, accion, usuarioId } });
+  const salud = (llave: string) =>
+    app.inject({ method: 'GET', url: '/cifras', headers: { authorization: `Bearer ${llave}` } });
+
+  beforeAll(async () => {
+    base = await crearBaseDePrueba();
+    app = crearApp({ pool: base.pool, version: 'prueba', verificador: verificadorFalso() });
+  });
+  afterAll(() => base.cerrar());
+
+  it('al verificar recibe un pase en vez de la llave', async () => {
+    expect((await verificar('976948349', original)).json().llave).toBeDefined();
+    const otro = (await verificar('976948349', randomUUID())).json();
+    expect(otro).toMatchObject({ usuarioId: original, cuentaExistente: true });
+    expect(otro.llave).toBeUndefined();
+    expect(otro.pase).toEqual(expect.any(String));
+  });
+
+  it('«Entrar a mi cuenta» da la llave de la cuenta, y el pase sirve una vez', async () => {
+    const { pase } = (await verificar('976948349', randomUUID())).json();
+    const entrar = await conPase(pase, 'entrar');
+    expect(entrar.statusCode).toBe(200);
+    expect(entrar.json()).toMatchObject({ usuarioId: original });
+    expect((await salud(entrar.json().llave)).statusCode).toBe(200);
+    expect((await conPase(pase, 'entrar')).statusCode).toBe(410);
+    expect((await conPase('inventado', 'entrar')).statusCode).toBe(410);
+  });
+
+  it('«Empezar de cero» archiva la cuenta anterior sin borrarla', async () => {
+    const anterior = (await verificar('976948349', randomUUID())).json();
+    const llaveAnterior = (await conPase(anterior.pase, 'entrar')).json().llave;
+
+    const nuevo = randomUUID();
+    const { pase } = (await verificar('976948349', nuevo)).json();
+    const respuesta = await conPase(pase, 'empezar_de_cero', nuevo);
+    expect(respuesta.statusCode, respuesta.body).toBe(200);
+    expect(respuesta.json()).toMatchObject({ usuarioId: nuevo, empresas: [] });
+    // El teléfono anterior ya no entra; el nuevo sí.
+    expect((await salud(llaveAnterior)).statusCode).toBe(401);
+    expect((await salud(respuesta.json().llave)).statusCode).toBe(200);
+
+    const { rows } = await base.poolAdmin.query(
+      'SELECT id, celular, celular_archivado FROM usuarios WHERE id = ANY($1) ORDER BY celular NULLS FIRST',
+      [[original, nuevo]],
+    );
+    expect(rows).toEqual([
+      { id: original, celular: null, celular_archivado: '+51976948349' },
+      { id: nuevo, celular: '+51976948349', celular_archivado: null },
+    ]);
+    // Desde ahí, el número es de la cuenta nueva.
+    expect((await verificar('976948349', nuevo)).json()).toMatchObject({
+      usuarioId: nuevo,
+      cuentaExistente: false,
+    });
+  });
+
+  it('empezar de cero pide el usuario del teléfono', async () => {
+    const { pase } = (await verificar('976948349', randomUUID())).json();
+    expect((await conPase(pase, 'empezar_de_cero')).statusCode).toBe(400);
+  });
+});
