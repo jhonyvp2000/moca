@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
+import '../../comun/videos.dart';
+import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
@@ -77,6 +79,10 @@ class PantallaRegistrar extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const FranjaSinSenal(separacion: 12),
+                  const TarjetaPrimeraVez(
+                    video: VideoTutoria.gastoConFoto,
+                    margen: EdgeInsets.only(bottom: 12),
+                  ),
                   _Entrada(
                     icono: Icono.microfono,
                     titulo: Textos.decirloConVoz,

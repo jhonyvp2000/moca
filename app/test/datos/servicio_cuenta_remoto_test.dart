@@ -7,6 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/dominio/tutoria.dart';
+import 'package:moca/dominio/medicion.dart';
+import 'package:moca/datos/repositorios/medicion_local.dart';
+import 'package:moca/datos/repositorios/repositorio_tutoria_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
@@ -515,6 +519,58 @@ void main() {
         expect(avisos.map((a) => a.clave), isNot(contains(aviso.clave)));
         expect(await otro.hayCambiosSinSubir(), isFalse);
       },
+    );
+  });
+
+  test('Entrega 14.6: los videos vistos se suben y vuelven al entrar en '
+      'otro teléfono', () async {
+    await primerDia();
+    await servicio.verificar('987654321', '123456');
+    await RepositorioTutoriaLocal(
+      base,
+      ahora: () => ahora,
+    ).marcarVisto(VideoTutoria.arqueo, DesdeVideo.aprende);
+    await MedicionLocal(
+      base,
+      ahora: () => ahora,
+    ).anotar(EventoMedicion.appAbierta);
+    await servicio.subirTodo();
+
+    // Solo los videos: el resto de la medición se queda en el teléfono.
+    final videos = subidas.last['videos_vistos']! as List;
+    final visto = videos.single as Map;
+    expect(visto['video'], 5);
+    expect(visto['desde'], 'aprende');
+    expect(visto['fecha'], endsWith('Z'));
+
+    final membresia = await base.select(base.membresias).getSingle();
+    paraBajar = {
+      ...subidas.last,
+      'usuario': {'id': (await AccesoLocal(base, () => ahora).usuario()).id},
+      'membresia': {
+        'id': membresia.id,
+        'empresa_id': membresia.empresaId,
+        'rol': 'dueno',
+      },
+    };
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    final otraBase = BaseLocal(NativeDatabase.memory());
+    addTearDown(otraBase.close);
+    final otro = ServicioCuentaRemoto(
+      otraBase,
+      llavero: _Llavero(),
+      cliente: MockClient(servidor),
+      ahora: () => ahora,
+    );
+    await otro.verificar('987654321', '123456', entrar: true);
+    expect(await otro.bajarTodo(), ResultadoBajada.listo);
+    final estado = await RepositorioTutoriaLocal(otraBase).observar().first;
+    expect(estado.vistos, {VideoTutoria.arqueo});
+    // Con el mismo id: volver a subir no lo repite en el servidor.
+    await otro.subirTodo();
+    expect(
+      ((subidas.last['videos_vistos']! as List).single as Map)['id'],
+      visto['id'],
     );
   });
 }

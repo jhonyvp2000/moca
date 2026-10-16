@@ -7,7 +7,9 @@ import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/opciones.dart';
+import '../../comun/videos.dart';
 import '../../dominio/arqueo.dart';
+import '../../dominio/tutoria.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -127,6 +129,10 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
     return PantallaConAcciones(
       encabezado: encabezado,
       contenido: [
+        const TarjetaPrimeraVez(
+          video: VideoTutoria.arqueo,
+          margen: EdgeInsets.only(bottom: 14),
+        ),
         Text(
           todoPuntoDePartida
               ? Textos.arqueoPuntoDePartidaDetalle

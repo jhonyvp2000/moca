@@ -36,6 +36,8 @@ export const tablas = {
   dias_cerrados: ['id', 'empresa_id', 'dia'],
   // Los avisos que el dueño marcó «Entendido» (entrega 13).
   alertas: ['id', 'empresa_id', 'clave', 'tipo', 'prioridad', 'estado', 'texto', 'datos', 'creado_en'],
+  // Los videos de ayuda abiertos (entrega 14.6).
+  videos_vistos: ['id', 'empresa_id', 'video', 'desde', 'fecha'],
   bitacora: [
     'id', 'empresa_id', 'autor_id', 'entidad', 'entidad_id', 'accion',
     'valor_anterior', 'valor_nuevo', 'fecha',
@@ -45,8 +47,8 @@ export const tablas = {
 type Tabla = keyof typeof tablas;
 type Fila = Record<string, unknown>;
 
-/** La bitácora no se modifica: lo que ya está, se deja. */
-const soloAgregar = new Set<Tabla>(['bitacora']);
+/** La bitácora y los videos vistos no se modifican: lo que ya está, se deja. */
+const soloAgregar = new Set<Tabla>(['bitacora', 'videos_vistos']);
 
 export const columnasEmpresa = [
   'id', 'nombre', 'tipo_negocio', 'modo', 'pais', 'moneda', 'regimen',

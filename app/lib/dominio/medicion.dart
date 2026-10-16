@@ -21,6 +21,10 @@ enum EventoMedicion {
   /// Respuesta al aviso de cierre desde la notificación.
   notificacionRespondida,
   notificacionAbierta,
+
+  /// Se abrió un video de ayuda; lleva su número y desde dónde (entrega
+  /// 14.6). Es lo único de la medición que se sube al servidor.
+  videoAbierto,
 }
 
 abstract interface class Medicion {

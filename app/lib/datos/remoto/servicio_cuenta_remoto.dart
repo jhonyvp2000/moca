@@ -7,9 +7,11 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/medicion.dart';
 import '../../dominio/modelos.dart';
 import '../local/base_local.dart';
 import '../repositorios/acceso_local.dart';
+import '../repositorios/repositorio_tutoria_local.dart';
 
 /// La dirección del servidor. Se cambia al compilar con
 /// `--dart-define=MOCA_SERVIDOR=…`.
@@ -543,6 +545,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
             ),
           );
       await _base.batch((lote) => _insertarFilas(lote, datos, empresaId));
+      await _recordarVideosVistos(datos);
       // Lo que acaba de bajar ya está en el servidor.
       await _a.guardarAjuste(_claveHuellaSubida, await _a.huella());
       // Lo anotado en este teléfono se suma a la cuenta y queda por subir
@@ -568,6 +571,36 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         )..where((a) => a.clave.equals(clave))).go();
       }
     });
+  }
+
+  /// Los videos de ayuda que se abrieron con esta cuenta vuelven a la
+  /// medición y a «Aprende en 3 minutos» con su ✓ (entrega 14.6).
+  Future<void> _recordarVideosVistos(Map<String, Object?> datos) async {
+    final filas = [
+      for (final f in (datos['videos_vistos'] as List? ?? const []))
+        f as Map<String, Object?>,
+    ];
+    if (filas.isEmpty) return;
+    await _base.batch(
+      (lote) => lote.insertAll(_base.eventosMedicion, [
+        for (final f in filas)
+          EventosMedicionCompanion.insert(
+            id: f['id']! as String,
+            nombre: EventoMedicion.videoAbierto.name,
+            fecha: _desdeFecha(f['fecha']),
+            datos: Value(
+              jsonEncode({'video': f['video'], 'desde': f['desde']}),
+            ),
+          ),
+      ], mode: InsertMode.insertOrIgnore),
+    );
+    final clave = RepositorioTutoriaLocal.claveVistos;
+    final vistos = {
+      for (final n in (await _a.leerAjuste(clave) ?? '').split(','))
+        ?int.tryParse(n),
+      for (final f in filas) f['video']! as int,
+    }.toList()..sort();
+    await _a.guardarAjuste(clave, vistos.join(','));
   }
 
   /// Escribe las filas de [datos] (con los nombres del servidor) en la base
@@ -1031,6 +1064,24 @@ class ServicioCuentaRemoto implements ServicioCuenta {
             'datos': _json(a.datos),
             'creado_en': _fecha(a.creadoEn),
           },
+      ],
+      // De la medición, solo los videos de ayuda abiertos (entrega 14.6).
+      'videos_vistos': [
+        for (final e
+            in await (_base.select(_base.eventosMedicion)..where(
+                  (e) => e.nombre.equals(EventoMedicion.videoAbierto.name),
+                ))
+                .get())
+          if (_json(e.datos) case {
+            'video': final int video,
+            'desde': final desde,
+          })
+            {
+              'id': e.id,
+              'video': video,
+              'desde': desde,
+              'fecha': _fecha(e.fecha),
+            },
       ],
       'bitacora': [
         for (final b in await (_base.select(

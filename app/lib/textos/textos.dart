@@ -1,5 +1,6 @@
 import '../dominio/aviso_cierre.dart';
 import '../dominio/modelos.dart';
+import '../dominio/tutoria.dart';
 
 /// Todos los textos de la app, en español de Perú y en un solo lugar,
 /// para poder ajustarlos después de la prueba con pilotos.
@@ -797,4 +798,35 @@ abstract final class Textos {
   static const borrarTodoBoton = 'Borrar todo';
   static const seBorroTodo =
       'Se borró todo. La app quedó como recién instalada.';
+
+  // Videos de ayuda (entrega 14.6)
+  static String verComo(int segundos) => 'Ver cómo · $segundos s';
+  static String primeraVez(int segundos) =>
+      '¿Primera vez? Mira cómo se hace en $segundos segundos.';
+  static const verVideo = 'Ver video';
+  static const aprendeEnTresMinutos = 'Aprende en 3 minutos';
+  static const aprendeDetalle =
+      'Videos cortos, uno por cada cosa que hace Moca.';
+  static String duracionVideo(int segundos) => '$segundos s';
+  static const videoVisto = 'Visto';
+  static const videoSinEnlace = 'Este video todavía no está listo.';
+  static const videoNoSeAbrio =
+      'No se pudo abrir el video. Revisa tu señal e intenta otra vez.';
+  static String tituloVideo(VideoTutoria video) => switch (video) {
+    VideoTutoria.queEsMoca => 'Qué es Moca',
+    VideoTutoria.ventaDelDia => 'Anotar la venta del día',
+    VideoTutoria.gastoConFoto => 'Anotar un gasto con foto o QR',
+    VideoTutoria.avisoDeLaNoche => 'Contestar el aviso de la noche',
+    VideoTutoria.arqueo => 'El arqueo del domingo',
+    VideoTutoria.informe => 'Entender tu informe del mes',
+    VideoTutoria.guardarAvance => 'Guardar tu avance con tu número',
+  };
+  static const videosSinEnlace = 'Ver los videos sin enlace';
+  static const videosSinEnlaceDetalle =
+      'Muestra los botones de los videos aunque todavía no estén subidos, '
+      'para probarlos.';
+  static const videosSinEnlaceActivado =
+      'Listo. Se ven los botones de los videos.';
+  static const videosSinEnlaceDesactivado =
+      'Listo. Solo se ven los videos que ya tienen enlace.';
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
 import '../../inyeccion.dart';
@@ -152,6 +153,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                       ),
                     ),
                   ),
+          const SeccionAprende(),
           const SizedBox(height: 18),
           Tarjeta(
             relleno: EdgeInsets.zero,

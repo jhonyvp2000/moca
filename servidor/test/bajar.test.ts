@@ -13,6 +13,7 @@ describe('«Ya tengo cuenta»: entrar desde otro teléfono y bajar todo', () => 
   const empresa = randomUUID();
   const efectivo = randomUUID();
   const venta = randomUUID();
+  const videoVisto = randomUUID();
   let llaveVieja: string;
 
   const datos = () => ({
@@ -53,6 +54,9 @@ describe('«Ya tengo cuenta»: entrar desde otro teléfono y bajar todo', () => 
       },
     ],
     dias_cerrados: [{ id: randomUUID(), dia: '2026-10-11' }],
+    videos_vistos: [
+      { id: videoVisto, video: 3, desde: 'pasos', fecha: '2026-10-12T02:05:00.000Z' },
+    ],
     bitacora: [
       {
         id: randomUUID(),
@@ -131,6 +135,9 @@ describe('«Ya tengo cuenta»: entrar desde otro teléfono y bajar todo', () => 
     expect(bajados.cuentas[0].saldo_inicial_centimos).toBe(100000);
     expect(bajados.dias_cerrados).toEqual([expect.objectContaining({ dia: '2026-10-11' })]);
     expect(bajados.bitacora[0].valor_nuevo).toEqual({ montoCentimos: 35000 });
+    expect(bajados.videos_vistos).toEqual([
+      expect.objectContaining({ id: videoVisto, video: 3, desde: 'pasos' }),
+    ]);
   });
 
   it('el teléfono anterior ya no puede subir: un teléfono por cuenta', async () => {

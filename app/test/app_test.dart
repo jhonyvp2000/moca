@@ -5,6 +5,7 @@ import 'package:drift/drift.dart'
     show DatabaseConnection, Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SemanticsNode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -27,6 +28,7 @@ import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 import 'package:moca/dominio/servicios.dart';
+import 'package:moca/dominio/tutoria.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
@@ -280,6 +282,20 @@ Map<String, Object?> _cuentaDeLucho() {
   };
 }
 
+/// Los videos de ayuda (entrega 14.6): sus enlaces y lo que se abrió.
+var _enlaces = <VideoTutoria, String>{};
+final _abiertos = <String>[];
+var _abreVideos = true;
+
+class _AbridorFalso implements AbridorDeEnlaces {
+  @override
+  Future<bool> abrir(String enlace) async {
+    if (!_abreVideos) return false;
+    _abiertos.add(enlace);
+    return true;
+  }
+}
+
 var _servidor = _ServidorFalso();
 var _llavero = _LlaveroFalso();
 
@@ -347,6 +363,9 @@ Future<BaseLocal> abrirApp(
   _daPermiso = true;
   _abrirDesdeAviso = null;
   _servidor = _ServidorFalso();
+  _enlaces = {};
+  _abiertos.clear();
+  _abreVideos = true;
   _ahora = _ahoraInicial;
   _llavero = _LlaveroFalso();
   // Tamaño del lienzo de los mockups: 390 × 844.
@@ -395,6 +414,8 @@ Future<BaseLocal> abrirApp(
         conexionTelefonoProvider.overrideWithValue(_SenalFalsa()),
         locutorProvider.overrideWithValue(_LocutorFalso()),
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
+        abridorProvider.overrideWithValue(_AbridorFalso()),
+        enlacesDeVideosProvider.overrideWith((ref) => _enlaces),
         notificadorProvider.overrideWithValue(_NotificadorFalso()),
         servicioCuentaProvider.overrideWith(
           (ref) => ServicioCuentaRemoto(
@@ -2267,6 +2288,123 @@ void main() {
       await tester.pump(const Duration(seconds: 6));
       await esperar(tester);
       expect(_servidor.subidas, isEmpty);
+    });
+  });
+
+  group('Entrega 14.6: videos de ayuda', () {
+    const enlace = 'https://youtu.be/';
+    final todos = {
+      for (final v in VideoTutoria.values) v: '$enlace${v.numero}',
+    };
+
+    testWidgets('Sin enlaces no aparece ningún video', (tester) async {
+      await abrirApp(tester, listo: true);
+      expect(find.text(Textos.tusPrimerosPasos), findsOneWidget);
+      expect(find.textContaining('Ver cómo'), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.aprendeEnTresMinutos), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      expect(find.text(Textos.verVideo), findsNothing);
+    });
+
+    testWidgets('«Ver cómo» en los pasos que faltan; el visto lleva su ✓ en '
+        '«Aprende en 3 minutos»', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      _enlaces = todos;
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MocaApp)),
+      );
+      container.invalidate(enlacesDeVideosProvider);
+      await esperar(tester);
+
+      // El paso 1 ya está hecho: sin video. Los pasos 2, 3 y 4, con el suyo.
+      expect(find.text(Textos.verComo(30)), findsOneWidget);
+      expect(find.text(Textos.verComo(20)), findsOneWidget);
+      expect(find.text(Textos.verComo(25)), findsOneWidget);
+      await tocar(tester, find.text(Textos.verComo(20)));
+      expect(_abiertos, ['${enlace}2']);
+
+      final eventos = await tester.runAsync(
+        () => (base.select(
+          base.eventosMedicion,
+        )..where((e) => e.nombre.equals('videoAbierto'))).get(),
+      );
+      expect(eventos!.single.datos, '{"video":2,"desde":"pasos"}');
+
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.tituloVideo(VideoTutoria.guardarAvance)),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.aprendeEnTresMinutos), findsOneWidget);
+      Matcher visto(bool si) => isSemantics(isChecked: si);
+      SemanticsNode fila(VideoTutoria v) =>
+          tester.getSemantics(find.text(Textos.tituloVideo(v)));
+      expect(fila(VideoTutoria.ventaDelDia), visto(true));
+      expect(fila(VideoTutoria.informe), visto(false));
+      await tocar(tester, find.text(Textos.tituloVideo(VideoTutoria.informe)));
+      expect(_abiertos.last, '${enlace}6');
+      expect(fila(VideoTutoria.informe), visto(true));
+    });
+
+    testWidgets('«¿Primera vez?» sale una sola vez', (tester) async {
+      await abrirApp(tester, listo: true);
+      _enlaces = todos;
+      ProviderScope.containerOf(tester.element(find.byType(MocaApp)))
+          .invalidate(enlacesDeVideosProvider);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      expect(find.text(Textos.primeraVez(25)), findsOneWidget);
+      await tocar(tester, find.text(Textos.ahoraNoCorto));
+      expect(find.text(Textos.primeraVez(25)), findsNothing);
+      expect(_abiertos, isEmpty);
+
+      // En Registrar, la del gasto con foto; «Ver video» también la cierra.
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.primeraVez(25)), findsOneWidget);
+      await tocar(tester, find.text(Textos.verVideo));
+      expect(_abiertos, ['${enlace}3']);
+      expect(find.text(Textos.primeraVez(25)), findsNothing);
+    });
+
+    testWidgets('Si el video no se abre, lo dice y no lo marca', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      _enlaces = todos;
+      _abreVideos = false;
+      ProviderScope.containerOf(tester.element(find.byType(MocaApp)))
+          .invalidate(enlacesDeVideosProvider);
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.verComo(20)));
+      expect(find.text(Textos.videoNoSeAbrio), findsOneWidget);
+      expect(find.text(Textos.verComo(20)), findsOneWidget);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      expect(find.text(Textos.primeraVez(25)), findsOneWidget);
+    });
+
+    testWidgets('El ajuste oculto muestra los videos sin enlace', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.videosSinEnlace));
+      expect(find.text(Textos.videosSinEnlaceActivado), findsOneWidget);
+      await tocar(
+        tester,
+        find.byTooltip(
+          MaterialLocalizations.of(tester.element(find.byType(Scaffold).last))
+              .backButtonTooltip,
+        ),
+      );
+      await tester.scrollUntilVisible(
+        find.text(Textos.aprendeEnTresMinutos),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.tituloVideo(VideoTutoria.arqueo)));
+      expect(find.text(Textos.videoSinEnlace), findsOneWidget);
+      expect(_abiertos, isEmpty);
     });
   });
 }

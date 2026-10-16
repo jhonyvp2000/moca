@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
 import '../../dominio/primer_dia.dart';
+import '../../dominio/tutoria.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
@@ -160,22 +162,26 @@ class PantallaPrimerDia extends StatelessWidget {
                     numero: 1,
                     texto: Textos.pasoDecirPlata,
                     estado: estadoDelPaso(0),
+                    video: VideoTutoria.queEsMoca,
                     alTocar: resumen.saldoPendiente ? alDeclararSaldo : null,
                   ),
                   _Paso(
                     numero: 2,
                     texto: Textos.pasoVentaCincoDias(resumen.diasConVenta),
                     estado: estadoDelPaso(1),
+                    video: VideoTutoria.ventaDelDia,
                   ),
                   _Paso(
                     numero: 3,
                     texto: Textos.pasoPrimerGasto,
                     estado: estadoDelPaso(2),
+                    video: VideoTutoria.gastoConFoto,
                   ),
                   _Paso(
                     numero: 4,
                     texto: Textos.pasoPrimerArqueo,
                     estado: estadoDelPaso(3),
+                    video: VideoTutoria.arqueo,
                     alTocar: alHacerArqueo,
                   ),
                   const SizedBox(height: 4),
@@ -267,12 +273,16 @@ class _Paso extends StatelessWidget {
     required this.numero,
     required this.texto,
     required this.estado,
+    required this.video,
     this.alTocar,
   });
 
   final int numero;
   final String texto;
   final _EstadoPaso estado;
+
+  /// «▶ Ver cómo» debajo del paso, mientras no esté hecho (entrega 14.6).
+  final VideoTutoria video;
   final VoidCallback? alTocar;
 
   @override
@@ -354,10 +364,21 @@ class _Paso extends StatelessWidget {
       ),
     );
 
-    return Semantics(
+    final paso = Semantics(
       button: alTocar != null,
       checked: estado == _EstadoPaso.hecho,
       child: alTocar == null ? fila : InkWell(onTap: alTocar, child: fila),
+    );
+    if (estado == _EstadoPaso.hecho) return paso;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        paso,
+        Padding(
+          padding: const EdgeInsets.only(left: 40),
+          child: EnlaceVerComo(video: video, desde: DesdeVideo.pasos),
+        ),
+      ],
     );
   }
 }

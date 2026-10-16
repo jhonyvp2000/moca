@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
+import '../../comun/videos.dart';
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -203,6 +205,13 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
         if (_error case final error?) ...[
           const SizedBox(height: 12),
           Aviso(texto: error),
+        ],
+        if (!_entrar) ...[
+          const SizedBox(height: 8),
+          const EnlaceVerComo(
+            video: VideoTutoria.guardarAvance,
+            desde: DesdeVideo.guardarAvance,
+          ),
         ],
       ],
       acciones: [

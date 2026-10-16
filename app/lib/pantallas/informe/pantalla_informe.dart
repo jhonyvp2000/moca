@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
 import '../../dominio/informe.dart';
+import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -129,6 +131,10 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               child: Text(periodo, style: Tipografia.secundario),
             ),
           const SizedBox(height: 12),
+          const TarjetaPrimeraVez(
+            video: VideoTutoria.informe,
+            margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
+          ),
           if (i.sinRegistros)
             Tarjeta(
               child: Column(

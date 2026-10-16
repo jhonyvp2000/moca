@@ -29,6 +29,7 @@ class PantallaOperador extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final conteo = ref.watch(conteoRegistrosProvider);
     final sinSenal = ref.watch(simularSinSenalProvider);
+    final videosSinEnlace = ref.watch(videosSinEnlaceProvider);
     final diasAdelantados = ref.watch(adelantoDelRelojProvider);
 
     return Scaffold(
@@ -189,6 +190,23 @@ class PantallaOperador extends ConsumerWidget {
                           sinSenal
                               ? Textos.senalDelTelefono
                               : Textos.sinSenalSimulada,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.videosSinEnlace,
+                  detalle: Textos.videosSinEnlaceDetalle,
+                  alTocar: () {
+                    ref.read(videosSinEnlaceProvider.notifier).cambiar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          videosSinEnlace
+                              ? Textos.videosSinEnlaceDesactivado
+                              : Textos.videosSinEnlaceActivado,
                         ),
                       ),
                     );

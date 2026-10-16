@@ -16,6 +16,7 @@ import 'datos/repositorios/repositorio_moca_local.dart';
 import 'datos/repositorios/repositorio_movimientos_local.dart';
 import 'datos/repositorios/repositorio_operador_local.dart';
 import 'datos/repositorios/repositorio_primer_dia_local.dart';
+import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
 import 'dominio/ajustes.dart';
@@ -34,7 +35,9 @@ import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'dominio/repositorio_operador.dart';
 import 'dominio/servicios.dart';
+import 'dominio/tutoria.dart';
 import 'dominio/voz.dart';
+import 'servicios/abridor_android.dart';
 import 'servicios/buscador_qr_android.dart';
 import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
@@ -378,3 +381,46 @@ final servicioCuentaProvider = Provider<ServicioCuenta>(
 final situacionCuentaProvider = StreamProvider<SituacionCuenta>(
   (ref) => ref.watch(servicioCuentaProvider).observar(),
 );
+
+// --- Videos de ayuda (entrega 14.6) -----------------------------------------
+
+final repositorioTutoriaProvider = Provider<RepositorioTutoria>(
+  (ref) => RepositorioTutoriaLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final abridorProvider = Provider<AbridorDeEnlaces>((ref) => AbridorAndroid());
+
+/// Los enlaces de los videos. Las pruebas ponen los suyos.
+final enlacesDeVideosProvider = Provider<Map<VideoTutoria, String>>(
+  (ref) => enlacesDeVideos,
+);
+
+/// «Ver los videos sin enlace», del ajuste oculto. Dura mientras la app esté
+/// abierta.
+final videosSinEnlaceProvider = NotifierProvider<VideosSinEnlace, bool>(
+  VideosSinEnlace.new,
+);
+
+class VideosSinEnlace extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void cambiar() => state = !state;
+}
+
+final _vistosProvider = StreamProvider<EstadoTutoria>(
+  (ref) => ref.watch(repositorioTutoriaProvider).observar(),
+);
+
+/// Qué videos hay, cuáles se vieron y qué tarjetas se cerraron. Mientras
+/// carga, ninguno se muestra.
+final estadoTutoriaProvider = Provider<EstadoTutoria?>((ref) {
+  final estado = ref.watch(_vistosProvider).value;
+  return estado?.con(
+    enlaces: ref.watch(enlacesDeVideosProvider),
+    sinEnlace: ref.watch(videosSinEnlaceProvider),
+  );
+});

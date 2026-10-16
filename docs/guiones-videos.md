@@ -2,6 +2,24 @@
 
 Siete videos de 15 a 30 segundos, uno por función, con la voz de Jhony. Se ven dentro de la app en el momento en que hacen falta y se mandan por WhatsApp a los pilotos (decisiones.md, 16-10-2026).
 
+## Dónde aparecen en la app (entrega 14.6)
+
+| Video | Dónde |
+|---|---|
+| 1. Qué es Moca | «▶ Ver cómo» bajo el paso 1 de «Tus primeros pasos» |
+| 2. Venta del día | «▶ Ver cómo» bajo el paso 2 |
+| 3. Gasto con foto o QR | «▶ Ver cómo» bajo el paso 3; tarjeta «¿Primera vez?» en Registrar |
+| 4. Aviso de la noche | «▶ Ver cómo» en la tarjeta que pide permiso de avisos |
+| 5. Arqueo | «▶ Ver cómo» bajo el paso 4; tarjeta «¿Primera vez?» en el arqueo |
+| 6. Informe del mes | Tarjeta «¿Primera vez?» en Informes |
+| 7. Guardar tu avance | «▶ Ver cómo» en «Guarda tu avance» |
+
+Todos están en «Aprende en 3 minutos», en la pestaña Moca, con un ✓ en los que ya se vieron. El «▶ Ver cómo» de un paso desaparece cuando el paso está hecho. La tarjeta «¿Primera vez?» sale una sola vez: «Ver video» o «Ahora no» la cierran para siempre.
+
+Un video sin enlace no aparece en ningún lado. Los enlaces se ponen en `app/lib/dominio/tutoria.dart` (`enlacesDeVideos`) y llegan con el siguiente APK. Para probar los botones antes, en los ajustes de la prueba está «Ver los videos sin enlace».
+
+Cada video abierto se anota (número, desde dónde y cuándo) y sube al servidor con lo demás cuando el negocio tiene cuenta.
+
 ## Reglas para los siete
 
 - **Formato:** vertical (9:16), grabación de la pantalla del teléfono, sin cara. Si quieres, un saludo tuyo de 2 segundos solo en el video 1.

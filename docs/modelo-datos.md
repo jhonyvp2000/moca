@@ -92,6 +92,7 @@ La primera migración (`servidor/migraciones/001_esquema_inicial.sql`) crea toda
 - El movimiento guarda cuándo llegó al servidor; el estado «por subir» vive solo en el teléfono.
 - Las referencias entre tablas incluyen la empresa, y un `DELETE` falla en toda tabla de negocio.
 - Entrega 13: las alertas suben solo cuando el dueño marca un aviso «Entendido». En el teléfono su id es la clave del aviso; en el servidor el id se deriva de la empresa y la clave (uuid v5), así repetir la subida no duplica.
+- Entrega 14.6: `videos_vistos` guarda los videos de ayuda que abrió cada negocio (número del video, desde dónde y cuándo), para saber en el piloto cuáles se ven. Es lo único de la medición que se sube; no se modifica ni se borra.
 
 ## Entidades que llegan después
 
