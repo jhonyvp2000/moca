@@ -141,10 +141,24 @@ abstract final class Textos {
       '¿No te llegó? Reenviar en $segundos s';
   static const noPudimosComprobar =
       'No pudimos comprobar el código. Intenta otra vez en un momento.';
-  static const otraCuentaConEsteNumero =
-      'Este número ya tiene una cuenta de Moca en otro teléfono. Para no '
-      'mezclar lo anotado, lo de este teléfono sigue aquí. Pronto podrás '
-      'entrar a esa cuenta.';
+  // Número que ya tiene cuenta (entrega 14.4, no dibujado)
+  static const numeroConCuenta = 'Este número ya tiene una cuenta de Moca';
+  static const numeroConCuentaDetalle =
+      'Puedes entrar a tu cuenta y sumarle lo que anotaste en este teléfono, '
+      'o empezar de cero con este número.';
+  static const entrarAMiCuenta = 'Entrar a mi cuenta';
+  static const empezarDeCero = 'Empezar de cero con este número';
+  static const seguirSinCuenta = 'Seguir sin cuenta';
+  static const juntandoLoAnotado = 'Juntando lo anotado…';
+  static const yaEstanJuntos =
+      'Listo: tu cuenta y lo anotado en este teléfono están juntos.';
+  static const empezarDeCeroPregunta = '¿Empezar de cero con este número?';
+  static const empezarDeCeroDetalle =
+      'Tu cuenta anterior queda guardada, pero ya no se verá en la app. Lo '
+      'anotado en este teléfono pasa a ser tu cuenta.';
+  static const empezarDeCeroSi = 'Empezar de cero';
+  static const pasoMuchoTiempo =
+      'Pasó mucho tiempo desde el código. Pide uno nuevo para seguir.';
   static const guardandoLoAnotado = 'Guardando lo que anotaste…';
 
   // «Ya tengo cuenta» (estados de la entrega 12, aprobados el 14-10-2026)

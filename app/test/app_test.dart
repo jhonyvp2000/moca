@@ -112,6 +112,9 @@ class _ServidorFalso {
   int estadoAlPedir = 200;
   bool cuentaExistente = false;
 
+  /// Lo que se eligió con el pase (entrega 14.4).
+  final conPase = <String>[];
+
   /// Lo que baja «Ya tengo cuenta»; nulo: el número no tiene cuenta.
   Map<String, Object?>? cuentaParaEntrar;
 
@@ -148,6 +151,7 @@ class _ServidorFalso {
               'usuarioId': cuerpo['usuarioId'],
               'empresas': <String>[],
               'cuentaExistente': cuentaExistente && !entrar,
+              if (cuentaExistente && !entrar) 'pase': 'pase-de-prueba',
             }),
             200,
           ),
@@ -157,6 +161,16 @@ class _ServidorFalso {
           ),
           _ => http.Response(jsonEncode({'error': 'codigo_incorrecto'}), 400),
         };
+      case '/cuenta/con-pase':
+        conPase.add(cuerpo['accion']! as String);
+        return http.Response(
+          jsonEncode({
+            'llave': 'llave-de-prueba',
+            'usuarioId': cuerpo['usuarioId'],
+            'empresas': <String>[],
+          }),
+          200,
+        );
       case '/datos/subir':
         if (!conLlave) {
           return http.Response(jsonEncode({'error': 'sin_sesion'}), 401);
@@ -2013,18 +2027,82 @@ void main() {
       expect(_servidor.codigosPedidos, hasLength(3));
     });
 
-    testWidgets('Un número con cuenta en otro teléfono no mezcla datos', (
-      tester,
-    ) async {
-      await abrirApp(tester);
+    /// Hasta las opciones de un número que ya tiene cuenta (entrega 14.4).
+    Future<BaseLocal> hastaLaCuentaExistente(WidgetTester tester) async {
+      final base = await abrirApp(tester);
       await hastaElCodigo(tester);
       await tocar(tester, enviar());
-      _servidor.cuentaExistente = true;
+      _servidor
+        ..cuentaExistente = true
+        ..cuentaParaEntrar = _cuentaDeLucho();
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
-      expect(find.text(Textos.otraCuentaConEsteNumero), findsOneWidget);
+      expect(find.text(Textos.numeroConCuenta), findsOneWidget);
+      expect(find.text(Textos.entrarAMiCuenta), findsOneWidget);
+      expect(find.text(Textos.empezarDeCero), findsOneWidget);
+      expect(find.text(Textos.seguirSinCuenta), findsOneWidget);
+      // Nada se sube ni se guarda hasta que elija.
       expect(_servidor.subidas, isEmpty);
       expect(await _llavero.leer(), isNull);
+      return base;
+    }
+
+    testWidgets('Número con cuenta: «Entrar a mi cuenta» suma lo anotado', (
+      tester,
+    ) async {
+      final base = await hastaLaCuentaExistente(tester);
+      await tocar(tester, find.text(Textos.entrarAMiCuenta));
+      expect(find.text(Textos.yaEstanJuntos), findsOneWidget);
+      expect(_servidor.conPase, ['entrar']);
+      expect(await _llavero.leer(), 'llave-de-prueba');
+
+      final movimientos = (await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      ))!;
+      final cuenta = _cuentaDeLucho();
+      final empresa = (cuenta['empresa']! as Map)['id'];
+      final usuario = (cuenta['usuario']! as Map)['id'];
+      // La venta de la cuenta y la de este teléfono, en la misma empresa.
+      expect(movimientos, hasLength(2));
+      expect(movimientos.map((m) => m.empresaId).toSet(), {empresa});
+      expect(movimientos.map((m) => m.autorId).toSet(), {usuario});
+      expect(
+        movimientos.where(
+          (m) => m.estadoSincronizacion == EstadoSincronizacion.porSubir,
+        ),
+        hasLength(1),
+      );
+      // Las cuentas de dinero no se duplican.
+      final cuentas = (await tester.runAsync(
+        () => base.select(base.cuentas).get(),
+      ))!;
+      expect(cuentas.where((c) => c.tipo == TipoCuenta.efectivo), hasLength(1));
+    });
+
+    testWidgets('Número con cuenta: «Empezar de cero» pregunta y sigue como '
+        'cuenta nueva', (tester) async {
+      await hastaLaCuentaExistente(tester);
+      await tocar(tester, find.text(Textos.empezarDeCero));
+      expect(find.text(Textos.empezarDeCeroPregunta), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(_servidor.conPase, isEmpty);
+
+      await tocar(tester, find.text(Textos.empezarDeCero));
+      await tocar(tester, find.text(Textos.empezarDeCeroSi));
+      expect(_servidor.conPase, ['empezar_de_cero']);
+      expect(await _llavero.leer(), 'llave-de-prueba');
+      // Del primer día pasa al alta, como cualquier cuenta nueva.
+      expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+    });
+
+    testWidgets('Número con cuenta: «Seguir sin cuenta» no guarda nada', (
+      tester,
+    ) async {
+      await hastaLaCuentaExistente(tester);
+      await tocar(tester, find.text(Textos.seguirSinCuenta));
+      expect(_servidor.conPase, isEmpty);
+      expect(await _llavero.leer(), isNull);
+      expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
     });
 
     testWidgets('A los tres días de «Ahora no», Moca pide guardar el avance', (

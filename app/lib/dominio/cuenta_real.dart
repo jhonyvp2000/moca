@@ -8,8 +8,9 @@ enum ResultadoVerificacion {
   vencido,
   sinSenal,
 
-  /// El número ya tiene cuenta desde otro teléfono y este teléfono tiene sus
-  /// propios datos: no se mezclan.
+  /// El número ya tiene cuenta y este teléfono tiene sus propios datos: el
+  /// dueño elige entrar y sumarlos, empezar de cero o seguir sin cuenta
+  /// (entrega 14.4).
   otraCuenta,
 
   /// Para entrar («Ya tengo cuenta»): el número no tiene una cuenta con
@@ -18,8 +19,9 @@ enum ResultadoVerificacion {
   error,
 }
 
-/// Al bajar los datos de la cuenta a este teléfono (entrega 12).
-enum ResultadoBajada { listo, sinSenal, error }
+/// Al bajar los datos de la cuenta a este teléfono (entrega 12). Vencido:
+/// pasó mucho tiempo desde el código y hay que pedir otro (entrega 14.4).
+enum ResultadoBajada { listo, sinSenal, vencido, error }
 
 enum EstadoCuenta {
   /// Siguió con «Ahora no»: lo anotado vive solo en el teléfono.
@@ -70,6 +72,15 @@ abstract interface class ServicioCuenta {
   /// Reemplaza lo del teléfono por lo de la cuenta (el teléfono está en la
   /// Bienvenida: no tiene datos propios).
   Future<ResultadoBajada> bajarTodo();
+
+  /// Tras [ResultadoVerificacion.otraCuenta]: entra a la cuenta del número,
+  /// baja lo que tiene y le suma lo anotado en este teléfono (entrega 14.4).
+  Future<ResultadoBajada> entrarYSumar();
+
+  /// Tras [ResultadoVerificacion.otraCuenta]: la cuenta anterior se archiva
+  /// en el servidor (no se borra) y el número pasa a este teléfono con lo
+  /// que tiene. Al verificarse, sigue como cualquier cuenta nueva.
+  Future<ResultadoVerificacion> empezarDeCero();
 
   Stream<SituacionCuenta> observar();
 

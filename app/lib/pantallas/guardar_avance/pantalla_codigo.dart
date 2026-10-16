@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
+import '../../comun/tarjeta.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -48,6 +49,11 @@ enum _Fase {
   bajando,
   bajadaFallida,
   sinCuenta,
+
+  /// El número ya tiene cuenta y este teléfono tiene datos (entrega 14.4).
+  cuentaExistente,
+  juntando,
+  juntadaFallida,
 }
 
 class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
@@ -120,6 +126,10 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       setState(() => _fase = _Fase.sinCuenta);
       return;
     }
+    if (resultado == ResultadoVerificacion.otraCuenta) {
+      setState(() => _fase = _Fase.cuentaExistente);
+      return;
+    }
     if (resultado != ResultadoVerificacion.verificado) {
       setState(() {
         _fase = _Fase.escribiendo;
@@ -130,7 +140,6 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             _entrar
                 ? Textos.necesitasSenalParaEntrar
                 : Textos.necesitasSenalParaGuardar,
-          ResultadoVerificacion.otraCuenta => Textos.otraCuentaConEsteNumero,
           _ => Textos.noPudimosComprobar,
         };
       });
@@ -142,6 +151,12 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       return;
     }
     if (_entrar) return _bajar();
+    await _guardar();
+  }
+
+  /// Con el número verificado en este teléfono: sube lo anotado y sigue.
+  Future<void> _guardar() async {
+    final servicio = ref.read(servicioCuentaProvider);
     setState(() => _fase = _Fase.guardando);
     // Si se corta la señal, lo que falta se sube después solo.
     await servicio.subirTodo();
@@ -158,6 +173,82 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
   }
 
   bool get _entrar => widget.modo == ModoCuenta.entrar;
+
+  bool get _conCuentaExistente => const {
+    _Fase.cuentaExistente,
+    _Fase.juntando,
+    _Fase.juntadaFallida,
+  }.contains(_fase);
+
+  /// «Entrar a mi cuenta»: baja la cuenta y le suma lo de este teléfono.
+  Future<void> _entrarYSumar() async {
+    setState(() => _fase = _Fase.juntando);
+    final mensajes = ScaffoldMessenger.of(context);
+    final resultado = await ref.read(servicioCuentaProvider).entrarYSumar();
+    if (!mounted) return;
+    switch (resultado) {
+      case ResultadoBajada.listo:
+        context.go(Rutas.inicio);
+        mensajes.showSnackBar(
+          const SnackBar(content: Text(Textos.yaEstanJuntos)),
+        );
+      case ResultadoBajada.vencido:
+        _volverAPedir();
+      case ResultadoBajada.sinSenal || ResultadoBajada.error:
+        setState(() => _fase = _Fase.juntadaFallida);
+    }
+  }
+
+  /// «Empezar de cero»: después de confirmarlo, la cuenta anterior se
+  /// archiva y este teléfono sigue como una cuenta nueva.
+  Future<void> _empezarDeCero() async {
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text(Textos.empezarDeCeroPregunta),
+        content: const Text(Textos.empezarDeCeroDetalle),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text(Textos.empezarDeCeroSi),
+          ),
+        ],
+      ),
+    );
+    if (si != true || !mounted) return;
+    setState(() => _fase = _Fase.guardando);
+    final resultado = await ref.read(servicioCuentaProvider).empezarDeCero();
+    if (!mounted) return;
+    switch (resultado) {
+      case ResultadoVerificacion.verificado:
+        await _guardar();
+      case ResultadoVerificacion.vencido:
+        _volverAPedir();
+      default:
+        setState(() {
+          _fase = _Fase.cuentaExistente;
+          _error = resultado == ResultadoVerificacion.sinSenal
+              ? Textos.necesitasSenalParaGuardar
+              : Textos.noPudimosComprobar;
+        });
+    }
+  }
+
+  /// «Seguir sin cuenta»: lo anotado queda solo en este teléfono.
+  void _seguirSinCuenta() => widget.modo == ModoCuenta.primerDia
+      ? ref.read(repositorioPrimerDiaProvider).seguirSinCuenta()
+      : context.go(Rutas.moca);
+
+  /// El pase venció: a escribir un código nuevo.
+  void _volverAPedir() => setState(() {
+    _fase = _Fase.escribiendo;
+    _codigo.clear();
+    _error = Textos.pasoMuchoTiempo;
+  });
 
   /// Baja todo lo de la cuenta. Al terminar, la app pasa sola al Inicio.
   Future<void> _bajar() async {
@@ -182,7 +273,9 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
         Semantics(
           header: true,
           child: Text(
-            Textos.escribeElCodigo,
+            _conCuentaExistente
+                ? Textos.numeroConCuenta
+                : Textos.escribeElCodigo,
             style: Tipografia.tituloPantalla.copyWith(fontSize: 26),
           ),
         ),
@@ -230,6 +323,14 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           const SizedBox(height: 12),
           const Aviso(texto: Textos.numeroSinCuenta),
         ],
+        if (_conCuentaExistente) ...[
+          const SizedBox(height: 16),
+          const TarjetaMoca(texto: Textos.numeroConCuentaDetalle),
+        ],
+        if (_fase == _Fase.juntadaFallida) ...[
+          const SizedBox(height: 12),
+          const Aviso(texto: Textos.seCortoLaSenal),
+        ],
         if (_fase == _Fase.bajadaFallida) ...[
           const SizedBox(height: 12),
           const Aviso(texto: Textos.seCortoLaSenal),
@@ -265,6 +366,7 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             _Fase.escribiendo => _completo ? _confirmar : null,
             _Fase.sinCuenta => () => context.go(Rutas.vozPrimeraVenta),
             _Fase.bajadaFallida => _bajar,
+            _Fase.cuentaExistente || _Fase.juntadaFallida => _entrarYSumar,
             _ => null,
           },
           child: Text(switch (_fase) {
@@ -274,8 +376,18 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             _Fase.bajando => Textos.bajandoTusDatos,
             _Fase.bajadaFallida => Textos.intentarOtraVez,
             _Fase.sinCuenta => Textos.anotarMiPrimeraVenta,
+            _Fase.cuentaExistente => Textos.entrarAMiCuenta,
+            _Fase.juntando => Textos.juntandoLoAnotado,
+            _Fase.juntadaFallida => Textos.intentarOtraVez,
           }),
         ),
+        if (_fase case _Fase.cuentaExistente || _Fase.juntadaFallida) ...[
+          OutlinedButton(
+            onPressed: _empezarDeCero,
+            child: const Text(Textos.empezarDeCero),
+          ),
+          BotonTexto(texto: Textos.seguirSinCuenta, alTocar: _seguirSinCuenta),
+        ],
       ],
     );
   }
