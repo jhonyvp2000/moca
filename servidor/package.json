@@ -1,6 +1,6 @@
 {
   "name": "moca-servidor",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "private": true,
   "description": "Servidor de Moca: datos de las empresas, sincronización y cifras calculadas.",
   "type": "module",

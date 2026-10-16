@@ -9,7 +9,12 @@ import {
   type Modelo,
   type RespuestaModelo,
 } from '../src/comprobantes/lector.js';
-import { limiteDiario } from '../src/comprobantes/rutas.js';
+import {
+  limiteDiario,
+  pruebasPorConexionAlDia,
+  pruebasPorTelefono,
+} from '../src/comprobantes/rutas.js';
+import { randomUUID } from 'node:crypto';
 import { crearBaseDePrueba, type BaseDePrueba } from './base_de_prueba.js';
 import { verificadorFalso } from './verificador_falso.js';
 
@@ -222,5 +227,81 @@ describe('Lectura: la ruta', () => {
       payload: { imagen: imagen.datos },
     });
     expect(respuesta.statusCode).toBe(503);
+  });
+});
+
+describe('Lectura: fotos de prueba sin cuenta (entrega 14.2)', () => {
+  let base: BaseDePrueba;
+  let app: FastifyInstance;
+  let falso = lectorFalso({ [modeloEconomico]: factura });
+
+  const probar = (telefono: string, ip = '10.0.0.1') =>
+    app.inject({
+      method: 'POST',
+      url: '/comprobantes/leer-prueba',
+      remoteAddress: ip,
+      payload: { telefono, imagen: imagen.datos, categorias },
+    });
+
+  beforeAll(async () => {
+    base = await crearBaseDePrueba();
+    app = crearApp({
+      pool: base.pool,
+      version: 'prueba',
+      lector: { leer: (...a) => falso.lector.leer(...a) },
+      ahora: () => new Date('2026-10-14T20:00:00Z'),
+    });
+  });
+  beforeEach(() => {
+    falso = lectorFalso({ [modeloEconomico]: factura });
+  });
+  afterAll(() => base.cerrar());
+
+  it(`un teléfono lee ${pruebasPorTelefono} fotos y después ya no`, async () => {
+    const telefono = randomUUID();
+    for (let quedan = pruebasPorTelefono - 1; quedan >= 0; quedan--) {
+      const respuesta = await probar(telefono);
+      expect(respuesta.statusCode, respuesta.body).toBe(200);
+      expect(respuesta.json()).toMatchObject({ resultado: 'leido', pruebasRestantes: quedan });
+    }
+    const agotadas = await probar(telefono);
+    expect(agotadas.statusCode).toBe(429);
+    expect(agotadas.json()).toEqual({ error: 'pruebas_agotadas' });
+  });
+
+  it('una foto que la IA no pudo leer no gasta una prueba', async () => {
+    const telefono = randomUUID();
+    falso = lectorFalso({ [modeloEconomico]: new Error('caída') });
+    expect((await probar(telefono)).statusCode).toBe(502);
+    falso = lectorFalso({ [modeloEconomico]: factura });
+    expect((await probar(telefono)).json().pruebasRestantes).toBe(pruebasPorTelefono - 1);
+  });
+
+  it('borrar la app no da pruebas sin fin: hay tope por conexión', async () => {
+    const ip = '10.0.0.9';
+    for (let i = 0; i < pruebasPorConexionAlDia; i++) {
+      expect((await probar(randomUUID(), ip)).statusCode).toBe(200);
+    }
+    const otra = await probar(randomUUID(), ip);
+    expect(otra.statusCode).toBe(429);
+    expect(otra.json()).toEqual({ error: 'pruebas_no_disponibles' });
+    // Desde otra conexión, sí.
+    expect((await probar(randomUUID(), '10.0.0.10')).statusCode).toBe(200);
+  });
+
+  it('se anotan como prueba, sin usuario', async () => {
+    const { rows } = await base.poolAdmin.query(
+      'SELECT usuario_id, prueba_de, ip FROM lecturas WHERE prueba_de IS NOT NULL LIMIT 1',
+    );
+    expect(rows[0]).toMatchObject({ usuario_id: null, ip: expect.any(String) });
+  });
+
+  it('pide el identificador del teléfono', async () => {
+    const respuesta = await app.inject({
+      method: 'POST',
+      url: '/comprobantes/leer-prueba',
+      payload: { imagen: imagen.datos },
+    });
+    expect(respuesta.statusCode).toBe(400);
   });
 });
