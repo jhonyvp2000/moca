@@ -33,7 +33,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 ## Pendiente de decidir
 
 - ~~Twilio para los pilotos~~: la cuenta «Moca» es pagada desde el 14-10-2026 (USD 20 de saldo) y su perfil de cumplimiento («Primary Customer Profile») quedó aprobado el 14-10-2026; sin él, Twilio rechazaba los números no verificados (error 21608).
-- Borrar de verdad una cuenta a pedido del dueño (Ley 29733); desde la entrega 14.4, «Empezar de cero» solo la archiva.
+- Borrar de verdad una cuenta a pedido del dueño (Ley 29733); desde la entrega 14.4, «Empezar de cero» solo la archiva. Desde la entrega 14.8 se pueden borrar para siempre los datos del negocio y las fotos leídas, pero solo desde los Ajustes de la prueba; falta llevarlo a un lugar visible para los dueños y decidir si también se borra el número.
 - Textos legales (Ley 29733), revisados por un abogado, incluida la posible inscripción del banco de datos personales. Deben decir que las fotos de los comprobantes se envían a un proveedor de IA (Anthropic) para leerlas.
 - Antes del lanzamiento abierto, pasar Moca a su propio workspace de Anthropic, con su límite de gasto. Para el piloto usa una llave propia (`moca-render`) dentro del workspace «Default», compartido con TVSamGo (14-10-2026).
 - Criterio para dar la V1 por terminada.

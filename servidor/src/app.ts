@@ -1,6 +1,7 @@
 import { createGunzip } from 'node:zlib';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { aislamientoActivo, type Pool } from './base/conexion.js';
+import { rutasBorrar } from './cuenta/borrar.js';
 import { rutasCuenta } from './cuenta/rutas.js';
 import type { Verificador } from './cuenta/verificador.js';
 import { rutasCifras } from './cifras/rutas.js';
@@ -69,6 +70,7 @@ export function crearApp({
   });
 
   rutasCuenta(app, pool, verificador);
+  rutasBorrar(app, pool);
   rutasDatos(app, pool, ahora);
   rutasBajada(app, pool, ahora);
   rutasCifras(app, pool, ahora);

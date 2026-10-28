@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
+import '../dominio/cuenta_real.dart';
 import '../dominio/voz.dart';
 import '../inyeccion.dart';
 import '../pais/peru/formato.dart';
@@ -31,6 +32,9 @@ class PantallaOperador extends ConsumerWidget {
     final sinSenal = ref.watch(simularSinSenalProvider);
     final videosSinEnlace = ref.watch(videosSinEnlaceProvider);
     final diasAdelantados = ref.watch(adelantoDelRelojProvider);
+    // Solo con la cuenta guardada hay algo que borrar en el servidor.
+    final cuenta = ref.watch(situacionCuentaProvider).value;
+    final conCuenta = cuenta?.estado == EstadoCuenta.guardada;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,6 +76,15 @@ class PantallaOperador extends ConsumerWidget {
                   detalle: Textos.borrarTodoDetalle,
                   alTocar: () => _borrarTodo(context, ref),
                 ),
+                if (conCuenta) ...[
+                  const Divider(),
+                  _Opcion(
+                    titulo: Textos.borrarEnServidor,
+                    detalle: Textos.borrarEnServidorDetalle,
+                    alTocar: () =>
+                        _borrarEnServidor(context, ref, cuenta?.celular),
+                  ),
+                ],
                 const Divider(),
                 _Opcion(
                   titulo: Textos.empezarPrimerDia,
@@ -392,6 +405,62 @@ class PantallaOperador extends ConsumerWidget {
     if (context.mounted) context.go(Rutas.bienvenida);
     mensajes.showSnackBar(const SnackBar(content: Text(Textos.seBorroTodo)));
   }
+
+  /// Dos pasos: el aviso y escribir BORRAR. Primero el servidor; el
+  /// teléfono se borra solo si el servidor ya borró (entrega 14.8).
+  Future<void> _borrarEnServidor(
+    BuildContext context,
+    WidgetRef ref,
+    String? celular,
+  ) async {
+    final seguir = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Textos.borrarEnServidorTitulo),
+        content: Text(
+          Textos.borrarEnServidorAviso(
+            celular == null ? '' : formatearCelular(celular),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(Textos.continuar),
+          ),
+        ],
+      ),
+    );
+    if (seguir != true || !context.mounted) return;
+    final resultado = await showDialog<ResultadoBorrado>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _DialogoBorrarParaSiempre(),
+    );
+    if (resultado == null || !context.mounted) return;
+    final mensajes = ScaffoldMessenger.of(context);
+    if (resultado != ResultadoBorrado.listo) {
+      mensajes.showSnackBar(
+        SnackBar(
+          content: Text(
+            resultado == ResultadoBorrado.sinSenal
+                ? Textos.borrarSinSenal
+                : Textos.borrarFallo,
+          ),
+        ),
+      );
+      return;
+    }
+    await ref.read(repositorioOperadorProvider).borrarTodo();
+    ref.invalidate(conteoRegistrosProvider);
+    if (context.mounted) context.go(Rutas.bienvenida);
+    mensajes.showSnackBar(
+      const SnackBar(content: Text(Textos.seBorroTodoEnServidor)),
+    );
+  }
 }
 
 class _Opcion extends StatelessWidget {
@@ -436,6 +505,62 @@ class _Opcion extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Hay que escribir BORRAR para que se active el botón. Borra en el
+/// servidor y devuelve cómo salió.
+class _DialogoBorrarParaSiempre extends ConsumerStatefulWidget {
+  const _DialogoBorrarParaSiempre();
+
+  @override
+  ConsumerState<_DialogoBorrarParaSiempre> createState() =>
+      _EstadoDialogoBorrar();
+}
+
+class _EstadoDialogoBorrar extends ConsumerState<_DialogoBorrarParaSiempre> {
+  final _texto = TextEditingController();
+  bool _borrando = false;
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  bool get _escrito => _texto.text.trim().toUpperCase() == 'BORRAR';
+
+  Future<void> _borrar() async {
+    setState(() => _borrando = true);
+    final resultado = await ref
+        .read(servicioCuentaProvider)
+        .borrarEnElServidor();
+    if (mounted) Navigator.of(context).pop(resultado);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(Textos.borrarEnServidorTitulo),
+      content: TextField(
+        controller: _texto,
+        enabled: !_borrando,
+        autofocus: true,
+        textCapitalization: TextCapitalization.characters,
+        onChanged: (_) => setState(() {}),
+        decoration: const InputDecoration(labelText: Textos.escribeBorrar),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _borrando ? null : () => Navigator.of(context).pop(),
+          child: const Text(Textos.cancelar),
+        ),
+        TextButton(
+          onPressed: _escrito && !_borrando ? _borrar : null,
+          child: Text(_borrando ? Textos.borrando : Textos.borrarParaSiempre),
+        ),
+      ],
     );
   }
 }

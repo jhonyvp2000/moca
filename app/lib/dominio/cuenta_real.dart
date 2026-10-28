@@ -1,6 +1,9 @@
 /// Al pedir el código por SMS (S01).
 enum ResultadoPedido { enviado, sinSenal, demasiados, invalido, error }
 
+/// Borrar todo, también en el servidor (entrega 14.8).
+enum ResultadoBorrado { listo, sinSenal, sinCuenta, error }
+
 /// Al escribir el código.
 enum ResultadoVerificacion {
   verificado,
@@ -81,6 +84,11 @@ abstract interface class ServicioCuenta {
   /// en el servidor (no se borra) y el número pasa a este teléfono con lo
   /// que tiene. Al verificarse, sigue como cualquier cuenta nueva.
   Future<ResultadoVerificacion> empezarDeCero();
+
+  /// Borra para siempre en el servidor el negocio de esta cuenta y las
+  /// fotos leídas; el número queda sin datos (entrega 14.8). No toca el
+  /// teléfono: eso lo hace quien llama, solo si salió bien.
+  Future<ResultadoBorrado> borrarEnElServidor();
 
   Stream<SituacionCuenta> observar();
 

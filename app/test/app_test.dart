@@ -128,6 +128,9 @@ class _ServidorFalso {
   /// La cuenta se abrió en otro teléfono: la llave de este ya no sirve.
   bool sesionRevocada = false;
 
+  /// Lo que pidió borrar en el servidor (entrega 14.8).
+  final borrados = <Object?>[];
+
   Future<http.Response> responder(http.Request pedido) async {
     final bytes = pedido.headers['Content-Encoding'] == 'gzip'
         ? gzip.decode(pedido.bodyBytes)
@@ -176,6 +179,12 @@ class _ServidorFalso {
           }),
           200,
         );
+      case '/cuenta/borrar-datos':
+        if (!conLlave) {
+          return http.Response(jsonEncode({'error': 'sin_sesion'}), 401);
+        }
+        borrados.add(cuerpo['confirmacion']);
+        return http.Response(jsonEncode({'borradas': 1}), 200);
       case '/datos/subir':
         if (!conLlave) {
           return http.Response(jsonEncode({'error': 'sin_sesion'}), 401);
@@ -2488,6 +2497,80 @@ void main() {
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
       expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+    });
+  });
+
+  group('Entrega 14.8: borrar todo, también en el servidor', () {
+    Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      return base;
+    }
+
+    Future<int> movimientos(WidgetTester tester, BaseLocal base) async =>
+        (await tester.runAsync(() => base.select(base.movimientos).get()))!
+            .length;
+
+    testWidgets('Sin cuenta guardada no aparece', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      expect(find.text(Textos.borrarTodo), findsOneWidget);
+      expect(find.text(Textos.borrarEnServidor), findsNothing);
+    });
+
+    testWidgets('Aviso, escribir BORRAR y queda como recién instalada', (
+      tester,
+    ) async {
+      final base = await conCuentaGuardada(tester);
+      expect(await movimientos(tester, base), greaterThan(0));
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.borrarEnServidor));
+      expect(
+        find.text(Textos.borrarEnServidorAviso('987 654 321')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.continuar));
+
+      final boton = find.widgetWithText(TextButton, Textos.borrarParaSiempre);
+      expect(tester.widget<TextButton>(boton).onPressed, isNull);
+      await tester.enterText(find.byType(TextField), 'borra');
+      await tester.pump();
+      expect(tester.widget<TextButton>(boton).onPressed, isNull);
+      await tester.enterText(find.byType(TextField), 'BORRAR');
+      await tester.pump();
+      await tocar(tester, boton);
+
+      expect(_servidor.borrados, ['BORRAR']);
+      expect(find.text(Textos.seBorroTodoEnServidor), findsOneWidget);
+      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+      expect(await movimientos(tester, base), 0);
+    });
+
+    testWidgets('Sin señal no se borra nada, tampoco el teléfono', (
+      tester,
+    ) async {
+      final base = await conCuentaGuardada(tester);
+      final antes = await movimientos(tester, base);
+      await abrirAjusteOculto(tester);
+      _conSenal = false;
+      await tocar(tester, find.text(Textos.borrarEnServidor));
+      await tocar(tester, find.text(Textos.continuar));
+      await tester.enterText(find.byType(TextField), 'BORRAR');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(TextButton, Textos.borrarParaSiempre),
+      );
+      expect(find.text(Textos.borrarSinSenal), findsOneWidget);
+      expect(_servidor.borrados, isEmpty);
+      expect(await movimientos(tester, base), antes);
     });
   });
 }

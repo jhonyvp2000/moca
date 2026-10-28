@@ -300,6 +300,37 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   }
 
   @override
+  Future<ResultadoBorrado> borrarEnElServidor() async {
+    final llave = await _llavero.leer();
+    if (llave == null ||
+        await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null) {
+      return ResultadoBorrado.sinCuenta;
+    }
+    if (!await _hayConexion()) return ResultadoBorrado.sinSenal;
+    // Una subida a medias podría volver a crear lo borrado: se espera a que
+    // termine y no empieza otra mientras tanto.
+    for (var i = 0; _subiendo && i < 150; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    if (_subiendo) return ResultadoBorrado.error;
+    _subiendo = true;
+    try {
+      final respuesta = await _enviar('/cuenta/borrar-datos', {
+        'confirmacion': 'BORRAR',
+      }, llave: llave);
+      return respuesta.statusCode == 200
+          ? ResultadoBorrado.listo
+          : ResultadoBorrado.error;
+    } on TimeoutException {
+      return ResultadoBorrado.sinSenal;
+    } on http.ClientException {
+      return ResultadoBorrado.sinSenal;
+    } finally {
+      _subiendo = false;
+    }
+  }
+
+  @override
   Future<ResultadoBajada> bajarTodo() async {
     final llave = await _llavero.leer();
     final celular = _celularPorEntrar;

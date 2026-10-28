@@ -793,6 +793,25 @@ abstract final class Textos {
   static const confirmarDemoTitulo = '¿Empezar en «Demo»?';
   static const empezarDemoBoton = 'Borrar y cargar la demo';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';
+  // Borrar todo, también en el servidor (entrega 14.8)
+  static const borrarEnServidor = 'Borrar todo, también en el servidor';
+  static const borrarEnServidorDetalle =
+      'Borra para siempre los datos de este número en el servidor y en este '
+      'teléfono. Al entrar otra vez, todo empieza en blanco.';
+  static const borrarEnServidorTitulo = '¿Borrar todo para siempre?';
+  static String borrarEnServidorAviso(String celular) =>
+      'Se borran para siempre las ventas, gastos, comprobantes, arqueos y '
+      'saldos del número $celular, en el servidor y en este teléfono. No se '
+      'puede deshacer.';
+  static const continuar = 'Continuar';
+  static const escribeBorrar = 'Para confirmar, escribe BORRAR';
+  static const borrarParaSiempre = 'Borrar para siempre';
+  static const borrando = 'Borrando…';
+  static const seBorroTodoEnServidor = 'Se borró todo, también en el servidor.';
+  static const borrarSinSenal =
+      'Necesitas señal para borrar en el servidor. No se borró nada.';
+  static const borrarFallo =
+      'No se pudo borrar en el servidor. No se borró nada; intenta otra vez.';
   static const confirmarBorrarTitulo = '¿Borrar todo?';
   static const confirmarBorrarTexto =
       'Se borran todos los datos guardados en este teléfono. '
