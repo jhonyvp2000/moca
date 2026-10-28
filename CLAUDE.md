@@ -20,12 +20,20 @@ En paralelo, Jhony reúne las muestras de la Fase 0 (`docs/fase-0.md`). Las prue
 - Para comparar una pantalla con su diseño, usa `diseno/capturas/<código>.png` (y la versión `-completa.png` cuando exista).
 - Las muestras reales de la Fase 0 (comprobantes, audios, archivos SIRE) tienen datos personales: no se suben al repositorio.
 
+## Dónde vive el proyecto
+
+GitHub (`jhonyvp2000/moca`) es la única copia oficial. Jhony trabaja con Claude Code en la nube desde cualquier computadora, sin copias del proyecto en su disco (decisiones.md, 28-10-2026).
+
+- Claude Code trabaja en la rama de trabajo, hace commit de cada cambio y lo sube a GitHub en cuanto lo termina: lo que no se sube se pierde al cerrar la sesión.
+- Si alguna vez se baja el proyecto a una computadora, es para leerlo; cualquier cambio hecho ahí se sube con commit y push, o no cuenta.
+- Las muestras reales de la Fase 0 nunca entran al repositorio: Jhony las guarda fuera del proyecto y las pasa solo para las pruebas.
+
 ## Trabajo con Claude chat
 
-El análisis, el diseño y los mockups se hacen en Claude chat, que escribe directamente en esta carpeta.
+El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escribe en una carpeta del disco: Jhony le pasa su trabajo a Claude Code (pegado o como archivo adjunto) y Claude Code lo guarda en `docs/` o `diseno/` y lo sube a GitHub.
 
-- Claude chat edita solo `docs/` y `diseno/`. El código es de Claude Code.
-- Si encuentras cambios en `docs/` o `diseno/` que no hiciste, vienen de Claude chat: léelos antes de seguir.
+- Lo que viene de Claude chat va solo a `docs/` y `diseno/`. El código es de Claude Code.
+- Antes de guardarlo, léelo completo y avisa si contradice algo ya decidido.
 - Si al programar descubres que un diseño o un documento no funciona, dilo y propón el cambio; no lo corrijas en silencio en el código.
 
 ## Dónde está cada cosa
