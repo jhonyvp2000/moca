@@ -42,6 +42,7 @@ import 'servicios/buscador_qr_android.dart';
 import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
 import 'servicios/conexion_android.dart';
+import 'servicios/lector_sms_android.dart';
 import 'servicios/llavero_android.dart';
 import 'servicios/locutor_android.dart';
 import 'servicios/notificador_android.dart';
@@ -369,10 +370,16 @@ final tiposDeCuentaProvider = Provider<List<TipoCuenta>>((ref) {
 
 final llaveroProvider = Provider<Llavero>((ref) => LlaveroAndroid());
 
+/// Lee solo el SMS del código (entrega 14.7).
+final lectorCodigoSmsProvider = Provider<LectorCodigoSms>(
+  (ref) => LectorSmsAndroid(),
+);
+
 final servicioCuentaProvider = Provider<ServicioCuenta>(
   (ref) => ServicioCuentaRemoto(
     ref.watch(baseLocalProvider),
     llavero: ref.watch(llaveroProvider),
+    lectorSms: ref.watch(lectorCodigoSmsProvider),
     ahora: ref.watch(relojProvider),
     hayConexion: ref.watch(conexionProvider).hayConexion,
   ),

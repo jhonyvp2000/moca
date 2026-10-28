@@ -25,6 +25,10 @@ enum EventoMedicion {
   /// Se abrió un video de ayuda; lleva su número y desde dónde (entrega
   /// 14.6). Es lo único de la medición que se sube al servidor.
   videoAbierto,
+
+  /// Se comprobó el código de la cuenta; lleva si llegó solo del SMS
+  /// (entrega 14.7).
+  codigoComprobado,
 }
 
 abstract interface class Medicion {

@@ -11,6 +11,9 @@ export const limites = { porCelular: 5, porConexion: 20 };
 const esUuid = (v: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
+/** La marca de una app Android para SMS Retriever: 11 caracteres de base64. */
+const marcaValida = /^[A-Za-z0-9+/]{11}$/;
+
 /**
  * La cuenta del dueño: pedir el código por SMS y verificarlo. Sin
  * verificador configurado no se da ninguna cuenta: nunca hay un «código de
@@ -21,7 +24,7 @@ export function rutasCuenta(
   pool: Pool,
   verificador: Verificador | null,
 ): void {
-  app.post<{ Body: { celular?: unknown } }>('/cuenta/codigo', async (peticion, respuesta) => {
+  app.post<{ Body: { celular?: unknown; marcaApp?: unknown } }>('/cuenta/codigo', async (peticion, respuesta) => {
     if (!verificador) return respuesta.code(503).send({ error: 'sin_verificador' });
     const celular = String(peticion.body?.celular ?? '');
     if (!esCelularPeru(celular)) {
@@ -41,7 +44,11 @@ export function rutasCuenta(
     ) {
       return respuesta.code(429).send({ error: 'demasiados_pedidos' });
     }
-    if ((await verificador.enviar(internacional)) === 'demasiados') {
+    // La marca de la app (entrega 14.7): si no tiene el formato, el SMS sale
+    // sin ella y el dueño escribe el código.
+    const marca = peticion.body?.marcaApp;
+    const marcaApp = typeof marca === 'string' && marcaValida.test(marca) ? marca : undefined;
+    if ((await verificador.enviar(internacional, marcaApp)) === 'demasiados') {
       return respuesta.code(429).send({ error: 'demasiados_pedidos' });
     }
     // Solo cuenta lo que de verdad se envió: un intento que Twilio rechazó

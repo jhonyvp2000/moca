@@ -137,6 +137,9 @@ abstract final class Textos {
       'Ese código no es. Revisa el mensaje e intenta otra vez.';
   static const codigoVencido = 'El código venció. Te enviamos uno nuevo.';
   static const codigoReenviado = 'Te enviamos un código nuevo.';
+  static const esperandoSms =
+      'Esperando el SMS… Si llega a este teléfono, el código se escribe solo.';
+  static const codigoLeidoDelSms = 'Código leído del SMS.';
   static const reenviarCodigo = '¿No te llegó? Reenviar';
   static String reenviarEn(int segundos) =>
       '¿No te llegó? Reenviar en $segundos s';

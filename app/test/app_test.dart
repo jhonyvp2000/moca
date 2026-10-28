@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show gzip;
 
@@ -111,6 +112,7 @@ var _avisosDePrueba = 0;
 class _ServidorFalso {
   final subidas = <Map<String, Object?>>[];
   final codigosPedidos = <String>[];
+  final marcasPedidas = <Object?>[];
   int estadoAlPedir = 200;
   bool cuentaExistente = false;
 
@@ -139,6 +141,7 @@ class _ServidorFalso {
     switch (pedido.url.path) {
       case '/cuenta/codigo':
         codigosPedidos.add(cuerpo['celular']! as String);
+        marcasPedidas.add(cuerpo['marcaApp']);
         return http.Response(jsonEncode({'canal': 'sms'}), estadoAlPedir);
       case '/cuenta/verificar':
         final entrar = cuerpo['modo'] == 'entrar';
@@ -296,6 +299,26 @@ class _AbridorFalso implements AbridorDeEnlaces {
   }
 }
 
+/// El SMS del código (entrega 14.7): la marca de la app y los SMS que
+/// llegan. Sin marca, el teléfono no puede leerlos.
+String? _marcaSms;
+var _sms = StreamController<String>.broadcast();
+var _esperandoSms = 0;
+
+class _LectorSmsFalso implements LectorCodigoSms {
+  @override
+  Future<String?> marca() async => _marcaSms;
+
+  @override
+  Future<void> esperar() async => _esperandoSms++;
+
+  @override
+  Stream<String> get codigos => _sms.stream;
+
+  @override
+  Future<void> dejarDeEsperar() async {}
+}
+
 var _servidor = _ServidorFalso();
 var _llavero = _LlaveroFalso();
 
@@ -363,6 +386,9 @@ Future<BaseLocal> abrirApp(
   _daPermiso = true;
   _abrirDesdeAviso = null;
   _servidor = _ServidorFalso();
+  _marcaSms = null;
+  _sms = StreamController<String>.broadcast();
+  _esperandoSms = 0;
   _enlaces = {};
   _abiertos.clear();
   _abreVideos = true;
@@ -415,12 +441,14 @@ Future<BaseLocal> abrirApp(
         locutorProvider.overrideWithValue(_LocutorFalso()),
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
         abridorProvider.overrideWithValue(_AbridorFalso()),
+        lectorCodigoSmsProvider.overrideWithValue(_LectorSmsFalso()),
         enlacesDeVideosProvider.overrideWith((ref) => _enlaces),
         notificadorProvider.overrideWithValue(_NotificadorFalso()),
         servicioCuentaProvider.overrideWith(
           (ref) => ServicioCuentaRemoto(
             base,
             llavero: _llavero,
+            lectorSms: ref.watch(lectorCodigoSmsProvider),
             cliente: MockClient(_servidor.responder),
             ahora: () => _ahora,
             hayConexion: ref.watch(conexionProvider).hayConexion,
@@ -2405,6 +2433,61 @@ void main() {
       await tocar(tester, find.text(Textos.tituloVideo(VideoTutoria.arqueo)));
       expect(find.text(Textos.videoSinEnlace), findsOneWidget);
       expect(_abiertos, isEmpty);
+    });
+  });
+
+  group('Entrega 14.7: el código se lee del SMS', () {
+    testWidgets('El SMS llega y el código se escribe y comprueba solo', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester);
+      _marcaSms = 'Ab3dE5fGh7J';
+      await abrirVentaEscrita(tester);
+      await tester.enterText(find.byType(TextField).at(0), '350');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
+      );
+
+      // Escucha antes de pedirlo y manda la marca para el final del SMS.
+      expect(_esperandoSms, 1);
+      expect(_servidor.marcasPedidas, ['Ab3dE5fGh7J']);
+      expect(find.text(Textos.esperandoSms), findsOneWidget);
+
+      _sms.add('123456');
+      await esperar(tester);
+      // Comprobado sin tocar nada: sigue al alta.
+      expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+      final eventos = await tester.runAsync(
+        () => (base.select(
+          base.eventosMedicion,
+        )..where((e) => e.nombre.equals('codigoComprobado'))).get(),
+      );
+      expect(eventos!.single.datos, '{"delSms":true}');
+    });
+
+    testWidgets('Sin lectura del SMS, se escribe como siempre', (tester) async {
+      await abrirApp(tester);
+      await abrirVentaEscrita(tester);
+      await tester.enterText(find.byType(TextField).at(0), '350');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
+      );
+      expect(_esperandoSms, 0);
+      expect(_servidor.marcasPedidas, [null]);
+      expect(find.text(Textos.esperandoSms), findsNothing);
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+      expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
     });
   });
 }

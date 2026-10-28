@@ -25,6 +25,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
+    this._lectorSms = const SinLectorSms(),
     http.Client? cliente,
     DateTime Function()? ahora,
     Future<bool> Function()? hayConexion,
@@ -38,6 +39,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   final BaseLocal _base;
   final AccesoLocal _a;
   final Llavero _llavero;
+  final LectorCodigoSms _lectorSms;
   final http.Client _cliente;
   final Future<bool> Function() _hayConexion;
   final Uri _servidor;
@@ -106,8 +108,20 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   @override
   Future<ResultadoPedido> pedirCodigo(String celular) async {
     if (!await _hayConexion()) return ResultadoPedido.sinSenal;
+    // Se escucha antes de pedirlo: el SMS puede llegar en segundos. Con la
+    // marca al final, Android se lo da a Moca (entrega 14.7).
+    String? marca;
     try {
-      final respuesta = await _enviar('/cuenta/codigo', {'celular': celular});
+      marca = await _lectorSms.marca();
+      if (marca != null) await _lectorSms.esperar();
+    } on Object {
+      marca = null;
+    }
+    try {
+      final respuesta = await _enviar('/cuenta/codigo', {
+        'celular': celular,
+        'marcaApp': ?marca,
+      });
       return switch (respuesta.statusCode) {
         200 => ResultadoPedido.enviado,
         429 => ResultadoPedido.demasiados,

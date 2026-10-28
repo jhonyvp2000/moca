@@ -6,7 +6,14 @@ export type Comprobacion = 'aprobado' | 'incorrecto' | 'vencido';
  * guarda el proveedor: el servidor de Moca nunca lo conoce.
  */
 export interface Verificador {
-  enviar(celularInternacional: string): Promise<'enviado' | 'demasiados'>;
+  /**
+   * [marcaApp]: la marca de 11 caracteres de la app Android. Va al final
+   * del SMS para que el teléfono lo lea solo (SMS Retriever, entrega 14.7).
+   */
+  enviar(
+    celularInternacional: string,
+    marcaApp?: string,
+  ): Promise<'enviado' | 'demasiados'>;
   comprobar(celularInternacional: string, codigo: string): Promise<Comprobacion>;
 }
 
@@ -64,10 +71,11 @@ export function verificadorTwilio(
     });
 
   return {
-    async enviar(celular) {
+    async enviar(celular, marcaApp) {
       const respuesta = await enviarFormulario('Verifications', {
         To: celular,
         Channel: 'sms',
+        ...(marcaApp ? { AppHash: marcaApp } : {}),
       });
       if (respuesta.status === 429) return 'demasiados';
       if (!respuesta.ok) throw await errorDeTwilio('envió el código', respuesta);

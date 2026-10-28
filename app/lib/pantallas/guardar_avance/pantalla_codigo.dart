@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/medicion.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -64,17 +65,38 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
   int _faltan = PantallaCodigo.esperaParaReenviar;
   Timer? _reloj;
 
+  /// El SMS del código, leído por Android (entrega 14.7).
+  late final LectorCodigoSms _lectorSms;
+  StreamSubscription<String>? _sms;
+  bool _leeSms = false;
+  bool _delSms = false;
+
   @override
   void initState() {
     super.initState();
     _contarParaReenviar();
+    _lectorSms = ref.read(lectorCodigoSmsProvider);
+    _sms = _lectorSms.codigos.listen(_codigoDelSms);
+    _lectorSms.marca().then((marca) {
+      if (mounted && marca != null) setState(() => _leeSms = true);
+    });
   }
 
   @override
   void dispose() {
     _reloj?.cancel();
+    _sms?.cancel();
+    _lectorSms.dejarDeEsperar();
     _codigo.dispose();
     super.dispose();
+  }
+
+  void _codigoDelSms(String codigo) {
+    if (!mounted || _fase != _Fase.escribiendo) return;
+    if (!RegExp(r'^\d{6}$').hasMatch(codigo)) return;
+    _codigo.text = codigo;
+    _delSms = true;
+    _confirmar();
   }
 
   void _contarParaReenviar() {
@@ -113,8 +135,12 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
     setState(() {
       _fase = _Fase.comprobando;
       _error = null;
-      _nota = null;
+      _nota = _delSms ? Textos.codigoLeidoDelSms : null;
     });
+    ref.read(medicionProvider).anotar(EventoMedicion.codigoComprobado, {
+      'delSms': _delSms,
+    });
+    _delSms = false;
     final servicio = ref.read(servicioCuentaProvider);
     final resultado = await servicio.verificar(
       widget.celular,
@@ -290,6 +316,8 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           autofocus: true,
           enabled: _fase == _Fase.escribiendo,
           keyboardType: TextInputType.number,
+          // Si Android no lo lee solo, el teclado puede sugerirlo.
+          autofillHints: const [AutofillHints.oneTimeCode],
           textAlign: TextAlign.center,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
@@ -315,6 +343,13 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             contentPadding: EdgeInsets.symmetric(vertical: 14),
           ),
         ),
+        if (_leeSms &&
+            _fase == _Fase.escribiendo &&
+            _codigo.text.isEmpty &&
+            _error == null) ...[
+          const SizedBox(height: 8),
+          const Text(Textos.esperandoSms, style: Tipografia.secundario),
+        ],
         if (_error case final error?) ...[
           const SizedBox(height: 12),
           Aviso(texto: error),

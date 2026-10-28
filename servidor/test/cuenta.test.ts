@@ -50,6 +50,20 @@ describe('Cuenta con el celular', () => {
     expect((await pedir('887654321')).json()).toEqual({ error: 'celular_invalido' });
   });
 
+  it('pasa la marca de la app si tiene el formato (entrega 14.7)', async () => {
+    const conMarca = (marcaApp: unknown, ip: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/cuenta/codigo',
+        payload: { celular: '955555555', marcaApp },
+        remoteAddress: ip,
+      });
+    expect((await conMarca('Ab3dE5fGh7J', '10.7.0.1')).statusCode).toBe(200);
+    expect(verificador.marcas.at(-1)).toBe('Ab3dE5fGh7J');
+    expect((await conMarca('no-es-una-marca', '10.7.0.2')).statusCode).toBe(200);
+    expect(verificador.marcas.at(-1)).toBeUndefined();
+  });
+
   it('pone un límite de pedidos por número y por conexión', async () => {
     for (let i = 0; i < limites.porCelular; i++) await pedir('911111111', `10.1.0.${i}`);
     const otra = await pedir('911111111', '10.1.1.1');

@@ -97,6 +97,40 @@ abstract interface class ServicioCuenta {
   Future<void> actualizarCifras();
 }
 
+/// Lee solo el SMS del código, sin permiso para leer los mensajes (SMS
+/// Retriever de Android, entrega 14.7). Android entrega a Moca solo el SMS
+/// que termina con la marca de la app.
+abstract interface class LectorCodigoSms {
+  /// La marca de 11 caracteres de la app; nula si el teléfono no puede
+  /// leer el SMS (por ejemplo, sin los servicios de Google).
+  Future<String?> marca();
+
+  /// Empieza a esperar el SMS, 5 minutos como máximo.
+  Future<void> esperar();
+
+  /// Los códigos de 6 dígitos que llegan por SMS.
+  Stream<String> get codigos;
+
+  Future<void> dejarDeEsperar();
+}
+
+/// Para cuando no se puede leer el SMS: el dueño escribe el código.
+class SinLectorSms implements LectorCodigoSms {
+  const SinLectorSms();
+
+  @override
+  Future<String?> marca() async => null;
+
+  @override
+  Future<void> esperar() async {}
+
+  @override
+  Stream<String> get codigos => const Stream.empty();
+
+  @override
+  Future<void> dejarDeEsperar() async {}
+}
+
 /// Donde el teléfono guarda la llave de su cuenta, cifrada.
 abstract interface class Llavero {
   Future<String?> leer();

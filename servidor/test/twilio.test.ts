@@ -24,6 +24,14 @@ describe('Twilio Verify', () => {
     );
   });
 
+  it('con la marca de la app, el SMS la lleva al final (entrega 14.7)', async () => {
+    const { pedir, pedidos } = fetchFalso(201, { status: 'pending' });
+    await verificadorTwilio(config, pedir).enviar('+51987654321', 'Ab3dE5fGh7J');
+    expect(String(pedidos[0]!.init.body)).toBe(
+      'To=%2B51987654321&Channel=sms&AppHash=Ab3dE5fGh7J',
+    );
+  });
+
   it('demasiados envíos al mismo número', async () => {
     const { pedir } = fetchFalso(429);
     expect(await verificadorTwilio(config, pedir).enviar('+51987654321')).toBe('demasiados');
