@@ -75,4 +75,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // SMS Retriever: el código del SMS se escribe solo (entrega 14.7).
+    implementation("com.google.android.gms:play-services-auth-api-phone:18.1.0")
 }
