@@ -469,7 +469,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
   Future<FlujoParaCredito> flujoParaCredito() async {
     final ahora = _a.ahora();
     final actual = DateTime(ahora.year, ahora.month);
-    final meses = [
+    var meses = [
       for (var i = 6; i >= 1; i--) DateTime(actual.year, actual.month - i),
     ];
     final empresa = await _a.empresa();
@@ -528,8 +528,13 @@ class RepositorioInformeLocal implements RepositorioInforme {
     bool esCuota(Movimiento m) =>
         m.tipo == TipoMovimiento.egreso &&
         categorias[m.categoriaId] == categoriaCuotaDePrestamo;
+    // Sin ningún mes completo, va lo que lleva del mes en curso, hasta hoy
+    // (entrega 14.15.1): mejor eso que un archivo vacío.
+    final conMesEnCurso = inicio == null || inicio.isAfter(meses.last);
+    if (conMesEnCurso) meses = [...meses.skip(1), actual];
+    final manana = inicioDelDia(ahora).add(const Duration(days: 1));
     final desde6 = meses.first;
-    final hasta6 = actual;
+    final hasta6 = conMesEnCurso ? manana : actual;
     final enPeriodo = [
       for (final m in pagados)
         if (!_fecha(m).isBefore(desde6) && _fecha(m).isBefore(hasta6)) m,
@@ -550,7 +555,8 @@ class RepositorioInformeLocal implements RepositorioInforme {
 
     final resultado = <MesDelFlujo>[];
     for (final mes in meses) {
-      final fin = DateTime(mes.year, mes.month + 1);
+      final enCurso = mes == actual;
+      final fin = enCurso ? manana : DateTime(mes.year, mes.month + 1);
       if (inicio == null || !inicio.isBefore(fin)) {
         resultado.add(
           MesDelFlujo(mes: mes, estado: EstadoMesFlujo.antesDeMoca),
@@ -583,7 +589,9 @@ class RepositorioInformeLocal implements RepositorioInforme {
       resultado.add(
         MesDelFlujo(
           mes: mes,
-          estado: inicio.isAfter(mes)
+          estado: enCurso
+              ? EstadoMesFlujo.enCurso
+              : inicio.isAfter(mes)
               ? EstadoMesFlujo.incompleto
               : EstadoMesFlujo.completo,
           centimos: filas,

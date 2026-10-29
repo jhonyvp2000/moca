@@ -324,6 +324,21 @@ void main() {
     );
   });
 
+  test('Sin ningún mes completo, va el mes en curso hasta hoy '
+      '(entrega 14.15.1)', () async {
+    final f = await informe.flujoParaCredito();
+    expect(f.hayMesCompleto, isFalse);
+    expect(f.meses.length, 6);
+    expect(f.meses.first.mes, DateTime(2026, 5));
+    final octubre = f.meses.last;
+    expect(octubre.mes, DateTime(2026, 10));
+    expect(octubre.estado, EstadoMesFlujo.enCurso);
+    expect(octubre.centimos[FilaFlujo.ventasContado], 35000);
+    expect(f.meses.take(5).map((m) => m.estado).toSet(), {
+      EstadoMesFlujo.antesDeMoca,
+    });
+  });
+
   group('Avisos', () {
     test('Dos días sin anotar dan aviso, y se va al anotar', () async {
       ahora = DateTime(2026, 10, 14, 9);

@@ -268,6 +268,10 @@ enum EstadoMesFlujo {
   /// El mes en que empezó Moca, desde ese día.
   incompleto,
   completo,
+
+  /// El mes en curso, hasta hoy: solo va si no hay ningún mes completo
+  /// (entrega 14.15.1).
+  enCurso,
 }
 
 /// Un mes del flujo, en flujo de caja: cada pago cuenta el día que se pagó.
@@ -320,12 +324,22 @@ class FlujoParaCredito {
   Iterable<MesDelFlujo> get conMoca =>
       meses.where((m) => m.estado != EstadoMesFlujo.antesDeMoca);
 
-  /// Lo que retiró para él en promedio, solo en meses completos.
+  bool get hayMesCompleto =>
+      meses.any((m) => m.estado == EstadoMesFlujo.completo);
+
+  /// Los meses que entran en el promedio: los completos y los de antes de
+  /// Moca que llene el dueño; si no hay ningún completo, todos.
+  bool entraEnPromedio(MesDelFlujo m) =>
+      !hayMesCompleto ||
+      m.estado == EstadoMesFlujo.completo ||
+      m.estado == EstadoMesFlujo.antesDeMoca;
+
+  /// Lo que retiró para él en promedio, en los meses de Moca que entran en
+  /// el promedio.
   int? get retirosPromedioCentimos {
-    final completos = meses.where((m) => m.estado == EstadoMesFlujo.completo);
-    if (completos.isEmpty) return null;
-    return completos.fold(0, (s, m) => s + m.retirosCentimos) ~/
-        completos.length;
+    final cuentan = conMoca.where(entraEnPromedio);
+    if (cuentan.isEmpty) return null;
+    return cuentan.fold(0, (s, m) => s + m.retirosCentimos) ~/ cuentan.length;
   }
 }
 

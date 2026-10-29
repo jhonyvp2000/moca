@@ -262,7 +262,19 @@ void main() {
     );
     // El excedente es antes de las cuotas.
     expect(flujo, isNot(contains('B28:B30)</f></c><c r="C34"')));
+    // Cada fórmula lleva su resultado, para los visores que no calculan
+    // (entrega 14.15.1): el excedente de setiembre, ya sin agosto.
+    final excedente =
+        (m.centimos.entries
+                .where((e) => entradas.contains(e.key))
+                .fold(0, (s, e) => s + e.value) -
+            m.centimos.entries
+                .where((e) => !entradas.contains(e.key))
+                .fold(0, (s, e) => s + e.value)) /
+        100;
+    expect(flujo, contains('<v>$excedente</v></c><c r="I34"'));
     final hogar = xml('xl/worksheets/sheet3.xml');
+    expect(hogar, contains('<f>N(FLUJO_MENSUAL!H34)</f><v>$excedente</v>'));
     expect(hogar, contains('<f>N(FLUJO_MENSUAL!H34)</f>'));
     expect(hogar, contains('<f>MAX(0,B18*0.4-B21)</f>'));
     final resumen = xml('xl/worksheets/sheet4.xml');

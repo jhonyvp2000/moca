@@ -95,7 +95,15 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
         builder: (context) => AlertDialog(
           title: const Text(Textos.flujoParaCajaTitulo),
           content: Text(
-            Textos.flujoParaCaja(flujo.conMoca.length),
+            Textos.flujoParaCaja(
+              flujo.conMoca.length,
+              hastaHoy: switch (flujo.meses.last) {
+                final m when m.estado == EstadoMesFlujo.enCurso => nombreDelMes(
+                  m.mes,
+                ),
+                _ => null,
+              },
+            ),
             style: Tipografia.texto,
           ),
           actions: [

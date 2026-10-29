@@ -679,10 +679,10 @@ abstract final class Textos {
       'Tus últimos meses y el flujo en el formato de la caja.';
   static const mocaPlus = 'Moca Plus';
   static const flujoParaCajaTitulo = 'Para pedir un crédito';
-  static String flujoParaCaja(int meses) =>
+  static String flujoParaCaja(int meses, {String? hastaHoy}) =>
       'Se comparten dos archivos: el resumen en PDF y el flujo de caja en el '
       'formato que usan las cajas y financieras. '
-      '${meses == 0 ? 'Moca todavía no tiene un mes cerrado: los 6 meses que piden los completas tú con tu asesor, igual que los gastos de tu hogar.' : 'Moca llenó los 17 datos de tu negocio en $meses de los 6 meses que piden. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.'}';
+      '${hastaHoy != null ? 'Moca todavía no tiene un mes completo: va lo que llevas de $hastaHoy, hasta hoy. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.' : 'Moca llenó los 17 datos de tu negocio en $meses de los 6 meses que piden. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.'}';
   static const compartir = 'Compartir';
   static const etiquetaParaContador = 'Para el contador';
   static const etiquetaParaCredito = 'Para evaluar un crédito';

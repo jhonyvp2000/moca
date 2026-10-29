@@ -68,11 +68,16 @@ class CeldaFecha extends Celda {
 class CeldaFormula extends Celda {
   const CeldaFormula(
     this.formula, {
+    this.valor,
     this.formato = FormatoNumero.general,
     super.fuerte,
     super.relleno = Relleno.calculado,
   });
   final String formula;
+
+  /// El resultado ya calculado (un número o un texto), para los visores que
+  /// no calculan, como la vista previa de WhatsApp (entrega 14.15.1).
+  final Object? valor;
   final FormatoNumero formato;
 }
 
@@ -289,8 +294,14 @@ String _hoja(HojaXlsx h, _Estilos estilos) {
           b.write(
             '<c r="$ref"${s(FormatoNumero.fecha)}><v>${_serial(fecha)}</v></c>',
           );
-        case CeldaFormula(:final formula, :final formato):
-          b.write('<c r="$ref"${s(formato)}><f>${_escapar(formula)}</f></c>');
+        case CeldaFormula(:final formula, :final valor, :final formato):
+          final f = '<f>${_escapar(formula)}</f>';
+          b.write(switch (valor) {
+            num() => '<c r="$ref"${s(formato)}>$f<v>$valor</v></c>',
+            String() =>
+              '<c r="$ref" t="str"${s(formato)}>$f<v>${_escapar(valor)}</v></c>',
+            _ => '<c r="$ref"${s(formato)}>$f</c>',
+          });
         case CeldaVacia(:final formato):
           b.write('<c r="$ref"${s(formato)}/>');
       }

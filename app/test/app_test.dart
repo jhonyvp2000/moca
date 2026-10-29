@@ -1804,9 +1804,15 @@ void main() {
       expect(find.text(Textos.mocaPlus), findsOneWidget);
       // Para la caja, primero dice qué llenó Moca (entrega 14.15).
       await tocar(tester, find.text(Textos.pdfParaCredito));
-      expect(find.text(Textos.flujoParaCaja(0)), findsOneWidget);
+      expect(
+        find.text(Textos.flujoParaCaja(1, hastaHoy: 'octubre')),
+        findsOneWidget,
+      );
       await tocar(tester, find.text(Textos.cancelar));
-      expect(find.text(Textos.flujoParaCaja(0)), findsNothing);
+      expect(
+        find.text(Textos.flujoParaCaja(1, hastaHoy: 'octubre')),
+        findsNothing,
+      );
       await esperar(tester);
       // Y al lado, el Excel de las operaciones (entrega 14.13).
       expect(find.text(Textos.compartirExcel), findsOneWidget);
