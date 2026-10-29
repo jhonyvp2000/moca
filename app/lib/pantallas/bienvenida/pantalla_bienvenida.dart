@@ -148,6 +148,12 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
                           ),
                         ],
                       ),
+                      // Quien entra a un negocio ajeno (entrega 19).
+                      OutlinedButton(
+                        onPressed: () => context.push(Rutas.invitado),
+                        style: _estiloEnlace(conBorde: false),
+                        child: const Text(Textos.meInvitaron),
+                      ),
                     ],
                   ),
                 ),

@@ -140,6 +140,15 @@ class _ServidorFalso {
   /// Lo que pidió borrar en el servidor (entrega 14.8).
   final borrados = <Object?>[];
 
+  /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
+  /// para «Me invitaron» y lo que se invitó, quitó o aceptó.
+  Map<String, Object?>? equipo;
+  List<Map<String, Object?>> invitacionesRecibidas = [];
+  String? errorAlInvitar;
+  final invitados = <Map<String, Object?>>[];
+  final quitados = <Object?>[];
+  final aceptadas = <Object?>[];
+
   Future<http.Response> responder(http.Request pedido) async {
     final bytes = pedido.headers['Content-Encoding'] == 'gzip'
         ? gzip.decode(pedido.bodyBytes)
@@ -155,6 +164,39 @@ class _ServidorFalso {
         codigosPedidos.add(cuerpo['celular']! as String);
         marcasPedidas.add(cuerpo['marcaApp']);
         return http.Response(jsonEncode({'canal': 'sms'}), estadoAlPedir);
+      case '/cuenta/verificar' when cuerpo['modo'] == 'invitado':
+        if (cuerpo['codigo'] != '123456') {
+          return http.Response(jsonEncode({'error': 'codigo_incorrecto'}), 400);
+        }
+        if (invitacionesRecibidas.isEmpty) {
+          return http.Response(jsonEncode({'error': 'sin_invitacion'}), 404);
+        }
+        return http.Response(
+          jsonEncode({
+            'llave': 'llave-de-prueba',
+            'usuarioId': cuerpo['usuarioId'],
+            'empresas': <String>[],
+            'cuentaExistente': false,
+            'invitaciones': invitacionesRecibidas,
+          }),
+          200,
+        );
+      case '/cuenta/aceptar':
+        aceptadas.add(cuerpo['invitacion']);
+        return cuerpo['consentimiento'] == true
+            ? http.Response(jsonEncode({'rol': 'ayudante'}), 200)
+            : http.Response(jsonEncode({'error': 'datos_invalidos'}), 400);
+      case '/equipo':
+        return http.Response(jsonEncode(equipo), equipo == null ? 403 : 200);
+      case '/equipo/invitar':
+        if (errorAlInvitar case final error?) {
+          return http.Response(jsonEncode({'error': error}), 409);
+        }
+        invitados.add(cuerpo);
+        return http.Response(jsonEncode({'id': 'nueva'}), 200);
+      case '/equipo/quitar':
+        quitados.add(cuerpo['membresia']);
+        return http.Response(jsonEncode({'quitada': true}), 200);
       case '/cuenta/verificar':
         final entrar = cuerpo['modo'] == 'entrar';
         return switch (cuerpo['codigo']) {
@@ -2573,6 +2615,187 @@ void main() {
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
       expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+    });
+  });
+
+  group('Entrega 19: Mi equipo y «Me invitaron»', () {
+    Future<void> alCodigoDeInvitado(WidgetTester tester) async {
+      await tocar(tester, find.text(Textos.meInvitaron));
+      expect(find.text(Textos.entraAlNegocioDetalle), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '987000003');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
+      );
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+    }
+
+    testWidgets('La Bienvenida cabe en un teléfono pequeño', (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await abrirApp(tester);
+      expect(find.text(Textos.meInvitaron), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Sin invitación, lo dice y no entra', (tester) async {
+      await abrirApp(tester);
+      await alCodigoDeInvitado(tester);
+      expect(find.text(Textos.sinInvitacion), findsOneWidget);
+      expect(_servidor.aceptadas, isEmpty);
+    });
+
+    testWidgets('El invitado ve a qué negocio y con qué rol, acepta y entra', (
+      tester,
+    ) async {
+      await abrirApp(tester);
+      _servidor
+        ..invitacionesRecibidas = [
+          {
+            'id': 'inv-1',
+            'negocio': 'Bodega Don Lucho',
+            'rol': 'ayudante',
+            'nombre': 'Pepe',
+            'vence_en': _ahora
+                .add(const Duration(days: 7))
+                .toUtc()
+                .toIso8601String(),
+          },
+        ]
+        ..cuentaParaEntrar = {
+          ..._cuentaDeLucho(),
+          'membresia': {
+            ...(_cuentaDeLucho()['membresia']! as Map),
+            'rol': 'ayudante',
+          },
+        };
+      await alCodigoDeInvitado(tester);
+      expect(find.text(Textos.teInvitaron('Bodega Don Lucho')), findsOneWidget);
+      expect(find.text(Textos.comoRol('Ayudante')), findsOneWidget);
+      expect(find.text(Textos.detalleRol(Rol.ayudante)), findsOneWidget);
+      expect(find.text(Textos.consentimientoInvitado), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.aceptarYEntrar));
+      expect(_servidor.aceptadas, ['inv-1']);
+      expect(find.text(Textos.yaEstasEn('Bodega Don Lucho')), findsOneWidget);
+      expect(find.text('Bodega Don Lucho'), findsWidgets);
+    });
+
+    Future<void> conCuentaGuardada(WidgetTester tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+    }
+
+    Map<String, Object?> equipoDeLucho() => {
+      'rol': 'dueno',
+      'titular': true,
+      'maximo': 3,
+      'personas': [
+        {
+          'membresia_id': 'm-lucho',
+          'usuario_id': 'u-lucho',
+          'nombre': null,
+          'rol': 'dueno',
+          'titular': true,
+          'celular': '+51987654321',
+        },
+        {
+          'membresia_id': 'm-rosa',
+          'usuario_id': 'u-rosa',
+          'nombre': 'Rosa',
+          'rol': 'ayudante',
+          'titular': false,
+          'celular': '+51987000002',
+        },
+      ],
+      'invitaciones': [
+        {
+          'id': 'inv-pepe',
+          'celular': '+51987000003',
+          'rol': 'contador',
+          'nombre': 'Pepe',
+          'vence_en': _ahora
+              .add(const Duration(days: 7))
+              .toUtc()
+              .toIso8601String(),
+        },
+      ],
+    };
+
+    testWidgets('Sin cuenta guardada, «Mi equipo» no aparece', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.miEquipo), findsNothing);
+    });
+
+    testWidgets('El dueño ve su equipo, invita y quita', (tester) async {
+      await conCuentaGuardada(tester);
+      _servidor.equipo = equipoDeLucho();
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.miEquipo));
+      expect(find.text('Rosa'), findsOneWidget);
+      expect(find.text('Ayudante · 987 000 002'), findsOneWidget);
+      expect(find.text('Pepe'), findsOneWidget);
+      // Rosa, Lucho y la invitación del contador, que no cuenta.
+      expect(find.text(Textos.lugaresLibres(1, 3)), findsOneWidget);
+
+      // Invitar: con ya las 3 personas, lo dice.
+      await tocar(tester, find.text(Textos.invitarAAlguien));
+      await tester.enterText(find.byType(TextField).at(0), 'Carmen');
+      await tester.enterText(find.byType(TextField).at(1), '987000004');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.nombreRol(Rol.encargado)));
+      expect(find.text(Textos.detalleRol(Rol.encargado)), findsOneWidget);
+      _servidor.errorAlInvitar = 'sin_lugar';
+      await tocar(tester, find.text(Textos.enviarInvitacion));
+      expect(find.text(Textos.sinLugar), findsOneWidget);
+      _servidor.errorAlInvitar = null;
+      await tocar(tester, find.text(Textos.enviarInvitacion));
+      expect(_servidor.invitados.single, {
+        'celular': '987000004',
+        'rol': 'encargado',
+        'nombre': 'Carmen',
+      });
+      expect(find.text(Textos.invitacionEnviada('Carmen')), findsOneWidget);
+
+      // Quitar a Rosa, con confirmación.
+      await tocar(tester, find.text(Textos.quitar));
+      expect(find.text(Textos.quitarPregunta('Rosa')), findsOneWidget);
+      await tocar(tester, find.text(Textos.quitar).last);
+      expect(_servidor.quitados, ['m-rosa']);
+    });
+
+    testWidgets('Quien no es dueño solo mira', (tester) async {
+      await conCuentaGuardada(tester);
+      _servidor.equipo = {
+        ...equipoDeLucho(),
+        'rol': 'ayudante',
+        'titular': false,
+        'invitaciones': <Object>[],
+      };
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.miEquipo));
+      expect(find.text('Rosa'), findsOneWidget);
+      expect(find.text(Textos.quitar), findsNothing);
+      expect(find.text(Textos.invitarAAlguien), findsNothing);
+    });
+
+    testWidgets('Sin señal, lo dice', (tester) async {
+      await conCuentaGuardada(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      _conSenal = false;
+      await tocar(tester, find.text(Textos.miEquipo));
+      expect(find.text(Textos.necesitasSenalParaEquipo), findsOneWidget);
     });
   });
 

@@ -7,6 +7,7 @@ import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
+import '../../dominio/cuenta_real.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
 import '../../inyeccion.dart';
@@ -155,44 +156,21 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                   ),
           const SeccionAprende(),
           const SizedBox(height: 18),
-          Tarjeta(
-            relleno: EdgeInsets.zero,
-            child: Material(
-              color: Colores.superficie,
-              borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                onTap: () => context.push(Rutas.cuentas),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              Textos.misCuentas,
-                              style: Tipografia.textoFuerte,
-                            ),
-                            Text(
-                              Textos.misCuentasDetalle,
-                              style: Tipografia.secundario,
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconoTrazo(
-                        Icono.derecha,
-                        color: Colores.textoSecundario,
-                        tamano: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          const _Enlace(
+            titulo: Textos.misCuentas,
+            detalle: Textos.misCuentasDetalle,
+            ruta: Rutas.cuentas,
           ),
+          // Con la cuenta guardada, el equipo del negocio (entrega 19).
+          if (ref.watch(situacionCuentaProvider).value?.estado ==
+              EstadoCuenta.guardada) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            const _Enlace(
+              titulo: Textos.miEquipo,
+              detalle: Textos.miEquipoDetalle,
+              ruta: Rutas.equipo,
+            ),
+          ],
         ],
       ),
     );
@@ -345,6 +323,55 @@ class _FilaAviso extends StatelessWidget {
             ),
             const IconoTrazo(Icono.derecha, color: Colores.textoPrincipal),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Una tarjeta que lleva a otra pantalla: «Mis cuentas», «Mi equipo».
+class _Enlace extends StatelessWidget {
+  const _Enlace({
+    required this.titulo,
+    required this.detalle,
+    required this.ruta,
+  });
+
+  final String titulo;
+  final String detalle;
+  final String ruta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tarjeta(
+      relleno: EdgeInsets.zero,
+      child: Material(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          onTap: () => context.push(ruta),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(titulo, style: Tipografia.textoFuerte),
+                      Text(detalle, style: Tipografia.secundario),
+                    ],
+                  ),
+                ),
+                const IconoTrazo(
+                  Icono.derecha,
+                  color: Colores.textoSecundario,
+                  tamano: 20,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

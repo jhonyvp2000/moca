@@ -26,6 +26,9 @@ import 'pantallas/moca/pantalla_moca.dart';
 import 'pantallas/registrar/pantalla_escribir.dart';
 import 'pantallas/registrar/pantalla_registrar.dart';
 import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
+import 'pantallas/equipo/pantalla_equipo.dart';
+import 'pantallas/equipo/pantalla_invitacion.dart';
+import 'pantallas/equipo/pantalla_invitar.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
 
@@ -43,6 +46,11 @@ abstract final class Rutas {
   /// «Ya tengo cuenta» (entrega 12).
   static const entrar = '/bienvenida/entrar';
   static const entrarCodigo = '/bienvenida/entrar/codigo';
+
+  /// «Me invitaron a un negocio» (entrega 19).
+  static const invitado = '/bienvenida/invitado';
+  static const invitadoCodigo = '/bienvenida/invitado/codigo';
+  static const invitadoAceptar = '/bienvenida/invitado/aceptar';
   static const guardarAvance = '/guardar-avance';
   static const codigo = '/guardar-avance/codigo';
   static const alta = '/alta';
@@ -61,6 +69,10 @@ abstract final class Rutas {
   static const corregir = '/movimiento/corregir';
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
+
+  /// «Mi equipo» (entrega 19).
+  static const equipo = '/equipo';
+  static const invitar = '/equipo/invitar';
 
   /// «Guarda tu avance» desde la tarjeta de Moca (entrega 11).
   static const cuenta = '/cuenta';
@@ -89,6 +101,9 @@ final _rutasPorEtapa = {
     Rutas.vozPrimeraVenta,
     Rutas.entrar,
     Rutas.entrarCodigo,
+    Rutas.invitado,
+    Rutas.invitadoCodigo,
+    Rutas.invitadoAceptar,
   ],
   EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
   EtapaInicio.alta: [Rutas.alta],
@@ -110,6 +125,8 @@ final _rutasPorEtapa = {
     Rutas.cuentas,
     Rutas.cuenta,
     Rutas.cuentaCodigo,
+    Rutas.equipo,
+    Rutas.invitar,
   ],
 };
 
@@ -158,6 +175,24 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
                 celular: estado.extra as String? ?? '',
                 modo: ModoCuenta.entrar,
               ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'invitado',
+          builder: (context, estado) =>
+              const PantallaGuardarAvance(modo: ModoCuenta.invitado),
+          routes: [
+            GoRoute(
+              path: 'codigo',
+              builder: (context, estado) => PantallaCodigo(
+                celular: estado.extra as String? ?? '',
+                modo: ModoCuenta.invitado,
+              ),
+            ),
+            GoRoute(
+              path: 'aceptar',
+              builder: (context, estado) => const PantallaInvitacion(),
             ),
           ],
         ),
@@ -269,6 +304,16 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.cuentas,
       builder: (context, estado) => const PantallaMisCuentas(),
+    ),
+    GoRoute(
+      path: Rutas.equipo,
+      builder: (context, estado) => const PantallaEquipo(),
+      routes: [
+        GoRoute(
+          path: 'invitar',
+          builder: (context, estado) => const PantallaInvitar(),
+        ),
+      ],
     ),
     GoRoute(
       path: Rutas.operador,

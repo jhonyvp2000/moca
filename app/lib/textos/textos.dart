@@ -33,6 +33,7 @@ abstract final class Textos {
   static const sinCrearCuenta = 'Sin crear cuenta. Te toma diez segundos.';
   static const verDemo = 'Ver una demo';
   static const yaTengoCuenta = 'Ya tengo cuenta';
+  static const meInvitaron = 'Me invitaron a un negocio';
   static const cargandoDemo = 'Preparando la demo…';
   static const estasViendoUnaDemo = 'Estás viendo una demo';
   static const salir = 'Salir';
@@ -189,6 +190,78 @@ abstract final class Textos {
   static const cuentaAbiertaEnOtroDetalle =
       'Lo que anotes aquí desde ahora no se guarda en tu cuenta.';
   static const avanceGuardado = 'Listo. Tu avance está guardado.';
+  // Equipo (entregas 17 a 19)
+  static const miEquipo = 'Mi equipo';
+  static const miEquipoDetalle = 'Quiénes anotan en tu negocio';
+  static const entraAlNegocio = 'Entra al negocio';
+  static const entraAlNegocioDetalle =
+      'Escribe el número con el que te invitó el dueño del negocio.';
+  static const sinInvitacion =
+      'Este número no tiene una invitación. Pídele al dueño que te invite con '
+      'este número desde «Mi equipo».';
+  static String teInvitaron(String negocio) => 'Te invitaron a $negocio';
+  static String comoRol(String rol) => 'Como $rol';
+  static const consentimientoInvitado =
+      'Al entrar, aceptas que Moca guarde tu número y lo que anotes en este '
+      'negocio para llevar sus cuentas, y que los dueños del negocio lo vean. '
+      'Puedes salir cuando quieras (Ley 29733 de Protección de Datos '
+      'Personales).';
+  static const aceptarYEntrar = 'Aceptar y entrar';
+  static const entrando = 'Entrando…';
+  static String yaEstasEn(String negocio) => 'Listo. Ya estás en $negocio.';
+  static const invitacionVencida =
+      'La invitación venció o el dueño la anuló. Pídele que te invite otra '
+      'vez.';
+  static const yaTienesNegocio =
+      'Ya tienes tu propio negocio en Moca con este número. Por ahora, una '
+      'persona está en un solo negocio.';
+  static const necesitasSenalParaEquipo =
+      'Necesitas señal para ver y cambiar tu equipo.';
+  static const tuEquipo = 'En tu negocio';
+  static const invitacionesPendientes = 'Invitaciones que esperan';
+  static String venceEl(String fecha) => 'Vence el $fecha';
+  static const tu = 'Tú';
+  static const titular = 'Titular';
+  static const sinNombre = 'Sin nombre';
+  static const invitarAAlguien = 'Invitar a alguien';
+  static String lugaresLibres(int n, int maximo) => n <= 0
+      ? 'Ya están las $maximo personas. El contador no cuenta.'
+      : 'Hasta $maximo personas con el titular. '
+            '${n == 1 ? 'Queda 1 lugar' : 'Quedan $n lugares'}; el contador no '
+            'cuenta.';
+  static const quitar = 'Quitar';
+  static String quitarPregunta(String quien) => '¿Quitar a $quien del negocio?';
+  static const quitarDetalle =
+      'Lo que anotó se queda en el negocio. Su teléfono ya no podrá anotar ni '
+      'ver nada aquí.';
+  static const anularInvitacion = 'Anular';
+  static const nombreDeLaPersona = 'Nombre (opcional)';
+  static const nombrePersonaEjemplo = 'Por ejemplo: Rosa';
+  static const suNumero = 'Su número de celular';
+  static const queHaraEnTuNegocio = '¿Qué hará en tu negocio?';
+  static const enviarInvitacion = 'Invitar';
+  static const invitando = 'Invitando…';
+  static String invitacionEnviada(String quien) =>
+      'Listo. Dile a $quien que instale Moca y toque «$meInvitaron» con su '
+      'número. La invitación vale 7 días.';
+  static const sinLugar =
+      'Ya están las 3 personas. Quita a alguien o anula una invitación.';
+  static const yaEstaEnElNegocio = 'Esa persona ya está en tu negocio.';
+  static const soloLosDuenos = 'Solo un dueño puede cambiar el equipo.';
+  static String nombreRol(Rol rol) => switch (rol) {
+    Rol.dueno => 'Dueño',
+    Rol.encargado => 'Encargado',
+    Rol.ayudante => 'Ayudante',
+    Rol.contador => 'Contador',
+  };
+  static String detalleRol(Rol rol) => switch (rol) {
+    Rol.dueno => 'Ve y hace todo, como tú.',
+    Rol.encargado =>
+      'Anota, corrige y hace el arqueo de sus cajas. No ve los informes.',
+    Rol.ayudante => 'Anota ventas y gastos. Ve lo que anotó hoy, no lo demás.',
+    Rol.contador => 'Solo mira: Historial, informes, PDF y Excel.',
+  };
+
   static const fueraDelNegocio = 'Ya no estás en este negocio';
   static const fueraDelNegocioDetalle =
       'Un dueño te quitó del equipo. Lo que anotaste se queda en el negocio; '

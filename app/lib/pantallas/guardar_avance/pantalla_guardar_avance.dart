@@ -69,10 +69,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     return PantallaConAcciones(
       encabezado: _primerDia
           ? null
-          : EncabezadoConVolver(
-              titulo: _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
-              alVolver: () => context.pop(),
-            ),
+          : EncabezadoConVolver(titulo: _titulo, alVolver: () => context.pop()),
       rellenoSuperior: _primerDia ? 40 : 4,
       contenido: [
         if (_primerDia) ...[
@@ -130,7 +127,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
         Semantics(
           header: true,
           child: Text(
-            _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
+            _titulo,
             style: Tipografia.tituloPantalla.copyWith(
               fontSize: 26,
               height: 1.2,
@@ -138,10 +135,11 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          _entrar ? Textos.entraATuCuentaDetalle : Textos.sinCorreoNiContrasena,
-          style: Tipografia.secundario.copyWith(fontSize: 15),
-        ),
+        Text(switch (widget.modo) {
+          ModoCuenta.entrar => Textos.entraATuCuentaDetalle,
+          ModoCuenta.invitado => Textos.entraAlNegocioDetalle,
+          _ => Textos.sinCorreoNiContrasena,
+        }, style: Tipografia.secundario.copyWith(fontSize: 15)),
         const SizedBox(height: 20),
         Text(
           Textos.tuNumeroDeCelular,
@@ -230,7 +228,16 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
   }
 
   bool get _primerDia => widget.modo == ModoCuenta.primerDia;
-  bool get _entrar => widget.modo == ModoCuenta.entrar;
+
+  /// «Ya tengo cuenta» o «Me invitaron»: entra a algo que ya existe.
+  bool get _entrar =>
+      widget.modo == ModoCuenta.entrar || widget.modo == ModoCuenta.invitado;
+
+  String get _titulo => switch (widget.modo) {
+    ModoCuenta.entrar => Textos.entraATuCuenta,
+    ModoCuenta.invitado => Textos.entraAlNegocio,
+    _ => Textos.guardaTuAvance,
+  };
 
   Future<void> _enviarCodigo() async {
     final celular = _digitos;
@@ -249,6 +256,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           ModoCuenta.primerDia => Rutas.codigo,
           ModoCuenta.desdeMoca => Rutas.cuentaCodigo,
           ModoCuenta.entrar => Rutas.entrarCodigo,
+          ModoCuenta.invitado => Rutas.invitadoCodigo,
         }, extra: celular);
       case ResultadoPedido.sinSenal:
         setState(

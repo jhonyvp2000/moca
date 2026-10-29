@@ -26,6 +26,7 @@ import 'dominio/medicion.dart';
 import 'dominio/comprobantes.dart';
 import 'dominio/conexion.dart';
 import 'dominio/cuenta_real.dart';
+import 'dominio/equipo.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/historial.dart';
 import 'dominio/informe.dart';
@@ -383,6 +384,12 @@ final servicioCuentaProvider = Provider<ServicioCuenta>(
     ahora: ref.watch(relojProvider),
     hayConexion: ref.watch(conexionProvider).hayConexion,
   ),
+);
+
+/// El equipo del negocio (entrega 19): lo lleva el mismo servicio de la
+/// cuenta, con la misma llave.
+final servicioEquipoProvider = Provider<ServicioEquipo>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioEquipo,
 );
 
 final situacionCuentaProvider = StreamProvider<SituacionCuenta>(

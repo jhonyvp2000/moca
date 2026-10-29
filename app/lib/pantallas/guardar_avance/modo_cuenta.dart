@@ -8,4 +8,7 @@ enum ModoCuenta {
 
   /// «Ya tengo cuenta», desde la Bienvenida (entrega 12).
   entrar,
+
+  /// «Me invitaron a un negocio», desde la Bienvenida (entrega 19).
+  invitado,
 }

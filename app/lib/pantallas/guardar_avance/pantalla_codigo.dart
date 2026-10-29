@@ -51,6 +51,9 @@ enum _Fase {
   bajadaFallida,
   sinCuenta,
 
+  /// «Me invitaron» con un número sin invitación (entrega 19).
+  sinInvitacion,
+
   /// El número ya tiene cuenta y este teléfono tiene datos (entrega 14.4).
   cuentaExistente,
   juntando,
@@ -145,11 +148,19 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
     final resultado = await servicio.verificar(
       widget.celular,
       _codigo.text,
-      entrar: _entrar,
+      entrar: widget.modo == ModoCuenta.entrar,
+      invitado: _invitado,
     );
     if (!mounted) return;
     if (resultado == ResultadoVerificacion.sinCuenta) {
       setState(() => _fase = _Fase.sinCuenta);
+      return;
+    }
+    if (resultado == ResultadoVerificacion.sinInvitacion) {
+      setState(() {
+        _fase = _Fase.sinInvitacion;
+        _codigo.clear();
+      });
       return;
     }
     if (resultado == ResultadoVerificacion.otraCuenta) {
@@ -176,6 +187,15 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       }
       return;
     }
+    // El invitado ve su invitación y la acepta (entrega 19).
+    if (_invitado) {
+      context.push(Rutas.invitadoAceptar);
+      setState(() {
+        _fase = _Fase.escribiendo;
+        _codigo.clear();
+      });
+      return;
+    }
     if (_entrar) return _bajar();
     await _guardar();
   }
@@ -198,7 +218,9 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
     }
   }
 
-  bool get _entrar => widget.modo == ModoCuenta.entrar;
+  bool get _entrar =>
+      widget.modo == ModoCuenta.entrar || widget.modo == ModoCuenta.invitado;
+  bool get _invitado => widget.modo == ModoCuenta.invitado;
 
   bool get _conCuentaExistente => const {
     _Fase.cuentaExistente,
@@ -292,7 +314,11 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
   Widget build(BuildContext context) {
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
-        titulo: _entrar ? Textos.entraATuCuenta : Textos.guardaTuAvance,
+        titulo: switch (widget.modo) {
+          ModoCuenta.entrar => Textos.entraATuCuenta,
+          ModoCuenta.invitado => Textos.entraAlNegocio,
+          _ => Textos.guardaTuAvance,
+        },
         alVolver: () => context.pop(),
       ),
       contenido: [
@@ -358,6 +384,10 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           const SizedBox(height: 12),
           const Aviso(texto: Textos.numeroSinCuenta),
         ],
+        if (_fase == _Fase.sinInvitacion) ...[
+          const SizedBox(height: 12),
+          const Aviso(texto: Textos.sinInvitacion),
+        ],
         if (_conCuentaExistente) ...[
           const SizedBox(height: 16),
           const TarjetaMoca(texto: Textos.numeroConCuentaDetalle),
@@ -400,6 +430,7 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           onPressed: switch (_fase) {
             _Fase.escribiendo => _completo ? _confirmar : null,
             _Fase.sinCuenta => () => context.go(Rutas.vozPrimeraVenta),
+            _Fase.sinInvitacion => () => context.go(Rutas.bienvenida),
             _Fase.bajadaFallida => _bajar,
             _Fase.cuentaExistente || _Fase.juntadaFallida => _entrarYSumar,
             _ => null,
@@ -411,6 +442,7 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             _Fase.bajando => Textos.bajandoTusDatos,
             _Fase.bajadaFallida => Textos.intentarOtraVez,
             _Fase.sinCuenta => Textos.anotarMiPrimeraVenta,
+            _Fase.sinInvitacion => Textos.volver,
             _Fase.cuentaExistente => Textos.entrarAMiCuenta,
             _Fase.juntando => Textos.juntandoLoAnotado,
             _Fase.juntadaFallida => Textos.intentarOtraVez,

@@ -19,6 +19,10 @@ enum ResultadoVerificacion {
   /// Para entrar («Ya tengo cuenta»): el número no tiene una cuenta con
   /// datos.
   sinCuenta,
+
+  /// Para «Me invitaron»: el número no tiene una invitación vigente
+  /// (entrega 19).
+  sinInvitacion,
   error,
 }
 
@@ -79,10 +83,14 @@ abstract interface class ServicioCuenta {
   /// Si el código es correcto, guarda la llave del teléfono. No sube nada:
   /// para eso está [subirTodo]. Con [entrar] («Ya tengo cuenta»), no crea
   /// cuentas y después se baja todo con [bajarTodo].
+  ///
+  /// Con [invitado] («Me invitaron», entrega 19), entra quien tiene una
+  /// invitación; después la acepta y baja lo del negocio.
   Future<ResultadoVerificacion> verificar(
     String celular,
     String codigo, {
     bool entrar = false,
+    bool invitado = false,
   });
 
   /// Reemplaza lo del teléfono por lo de la cuenta (el teléfono está en la

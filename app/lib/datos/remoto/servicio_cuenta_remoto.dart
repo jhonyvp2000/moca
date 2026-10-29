@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/medicion.dart';
 import '../../dominio/modelos.dart';
 import '../local/base_local.dart';
@@ -23,7 +24,8 @@ const direccionServidor = String.fromEnvironment(
 );
 
 /// La cuenta real contra el servidor de Moca (servidor/README.md).
-class ServicioCuentaRemoto implements ServicioCuenta {
+/// También lleva el equipo del negocio (entrega 19): usa la misma llave.
+class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -151,6 +153,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
     String celular,
     String codigo, {
     bool entrar = false,
+    bool invitado = false,
   }) async {
     if (!await _hayConexion()) return ResultadoVerificacion.sinSenal;
     final http.Response respuesta;
@@ -160,7 +163,11 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         'codigo': codigo,
         if (entrar)
           'modo': 'entrar'
-        else ...{
+        else if (invitado) ...{
+          // El invitado llega desde la Bienvenida, sin usuario todavía.
+          'modo': 'invitado',
+          'usuarioId': _uuid.v4(),
+        } else ...{
           'modo': 'guardar',
           'usuarioId': (await _a.usuario()).id,
         },
@@ -171,6 +178,26 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       return ResultadoVerificacion.sinSenal;
     }
     final cuerpo = _cuerpo(respuesta);
+    if (invitado) {
+      switch (respuesta.statusCode) {
+        case 200 when cuerpo['llave'] is String:
+          await _llavero.guardar(cuerpo['llave']! as String);
+          _celularPorEntrar = celular;
+          _invitaciones = [
+            for (final i in (cuerpo['invitaciones'] as List? ?? const []))
+              _invitacionRecibida(i as Map<String, Object?>),
+          ];
+          return ResultadoVerificacion.verificado;
+        case 404:
+          return ResultadoVerificacion.sinInvitacion;
+        case 400:
+          return cuerpo['error'] == 'codigo_vencido'
+              ? ResultadoVerificacion.vencido
+              : ResultadoVerificacion.incorrecto;
+        default:
+          return ResultadoVerificacion.error;
+      }
+    }
     switch (respuesta.statusCode) {
       case 200:
         if (cuerpo['cuentaExistente'] == true || cuerpo['llave'] == null) {
@@ -198,6 +225,138 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       default:
         return ResultadoVerificacion.error;
     }
+  }
+
+  // --- El equipo (entrega 19) ---------------------------------------------
+
+  List<InvitacionRecibida> _invitaciones = const [];
+
+  @override
+  List<InvitacionRecibida> get invitacionesRecibidas => _invitaciones;
+
+  static Rol _rol(Object? nombre) => _enum(Rol.values, nombre);
+
+  /// «+51987654321» → «987654321».
+  static String _nueveDigitos(Object? celular) {
+    final texto = '${celular ?? ''}';
+    return texto.startsWith('+51') ? texto.substring(3) : texto;
+  }
+
+  static InvitacionRecibida _invitacionRecibida(Map<String, Object?> i) =>
+      InvitacionRecibida(
+        id: i['id']! as String,
+        negocio: i['negocio'] as String? ?? '',
+        rol: _rol(i['rol']),
+        nombre: i['nombre'] as String?,
+        venceEn: _desdeFecha(i['vence_en']),
+      );
+
+  static ResultadoEquipo _resultadoEquipo(http.Response r) {
+    if (r.statusCode == 200) return ResultadoEquipo.listo;
+    return switch (_cuerpo(r)['error']) {
+      'sin_lugar' => ResultadoEquipo.sinLugar,
+      'ya_esta' => ResultadoEquipo.yaEsta,
+      'ya_tiene_negocio' => ResultadoEquipo.yaTieneNegocio,
+      'invitacion_vencida' || 'sin_invitacion' => ResultadoEquipo.vencida,
+      'sin_permiso' || 'sin_negocio' => ResultadoEquipo.sinPermiso,
+      _ => ResultadoEquipo.error,
+    };
+  }
+
+  /// Un pedido del equipo con la llave; nulo sin señal o sin llave.
+  Future<http.Response?> _delEquipo(String ruta, [Object? cuerpo]) async {
+    final llave = await _llavero.leer();
+    if (llave == null || !await _hayConexion()) return null;
+    try {
+      return cuerpo == null
+          ? await _pedir(ruta, llave)
+          : await _enviar(ruta, cuerpo, llave: llave);
+    } on TimeoutException {
+      return null;
+    } on http.ClientException {
+      return null;
+    }
+  }
+
+  @override
+  Future<Equipo?> equipo() async {
+    final respuesta = await _delEquipo('/equipo');
+    if (respuesta == null || respuesta.statusCode != 200) return null;
+    final cuerpo = _cuerpo(respuesta);
+    final yo = (await _a.usuarioONulo())?.id;
+    return Equipo(
+      miRol: _rol(cuerpo['rol']),
+      maximo: cuerpo['maximo'] as int? ?? 3,
+      personas: [
+        for (final p in (cuerpo['personas'] as List? ?? const []))
+          if (p case final Map<String, Object?> p)
+            PersonaDelEquipo(
+              membresiaId: p['membresia_id']! as String,
+              usuarioId: p['usuario_id']! as String,
+              rol: _rol(p['rol']),
+              nombre: p['nombre'] as String?,
+              celular: p['celular'] == null
+                  ? null
+                  : _nueveDigitos(p['celular']),
+              titular: p['titular'] == true,
+              soyYo: p['usuario_id'] == yo,
+            ),
+      ],
+      invitaciones: [
+        for (final i in (cuerpo['invitaciones'] as List? ?? const []))
+          if (i case final Map<String, Object?> i)
+            InvitacionPendiente(
+              id: i['id']! as String,
+              celular: _nueveDigitos(i['celular']),
+              rol: _rol(i['rol']),
+              nombre: i['nombre'] as String?,
+              venceEn: _desdeFecha(i['vence_en']),
+            ),
+      ],
+    );
+  }
+
+  @override
+  Future<ResultadoEquipo> invitar({
+    required String celular,
+    required Rol rol,
+    String? nombre,
+  }) async {
+    final r = await _delEquipo('/equipo/invitar', {
+      'celular': celular,
+      'rol': rol.name,
+      if (nombre != null && nombre.trim().isNotEmpty) 'nombre': nombre.trim(),
+    });
+    return r == null ? ResultadoEquipo.sinSenal : _resultadoEquipo(r);
+  }
+
+  @override
+  Future<ResultadoEquipo> anular(String invitacionId) async {
+    final r = await _delEquipo('/equipo/anular', {'invitacion': invitacionId});
+    return r == null ? ResultadoEquipo.sinSenal : _resultadoEquipo(r);
+  }
+
+  @override
+  Future<ResultadoEquipo> quitar(String membresiaId) async {
+    final r = await _delEquipo('/equipo/quitar', {'membresia': membresiaId});
+    return r == null ? ResultadoEquipo.sinSenal : _resultadoEquipo(r);
+  }
+
+  @override
+  Future<ResultadoEquipo> aceptar(String invitacionId) async {
+    final r = await _delEquipo('/cuenta/aceptar', {
+      'invitacion': invitacionId,
+      'consentimiento': true,
+    });
+    if (r == null) return ResultadoEquipo.sinSenal;
+    final resultado = _resultadoEquipo(r);
+    if (resultado != ResultadoEquipo.listo) return resultado;
+    // Ya es parte del negocio: baja lo que su rol puede ver.
+    return switch (await bajarTodo()) {
+      ResultadoBajada.listo => ResultadoEquipo.listo,
+      ResultadoBajada.sinSenal => ResultadoEquipo.sinSenal,
+      _ => ResultadoEquipo.error,
+    };
   }
 
   /// El celular con el que se entró, mientras se bajan los datos.
