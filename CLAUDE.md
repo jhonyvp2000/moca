@@ -70,7 +70,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 
 ## Interfaz
 
-- Azules como color de marca; ámbar solo para avisos. Sin verde y sin negro.
+- Azules como color de marca; ámbar solo para avisos; rojo sobrio solo en los montos de salida. Sin verde y sin negro.
 - Texto de 14 px como mínimo; objetivos táctiles de 44 px como mínimo.
 - Palabras del dueño, no del contador: «lo que te deben», no «cuentas por cobrar».
 - Montos con el símbolo pegado a la cifra (`S/ 4,250`, sin que se partan en dos líneas). Saldos, totales e informes en soles enteros; cada registro (Historial, su detalle, la voz, el comprobante) con sus céntimos si los tiene (`S/ 3.40`).

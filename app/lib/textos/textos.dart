@@ -266,11 +266,11 @@ abstract final class Textos {
   static const igualQueLaSemanaPasada = 'Lo mismo que la semana pasada';
   static String entroSalio(String entro, String salio) =>
       'Entró $entro · Salió $salio';
-  static String entroSalioRetiraste(
-    String entro,
-    String salio,
-    String retiraste,
-  ) => 'Entró $entro · Salió $salio · Retiraste $retiraste';
+  // La línea de la semana en el Inicio, por partes: los montos de salida
+  // van en rojo sobrio.
+  static String semanaEntro(String entro) => 'Entró $entro';
+  static const semanaSalio = ' · Salió ';
+  static const semanaRetiraste = ' · Retiraste ';
   static const semanaSinMovimientos = 'Esta semana todavía no anotas nada.';
   static const mocaFaltaVentaDeHoy = 'Aún no anotas la venta de hoy.';
   static const mocaYaAnotasteHoy = 'Ya anotaste la venta de hoy.';

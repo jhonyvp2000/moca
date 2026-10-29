@@ -4,7 +4,7 @@ Reglas extraídas de los 50 mockups. Los HTML de `pantallas/` son la referencia 
 
 ## Color
 
-Azules como color de marca. Ámbar reservado para avisos. Sin verde y sin negro.
+Azules como color de marca. Ámbar reservado para avisos. Rojo sobrio solo en los montos de salida. Sin verde y sin negro.
 
 | Uso | Color |
 |---|---|
@@ -23,8 +23,9 @@ Azules como color de marca. Ámbar reservado para avisos. Sin verde y sin negro.
 | Aviso: texto | `#7A3A05` |
 | Aviso: texto fuerte | `#5C2C04` |
 | Aviso: fondo | `#FBEEDD` |
+| Monto de una salida (gasto, retiro, faltante del arqueo) | `#B42318` |
 
-No se usa color para decir si algo es bueno o malo; eso lo dice el texto («Te alcanza», «Faltan S/ 80»).
+No se usa color para decir si algo es bueno o malo; eso lo dice el texto («Te alcanza», «Faltan S/ 80»). El rojo de las salidas dice hacia dónde fue la plata, no que esté mal: va solo en el monto (en el Historial, su detalle, las filas de salida del informe y su PDF, y el «Salió» y «Retiraste» de la semana en el Inicio), nunca en fondos, tarjetas ni totales como «Tienes hoy» o «tu plata bajó» (decisiones.md, 29-10-2026).
 
 ## Tipografía
 

@@ -14,9 +14,9 @@ String montoConSigno(TipoMovimiento tipo, int centimos) =>
     // Cada registro con sus céntimos si los tiene (decisiones.md, 16-10-2026).
     '${formatearSolesComprobante(centimos.abs())}';
 
-/// Lo que entró va en azul; lo que salió, en el color del texto.
+/// Lo que entró va en azul; lo que salió, en rojo sobrio (entrega 14.9.2).
 Color colorDelMonto(TipoMovimiento tipo) =>
-    tipo == TipoMovimiento.ingreso ? Colores.marca : Colores.textoPrincipal;
+    tipo == TipoMovimiento.ingreso ? Colores.marca : Colores.salida;
 
 /// El título de un movimiento: el proveedor, «Retiro para mí», la nota o la
 /// categoría.

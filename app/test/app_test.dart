@@ -884,7 +884,10 @@ void main() {
       // Toda la plata está en efectivo: el total y Efectivo coinciden.
       expect(find.text('S/\u00A01,350'), findsNWidgets(2));
       expect(find.text(Textos.efectivo), findsOneWidget);
-      expect(find.text(Textos.entroSalio('S/ 350', 'S/ 0')), findsOneWidget);
+      expect(
+        find.text(Textos.entroSalio('S/ 350', 'S/ 0'), findRichText: true),
+        findsOneWidget,
+      );
       expect(find.text(Textos.mocaYaAnotasteHoy), findsOneWidget);
 
       // El ojo oculta los montos.

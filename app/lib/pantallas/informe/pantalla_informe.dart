@@ -265,10 +265,15 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               formatearSoles(i.inicioCentimos),
             ),
             _Fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
-            _Fila(Textos.menosSalioDelNegocio, formatearSoles(i.salioCentimos)),
+            _Fila(
+              Textos.menosSalioDelNegocio,
+              formatearSoles(i.salioCentimos),
+              salida: true,
+            ),
             _Fila(
               Textos.menosRetirasteParaTi,
               formatearSoles(i.retirosCentimos),
+              salida: true,
             ),
             if (i.ajustesCentimos != 0)
               _Fila(
@@ -276,6 +281,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                     ? Textos.masSobroEnElArqueo
                     : Textos.menosFaltoEnElArqueo,
                 formatearSoles(i.ajustesCentimos.abs()),
+                salida: i.ajustesCentimos < 0,
               ),
             const Divider(),
             _Fila(
@@ -395,11 +401,19 @@ class _Flecha extends StatelessWidget {
 }
 
 class _Fila extends StatelessWidget {
-  const _Fila(this.etiqueta, this.monto, {this.fuerte = false});
+  const _Fila(
+    this.etiqueta,
+    this.monto, {
+    this.fuerte = false,
+    this.salida = false,
+  });
 
   final String etiqueta;
   final String monto;
   final bool fuerte;
+
+  /// El monto de una salida va en rojo sobrio (entrega 14.9.2).
+  final bool salida;
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +431,10 @@ class _Fila extends StatelessWidget {
           Text(
             monto,
             style: Tipografia.cifra(
-              Tipografia.textoFuerte.copyWith(fontWeight: FontWeight.w700),
+              Tipografia.textoFuerte.copyWith(
+                fontWeight: FontWeight.w700,
+                color: salida ? Colores.salida : null,
+              ),
             ),
           ),
         ],

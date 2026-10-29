@@ -27,6 +27,8 @@ Future<Uint8List> armarPdfDelInforme(
   const textoSecundario = PdfColor.fromInt(0xFF4B5A75);
   const borde = PdfColor.fromInt(0xFFD8E0EC);
   const pista = PdfColor.fromInt(0xFFE4EAF3);
+  // El monto de una salida, en rojo sobrio (entrega 14.9.2).
+  const salida = PdfColor.fromInt(0xFFB42318);
 
   pw.TextStyle estilo(double tamano, {bool fuerte = false, PdfColor? color}) =>
       pw.TextStyle(
@@ -52,25 +54,32 @@ Future<Uint8List> armarPdfDelInforme(
     ),
   );
 
-  pw.Widget fila(String etiqueta, String monto, {bool fuerte = false}) =>
-      pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 3),
-        child: pw.Row(
-          children: [
-            pw.Expanded(
-              child: pw.Text(
-                etiqueta,
-                style: estilo(
-                  11,
-                  fuerte: fuerte,
-                  color: fuerte ? null : textoSecundario,
-                ),
-              ),
+  pw.Widget fila(
+    String etiqueta,
+    String monto, {
+    bool fuerte = false,
+    bool deSalida = false,
+  }) => pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: 3),
+    child: pw.Row(
+      children: [
+        pw.Expanded(
+          child: pw.Text(
+            etiqueta,
+            style: estilo(
+              11,
+              fuerte: fuerte,
+              color: fuerte ? null : textoSecundario,
             ),
-            pw.Text(monto, style: estilo(11, fuerte: true)),
-          ],
+          ),
         ),
-      );
+        pw.Text(
+          monto,
+          style: estilo(11, fuerte: true, color: deSalida ? salida : null),
+        ),
+      ],
+    ),
+  );
 
   final crecio = i.crecioCentimos;
   final anterior = i.mesAnterior == null ? '' : nombreDelMes(i.mesAnterior!);
@@ -139,14 +148,23 @@ Future<Uint8List> armarPdfDelInforme(
             formatearSoles(i.inicioCentimos),
           ),
           fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
-          fila(Textos.menosSalioDelNegocio, formatearSoles(i.salioCentimos)),
-          fila(Textos.menosRetirasteParaTi, formatearSoles(i.retirosCentimos)),
+          fila(
+            Textos.menosSalioDelNegocio,
+            formatearSoles(i.salioCentimos),
+            deSalida: true,
+          ),
+          fila(
+            Textos.menosRetirasteParaTi,
+            formatearSoles(i.retirosCentimos),
+            deSalida: true,
+          ),
           if (i.ajustesCentimos != 0)
             fila(
               i.ajustesCentimos > 0
                   ? Textos.masSobroEnElArqueo
                   : Textos.menosFaltoEnElArqueo,
               formatearSoles(i.ajustesCentimos.abs()),
+              deSalida: i.ajustesCentimos < 0,
             ),
           fila(
             i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,

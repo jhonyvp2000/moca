@@ -1,7 +1,8 @@
 import 'package:flutter/painting.dart';
 
 /// Colores de diseno/estilo.md. Las pantallas usan solo estos.
-/// Azules como color de marca, ámbar solo para avisos, sin verde ni negro.
+/// Azules como color de marca, ámbar solo para avisos, rojo sobrio solo en
+/// los montos de salida, sin verde ni negro.
 abstract final class Colores {
   static const textoPrincipal = Color(0xFF0F1F3D);
   static const textoSecundario = Color(0xFF4B5A75);
@@ -19,6 +20,10 @@ abstract final class Colores {
   static const avisoTextoFuerte = Color(0xFF5C2C04);
   static const avisoFondo = Color(0xFFFBEEDD);
   static const sobreMarca = Color(0xFFFFFFFF);
+
+  /// Solo el monto de una salida (gasto o retiro), nunca fondos ni totales
+  /// (decisiones.md, 29-10-2026).
+  static const salida = Color(0xFFB42318);
 
   /// Barra de «qué tan seguras son estas cuentas» (S14): foto y sin papel.
   static const azulMedio = Color(0xFF7FA3E8);
