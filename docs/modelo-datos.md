@@ -20,10 +20,10 @@ Persona que entra con su celular y un código. Campos: celular, nombre, fecha de
 Campos: nombre, tipo de negocio (bodega, restaurante, servicios, otro), modo (Simple o Formal), país, régimen tributario, moneda, hora de cierre, identificación fiscal (opcional en Simple).
 
 ### Membresía
-Une Usuario y Empresa, de muchos a muchos. Campos: rol (dueño, contador, empleado) y permisos. En la V1 solo existe el rol dueño, pero la tabla nace completa.
+Une Usuario y Empresa, de muchos a muchos. Campos: rol y permisos. Roles desde la entrega 17 (decisiones.md, 29-10-2026): **dueño** (uno o más; el titular, quien creó el negocio, es el único que puede borrarlo todo), **encargado**, **ayudante** y **contador** (solo lectura). Hasta 3 personas por negocio. Una persona pertenece a un solo negocio, salvo el contador, que puede estar en varios.
 
 ### Cuenta
-Dónde está la plata. Campos: tipo (efectivo, Yape, BCP —el tipo `banco`— y, si el dueño los usa, Plin, Sip u otra billetera, e Interbank, BBVA, Scotiabank u otro banco o caja; la otra billetera y el otro banco llevan el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
+Dónde está la plata. Campos: tipo (efectivo, Yape, BCP —el tipo `banco`— y, si el dueño los usa, Plin, Sip u otra billetera, e Interbank, BBVA, Scotiabank u otro banco o caja; la otra billetera y el otro banco llevan el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta. Desde la entrega 21 puede haber varias cajas de efectivo con nombre, cada una con una o varias personas responsables; Yape, Plin y banco son del negocio. Pasar plata de una caja o cuenta a otra es un movimiento propio, ni venta ni gasto.
 
 ### Contraparte
 Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo. Su saldo pendiente se calcula a partir de los movimientos.

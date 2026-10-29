@@ -15,7 +15,7 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 
 **Objetivo:** un dueño informal anota su venta y sus gastos en segundos, sabe cuánta plata tiene y dónde, hace su arqueo semanal y ve si ganó o perdió en el mes.
 
-**Para quién:** los negocios piloto (bodegas, restaurantes, servicios) en modo Simple. Un solo usuario por empresa: el dueño.
+**Para quién:** los negocios piloto (bodegas, restaurantes, servicios) en modo Simple. Desde las entregas 17 a 23, hasta 3 personas por negocio con su rol (dueño, encargado, ayudante, contador); ver `decisiones.md`, 29-10-2026.
 
 **Sin cobro.** La V1 no tiene planes, topes ni pago. Sirve para los pilotos.
 
@@ -74,7 +74,7 @@ Los mockups se dibujaron con el producto completo, así que varias pantallas de 
 
 ### Fuera de la V1
 
-Planes y pago, fiado, pagos fijos y préstamos, cierre de mes guiado, retiro sugerido, apartados, modo Formal, panel del contador, varios usuarios por empresa, varias empresas por usuario en la interfaz, iOS.
+Planes y pago, fiado, pagos fijos y préstamos, cierre de mes guiado, retiro sugerido, apartados, modo Formal, panel del contador, más de 3 personas por negocio, varias empresas por usuario en la interfaz (salvo el contador), iOS.
 
 El modelo de datos sí debe nacer preparado para varias empresas, roles y modo Formal (ver `modelo-datos.md`), aunque la interfaz de la V1 no lo muestre.
 

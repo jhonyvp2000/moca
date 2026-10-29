@@ -28,7 +28,7 @@ Moca es una app Android, con panel web para contadores, que convierte comprobant
 | Ventas formales | Archivo exportado de SIRE, sin clave SOL; además foto y QR |
 | Registros sin comprobante | Permitidos, con nivel de confianza y arqueo semanal |
 | Inventario | Compras como gasto del mes, más una pregunta opcional de mercadería en el cierre mensual |
-| Usuarios | En Simple, solo el dueño; en Formal, dueño, contador y empleados que solo registran |
+| Usuarios | En Simple, hasta 3 personas por negocio: dueños, encargado, ayudante y contador (desde el 29-10-2026); en Formal, además el equipo con permisos |
 | Agente | Dentro de la app, totalmente proactivo, tono neutro y profesional |
 | Cobro | Por volumen de comprobantes leídos con IA o importados; registros manuales ilimitados |
 | Modo Simple | Plan Gratis con topes; plan de pago Moca Plus para el dueño informal |

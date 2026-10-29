@@ -4,7 +4,7 @@ Plan aprobado por Jhony el 14 de octubre de 2026 (ver `decisiones.md`). Sigue al
 
 ## Objetivo
 
-La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin cobro: el cobro tampoco entra en la versión siguiente, ver `decisiones.md` del 29-10-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
+La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde las entregas 17 a 23, sin cobro: el cobro tampoco entra en la versión siguiente, ver `decisiones.md` del 29-10-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
 
 ## Cómo se trabaja
 
@@ -29,6 +29,13 @@ La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin co
 | 14 | Lectura de fotos con IA, adelantada para el piloto: primero el QR dentro de la foto (en el teléfono, gratis); si no hay, Claude Haiku 5.5; si lo leído no cuadra según reglas fijas (RUC, suma del IGV, total, fecha), Claude Sonnet 5.5. La foto no se guarda en el servidor; cada lectura se anota (modelo, costo, tiempo) para medir la prueba 1 con las fotos del piloto. Tope de 30 fotos por cuenta al día; sin cuenta, 3 fotos de prueba por teléfono (entrega 14.2). La entrega 14.6 suma los videos de ayuda (`guiones-videos.md`) y la 14.7, la lectura automática del código del SMS. La cola de trabajos y el almacén de imágenes quedan para cuando el volumen lo pida | — |
 | 15 | Moca redacta con IA los avisos y el resumen semanal; audio si lo aprueba la Fase 0 | Prueba 7 de la Fase 0 |
 | 16 | Cierre: textos legales, Demo y «Ahora no» reales, respaldos, aviso de errores y publicación en la Play Store | Textos legales revisados, marca |
+| 17 | Equipo A · Servidor: invitaciones por número, roles y permisos en el servidor, sincronización registro por registro (cada teléfono sube solo lo que cambió y baja lo nuevo de los demás) | 12, 13 |
+| 18 | Equipo B · La app sincroniza en los dos sentidos: baja lo de los demás al abrir, al volver y cada pocos minutos con señal; «Actualizado hace…» | 17 |
+| 19 | Equipo C · «Mi equipo» en la «M»: invitar por número (hasta 3 personas por negocio), aceptar con el consentimiento de la Ley 29733, quitar | 17, 18 |
+| 20 | Equipo D · Roles en la app (qué ve y hace cada uno) y «Lo anotó…» en el Historial | 19 |
+| 21 | Equipo E · Varias cajas de efectivo con responsables, arqueo por caja y «Pasé plata de una caja a otra» | 20 |
+| 22 | Equipo F · El contador en varios negocios: elige cuál mirar, solo lectura | 20 |
+| 23 | Equipo G · Prueba con dos o tres teléfonos de verdad y simulación de otra persona desde el ajuste oculto, antes de los 10 pilotos | 20 (y 21, 22) |
 
 ## Pendiente de decidir
 
