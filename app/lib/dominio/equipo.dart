@@ -180,12 +180,15 @@ abstract interface class ServicioEquipo {
 /// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
 /// 20). El servidor lo hace cumplir también: esto solo muestra lo que vale.
 class Permisos {
-  const Permisos(this.rol, {this._misCajas});
+  const Permisos(this.rol, {this._misCajas, this.titular = false});
 
   static const delDueno = Permisos(Rol.dueno);
 
   final Rol rol;
   final Set<TipoCuenta>? _misCajas;
+
+  /// Quien creó el negocio (entrega 17).
+  final bool titular;
 
   /// Las cajas a su cargo (entrega 21); nulo para dueños y contador, que ven
   /// todas. Sin ninguna asignada, la principal.
@@ -217,6 +220,9 @@ class Permisos {
   /// «Retiro para mí» y «Puse de mi bolsillo» son de la plata del dueño.
   bool get anotaLoDelDueno => rol == Rol.dueno;
   bool get gestionaEquipo => rol == Rol.dueno;
+
+  /// «Borrar mi negocio»: solo el titular (entrega 16.1).
+  bool get borraElNegocio => rol == Rol.dueno && titular;
 
   /// El camino del primer día es del dueño que empieza su negocio.
   bool get tienePrimerDia => rol == Rol.dueno;

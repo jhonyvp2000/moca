@@ -194,6 +194,17 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               ruta: Rutas.negocios,
             ),
           ],
+          // El derecho a borrar sus datos (Ley 29733), solo del titular
+          // (entrega 16.1).
+          if (estadoCuenta == EstadoCuenta.guardada &&
+              permisos.borraElNegocio) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            const _Enlace(
+              titulo: Textos.borrarMiNegocio,
+              detalle: Textos.borrarMiNegocioDetalle,
+              ruta: Rutas.borrarNegocio,
+            ),
+          ],
         ],
       ),
     );

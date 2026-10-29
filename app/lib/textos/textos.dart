@@ -1129,6 +1129,26 @@ abstract final class Textos {
       'puede deshacer.';
   static const continuar = 'Continuar';
   static const escribeBorrar = 'Para confirmar, escribe BORRAR';
+
+  // «Borrar mi negocio» (entrega 16.1).
+  static const borrarMiNegocio = 'Borrar mi negocio y mis datos';
+  static const borrarMiNegocioDetalle =
+      'Borra para siempre lo anotado y tu equipo';
+  static const queSeBorra =
+      'Se borra para siempre, en el servidor y en este teléfono:';
+  static const seBorraLoAnotado =
+      'Todo lo anotado: ventas, gastos, lo que te deben, lo que debes, '
+      'arqueos y saldos.';
+  static const seBorranLasFotos =
+      'Las fotos de los comprobantes que leyó Moca.';
+  static const seBorraElEquipo =
+      'Tu equipo: las personas que invitaste ya no podrán entrar.';
+  static const seGuardaElNumero =
+      'Tu número de celular se guarda, sin datos, para que los días de '
+      'prueba no se repitan.';
+  static const antesDeBorrar =
+      'No se puede deshacer. Si quieres quedarte con lo anotado, descarga '
+      'antes el Excel en Informes.';
   static const borrarParaSiempre = 'Borrar para siempre';
   static const borrando = 'Borrando…';
   static const seBorroTodoEnServidor = 'Se borró todo, también en el servidor.';

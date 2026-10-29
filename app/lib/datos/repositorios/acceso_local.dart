@@ -176,6 +176,26 @@ class AccesoLocal {
     return membresia?.rol ?? Rol.dueno;
   }
 
+  /// Si quien usa el teléfono creó el negocio (entrega 16.1). Sin el equipo
+  /// del servidor (un negocio de una sola persona que aún no lo bajó), el
+  /// dueño es el titular; el servidor lo revisa de nuevo al borrar.
+  Future<bool> soyTitular() async {
+    if (await miRol() != Rol.dueno) return false;
+    final texto = await leerAjuste(claveEquipo);
+    if (texto == null) return true;
+    final yo = (await usuarioONulo())?.id;
+    try {
+      for (final p in jsonDecode(texto) as List) {
+        if (p case {'usuario_id': final String id} when id == yo) {
+          return p['titular'] == true;
+        }
+      }
+    } on FormatException {
+      return false;
+    }
+    return false;
+  }
+
   /// Las cajas a cargo de quien usa el teléfono; nulo: todas.
   Future<Set<TipoCuenta>?> misCajas() async {
     final texto = await leerAjuste(claveMisCajas);

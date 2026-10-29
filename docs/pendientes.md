@@ -37,6 +37,7 @@ Ver `fase-0.md`. En resumen:
 - Cómo funcionan en la V1 real «Ver una demo», «Ya tengo cuenta» y «Ahora no, seguir probando» (en el prototipo ya están resueltos).
 - Textos legales: consentimiento de datos (Ley 29733) y aviso de que Moca no reemplaza la contabilidad oficial.
 - Estimación de duración de las fases 1 y 2.
+- «Salir de este negocio» para las personas invitadas (encargado, ayudante o contador): saldrían como si un dueño las quitara, y lo que anotaron se queda en el negocio. Por ahora un dueño las quita (29-10-2026, entrega 16.1).
 - ~~Quien fue quitado de un equipo no ve «Mis negocios»~~: se le muestra, con sus invitaciones (entrega 22.1, 29-10-2026).
 
 ## Se resuelven más adelante

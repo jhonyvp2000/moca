@@ -30,6 +30,7 @@ import 'pantallas/equipo/pantalla_equipo.dart';
 import 'pantallas/equipo/pantalla_invitacion.dart';
 import 'pantallas/equipo/pantalla_invitar.dart';
 import 'pantallas/equipo/pantalla_negocios.dart';
+import 'pantallas/moca/pantalla_borrar_negocio.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
 import 'tema/tipografia.dart';
@@ -76,6 +77,9 @@ abstract final class Rutas {
 
   /// «Mis negocios» (entrega 22).
   static const negocios = '/negocios';
+
+  /// «Borrar mi negocio» (entrega 16.1).
+  static const borrarNegocio = '/borrar-negocio';
 
   /// «Mi equipo» (entrega 19).
   static const equipo = '/equipo';
@@ -135,6 +139,7 @@ final _rutasPorEtapa = {
     Rutas.equipo,
     Rutas.invitar,
     Rutas.negocios,
+    Rutas.borrarNegocio,
   ],
 };
 
@@ -316,6 +321,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.negocios,
       builder: (context, estado) => const PantallaNegocios(),
+    ),
+    GoRoute(
+      path: Rutas.borrarNegocio,
+      builder: (context, estado) => const PantallaBorrarNegocio(),
     ),
     GoRoute(
       path: Rutas.equipo,

@@ -417,8 +417,11 @@ final permisosProvider = StreamProvider<Permisos>((ref) {
     ref.watch(relojProvider),
   );
   return acceso.cambios().asyncMap(
-    (_) async =>
-        Permisos(await acceso.miRol(), misCajas: await acceso.misCajas()),
+    (_) async => Permisos(
+      await acceso.miRol(),
+      misCajas: await acceso.misCajas(),
+      titular: await acceso.soyTitular(),
+    ),
   );
 });
 

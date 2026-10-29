@@ -3063,6 +3063,103 @@ void main() {
     });
   });
 
+  group('Entrega 16.1: «Borrar mi negocio» a la vista del titular', () {
+    Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      return base;
+    }
+
+    /// El enlace está al final de la pestaña Moca.
+    Future<void> abrirBorrar(WidgetTester tester) async {
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.borrarMiNegocio),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.borrarMiNegocio));
+    }
+
+    testWidgets('Sin cuenta guardada no aparece', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      // Hasta el final de la pestaña: la lista se arma al verse.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+      await esperar(tester);
+      expect(find.text(Textos.borrarMiNegocio), findsNothing);
+    });
+
+    testWidgets('Un dueño que no es el titular no lo ve', (tester) async {
+      final base = await conCuentaGuardada(tester);
+      await tester.runAsync(() async {
+        final acceso = AccesoLocal(base, () => _ahora);
+        final yo = await acceso.usuario();
+        await acceso.guardarAjuste(
+          AccesoLocal.claveEquipo,
+          jsonEncode([
+            {'usuario_id': 'otro', 'rol': 'dueno', 'titular': true},
+            {'usuario_id': yo.id, 'rol': 'dueno', 'titular': false},
+          ]),
+        );
+      });
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.misNegocios), findsOneWidget);
+      // Hasta el final de la pestaña: la lista se arma al verse.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+      await esperar(tester);
+      expect(find.text(Textos.borrarMiNegocio), findsNothing);
+    });
+
+    testWidgets('El titular lo ve, escribe BORRAR y queda como recién '
+        'instalada', (tester) async {
+      final base = await conCuentaGuardada(tester);
+      await abrirBorrar(tester);
+      expect(find.text(Textos.seGuardaElNumero), findsOneWidget);
+      expect(find.text(Textos.antesDeBorrar), findsOneWidget);
+
+      final boton = find.widgetWithText(FilledButton, Textos.borrarParaSiempre);
+      expect(tester.widget<FilledButton>(boton).onPressed, isNull);
+      await tester.enterText(find.byType(TextField), 'borrar');
+      await tester.pump();
+      await tocar(tester, boton);
+
+      expect(_servidor.borrados, ['BORRAR']);
+      expect(find.text(Textos.seBorroTodoEnServidor), findsOneWidget);
+      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+      expect(
+        (await tester.runAsync(() => base.select(base.movimientos).get()))!,
+        isEmpty,
+      );
+    });
+
+    testWidgets('Sin señal lo dice y no borra nada', (tester) async {
+      final base = await conCuentaGuardada(tester);
+      await abrirBorrar(tester);
+      _conSenal = false;
+      await tester.enterText(find.byType(TextField), 'BORRAR');
+      await tester.pump();
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.borrarParaSiempre),
+      );
+      expect(find.text(Textos.borrarSinSenal), findsOneWidget);
+      expect(_servidor.borrados, isEmpty);
+      expect(
+        (await tester.runAsync(() => base.select(base.movimientos).get()))!,
+        isNotEmpty,
+      );
+    });
+  });
+
   testWidgets('La primera semana muestra cuánto hay en cada cuenta '
       '(entrega 14.9)', (tester) async {
     await abrirApp(tester, listo: true);
