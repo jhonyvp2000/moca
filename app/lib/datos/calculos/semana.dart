@@ -10,10 +10,14 @@ class ResumenPeriodo {
     required this.entroCentimos,
     required this.salioCentimos,
     required this.cantidad,
+    this.retirosCentimos = 0,
   });
 
   final int entroCentimos;
   final int salioCentimos;
+
+  /// Lo que el dueño retiró para sí: baja la plata, pero no es gasto.
+  final int retirosCentimos;
 
   /// Cuántos movimientos cuentan en el periodo.
   final int cantidad;
@@ -31,6 +35,7 @@ ResumenPeriodo resumirPeriodo(
 }) {
   var entro = 0;
   var salio = 0;
+  var retiros = 0;
   var cantidad = 0;
   for (final m in movimientos) {
     if (m.estado != EstadoRegistro.vigente) continue;
@@ -44,12 +49,13 @@ ResumenPeriodo resumirPeriodo(
         salio += m.montoCentimos;
         cantidad++;
       case TipoMovimiento.retiro:
-        break;
+        retiros += m.montoCentimos;
     }
   }
   return ResumenPeriodo(
     entroCentimos: entro,
     salioCentimos: salio,
     cantidad: cantidad,
+    retirosCentimos: retiros,
   );
 }

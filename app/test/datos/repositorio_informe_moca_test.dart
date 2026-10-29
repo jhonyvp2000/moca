@@ -2,11 +2,14 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_arqueo_local.dart';
+import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
+import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
 import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/arqueo.dart';
+import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/moca.dart';
 import 'package:moca/dominio/movimientos.dart';
@@ -66,7 +69,7 @@ void main() {
 
   group('Informe del mes', () {
     test(
-      'El primer mes: ganancia, retiros, desde qué día y sustento',
+      'El primer mes: cómo se movió la plata, desde qué día y sustento',
       () async {
         await anotar(TipoMovimiento.egreso, 80, categoria: 'Transporte');
         await anotar(TipoMovimiento.retiro, 100);
@@ -76,11 +79,16 @@ void main() {
         expect(i.desdeDia, 12);
         expect(i.mesAnterior, isNull);
         expect(i.diferenciaConAnteriorCentimos, isNull);
+        // Empezó con el saldo inicial; termina con «Tienes hoy».
+        expect(i.inicioCentimos, 500000);
         expect(i.entroCentimos, 35000);
         expect(i.salioCentimos, 8000);
-        expect(i.gananciaCentimos, 27000);
         expect(i.retirosCentimos, 10000);
-        expect(i.quedoCentimos, 17000);
+        expect(i.ajustesCentimos, 0);
+        expect(i.crecioCentimos, 17000);
+        expect(i.finCentimos, 517000);
+        final inicio = await movimientos.observarInicio().first;
+        expect(i.finCentimos, inicio.tienesHoyCentimos);
         expect(i.gastos.single.nombre, 'Transporte');
         expect(i.confianza?.sinPapel, 100);
         expect(i.mesPrevio, isNull);
@@ -108,6 +116,70 @@ void main() {
       expect(octubre.enCurso, isFalse);
       expect(octubre.entroCentimos, 55000);
       expect(octubre.mesSiguiente, DateTime(2026, 11));
+    });
+
+    test('Flujo de caja: lo que se debe cuenta al pagarlo, el arqueo '
+        'ajusta, y cada mes cuadra con el saldo (entrega 14.9)', () async {
+      final mercaderia = categorias['Mercadería']!;
+      // Una compra «todavía lo debo» el 14 de octubre, con boleta del 8.
+      ahora = DateTime(2026, 10, 14, 18);
+      await RepositorioComprobantesLocal(
+        base,
+        ahora: () => ahora,
+      ).guardarCompra(
+        CompraConfirmada(
+          lectura: const LecturaComprobante(
+            origen: OrigenLectura.qr,
+            emisorIdentificacion: '20100070970',
+            tipo: 'Factura',
+            serie: 'F001',
+            numero: '777',
+            totalCentimos: 98000,
+          ),
+          totalCentimos: 98000,
+          cuenta: TipoCuenta.efectivo,
+          pagado: false,
+          categoriaId: mercaderia,
+          fecha: DateTime(2026, 10, 8),
+        ),
+      );
+      // El 20 faltan S/ 30 en el efectivo y no sabe por qué.
+      ahora = DateTime(2026, 10, 20, 21);
+      await RepositorioArqueoLocal(base, ahora: () => ahora).guardar([
+        const ConteoCuenta(
+          cuenta: TipoCuenta.efectivo,
+          contadoCentimos: 535000 - 3000,
+          motivo: MotivoArqueo.noLoSe,
+        ),
+      ]);
+      // La paga el 3 de noviembre.
+      ahora = DateTime(2026, 11, 10, 12);
+      final historial = RepositorioHistorialLocal(base, ahora: () => ahora);
+      final deuda = (await base.select(base.movimientos).get()).firstWhere(
+        (m) => m.estadoPago == EstadoPago.pendiente,
+      );
+      await historial.pagar(
+        deuda.id,
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 11, 3),
+      );
+
+      final octubre = await informe.observarMes(DateTime(2026, 10)).first;
+      expect(octubre.inicioCentimos, 500000);
+      expect(octubre.entroCentimos, 35000);
+      // La deuda no salió en octubre, aunque la boleta sea de octubre.
+      expect(octubre.salioCentimos, 0);
+      expect(octubre.ajustesCentimos, -3000);
+      expect(octubre.finCentimos, 532000);
+
+      final noviembre = await informe.observarMes(null).first;
+      expect(noviembre.inicioCentimos, octubre.finCentimos);
+      expect(noviembre.salioCentimos, 98000);
+      expect(noviembre.gastos.single.nombre, 'Mercadería');
+      expect(noviembre.crecioCentimos, -98000);
+      expect(noviembre.diferenciaConAnteriorCentimos, isNotNull);
+      final inicio = await movimientos.observarInicio().first;
+      expect(noviembre.finCentimos, inicio.tienesHoyCentimos);
     });
 
     test('Más de cinco categorías se juntan en «Lo demás»', () async {

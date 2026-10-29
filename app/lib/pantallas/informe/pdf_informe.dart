@@ -72,7 +72,7 @@ Future<Uint8List> armarPdfDelInforme(
         ),
       );
 
-  final ganancia = i.gananciaCentimos;
+  final crecio = i.crecioCentimos;
   final anterior = i.mesAnterior == null ? '' : nombreDelMes(i.mesAnterior!);
   final diferencia = i.diferenciaConAnteriorCentimos;
   final periodo = i.desdeDia != null
@@ -102,45 +102,61 @@ Future<Uint8List> armarPdfDelInforme(
           style: estilo(10, color: textoSecundario),
         ),
         pw.SizedBox(height: 16),
-        seccion(ganancia >= 0 ? Textos.ganaste : Textos.perdiste, [
-          pw.Text(
-            formatearSoles(ganancia.abs()),
-            style: estilo(28, fuerte: true),
-          ),
-          pw.Text(
-            diferencia == null
-                ? Textos.primerMesConMoca
-                : diferencia > 0
-                ? Textos.masQueEn(formatearSoles(diferencia), anterior)
-                : diferencia < 0
-                ? Textos.menosQueEn(formatearSoles(-diferencia), anterior)
-                : Textos.igualQueEn(anterior),
-            style: estilo(11),
-          ),
-          pw.Text(
-            Textos.entroSalio(
-              formatearSoles(i.entroCentimos),
-              formatearSoles(i.salioCentimos),
+        seccion(
+          crecio > 0
+              ? Textos.tuPlataCrecio
+              : crecio < 0
+              ? Textos.tuPlataBajo
+              : Textos.tuPlataIgual,
+          [
+            pw.Text(
+              formatearSoles(crecio.abs()),
+              style: estilo(28, fuerte: true),
             ),
-            style: estilo(10, color: textoSecundario),
-          ),
-        ]),
-        seccion(Textos.loQueGanasteYRetiraste, [
+            pw.Text(
+              diferencia == null
+                  ? Textos.primerMesConMoca
+                  : diferencia > 0
+                  ? Textos.masQueEn(formatearSoles(diferencia), anterior)
+                  : diferencia < 0
+                  ? Textos.menosQueEn(formatearSoles(-diferencia), anterior)
+                  : Textos.igualQueEn(anterior),
+              style: estilo(11),
+            ),
+            pw.Text(
+              Textos.entroSalio(
+                formatearSoles(i.entroCentimos),
+                formatearSoles(i.salioCentimos),
+              ),
+              style: estilo(10, color: textoSecundario),
+            ),
+          ],
+        ),
+        // El flujo de caja del mes, que cuadra con el saldo (entrega 14.9).
+        seccion(Textos.comoSeMovio, [
           fila(
-            ganancia >= 0 ? Textos.ganoElNegocio : Textos.perdioElNegocio,
-            formatearSoles(ganancia.abs()),
+            i.desdeDia == null ? Textos.empezasteElMesCon : Textos.empezasteCon,
+            formatearSoles(i.inicioCentimos),
           ),
-          fila(Textos.retirasteParaTi, formatearSoles(i.retirosCentimos)),
-          i.quedoCentimos >= 0 || ganancia <= 0
-              ? fila(
-                  Textos.quedoEnElNegocio,
-                  formatearSoles(i.quedoCentimos),
-                  fuerte: true,
-                )
-              : pw.Text(
-                  Textos.sacasteMas(formatearSoles(-i.quedoCentimos)),
-                  style: estilo(11, fuerte: true),
-                ),
+          fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
+          fila(Textos.menosSalioDelNegocio, formatearSoles(i.salioCentimos)),
+          fila(Textos.menosRetirasteParaTi, formatearSoles(i.retirosCentimos)),
+          if (i.ajustesCentimos != 0)
+            fila(
+              i.ajustesCentimos > 0
+                  ? Textos.masSobroEnElArqueo
+                  : Textos.menosFaltoEnElArqueo,
+              formatearSoles(i.ajustesCentimos.abs()),
+            ),
+          fila(
+            i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,
+            formatearSoles(i.finCentimos),
+            fuerte: true,
+          ),
+          pw.Text(
+            Textos.cuentasDePlata,
+            style: estilo(9, color: textoSecundario),
+          ),
         ]),
         seccion(Textos.enQueSeFue, [
           if (i.gastos.isEmpty)

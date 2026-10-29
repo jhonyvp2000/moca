@@ -68,6 +68,7 @@ class ResumenInicio {
     required this.diferenciaConSemanaAnteriorCentimos,
     required this.ventaDeHoyCentimos,
     required this.mostrarPrimerDia,
+    this.semanaRetirosCentimos = 0,
     this.estadoArqueo = EstadoArqueo.nada,
   });
 
@@ -76,6 +77,10 @@ class ResumenInicio {
   final int semanaEntroCentimos;
   final int semanaSalioCentimos;
   final bool semanaConMovimientos;
+
+  /// Lo que el dueño retiró para sí esta semana; aparece en el Inicio si
+  /// hubo (entrega 14.9).
+  final int semanaRetirosCentimos;
 
   /// Lo que quedó esta semana menos lo que quedó la semana pasada hasta el
   /// mismo día de la semana. Nulo si la semana pasada no hubo movimientos.

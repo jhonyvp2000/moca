@@ -167,19 +167,23 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
 
   List<Widget> _contenido(InformeMes i) {
     final anterior = i.mesAnterior == null ? '' : nombreDelMes(i.mesAnterior!);
-    final ganancia = i.gananciaCentimos;
+    final crecio = i.crecioCentimos;
     final diferencia = i.diferenciaConAnteriorCentimos;
     const separacion = SizedBox(height: Medidas.separacionTarjetas);
 
     return [
-      // Ganaste
+      // Cuánto creció o bajó la plata (entrega 14.9)
       Tarjeta(
         relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              ganancia >= 0 ? Textos.ganaste : Textos.perdiste,
+              crecio > 0
+                  ? Textos.tuPlataCrecio
+                  : crecio < 0
+                  ? Textos.tuPlataBajo
+                  : Textos.tuPlataIgual,
               style: Tipografia.textoFuerte.copyWith(
                 color: Colores.textoSecundario,
               ),
@@ -188,7 +192,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                formatearSoles(ganancia.abs()),
+                formatearSoles(crecio.abs()),
                 maxLines: 1,
                 style: Tipografia.cifra(
                   const TextStyle(
@@ -246,40 +250,41 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       ),
       separacion,
 
-      // Lo que ganaste y lo que retiraste
+      // Cómo se movió la plata: cuadra con el saldo
       Tarjeta(
         relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              Textos.loQueGanasteYRetiraste,
-              style: Tipografia.tituloTarjeta,
-            ),
+            const Text(Textos.comoSeMovio, style: Tipografia.tituloTarjeta),
             const SizedBox(height: 8),
             _Fila(
-              ganancia >= 0 ? Textos.ganoElNegocio : Textos.perdioElNegocio,
-              formatearSoles(ganancia.abs()),
+              i.desdeDia == null
+                  ? Textos.empezasteElMesCon
+                  : Textos.empezasteCon,
+              formatearSoles(i.inicioCentimos),
             ),
-            _Fila(Textos.retirasteParaTi, formatearSoles(i.retirosCentimos)),
-            const Divider(),
-            // «Sacaste más…» solo si hubo ganancia y los retiros la pasaron.
-            if (i.quedoCentimos >= 0 || ganancia <= 0)
+            _Fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
+            _Fila(Textos.menosSalioDelNegocio, formatearSoles(i.salioCentimos)),
+            _Fila(
+              Textos.menosRetirasteParaTi,
+              formatearSoles(i.retirosCentimos),
+            ),
+            if (i.ajustesCentimos != 0)
               _Fila(
-                Textos.quedoEnElNegocio,
-                formatearSoles(i.quedoCentimos),
-                fuerte: true,
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  Textos.sacasteMas(formatearSoles(-i.quedoCentimos)),
-                  style: Tipografia.cifra(
-                    Tipografia.textoFuerte.copyWith(color: Colores.avisoTexto),
-                  ),
-                ),
+                i.ajustesCentimos > 0
+                    ? Textos.masSobroEnElArqueo
+                    : Textos.menosFaltoEnElArqueo,
+                formatearSoles(i.ajustesCentimos.abs()),
               ),
+            const Divider(),
+            _Fila(
+              i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,
+              formatearSoles(i.finCentimos),
+              fuerte: true,
+            ),
+            const SizedBox(height: 8),
+            const Text(Textos.cuentasDePlata, style: Tipografia.secundario),
           ],
         ),
       ),

@@ -74,7 +74,7 @@ Quién cambió qué y cuándo, con el valor anterior y el nuevo. Acciones: crear
 ## Lo que sale del modelo
 
 - **Flujo de caja:** movimientos por fecha de pago y cuenta.
-- **Resultados:** movimientos por fecha del comprobante, sin los retiros del dueño.
+- **Resultados:** movimientos por fecha del comprobante, sin los retiros del dueño. Desde la entrega 14.9 el informe del mes no los usa: muestra el flujo de caja, que cuadra con el saldo; los resultados vuelven cuando Moca sepa cuánta mercadería queda.
 - **Lo que te deben y lo que debes:** movimientos pendientes o parciales, por contraparte.
 - **Qué tan seguras son las cuentas:** proporción de montos por nivel de confianza.
 

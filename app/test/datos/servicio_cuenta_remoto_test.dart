@@ -337,6 +337,7 @@ void main() {
       'inicio': {
         'semanaEntroCentimos': 777700,
         'semanaSalioCentimos': 0,
+        'semanaRetirosCentimos': 0,
         'semanaConMovimientos': true,
         'diferenciaConSemanaAnteriorCentimos': null,
         'ventaDeHoyCentimos': 35000,
@@ -362,6 +363,8 @@ void main() {
           'entroCentimos': 777700,
           'salioCentimos': 0,
           'retirosCentimos': 0,
+          'inicioCentimos': 0,
+          'ajustesCentimos': 0,
           'gastos': <Object>[],
           'cambio': null,
           'loQueDebesCentimos': 0,
@@ -453,6 +456,23 @@ void main() {
       expect((await inicio()).saldosPorCuenta[TipoCuenta.efectivo], 999900);
       await servicio.actualizarCifras();
       expect(pedidosDeCifras, 1);
+    });
+
+    test('Las de un servidor sin actualizar se descartan: calcula el '
+        'teléfono (entrega 14.9)', () async {
+      await primerDia();
+      await servicio.verificar('987654321', '123456');
+      await servicio.subirTodo();
+      final anteriores = cifras(efectivo: 999900);
+      (anteriores['informes']! as List).cast<Map<String, Object?>>().first
+        ..remove('inicioCentimos')
+        ..remove('ajustesCentimos');
+      cifrasDelServidor = anteriores;
+      await servicio.actualizarCifras();
+      expect(
+        (await inicio()).saldosPorCuenta[TipoCuenta.efectivo],
+        isNot(999900),
+      );
     });
 
     test('Sin cuenta o en la Demo no se piden', () async {

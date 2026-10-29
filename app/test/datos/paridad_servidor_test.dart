@@ -54,6 +54,7 @@ Future<Cifras> _cifrasLocales(BaseLocal base, DateTime ahora) async {
     inicio: CifrasInicio(
       semanaEntroCentimos: inicio.semanaEntroCentimos,
       semanaSalioCentimos: inicio.semanaSalioCentimos,
+      semanaRetirosCentimos: inicio.semanaRetirosCentimos,
       semanaConMovimientos: inicio.semanaConMovimientos,
       diferenciaConSemanaAnteriorCentimos:
           inicio.diferenciaConSemanaAnteriorCentimos,

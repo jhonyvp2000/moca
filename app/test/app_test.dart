@@ -32,6 +32,7 @@ import 'package:moca/dominio/servicios.dart';
 import 'package:moca/dominio/tutoria.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
+import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
 import 'package:moca/rutas.dart';
@@ -1699,9 +1700,15 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text('Octubre'), findsOneWidget);
       expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
-      expect(find.text(Textos.ganaste), findsOneWidget);
+      // Flujo de caja, no ganancia (entrega 14.9): empezó el 12 con
+      // S/ 1,000 y la venta de S/ 350 lo deja en lo que tiene hoy.
+      expect(find.text(Textos.tuPlataCrecio), findsOneWidget);
       expect(find.text(Textos.primerMesConMoca), findsOneWidget);
-      expect(find.text(Textos.loQueGanasteYRetiraste), findsOneWidget);
+      expect(find.text(Textos.comoSeMovio), findsOneWidget);
+      expect(find.text(Textos.empezasteCon), findsOneWidget);
+      expect(find.text(formatearSoles(100000)), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.text(formatearSoles(135000)), findsOneWidget);
       final anterior = tester.widget<IconButton>(
         find.ancestor(
           of: find.byTooltip(Textos.mesAnterior),

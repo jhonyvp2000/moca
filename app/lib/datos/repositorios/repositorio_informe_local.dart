@@ -27,9 +27,9 @@ class RepositorioInformeLocal implements RepositorioInforme {
   Stream<InformeMes> observarMes(DateTime? mes) =>
       _a.cambios().asyncMap((_) => _calcular(mes));
 
-  /// Para el informe, un movimiento cuenta en el mes de su comprobante.
-  static DateTime _fecha(Movimiento m) =>
-      m.fechaComprobante ?? m.fechaMovimiento;
+  /// El informe es el flujo de caja del mes (entrega 14.9): un movimiento
+  /// cuenta el día en que la plata se movió, igual que en el saldo.
+  static DateTime _fecha(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
 
   Future<InformeMes> _calcular(DateTime? pedido) async {
     // Los del servidor, si valen (entrega 13): el mes pedido, sin salirse
@@ -66,9 +66,40 @@ class RepositorioInformeLocal implements RepositorioInforme {
               c.id: c.nombre,
           };
 
-    final inicio = vigentes.isEmpty
+    final cuentas = empresa == null
+        ? const <Cuenta>[]
+        : await (_base.select(
+            _base.cuentas,
+          )..where((c) => c.empresaId.equals(empresa.id))).get();
+    final desdeDe = {for (final c in cuentas) c.id: c.fechaSaldoInicial};
+    // Las mismas reglas que el saldo: solo lo pagado, y desde el saldo
+    // inicial de su cuenta. Así el informe cuadra con «Tienes hoy».
+    bool cuentaParaSaldo(String cuentaId, DateTime fecha) {
+      final desde = desdeDe[cuentaId];
+      return desde == null || !fecha.isBefore(desde);
+    }
+
+    final pagados = [
+      for (final m in vigentes)
+        if (m.estadoPago == EstadoPago.pagado &&
+            cuentaParaSaldo(m.cuentaId, _fecha(m)))
+          m,
+    ];
+    final ajustes = empresa == null
+        ? const <AjusteArqueo>[]
+        : [
+            for (final a in await _a.ajustes(empresa.id))
+              if (cuentaParaSaldo(a.cuentaId, a.fecha)) a,
+          ];
+
+    final fechas = [
+      for (final m in pagados) _fecha(m),
+      for (final a in ajustes) a.fecha,
+      for (final c in cuentas) ?c.fechaSaldoInicial,
+    ];
+    final inicio = fechas.isEmpty
         ? ahora
-        : vigentes.map(_fecha).reduce((a, b) => a.isBefore(b) ? a : b);
+        : fechas.reduce((a, b) => a.isBefore(b) ? a : b);
     final primerMes = DateTime(inicio.year, inicio.month);
 
     var mes = pedido == null ? actual : DateTime(pedido.year, pedido.month);
@@ -81,13 +112,46 @@ class RepositorioInformeLocal implements RepositorioInforme {
         : finMes;
 
     List<Movimiento> periodo(DateTime desde, DateTime hasta) => [
-      for (final m in vigentes)
+      for (final m in pagados)
         if (!_fecha(m).isBefore(desde) && _fecha(m).isBefore(hasta)) m,
     ];
+    int ajustado(DateTime desde, DateTime hasta) => ajustes
+        .where((a) => !a.fecha.isBefore(desde) && a.fecha.isBefore(hasta))
+        .fold(0, (s, a) => s + a.centimos);
     int suma(Iterable<Movimiento> ms, TipoMovimiento tipo) =>
         ms.where((m) => m.tipo == tipo).fold(0, (s, m) => s + m.montoCentimos);
-    int ganancia(Iterable<Movimiento> ms) =>
-        suma(ms, TipoMovimiento.ingreso) - suma(ms, TipoMovimiento.egreso);
+    // Cuánto creció la plata en el periodo.
+    int crecio(DateTime desde, DateTime hasta) {
+      final ms = periodo(desde, hasta);
+      return suma(ms, TipoMovimiento.ingreso) -
+          suma(ms, TipoMovimiento.egreso) -
+          suma(ms, TipoMovimiento.retiro) +
+          ajustado(desde, hasta);
+    }
+
+    // La plata al empezar [mes]: cada cuenta con su saldo de ese momento, o
+    // con su saldo inicial si empezó después.
+    int plataAl(DateTime momento) {
+      var total = 0;
+      for (final c in cuentas) {
+        total += c.saldoInicialCentimos ?? 0;
+        final desde = c.fechaSaldoInicial;
+        if (desde != null && !desde.isBefore(momento)) continue;
+        for (final m in pagados) {
+          if (m.cuentaId != c.id || !_fecha(m).isBefore(momento)) continue;
+          total += m.tipo == TipoMovimiento.ingreso
+              ? m.montoCentimos
+              : -m.montoCentimos;
+        }
+        for (final a in ajustes) {
+          if (a.cuentaId == c.id && a.fecha.isBefore(momento)) {
+            total += a.centimos;
+          }
+        }
+      }
+      return total;
+    }
+
     Map<String, int> porCategoria(Iterable<Movimiento> ms) {
       final total = <String, int>{};
       for (final m in ms.where((m) => m.tipo == TipoMovimiento.egreso)) {
@@ -116,7 +180,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
         if (mismoDia.isBefore(mes)) hastaAnterior = mismoDia;
       }
       final anterior = periodo(mesAnterior, hastaAnterior);
-      diferencia = ganancia(delMes) - ganancia(anterior);
+      diferencia = crecio(mes, hasta) - crecio(mesAnterior, hastaAnterior);
 
       final ahoraPorCategoria = porCategoria(delMes);
       final antesPorCategoria = porCategoria(anterior);
@@ -198,13 +262,15 @@ class RepositorioInformeLocal implements RepositorioInforme {
     return InformeMes(
       mes: mes,
       enCurso: enCurso,
-      sinRegistros: delMes.isEmpty,
+      sinRegistros: delMes.isEmpty && ajustado(mes, hasta) == 0,
       desdeDia: esPrimero && inicio.day > 1 ? inicio.day : null,
       mesAnterior: mesAnterior,
       diferenciaConAnteriorCentimos: diferencia,
+      inicioCentimos: plataAl(mes),
       entroCentimos: suma(delMes, TipoMovimiento.ingreso),
       salioCentimos: suma(delMes, TipoMovimiento.egreso),
       retirosCentimos: suma(delMes, TipoMovimiento.retiro),
+      ajustesCentimos: ajustado(mes, hasta),
       gastos: gastos,
       cambio: cambio,
       loQueDebesCentimos: vigentes

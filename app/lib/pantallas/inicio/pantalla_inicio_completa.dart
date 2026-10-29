@@ -293,10 +293,18 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
       ],
       const SizedBox(height: 4),
       Text(
-        Textos.entroSalio(
-          _soles(r.semanaEntroCentimos),
-          _soles(r.semanaSalioCentimos),
-        ),
+        // Con retiros, también lo que sacaste: así cuadra con la plata
+        // (entrega 14.9).
+        r.semanaRetirosCentimos > 0
+            ? Textos.entroSalioRetiraste(
+                _soles(r.semanaEntroCentimos),
+                _soles(r.semanaSalioCentimos),
+                _soles(r.semanaRetirosCentimos),
+              )
+            : Textos.entroSalio(
+                _soles(r.semanaEntroCentimos),
+                _soles(r.semanaSalioCentimos),
+              ),
         style: Tipografia.cifra(Tipografia.secundario),
       ),
     ];

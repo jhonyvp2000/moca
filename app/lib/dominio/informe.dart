@@ -30,16 +30,21 @@ class ConfianzaDelMes {
   final int sinPapel;
 }
 
-/// El informe de un mes (S14). Las cifras vienen calculadas de la capa de
-/// datos; la pantalla y el PDF solo las muestran.
+/// El informe de un mes (S14): el flujo de caja del mes, que cuadra con el
+/// saldo (decisiones.md, 29-10-2026). Todo cuenta el día en que la plata se
+/// movió. Moca no muestra ganancia: no sabe cuánta mercadería queda. Las
+/// cifras vienen calculadas de la capa de datos; la pantalla y el PDF solo
+/// las muestran.
 class InformeMes {
   const InformeMes({
     required this.mes,
     required this.enCurso,
     required this.sinRegistros,
+    required this.inicioCentimos,
     required this.entroCentimos,
     required this.salioCentimos,
     required this.retirosCentimos,
+    required this.ajustesCentimos,
     required this.gastos,
     required this.loQueDebesCentimos,
     required this.advertenciaMercaderia,
@@ -63,13 +68,21 @@ class InformeMes {
   /// Nulo si es el primer mes con Moca.
   final DateTime? mesAnterior;
 
-  /// Ganancia menos la del mes anterior (hasta el mismo día si el mes está
-  /// en curso). Nulo sin mes anterior.
+  /// Cuánto más creció (o menos) la plata que en el mes anterior, hasta el
+  /// mismo día si el mes está en curso. Nulo sin mes anterior.
   final int? diferenciaConAnteriorCentimos;
 
+  /// La plata al empezar el mes (o al empezar con Moca, si fue a mitad).
+  final int inicioCentimos;
+
+  /// Lo que entró y salió del negocio, y lo que el dueño retiró para sí.
   final int entroCentimos;
   final int salioCentimos;
   final int retirosCentimos;
+
+  /// Las diferencias del arqueo que cambiaron el saldo sin ser venta ni
+  /// gasto: positivo si sobró plata.
+  final int ajustesCentimos;
 
   /// De mayor a menor; a lo más cinco filas.
   final List<GastoPorCategoria> gastos;
@@ -89,8 +102,12 @@ class InformeMes {
   final DateTime? mesPrevio;
   final DateTime? mesSiguiente;
 
-  int get gananciaCentimos => entroCentimos - salioCentimos;
-  int get quedoCentimos => gananciaCentimos - retirosCentimos;
+  /// Cuánto creció la plata en el mes; negativo si bajó.
+  int get crecioCentimos =>
+      entroCentimos - salioCentimos - retirosCentimos + ajustesCentimos;
+
+  /// La plata al terminar el mes; en el mes en curso, la de hoy.
+  int get finCentimos => inicioCentimos + crecioCentimos;
 }
 
 abstract interface class RepositorioInforme {

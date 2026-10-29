@@ -48,6 +48,8 @@ export interface Informe {
   entroCentimos: number;
   salioCentimos: number;
   retirosCentimos: number;
+  inicioCentimos: number;
+  ajustesCentimos: number;
   gastos: { nombre: string | null; centimos: number }[];
   cambio: { nombre: string; centimos: number } | null;
   loQueDebesCentimos: number;
@@ -65,6 +67,7 @@ export interface Cifras {
   inicio: {
     semanaEntroCentimos: number;
     semanaSalioCentimos: number;
+    semanaRetirosCentimos: number;
     semanaConMovimientos: boolean;
     diferenciaConSemanaAnteriorCentimos: number | null;
     ventaDeHoyCentimos: number;
@@ -188,6 +191,7 @@ function saldoDeCuenta(inicial: number | null, desde: number | null, ms: ParaSal
 function resumirPeriodo(ms: ParaSaldo[], desde: number, hasta: number) {
   let entro = 0;
   let salio = 0;
+  let retiros = 0;
   let cantidad = 0;
   for (const m of ms) {
     if (!m.vigente || !m.pagado) continue;
@@ -198,9 +202,11 @@ function resumirPeriodo(ms: ParaSaldo[], desde: number, hasta: number) {
     } else if (m.tipo === 'egreso') {
       salio += m.monto;
       cantidad++;
+    } else {
+      retiros += m.monto;
     }
   }
-  return { entro, salio, cantidad, quedo: entro - salio };
+  return { entro, salio, retiros, cantidad, quedo: entro - salio };
 }
 
 // --- Reglas ------------------------------------------------------------------
@@ -324,6 +330,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
     inicio: {
       semanaEntroCentimos: semana.entro,
       semanaSalioCentimos: semana.salio,
+      semanaRetirosCentimos: semana.retiros,
       semanaConMovimientos: semana.cantidad > 0,
       diferenciaConSemanaAnteriorCentimos:
         pasadaCompleta.cantidad > 0 ? semana.quedo - pasadaHastaHoy.quedo : null,
@@ -477,17 +484,61 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
   }
 
   function informes(): Informe[] {
-    // Para el informe, un movimiento cuenta en el mes de su comprobante.
-    const fechaInforme = (m: Movimiento) => m.fechaComprobante ?? m.fechaMovimiento;
+    // El informe es el flujo de caja del mes (entrega 14.9): un movimiento
+    // cuenta el día en que la plata se movió, igual que en el saldo.
+    const fechaInforme = (m: Movimiento) => m.fechaPago ?? m.fechaMovimiento;
     const actual = mesDe(ahora);
-    const inicio = vigentes.length ? Math.min(...vigentes.map(fechaInforme)) : ahora;
+    // Las mismas reglas que el saldo: solo lo pagado, y desde el saldo
+    // inicial de su cuenta. Así el informe cuadra con «Tienes hoy».
+    const desdeDe = new Map(cuentas.map((c) => [c.id, c.desde]));
+    const cuentaParaSaldo = (cuentaId: string, f: number) => {
+      const desde = desdeDe.get(cuentaId);
+      return desde == null || f >= desde;
+    };
+    const pagados = vigentes.filter(
+      (m) => m.estadoPago === 'pagado' && cuentaParaSaldo(m.cuentaId, fechaInforme(m)),
+    );
+    const ajustesDelInforme = ajustes.filter((a) => cuentaParaSaldo(a.cuentaId, a.fecha));
+    const fechas = [
+      ...pagados.map(fechaInforme),
+      ...ajustesDelInforme.map((a) => a.fecha),
+      ...cuentas.flatMap((c) => (c.desde == null ? [] : [c.desde])),
+    ];
+    const inicio = fechas.length ? Math.min(...fechas) : ahora;
     const primerMes = mesDe(inicio);
 
     const periodo = (desde: number, hasta: number) =>
-      vigentes.filter((m) => fechaInforme(m) >= desde && fechaInforme(m) < hasta);
+      pagados.filter((m) => fechaInforme(m) >= desde && fechaInforme(m) < hasta);
+    const ajustado = (desde: number, hasta: number) =>
+      ajustesDelInforme
+        .filter((a) => a.fecha >= desde && a.fecha < hasta)
+        .reduce((s, a) => s + a.centimos, 0);
     const suma = (ms: Movimiento[], tipo: Movimiento['tipo']) =>
       ms.filter((m) => m.tipo === tipo).reduce((s, m) => s + m.monto, 0);
-    const ganancia = (ms: Movimiento[]) => suma(ms, 'ingreso') - suma(ms, 'egreso');
+    // Cuánto creció la plata en el periodo.
+    const crecio = (desde: number, hasta: number) => {
+      const ms = periodo(desde, hasta);
+      return (
+        suma(ms, 'ingreso') - suma(ms, 'egreso') - suma(ms, 'retiro') + ajustado(desde, hasta)
+      );
+    };
+    // La plata en [momento]: cada cuenta con su saldo de ese momento, o con
+    // su saldo inicial si empezó después.
+    const plataAl = (momento: number) => {
+      let total = 0;
+      for (const c of cuentas) {
+        total += c.inicial ?? 0;
+        if (c.desde != null && c.desde >= momento) continue;
+        for (const m of pagados) {
+          if (m.cuentaId !== c.id || fechaInforme(m) >= momento) continue;
+          total += m.tipo === 'ingreso' ? m.monto : -m.monto;
+        }
+        for (const a of ajustesDelInforme) {
+          if (a.cuentaId === c.id && a.fecha < momento) total += a.centimos;
+        }
+      }
+      return total;
+    };
     const porCategoria = (ms: Movimiento[]) => {
       const total = new Map<string, number>();
       for (const m of ms.filter((m) => m.tipo === 'egreso')) {
@@ -530,7 +581,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
           if (mismoDia < mes) hastaAnterior = mismoDia;
         }
         const anterior = periodo(mesAnterior, hastaAnterior);
-        diferencia = ganancia(delMes) - ganancia(anterior);
+        diferencia = crecio(mes, hasta) - crecio(mesAnterior, hastaAnterior);
 
         const ahoraPorCategoria = porCategoria(delMes);
         const antesPorCategoria = porCategoria(anterior);
@@ -589,13 +640,15 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
       lista.push({
         mes: textoMes(mes),
         enCurso,
-        sinRegistros: delMes.length === 0,
+        sinRegistros: delMes.length === 0 && ajustado(mes, hasta) === 0,
         desdeDia: esPrimero && fecha(inicio).getUTCDate() > 1 ? fecha(inicio).getUTCDate() : null,
         mesAnterior: mesAnterior == null ? null : textoMes(mesAnterior),
         diferenciaConAnteriorCentimos: diferencia,
+        inicioCentimos: plataAl(mes),
         entroCentimos: suma(delMes, 'ingreso'),
         salioCentimos: suma(delMes, 'egreso'),
         retirosCentimos: suma(delMes, 'retiro'),
+        ajustesCentimos: ajustado(mes, hasta),
         gastos,
         cambio,
         loQueDebesCentimos: loQueDebes,

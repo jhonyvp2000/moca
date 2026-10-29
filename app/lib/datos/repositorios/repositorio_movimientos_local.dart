@@ -54,6 +54,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         saldosPorCuenta: cifras.saldos,
         semanaEntroCentimos: i.semanaEntroCentimos,
         semanaSalioCentimos: i.semanaSalioCentimos,
+        semanaRetirosCentimos: i.semanaRetirosCentimos,
         semanaConMovimientos: i.semanaConMovimientos,
         diferenciaConSemanaAnteriorCentimos:
             i.diferenciaConSemanaAnteriorCentimos,
@@ -91,6 +92,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       ),
       semanaEntroCentimos: semana.entroCentimos,
       semanaSalioCentimos: semana.salioCentimos,
+      semanaRetirosCentimos: semana.retirosCentimos,
       semanaConMovimientos: semana.cantidad > 0,
       diferenciaConSemanaAnteriorCentimos: semanaPasadaCompleta.cantidad > 0
           ? semana.quedoCentimos - semanaPasadaHastaHoy.quedoCentimos

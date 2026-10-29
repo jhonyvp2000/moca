@@ -246,7 +246,7 @@ abstract final class Textos {
   static const pasoPrimerGasto = 'Anotar tu primer gasto con una foto';
   static const pasoPrimerArqueo = 'Hacer tu primer arqueo el domingo';
   static const conEstosPasos =
-      'Con estos cuatro pasos Moca ya puede decirte si ganas o pierdes.';
+      'Con estos cuatro pasos Moca ya puede mostrarte cómo se mueve tu plata.';
 
   // Hoja del saldo (paso 1)
   static const cuantoTeniasAlEmpezar = '¿Cuánta plata tenías al empezar?';
@@ -266,6 +266,11 @@ abstract final class Textos {
   static const igualQueLaSemanaPasada = 'Lo mismo que la semana pasada';
   static String entroSalio(String entro, String salio) =>
       'Entró $entro · Salió $salio';
+  static String entroSalioRetiraste(
+    String entro,
+    String salio,
+    String retiraste,
+  ) => 'Entró $entro · Salió $salio · Retiraste $retiraste';
   static const semanaSinMovimientos = 'Esta semana todavía no anotas nada.';
   static const mocaFaltaVentaDeHoy = 'Aún no anotas la venta de hoy.';
   static const mocaYaAnotasteHoy = 'Ya anotaste la venta de hoy.';
@@ -561,8 +566,7 @@ abstract final class Textos {
   static String notaMotivo(MotivoArqueo motivo, {required bool faltan}) =>
       switch (motivo) {
         MotivoArqueo.retiroParaMi =>
-          'Un retiro para ti no baja la ganancia del negocio; solo la plata '
-              'en caja.',
+          'Un retiro para ti baja tu plata, pero no es un gasto del negocio.',
         MotivoArqueo.gastoOlvidado => 'Se anota como un gasto de hoy.',
         MotivoArqueo.ventaNoAnotada => 'Se anota como una venta de hoy.',
         MotivoArqueo.errorDeVuelto =>
@@ -598,21 +602,28 @@ abstract final class Textos {
   static const hastaHoy = 'Hasta hoy';
   static String desdeElDia(int dia) => 'Desde el día $dia';
   static String desdeElDiaHastaHoy(int dia) => 'Desde el día $dia hasta hoy';
-  static const ganaste = 'Ganaste';
-  static const perdiste = 'Perdiste';
+  // El informe es el flujo de caja del mes, no la ganancia (entrega 14.9).
+  static const tuPlataCrecio = 'Este mes tu plata creció';
+  static const tuPlataBajo = 'Este mes tu plata bajó';
+  static const tuPlataIgual = 'Este mes tu plata quedó igual';
   static String masQueEn(String monto, String mes) => '$monto más que en $mes';
   static String menosQueEn(String monto, String mes) =>
       '$monto menos que en $mes';
   static String igualQueEn(String mes) => 'Lo mismo que en $mes';
   static const primerMesConMoca =
       'Es tu primer mes con Moca. El próximo mes verás la comparación.';
-  static const loQueGanasteYRetiraste = 'Lo que ganaste y lo que retiraste';
-  static const ganoElNegocio = 'Ganó el negocio';
-  static const perdioElNegocio = 'Perdió el negocio';
-  static const retirasteParaTi = 'Retiraste para ti';
-  static const quedoEnElNegocio = 'Quedó en el negocio';
-  static String sacasteMas(String monto) =>
-      'Sacaste $monto más de lo que ganó el negocio.';
+  static const comoSeMovio = 'Cómo se movió tu plata';
+  static const empezasteElMesCon = 'Empezaste el mes con';
+  static const empezasteCon = 'Empezaste con';
+  static const masEntro = '+ Entró';
+  static const menosSalioDelNegocio = '− Salió del negocio';
+  static const menosRetirasteParaTi = '− Retiraste para ti';
+  static const masSobroEnElArqueo = '+ Sobró en el arqueo';
+  static const menosFaltoEnElArqueo = '− Faltó en el arqueo';
+  static const terminasteElMesCon = 'Terminaste el mes con';
+  static const cuentasDePlata =
+      'Cuenta la plata el día en que se movió: lo que todavía debes se cuenta '
+      'cuando lo pagas.';
   static const enQueSeFue = 'En qué se fue la plata';
   static const loDemas = 'Lo demás';
   static const sinGastos = 'En este mes no hubo gastos.';
@@ -627,8 +638,8 @@ abstract final class Textos {
   static String conFoto(int n) => '$n% tiene foto o captura';
   static String sinPapel(int n) => '$n% lo dijiste tú, sin papel';
   static const advertenciaMercaderia =
-      'Compraste más mercadería que otros meses, así que la ganancia puede '
-      'verse más baja de lo real.';
+      'Compraste más mercadería que otros meses: tu plata bajó, pero esa '
+      'mercadería sigue en tu tienda.';
   static const mesSinRegistros = 'En este mes no hay registros.';
   static const armandoPdf = 'Armando el PDF…';
   static const pdfNoSeArmo = 'No se pudo armar el PDF. Intenta otra vez.';

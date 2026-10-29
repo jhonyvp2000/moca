@@ -106,7 +106,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 
 ### Compras que todavía se deben
 
-- No bajan el saldo de ninguna cuenta hasta que se pagan, pero sí cuentan en la ganancia del mes de su comprobante.
+- No bajan el saldo de ninguna cuenta hasta que se pagan; en el informe cuentan en el mes en que se pagan (entrega 14.9).
 - En el Historial llevan la marca «Lo debes». Al abrirlas, «Ya lo pagué» pide la cuenta y la fecha (hoy por defecto) y baja el saldo ese día. En el prototipo solo se paga completo.
 - S14 muestra el total en «Lo que debes», sin el enlace «Ver a quiénes».
 
@@ -162,7 +162,7 @@ Estados aprobados el 13-10-2026 (entrega 7):
 
 Estados aprobados el 13-10-2026 (entrega 8):
 
-- **S14:** el mes con flechas ‹ › (desde el primer mes con registros hasta el actual) y «Desde el día X» / «Hasta hoy». «Ganaste» o «Perdiste», contando por la fecha del comprobante, con lo que se debe y sin retiros ni ajustes del arqueo; comparación con el mes anterior hasta el mismo día (completo si el mes ya pasó). «Lo que ganaste y lo que retiraste»; si los retiros pasan la ganancia, «Sacaste S/ X más de lo que ganó el negocio». «En qué se fue la plata» con barras, hasta cinco filas («Lo demás»), y la frase de la categoría que más cambió (S/ 100 y 20 % o más) o «Casi nada cambió». «Lo que debes» (total, sin enlace). «Qué tan seguras son estas cuentas»: comprobante (A y B), foto o captura (C), sin papel (D). Advertencia de mercadería si supera en 30 % el promedio de hasta tres meses anteriores. Mes sin registros con «Registrar».
+- **S14** (desde la entrega 14.9 es un flujo de caja; ver `decisiones.md`, 29-10-2026; lo que sigue describe la versión anterior): el mes con flechas ‹ › (desde el primer mes con registros hasta el actual) y «Desde el día X» / «Hasta hoy». «Ganaste» o «Perdiste», contando por la fecha del comprobante, con lo que se debe y sin retiros ni ajustes del arqueo; comparación con el mes anterior hasta el mismo día (completo si el mes ya pasó). «Lo que ganaste y lo que retiraste»; si los retiros pasan la ganancia, «Sacaste S/ X más de lo que ganó el negocio». «En qué se fue la plata» con barras, hasta cinco filas («Lo demás»), y la frase de la categoría que más cambió (S/ 100 y 20 % o más) o «Casi nada cambió». «Lo que debes» (total, sin enlace). «Qué tan seguras son estas cuentas»: comprobante (A y B), foto o captura (C), sin papel (D). Advertencia de mercadería si supera en 30 % el promedio de hasta tres meses anteriores. Mes sin registros con «Registrar».
 - **PDF:** se arma en el teléfono con lo mismo de la pantalla y se comparte con el menú de Android; se llama `Moca-<negocio>-<mes>-<año>.pdf`.
 - **S16:** «Tu semana, en N segundos» con el resumen de la semana pasada (o de lo que va, la primera semana) en plantillas, sin «te alcanza» ni fiado; «Escuchar» con la voz sintética del teléfono, o «Tu teléfono no tiene voz en español» si no hay. Avisos por prioridad y fecha con «Importante» (ámbar) o «Para tener en cuenta»; al tocarlos llevan al arqueo, al ajuste, a Registrar o al gasto; la diferencia del arqueo y el gasto atípico tienen «Entendido». Sin «Pulso» ni «Pregúntale».
 - **S04:** la tarjeta de Moca muestra el aviso más importante con su botón.

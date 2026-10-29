@@ -190,7 +190,7 @@ La app se diseña para registrar en segundos y entender de un vistazo; el panel,
 - Atajo «Anotar la venta de hoy» y un botón central para registrar con voz, foto, QR o texto. Moca deduce si entró o salió plata.
 - Historial con edición y «Deshacer» tras cada guardado; indica qué registros están pendientes de subir cuando no hay señal.
 - Pestaña Moca: resumen semanal en texto y audio, avisos por prioridad y preguntas libres.
-- Informe del mes: ganancia comparada con el mes anterior, la categoría que cambió, qué tan seguras son las cuentas y opción de compartir en PDF.
+- Informe del mes: flujo de caja (cuánto creció o bajó la plata y cómo se movió, cuadrado con el saldo), comparado con el mes anterior, la categoría que cambió, qué tan seguras son las cuentas y opción de compartir en PDF. Desde el 29-10-2026 no habla de ganancia: sin saber cuánta mercadería queda, no es una ganancia real (decisiones.md).
 - Palabras del dueño, no del contador: «lo que te deben» en lugar de «cuentas por cobrar».
 - Montos en soles enteros; céntimos solo dentro del comprobante.
 - Estados diseñados para el primer día, la foto ilegible y la voz mal entendida.
