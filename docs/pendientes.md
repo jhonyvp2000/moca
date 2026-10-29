@@ -44,6 +44,8 @@ Ver `fase-0.md`. En resumen:
 - Reglas tributarias del borrador de declaración y del riesgo tributario, validadas con contadores.
 - Alcance del segundo país.
 
+- Que «Retiro para mí» pueda llevar rubro del hogar (alimentación, educación, salud, transporte, servicios, vivienda, otros) para llenar la hoja de gastos familiares del flujo para crédito (`docs/credito/`). Idea para Moca Plus; no entra en la V1 (29-10-2026).
+
 ## Advertencias sobre los diseños
 
 - Ninguna pantalla se ha probado con usuarios reales.
