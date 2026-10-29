@@ -35,7 +35,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde l
 | 20 | Equipo D · Roles en la app (qué ve y hace cada uno) y «Lo anotó…» en el Historial | 19 |
 | 21 | Equipo E · Varias cajas de efectivo con responsables, arqueo por caja y «Pasé plata de una caja a otra» | 20 |
 | 22 | Equipo F · El contador en varios negocios: elige cuál mirar, solo lectura | 20 |
-| 23 | Equipo G · Prueba con dos o tres teléfonos de verdad y simulación de otra persona desde el ajuste oculto, antes de los 10 pilotos | 20 (y 21, 22) |
+| 23 | Equipo G · Prueba con dos o tres teléfonos de verdad (guion en `prueba-varios-telefonos.md`) y simulación de otra persona desde el ajuste oculto (hecha en la 20.1), antes de los 10 pilotos | 20 (y 21, 22) |
 
 ## Pendiente de decidir
 

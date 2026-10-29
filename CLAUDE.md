@@ -47,6 +47,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `docs/alcance-v1.md` | Corte de versiones y detalle de las 15 pantallas de la V1, con los ajustes respecto al mockup |
 | `docs/modelo-datos.md` | Borrador del modelo de datos |
 | `docs/fase-0.md` | Pruebas con datos reales |
+| `docs/prueba-varios-telefonos.md` | Guion de la prueba con dos o tres teléfonos (entrega 23) |
 | `docs/guiones-videos.md` | Guiones de los 7 videos cortos de tutoría |
 | `docs/pendientes.md` | Decisiones abiertas |
 | `diseno/indice.md` | Las 50 pantallas, con su versión y sus archivos |
