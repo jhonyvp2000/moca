@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
 import { cifrasDe, enviarJson } from '../cifras/rutas.js';
 import { usuarioDeLlave } from '../cuenta/sesiones.js';
-import { miembroDe, type Miembro } from '../equipo/miembros.js';
+import { cajasDe, miembroDe, tiposDeCaja, type Miembro } from '../equipo/miembros.js';
 
 /**
  * Las tablas que sube el teléfono, con sus columnas, en el orden en que se
@@ -120,12 +120,21 @@ async function filasQueCambian(
   tabla: string,
   columnas: readonly string[],
   filas: Fila[],
-): Promise<{ nueva: boolean; autor: unknown; autorAntes: unknown; creadaAntes: Date | null }[]> {
+): Promise<
+  {
+    nueva: boolean;
+    autor: unknown;
+    autorAntes: unknown;
+    creadaAntes: Date | null;
+    cuenta: string | null;
+  }[]
+> {
   if (!filas.length) return [];
   const comparar = columnas.filter((c) => c !== 'empresa_id');
   const conAutor = columnas.includes('autor_id');
   const { rows } = await cliente.query(
     `SELECT o.id IS NULL AS nueva,
+            ${columnas.includes('cuenta_id') ? 'n.cuenta_id' : 'NULL::uuid'} AS cuenta,
             ${conAutor ? 'n.autor_id AS autor, o.autor_id AS autor_antes' : 'NULL AS autor, NULL AS autor_antes'},
             ${columnas.includes('creado_en') ? 'o.creado_en' : 'NULL::timestamptz'} AS creada_antes
        FROM jsonb_populate_recordset(NULL::${tabla}, $1::jsonb) n
@@ -140,6 +149,7 @@ async function filasQueCambian(
     autor: f.autor,
     autorAntes: f.autor_antes,
     creadaAntes: f.creada_antes as Date | null,
+    cuenta: f.cuenta as string | null,
   }));
 }
 
@@ -158,12 +168,27 @@ async function revisarPermisos(
   const empresa = await filasQueCambian(cliente, 'empresas', columnasEmpresa, [datos.empresa]);
   if (empresa.length && miembro.rol !== 'dueno') throw new ErrorDeSubida(403, 'sin_permiso');
 
+  // Las cajas de efectivo del negocio y las del miembro (entrega 21): el
+  // encargado y el ayudante solo anotan en las suyas (y en Yape o banco).
+  const cajas = await cajasDe(cliente, miembro);
+  const todasLasCajas = new Set(
+    (
+      await cliente.query<{ id: string }>(
+        'SELECT id FROM cuentas WHERE tipo = ANY($1)',
+        [tiposDeCaja],
+      )
+    ).rows.map((f) => f.id),
+  );
+  const cajaAjena = (cuenta: string | null) =>
+    cajas != null && cuenta != null && todasLasCajas.has(cuenta) && !cajas.includes(cuenta);
+
   for (const [tabla, columnas] of Object.entries(tablas) as [Tabla, readonly string[]][]) {
     const filas = ((datos[tabla] as Fila[] | undefined) ?? []).map((f) => ({
       ...f,
       empresa_id: miembro.empresaId,
     }));
     for (const fila of await filasQueCambian(cliente, tabla, columnas, filas)) {
+      if (cajaAjena(fila.cuenta)) throw new ErrorDeSubida(403, 'sin_permiso');
       if (fila.nueva && fila.autor != null && fila.autor !== usuarioId) {
         throw new ErrorDeSubida(400, 'autor_distinto');
       }

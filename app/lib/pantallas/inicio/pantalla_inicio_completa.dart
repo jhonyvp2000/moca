@@ -5,6 +5,7 @@ import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/moca.dart';
+import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
@@ -59,6 +60,14 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
   @override
   Widget build(BuildContext context) {
     final r = widget.resumen;
+    // El encargado y el ayudante ven solo sus cajas (entrega 21).
+    final misCajas = widget.permisos.misCajas;
+    final saldos = misCajas == null
+        ? r.saldosPorCuenta
+        : {
+            for (final e in r.saldosPorCuenta.entries)
+              if (misCajas.contains(e.key)) e.key: e.value,
+          };
 
     return SafeArea(
       bottom: false,
@@ -100,86 +109,73 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
               relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: widget.permisos.veSaldos
-                    ? [
-                        Text(
-                          Textos.tienesHoy,
-                          style: Tipografia.textoFuerte.copyWith(
-                            color: Colores.textoSecundario,
+                children: [
+                  Text(
+                    switch (misCajas?.length) {
+                      null => Textos.tienesHoy,
+                      1 => Textos.enTuCaja,
+                      _ => Textos.enTusCajas,
+                    },
+                    style: Tipografia.textoFuerte.copyWith(
+                      color: Colores.textoSecundario,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _soles(
+                        misCajas == null
+                            ? r.tienesHoyCentimos
+                            : saldos.values.fold(0, (s, v) => s + v),
+                      ),
+                      maxLines: 1,
+                      style: Tipografia.cifra(
+                        const TextStyle(
+                          fontFamily: Tipografia.familia,
+                          fontSize: 46,
+                          height: 1.05,
+                          fontWeight: FontWeight.w700,
+                          color: Colores.textoPrincipal,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (misCajas == null || saldos.length > 1)
+                    DesgloseDeCuentas(saldos: saldos, formato: _soles),
+                  // El ayudante ve también lo que vendió hoy (entrega 20).
+                  if (widget.permisos.rol == Rol.ayudante)
+                    Text(
+                      '${Textos.hoyAnotaste}: ${_soles(r.ventaDeHoyCentimos)}',
+                      style: Tipografia.secundario,
+                    ),
+                  if (widget.permisos.haceArqueo)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: widget.alHacerArqueo,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(
+                            0,
+                            Medidas.objetivoTactilMinimo,
                           ),
+                          foregroundColor: Colores.marca,
+                          textStyle: Tipografia.textoFuerte,
                         ),
-                        const SizedBox(height: 2),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            _soles(r.tienesHoyCentimos),
-                            maxLines: 1,
-                            style: Tipografia.cifra(
-                              const TextStyle(
-                                fontFamily: Tipografia.familia,
-                                fontSize: 46,
-                                height: 1.05,
-                                fontWeight: FontWeight.w700,
-                                color: Colores.textoPrincipal,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DesgloseDeCuentas(
-                          saldos: r.saldosPorCuenta,
-                          formato: _soles,
-                        ),
-                        if (widget.permisos.haceArqueo)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: widget.alHacerArqueo,
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(
-                                  0,
-                                  Medidas.objetivoTactilMinimo,
-                                ),
-                                foregroundColor: Colores.marca,
-                                textStyle: Tipografia.textoFuerte,
-                              ),
-                              child: const Text(Textos.hacerArqueo),
-                            ),
-                          ),
-                        const Divider(),
-                        const SizedBox(height: 12),
-                        ..._semana(r),
-                      ]
-                    : [
-                        // El ayudante ve lo que anotó hoy, no la plata del
-                        // negocio (entrega 20).
-                        Text(
-                          Textos.hoyAnotaste,
-                          style: Tipografia.textoFuerte.copyWith(
-                            color: Colores.textoSecundario,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _soles(r.ventaDeHoyCentimos),
-                          style: Tipografia.cifra(
-                            const TextStyle(
-                              fontFamily: Tipografia.familia,
-                              fontSize: 40,
-                              height: 1.05,
-                              fontWeight: FontWeight.w700,
-                              color: Colores.textoPrincipal,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          Textos.loDemasLoVeElDueno,
-                          style: Tipografia.secundario,
-                        ),
-                      ],
+                        child: const Text(Textos.hacerArqueo),
+                      ),
+                    ),
+                  // La semana es de todo el negocio: la ven el dueño y el
+                  // contador.
+                  if (misCajas == null) ...[
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    ..._semana(r),
+                  ],
+                ],
               ),
             ),
           ),

@@ -48,6 +48,10 @@ class AccesoLocal {
   /// La simulación del ajuste oculto (entrega 20.1): con qué rol se ve la
   /// app y quién es «Pepe», la persona simulada. Lo de Pepe no se sube.
   static const claveVerComo = 'ver_como';
+
+  /// Las cajas a cargo de quien usa el teléfono (ids), tal como bajaron del
+  /// servidor; sin el ajuste, todas (entrega 21).
+  static const claveMisCajas = 'mis_cajas';
   static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';
   static const nombreSimulado = 'Pepe';
 
@@ -172,6 +176,22 @@ class AccesoLocal {
     return membresia?.rol ?? Rol.dueno;
   }
 
+  /// Las cajas a cargo de quien usa el teléfono; nulo: todas.
+  Future<Set<TipoCuenta>?> misCajas() async {
+    final texto = await leerAjuste(claveMisCajas);
+    final empresa = await this.empresa();
+    if (texto == null || empresa == null) return null;
+    try {
+      final ids = {for (final id in jsonDecode(texto) as List) id as String};
+      return {
+        for (final c in await cuentas(empresa.id))
+          if (ids.contains(c.id)) c.tipo,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
   /// Nombre y rol de cada persona del negocio, por usuario.
   Future<Map<String, (String?, Rol?)>> equipo() async {
     final texto = await leerAjuste(claveEquipo);
@@ -242,6 +262,8 @@ class AccesoLocal {
   /// le puso el dueño.
   static const nombresCuenta = {
     TipoCuenta.efectivo: 'Efectivo',
+    TipoCuenta.caja2: 'Caja 2',
+    TipoCuenta.caja3: 'Caja 3',
     TipoCuenta.yape: 'BCP Yape',
     TipoCuenta.banco: 'BCP',
     TipoCuenta.plin: 'Interbank Plin',

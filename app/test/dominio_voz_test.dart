@@ -100,12 +100,20 @@ void main() {
       false,
       true,
     ]);
+    // El encargado y el ayudante ven sus cajas, no todo (entrega 21).
     expect([dueno, encargado, ayudante, contador].map((p) => p.veSaldos), [
       true,
-      true,
+      false,
       false,
       true,
     ]);
+    expect(ayudante.misCajas, {TipoCuenta.efectivo});
+    expect(dueno.misCajas, isNull);
+    const conDelivery = Permisos(Rol.ayudante, misCajas: {TipoCuenta.caja2});
+    expect(conDelivery.puedeUsar(TipoCuenta.caja2), isTrue);
+    expect(conDelivery.puedeUsar(TipoCuenta.efectivo), isFalse);
+    expect(conDelivery.puedeUsar(TipoCuenta.yape), isTrue);
+    expect(dueno.puedeUsar(TipoCuenta.caja3), isTrue);
     expect([dueno, encargado, ayudante, contador].map((p) => p.haceArqueo), [
       true,
       true,

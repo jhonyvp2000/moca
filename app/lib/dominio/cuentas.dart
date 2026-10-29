@@ -3,11 +3,14 @@ import 'modelos.dart';
 /// Una cuenta del negocio como la ve el dueño en «Mis cuentas».
 class CuentaVista {
   const CuentaVista({
+    this.id = '',
     required this.tipo,
     required this.nombre,
     required this.saldoCentimos,
   });
 
+  /// Para asignar cajas a una persona del equipo (entrega 21).
+  final String id;
   final TipoCuenta tipo;
   final String nombre;
 

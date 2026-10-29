@@ -22,6 +22,7 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
     return [
       for (final c in cuentas)
         CuentaVista(
+          id: c.id,
           tipo: c.tipo,
           // El BCP se guardaba como «Banco» antes de la entrega 14.1.
           nombre: c.tipo.conNombrePropio

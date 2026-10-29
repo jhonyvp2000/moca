@@ -9,6 +9,7 @@ import '../../comun/isotipo.dart';
 import '../../comun/opciones.dart';
 import '../../comun/videos.dart';
 import '../../dominio/arqueo.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/tutoria.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
@@ -44,7 +45,13 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
   }
 
   Future<void> _preparar() async {
-    final cuentas = await ref.read(repositorioArqueoProvider).preparar();
+    // El encargado cuenta solo sus cajas (entrega 21).
+    final misCajas =
+        (ref.read(permisosProvider).value ?? Permisos.delDueno).misCajas;
+    final cuentas = [
+      for (final c in await ref.read(repositorioArqueoProvider).preparar())
+        if (misCajas == null || misCajas.contains(c.cuenta)) c,
+    ];
     if (!mounted) return;
     setState(() {
       _cuentas = cuentas;

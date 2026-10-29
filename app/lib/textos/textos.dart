@@ -84,16 +84,27 @@ abstract final class Textos {
   /// El nombre del otro banco o caja del dueño, igual que la otra billetera.
   static String nombreOtroBanco = otroBanco;
 
+  /// Las otras cajas de efectivo, con el nombre que les puso el dueño
+  /// (entrega 21).
+  static const caja2 = 'Caja 2';
+  static const caja3 = 'Caja 3';
+  static String nombreCaja2 = caja2;
+  static String nombreCaja3 = caja3;
+
   /// Fija los nombres propios al leer las cuentas.
   static void recordarNombres(Iterable<({TipoCuenta tipo, String nombre})> c) {
     for (final cuenta in c) {
       if (cuenta.tipo == TipoCuenta.otra) nombreOtraBilletera = cuenta.nombre;
       if (cuenta.tipo == TipoCuenta.otroBanco) nombreOtroBanco = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.caja2) nombreCaja2 = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.caja3) nombreCaja3 = cuenta.nombre;
     }
   }
 
   static String nombreCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => efectivo,
+    TipoCuenta.caja2 => nombreCaja2,
+    TipoCuenta.caja3 => nombreCaja3,
     TipoCuenta.yape => yape,
     TipoCuenta.banco => banco,
     TipoCuenta.plin => plin,
@@ -222,6 +233,20 @@ abstract final class Textos {
   static const salirDeLaSimulacionDetalle =
       'Quita la venta de Pepe y vuelve a verse como dueño.';
   static const simulacionTerminada = 'Listo: todo vuelve a ser real.';
+
+  // Cajas (entrega 21)
+  static const agregarUnaCaja = '¿Tienes otra caja de efectivo?';
+  static const otraCaja = 'Otra caja';
+  static const nombreDeLaCaja = 'Nombre de la caja: Caja delivery';
+  static const enTuCaja = 'En tu caja hoy';
+  static const enTusCajas = 'En tus cajas hoy';
+  static const cajasDe = 'Cajas';
+  static const cajaPrincipal = 'La caja principal';
+  static const elegirCajas = '¿Qué cajas tiene a cargo?';
+  static const elegirCajasDetalle =
+      'Anota y ve solo lo de esas cajas, además de Yape y banco. Sin '
+      'ninguna, la caja principal.';
+  static const cajasGuardadas = 'Listo. Sus cajas quedaron guardadas.';
 
   // Equipo (entregas 17 a 19)
   static const miEquipo = 'Mi equipo';

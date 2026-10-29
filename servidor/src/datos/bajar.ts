@@ -3,6 +3,7 @@ import type { Cliente, Pool } from '../base/conexion.js';
 import { calcularCifras, type DatosEmpresa } from '../cifras/calcular.js';
 import { enviarJson } from '../cifras/rutas.js';
 import {
+  cajasDe,
   columnaParaRol,
   miembroDe,
   soloLoVisible,
@@ -31,8 +32,9 @@ export async function leerTabla(
   const { rows } = await cliente.query(
     `SELECT ${lista} FROM ${tabla}
       WHERE cambio > $2 AND (${visible ?? 'true'} OR $1::uuid IS NULL)
+        AND ($3::uuid[] IS NULL OR true)
       ORDER BY cambio`,
-    [usuarioId, desde],
+    [usuarioId, desde, (await cajasDe(cliente, miembro)) ?? []],
   );
   return rows;
 }
@@ -59,7 +61,7 @@ export async function ultimoCambio(cliente: Cliente, empresaId: string): Promise
  */
 export async function equipoVisible(cliente: Cliente, empresaId: string) {
   const { rows } = await cliente.query(
-    `SELECT usuario_id, nombre, rol, titular FROM membresias
+    `SELECT usuario_id, nombre, rol, titular, cajas FROM membresias
       WHERE quitada_en IS NULL AND empresa_id = $1
       ORDER BY titular DESC, creado_en`,
     [empresaId],
@@ -97,6 +99,8 @@ export async function bajar(
         empresa_id: miembro.empresaId,
         rol: miembro.rol,
         titular: miembro.titular,
+        // Las cajas que le tocan; nulo: todas (entrega 21).
+        cajas: await cajasDe(cliente, miembro),
       },
       empresa: (
         await cliente.query(`SELECT ${columnasEmpresa.join(', ')} FROM empresas`)
@@ -123,7 +127,7 @@ export function cifrasPara(
   ahora: Date,
 ): ReturnType<typeof calcularCifras> | null {
   const rol = (datos?.membresia as { rol?: string } | undefined)?.rol;
-  if (!datos || rol === 'ayudante' || (rol && !veCifras(rol as Miembro['rol']))) return null;
+  if (!datos || (rol && !veCifras(rol as Miembro['rol']))) return null;
   return calcularCifras(datos as unknown as DatosEmpresa, ahora);
 }
 

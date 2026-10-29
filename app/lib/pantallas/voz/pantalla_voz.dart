@@ -146,11 +146,16 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           alternativas,
           soloVenta: widget.modo == ModoVoz.primeraVenta,
         ).conPlinDelNegocio({...ref.read(tiposDeCuentaProvider)});
+        final permisos = ref.read(permisosProvider).value ?? Permisos.delDueno;
         // Quien no es dueño no anota retiros ni aportes: se le pregunta.
-        if (lectura.tipo?.delDueno ?? false) {
-          final permisos =
-              ref.read(permisosProvider).value ?? Permisos.delDueno;
-          if (!permisos.anotaLoDelDueno) lectura = lectura.sinTipo();
+        if ((lectura.tipo?.delDueno ?? false) && !permisos.anotaLoDelDueno) {
+          lectura = lectura.sinTipo();
+        }
+        // «En efectivo» de un encargado o ayudante es su caja (entrega 21).
+        for (final (i, p) in lectura.partidas.indexed) {
+          if (p.cuenta case final cuenta? when !permisos.puedeUsar(cuenta)) {
+            lectura = lectura.conCuenta(i, permisos.misCajas!.first);
+          }
         }
         setState(() {
           _lectura = widget.modo == ModoVoz.ventaDelDia && lectura.tipo == null

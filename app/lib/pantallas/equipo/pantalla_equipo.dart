@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/modelos.dart';
+import '../../dominio/cuentas.dart';
+import '../../comun/opciones.dart';
 import '../../dominio/equipo.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -70,6 +73,74 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
     );
   }
 
+  /// Qué cajas tiene a cargo un encargado o ayudante (entrega 21).
+  Future<void> _elegirCajas(PersonaDelEquipo persona) async {
+    final cajas = [
+      for (final c in ref.read(cuentasProvider).value ?? const <CuentaVista>[])
+        if (c.tipo.esCaja) c,
+    ];
+    final elegidas = {...persona.cajas};
+    final listo = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (contexto) => StatefulBuilder(
+        builder: (contexto, cambiar) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(Medidas.margenLateral),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  Textos.elegirCajas,
+                  style: Tipografia.tituloPantalla,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  Textos.elegirCajasDetalle,
+                  style: Tipografia.secundario,
+                ),
+                const SizedBox(height: 12),
+                OpcionesVarias<String>(
+                  opciones: {for (final c in cajas) c.id: c.nombre},
+                  elegidas: elegidas,
+                  alTocar: (id) => cambiar(
+                    () => elegidas.contains(id)
+                        ? elegidas.remove(id)
+                        : elegidas.add(id),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => Navigator.pop(contexto, true),
+                  child: const Text(Textos.guardar),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (listo != true) return;
+    final resultado = await ref
+        .read(servicioEquipoProvider)
+        .asignarCajas(persona.membresiaId, elegidas.toList());
+    if (resultado == ResultadoEquipo.listo && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(Textos.cajasGuardadas)));
+    }
+    _mostrar(resultado);
+  }
+
+  /// «Caja delivery», o la principal si no tiene ninguna.
+  String _cajasDe(PersonaDelEquipo p) {
+    final nombres = {
+      for (final c in ref.read(cuentasProvider).value ?? const <CuentaVista>[])
+        c.id: c.nombre,
+    };
+    final suyas = [for (final id in p.cajas) ?nombres[id]];
+    return suyas.isEmpty ? Textos.cajaPrincipal : suyas.join(', ');
+  }
+
   Future<void> _anular(InvitacionPendiente invitacion) async =>
       _mostrar(await ref.read(servicioEquipoProvider).anular(invitacion.id));
 
@@ -126,6 +197,13 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
                     ].join(' · '),
                     accion: equipo.soyDueno && !p.titular && !p.soyYo
                         ? (Textos.quitar, () => _quitar(p))
+                        : null,
+                    // Las cajas del encargado y del ayudante (entrega 21).
+                    cajas: p.rol == Rol.encargado || p.rol == Rol.ayudante
+                        ? (
+                            '${Textos.cajasDe}: ${_cajasDe(p)}',
+                            equipo.soyDueno ? () => _elegirCajas(p) : null,
+                          )
                         : null,
                     conSeparador: i < equipo.personas.length - 1,
                   ),
@@ -193,12 +271,16 @@ class _Fila extends StatelessWidget {
     required this.detalle,
     required this.conSeparador,
     this.accion,
+    this.cajas,
   });
 
   final String titulo;
   final String detalle;
   final bool conSeparador;
   final (String, VoidCallback)? accion;
+
+  /// «Cajas: Caja delivery», que el dueño toca para cambiarlas.
+  final (String, VoidCallback?)? cajas;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +302,25 @@ class _Fila extends StatelessWidget {
               children: [
                 Text(titulo, style: Tipografia.textoFuerte),
                 Text(detalle, style: Tipografia.secundario),
+                if (cajas case (final texto, final alTocar))
+                  InkWell(
+                    onTap: alTocar,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minHeight: Medidas.objetivoTactilMinimo,
+                      ),
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        texto,
+                        style: Tipografia.secundario.copyWith(
+                          color: alTocar == null
+                              ? Colores.textoSecundario
+                              : Colores.marca,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

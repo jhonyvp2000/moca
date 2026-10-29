@@ -82,6 +82,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     }
     final borrador = widget.borrador;
     _tipo = borrador?.tipo ?? widget.tipoInicial;
+    // El efectivo de un encargado o ayudante es su caja (entrega 21).
+    final permisos = ref.read(permisosProvider).value ?? Permisos.delDueno;
+    if (!permisos.puedeUsar(_cuenta)) _cuenta = permisos.misCajas!.first;
     _cuenta = borrador?.cuenta ?? _cuenta;
     _categoriaId = borrador?.categoriaId;
     if (borrador?.montoCentimos case final centimos?) {

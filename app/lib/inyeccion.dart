@@ -377,7 +377,12 @@ final cuentasProvider = StreamProvider<List<CuentaVista>>(
 final tiposDeCuentaProvider = Provider<List<TipoCuenta>>((ref) {
   final cuentas = ref.watch(cuentasProvider).value;
   if (cuentas == null || cuentas.isEmpty) return TipoCuenta.basicas;
-  return [for (final c in cuentas) c.tipo];
+  // El encargado y el ayudante anotan solo en sus cajas (entrega 21).
+  final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+  return [
+    for (final c in cuentas)
+      if (permisos.puedeUsar(c.tipo)) c.tipo,
+  ];
 });
 
 // --- Cuenta real (entrega 11) ------------------------------------------------
@@ -411,7 +416,10 @@ final permisosProvider = StreamProvider<Permisos>((ref) {
     ref.watch(baseLocalProvider),
     ref.watch(relojProvider),
   );
-  return acceso.cambios().asyncMap((_) async => Permisos(await acceso.miRol()));
+  return acceso.cambios().asyncMap(
+    (_) async =>
+        Permisos(await acceso.miRol(), misCajas: await acceso.misCajas()),
+  );
 });
 
 final situacionCuentaProvider = StreamProvider<SituacionCuenta>(

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from '../base/conexion.js';
 import { enviarJson } from '../cifras/rutas.js';
-import { miembroDe } from '../equipo/miembros.js';
+import { cajasDe, miembroDe } from '../equipo/miembros.js';
 import { empresaPedida, equipoVisible, leerTabla, ultimoCambio } from './bajar.js';
 import { autenticar, columnasEmpresa, tablas } from './subir.js';
 
@@ -42,6 +42,7 @@ export async function cambiosDesde(
       empresa_id: miembro.empresaId,
       rol: miembro.rol,
       titular: miembro.titular,
+      mis_cajas: await cajasDe(cliente, miembro),
       personas: personas.rows[0]?.n ?? 1,
       equipo: await equipoVisible(cliente, miembro.empresaId),
       hasta,

@@ -21,8 +21,10 @@ function negocio(nombre: string, duenoId: string) {
   const efectivo = randomUUID();
   const venta = randomUUID();
   const ventaDelDueno = randomUUID();
+  const yape = randomUUID();
+  const ventaPorYape = randomUUID();
   return {
-    ids: { empresa, efectivo, venta, ventaDelDueno },
+    ids: { empresa, efectivo, venta, ventaDelDueno, yape, ventaPorYape },
     datos: {
       empresa: {
         id: empresa,
@@ -43,11 +45,22 @@ function negocio(nombre: string, duenoId: string) {
           saldo_inicial_centimos: 100000,
           fecha_saldo_inicial: ayer,
         },
+        {
+          id: yape,
+          tipo: 'yape',
+          nombre: 'Yape',
+          orden: 1,
+          saldo_inicial_centimos: 50000,
+          fecha_saldo_inicial: ayer,
+        },
       ],
       categorias: [
         { id: venta, nombre: 'Venta del día', tipo_movimiento: 'ingreso', orden: 0, activa: true },
       ],
-      movimientos: [movimiento(ventaDelDueno, duenoId, efectivo, venta)],
+      movimientos: [
+        movimiento(ventaDelDueno, duenoId, efectivo, venta),
+        movimiento(ventaPorYape, duenoId, yape, venta),
+      ],
     },
   };
 }
@@ -224,11 +237,25 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect(equipo.invitaciones).toEqual([]);
   });
 
-  it('al ayudante solo le baja lo suyo, sin saldos ni cifras', async () => {
+  it('al ayudante le baja su caja, no Yape ni las cifras del negocio', async () => {
     const lo = await bajar(pepe);
-    expect(lo.datos.membresia).toMatchObject({ rol: 'ayudante', titular: false });
-    expect(lo.datos.movimientos).toEqual([]);
-    expect(lo.datos.cuentas[0].saldo_inicial_centimos).toBeNull();
+    // Sin cajas asignadas, la suya es la principal (entrega 21).
+    expect(lo.datos.membresia).toMatchObject({
+      rol: 'ayudante',
+      titular: false,
+      cajas: [lucy.ids.efectivo],
+    });
+    expect(lo.datos.movimientos.map((m: { id: string }) => m.id)).toEqual([
+      lucy.ids.ventaDelDueno,
+    ]);
+    const saldos = Object.fromEntries(
+      lo.datos.cuentas.map((c: { id: string; saldo_inicial_centimos: number | null }) => [
+        c.id,
+        c.saldo_inicial_centimos,
+      ]),
+    );
+    expect(saldos[lucy.ids.efectivo]).toBe(100000);
+    expect(saldos[lucy.ids.yape]).toBeNull();
     expect(lo.datos.categorias).toHaveLength(1);
     expect(lo.cifras).toBeNull();
     // Los nombres de quienes anotan, para «Lo anotó Rosa» (entrega 20).
@@ -313,7 +340,7 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     });
     expect(igual.statusCode).toBe(200);
     expect(lo.datos.movimientos.map((m: { id: string }) => m.id).sort()).toEqual(
-      [deHoy, deAyer].sort(),
+      [deHoy, deAyer, ventaDelDueno].sort(),
     );
     expect(empresa).toBe(lo.datos.empresa.id);
   });
@@ -351,14 +378,72 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     const dePepe = (await cambios(pepe, desdePepe)).json();
     expect(dePepe.movimientos.map((m: { id: string; estado: string }) => [m.id, m.estado]))
       .toEqual([[otra, 'anulado']]);
-    // ...pero nunca la venta del dueño.
+    // ...pero nunca lo de Yape, que no es su caja.
     const todoDePepe = (await cambios(pepe, 0)).json();
     expect(
-      todoDePepe.movimientos.some((m: { id: string }) => m.id === lucy.ids.ventaDelDueno),
+      todoDePepe.movimientos.some((m: { id: string }) => m.id === lucy.ids.ventaPorYape),
     ).toBe(false);
-    expect(todoDePepe.cuentas[0].saldo_inicial_centimos).toBeNull();
+    expect(todoDePepe.mis_cajas).toEqual([lucy.ids.efectivo]);
 
     expect((await cambios(lucho, -1)).statusCode).toBe(400);
+  });
+
+  it('con su propia caja, el ayudante ve y anota solo en ella (entrega 21)', async () => {
+    // Lucho abre la «Caja delivery» y anota una venta en ella.
+    const delivery = randomUUID();
+    const enDelivery = randomUUID();
+    const r = await pedir(lucho, 'POST', '/datos/subir', {
+      empresa: lucy.datos.empresa,
+      cuentas: [
+        { id: delivery, tipo: 'caja2', nombre: 'Caja delivery', orden: 2, saldo_inicial_centimos: 20000 },
+      ],
+      movimientos: [movimiento(enDelivery, lucho.usuarioId, delivery, lucy.ids.venta)],
+    });
+    expect(r.statusCode).toBe(200);
+    const equipo = (await pedir(lucho, 'GET', '/equipo')).json();
+    const dePepe = equipo.personas.find((p: { nombre: string }) => p.nombre === 'Pepe');
+    // Solo cajas de efectivo.
+    expect(
+      (
+        await pedir(lucho, 'POST', '/equipo/cajas', {
+          membresia: dePepe.membresia_id,
+          cajas: [lucy.ids.yape],
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await pedir(lucho, 'POST', '/equipo/cajas', {
+          membresia: dePepe.membresia_id,
+          cajas: [delivery],
+        })
+      ).json(),
+    ).toEqual({ cajas: [delivery] });
+    // El ayudante no asigna cajas.
+    expect(
+      (
+        await pedir(pepe, 'POST', '/equipo/cajas', {
+          membresia: dePepe.membresia_id,
+          cajas: [lucy.ids.efectivo],
+        })
+      ).json(),
+    ).toEqual({ error: 'sin_permiso' });
+
+    const lo = await bajar(pepe);
+    expect(lo.datos.membresia.cajas).toEqual([delivery]);
+    const ids = lo.datos.movimientos.map((m: { id: string }) => m.id);
+    expect(ids).toContain(enDelivery);
+    expect(ids).not.toContain(lucy.ids.ventaDelDueno);
+
+    // Anota en su caja y en Yape, no en la caja principal.
+    const anotar = (cuenta: string) =>
+      pedir(pepe, 'POST', '/datos/subir', {
+        empresa: lucy.datos.empresa,
+        movimientos: [movimiento(randomUUID(), pepe.usuarioId, cuenta, lucy.ids.venta)],
+      });
+    expect((await anotar(delivery)).statusCode).toBe(200);
+    expect((await anotar(lucy.ids.yape)).statusCode).toBe(200);
+    expect((await anotar(lucy.ids.efectivo)).json()).toEqual({ error: 'sin_permiso' });
   });
 
   it('la otra dueña ve todo y corrige; solo el titular borra el negocio', async () => {
@@ -439,7 +524,7 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     const deLucho = await bajar(lucho);
     expect(
       deLucho.datos.movimientos.filter((m: { autor_id: string }) => m.autor_id === pepe.usuarioId),
-    ).toHaveLength(3);
+    ).toHaveLength(5);
     // Y su lugar queda libre.
     const nueva = await pedir(lucho, 'POST', '/equipo/invitar', {
       celular: '987000004',

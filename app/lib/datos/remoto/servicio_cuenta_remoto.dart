@@ -300,6 +300,9 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
                   : _nueveDigitos(p['celular']),
               titular: p['titular'] == true,
               soyYo: p['usuario_id'] == yo,
+              cajas: [
+                for (final c in (p['cajas'] as List? ?? const [])) c as String,
+              ],
             ),
       ],
       invitaciones: [
@@ -339,6 +342,18 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
   @override
   Future<ResultadoEquipo> quitar(String membresiaId) async {
     final r = await _delEquipo('/equipo/quitar', {'membresia': membresiaId});
+    return r == null ? ResultadoEquipo.sinSenal : _resultadoEquipo(r);
+  }
+
+  @override
+  Future<ResultadoEquipo> asignarCajas(
+    String membresiaId,
+    List<String> cuentaIds,
+  ) async {
+    final r = await _delEquipo('/equipo/cajas', {
+      'membresia': membresiaId,
+      'cajas': cuentaIds,
+    });
     return r == null ? ResultadoEquipo.sinSenal : _resultadoEquipo(r);
   }
 
@@ -814,10 +829,27 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     );
   }
 
-  /// Quiénes están en el negocio, para «Lo anotó Rosa» (entrega 20).
+  /// Quiénes están en el negocio, para «Lo anotó Rosa» (entrega 20), y las
+  /// cajas a cargo de quien usa el teléfono (entrega 21).
   Future<void> _guardarEquipo(Map<String, Object?> datos) async {
     if (datos['equipo'] case final List equipo) {
       await _a.guardarAjuste(AccesoLocal.claveEquipo, jsonEncode(equipo));
+    }
+    final membresia = datos['membresia'];
+    final cajas = datos.containsKey('mis_cajas')
+        ? datos['mis_cajas']
+        : membresia is Map
+        ? membresia['cajas']
+        : null;
+    if (datos.containsKey('mis_cajas') ||
+        (membresia is Map && membresia.containsKey('cajas'))) {
+      if (cajas is List) {
+        await _a.guardarAjuste(AccesoLocal.claveMisCajas, jsonEncode(cajas));
+      } else {
+        await (_base.delete(
+          _base.ajustes,
+        )..where((a) => a.clave.equals(AccesoLocal.claveMisCajas))).go();
+      }
     }
   }
 

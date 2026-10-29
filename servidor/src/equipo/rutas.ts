@@ -4,6 +4,7 @@ import { aInternacional, esCelularPeru } from '../cuenta/celular.js';
 import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
 import {
+  tiposDeCaja,
   diasDeLaInvitacion,
   maximoDePersonas,
   miembroDe,
@@ -91,7 +92,7 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
         async (cliente, miembro) => {
           const esDueno = miembro.rol === 'dueno';
           const personas = await cliente.query(
-            `SELECT m.id AS membresia_id, m.usuario_id, m.nombre, m.rol, m.titular,
+            `SELECT m.id AS membresia_id, m.usuario_id, m.nombre, m.rol, m.titular, m.cajas,
                     ${esDueno ? 'u.celular' : 'NULL AS celular'}
                FROM membresias m JOIN usuarios u ON u.id = m.usuario_id
               WHERE m.quitada_en IS NULL
@@ -221,6 +222,47 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
       return responderError(error, respuesta);
     }
   });
+
+  // Las cajas a cargo de una persona (entrega 21): solo cajas de efectivo
+  // del negocio. Vacío: la principal.
+  app.post<{ Body: { membresia?: unknown; cajas?: unknown } }>(
+    '/equipo/cajas',
+    async (peticion, respuesta) => {
+      const usuarioId = await autenticar(pool, peticion);
+      if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+      const membresia = peticion.body?.membresia;
+      const cajas = peticion.body?.cajas;
+      if (!esUuid(membresia) || !Array.isArray(cajas) || !cajas.every(esUuid)) {
+        return respuesta.code(400).send({ error: 'datos_invalidos' });
+      }
+      try {
+        return await comoMiembro(
+          pool,
+          usuarioId,
+          empresaPedida(peticion.query),
+          true,
+          async (cliente) => {
+            const validas = await cliente.query(
+              'SELECT 1 FROM cuentas WHERE id = ANY($1) AND tipo = ANY($2)',
+              [cajas, tiposDeCaja],
+            );
+            if (validas.rowCount !== new Set(cajas).size) {
+              throw new ErrorDeEquipo(400, 'datos_invalidos');
+            }
+            const { rowCount } = await cliente.query(
+              `UPDATE membresias SET cajas = $2
+                WHERE id = $1 AND quitada_en IS NULL`,
+              [membresia, [...new Set(cajas)]],
+            );
+            if (!rowCount) throw new ErrorDeEquipo(404, 'sin_persona');
+            return { cajas: [...new Set(cajas)] };
+          },
+        );
+      } catch (error) {
+        return responderError(error, respuesta);
+      }
+    },
+  );
 
   // Las invitaciones que esperan a quien entró con su celular.
   app.get('/cuenta/invitaciones', async (peticion, respuesta) => {

@@ -75,6 +75,14 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
     };
     final billeteras = faltan(TipoCuenta.billeteras);
     final bancos = faltan(TipoCuenta.otrosBancos);
+    // Hasta dos cajas más, de a una (entrega 21).
+    final siguienteCaja = [
+      TipoCuenta.caja2,
+      TipoCuenta.caja3,
+    ].where((t) => !cuentas.any((c) => c.tipo == t)).firstOrNull;
+    final cajas = {?siguienteCaja: Textos.otraCaja};
+    final hayQueAgregar =
+        billeteras.isNotEmpty || bancos.isNotEmpty || cajas.isNotEmpty;
     const etiqueta = TextStyle(
       fontFamily: Tipografia.familia,
       fontSize: 15,
@@ -127,7 +135,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             ],
           ),
         ),
-        if (billeteras.isNotEmpty || bancos.isNotEmpty) ...[
+        if (hayQueAgregar) ...[
           const SizedBox(height: 8),
           const Text(
             Textos.billeteraEmpiezaEnCero,
@@ -135,6 +143,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
           ),
         ],
         for (final (titulo, opciones) in [
+          (Textos.agregarUnaCaja, cajas),
           (Textos.agregarBilletera, billeteras),
           (Textos.agregarUnBanco, bancos),
         ])
@@ -154,27 +163,29 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
                 _elegida!.conNombrePropio) ...[
               const SizedBox(height: 10),
               TextField(
-                key: Key(
-                  _elegida == TipoCuenta.otra
-                      ? 'nombre-otra-billetera'
-                      : 'nombre-otro-banco',
-                ),
+                key: Key(switch (_elegida) {
+                  TipoCuenta.otra => 'nombre-otra-billetera',
+                  TipoCuenta.otroBanco => 'nombre-otro-banco',
+                  _ => 'nombre-caja',
+                }),
                 controller: _nombreOtra,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
                 onChanged: (_) => setState(() {}),
                 style: Tipografia.textoFuerte.copyWith(fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: _elegida == TipoCuenta.otra
-                      ? Textos.nombreDeLaBilletera
-                      : Textos.nombreDelBanco,
+                  hintText: switch (_elegida) {
+                    TipoCuenta.otra => Textos.nombreDeLaBilletera,
+                    TipoCuenta.otroBanco => Textos.nombreDelBanco,
+                    _ => Textos.nombreDeLaCaja,
+                  },
                 ),
               ),
             ],
           ],
       ],
       acciones: [
-        if (billeteras.isNotEmpty || bancos.isNotEmpty)
+        if (hayQueAgregar)
           FilledButton(
             onPressed: _sePuedeAgregar ? _agregar : null,
             child: const Text(Textos.agregar),

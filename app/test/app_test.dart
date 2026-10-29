@@ -2815,8 +2815,9 @@ void main() {
         'negocio', (tester) async {
       await comoRol(tester, Rol.ayudante);
       expect(find.text(Textos.tienesHoy), findsNothing);
-      expect(find.text(Textos.hoyAnotaste), findsOneWidget);
-      expect(find.text(Textos.loDemasLoVeElDueno), findsOneWidget);
+      // Su caja (la principal, sin otra asignada) y lo que vendió hoy.
+      expect(find.text(Textos.enTuCaja), findsOneWidget);
+      expect(find.textContaining(Textos.hoyAnotaste), findsOneWidget);
       expect(find.text(Textos.hacerArqueo), findsNothing);
       expect(find.text(Textos.pestanaInformes), findsNothing);
       expect(find.bySemanticsLabel(Textos.registrar), findsOneWidget);
@@ -2855,11 +2856,69 @@ void main() {
       tester,
     ) async {
       await comoRol(tester, Rol.encargado);
-      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.text(Textos.enTuCaja), findsOneWidget);
       expect(find.text(Textos.hacerArqueo), findsWidgets);
       expect(find.text(Textos.pestanaInformes), findsNothing);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(find.text(Textos.misCuentas), findsNothing);
+    });
+  });
+
+  group('Entrega 21: varias cajas', () {
+    testWidgets('El dueño agrega una caja con nombre en «Mis cuentas»', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text(Textos.otraCaja));
+      await tester.enterText(
+        find.byKey(const Key('nombre-caja')),
+        'Caja delivery',
+      );
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.agregar));
+      expect(find.text('Caja delivery'), findsWidgets);
+    });
+
+    testWidgets('El ayudante a cargo de «Caja delivery» ve su caja y anota '
+        'en ella, no en la principal', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text(Textos.otraCaja));
+      await tester.enterText(
+        find.byKey(const Key('nombre-caja')),
+        'Caja delivery',
+      );
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.agregar));
+      // Como al bajar del servidor: todo en una transacción.
+      await tester.runAsync(
+        () => base.transaction(() async {
+          final delivery = await (base.select(
+            base.cuentas,
+          )..where((c) => c.tipo.equalsValue(TipoCuenta.caja2))).getSingle();
+          await AccesoLocal(
+            base,
+            () => _ahora,
+          ).guardarAjuste(AccesoLocal.claveMisCajas, jsonEncode([delivery.id]));
+          await base
+              .update(base.membresias)
+              .write(const MembresiasCompanion(rol: Value(Rol.ayudante)));
+        }),
+      );
+      await esperar(tester);
+      await tocar(tester, find.byType(BotonVolver).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      expect(find.text(Textos.enTuCaja), findsOneWidget);
+
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      expect(find.text('Caja delivery'), findsOneWidget);
+      expect(find.text(Textos.efectivo), findsNothing);
+      expect(find.text(Textos.yape), findsOneWidget);
     });
   });
 
@@ -2874,7 +2933,7 @@ void main() {
         find.text(Textos.viendoComo(Textos.nombreRol(Rol.ayudante))),
         findsOneWidget,
       );
-      expect(find.text(Textos.hoyAnotaste), findsOneWidget);
+      expect(find.textContaining(Textos.hoyAnotaste), findsOneWidget);
       expect(find.text(Textos.pestanaInformes), findsNothing);
 
       await tocar(tester, find.text(Textos.volverADueno));

@@ -13,6 +13,7 @@ class PersonaDelEquipo {
     this.celular,
     this.titular = false,
     this.soyYo = false,
+    this.cajas = const [],
   });
 
   final String membresiaId;
@@ -28,6 +29,10 @@ class PersonaDelEquipo {
   /// Quien creó el negocio: nadie lo quita.
   final bool titular;
   final bool soyYo;
+
+  /// Las cajas a su cargo (ids de cuentas); vacío: la principal (entrega
+  /// 21).
+  final List<String> cajas;
 }
 
 /// Una invitación que todavía no se acepta.
@@ -129,6 +134,12 @@ abstract interface class ServicioEquipo {
   /// Quitar no borra nada: lo que la persona anotó se queda.
   Future<ResultadoEquipo> quitar(String membresiaId);
 
+  /// Las cajas a cargo de un encargado o ayudante (entrega 21).
+  Future<ResultadoEquipo> asignarCajas(
+    String membresiaId,
+    List<String> cuentaIds,
+  );
+
   /// Las invitaciones que llegaron al entrar por «Me invitaron».
   List<InvitacionRecibida> get invitacionesRecibidas;
 
@@ -140,18 +151,32 @@ abstract interface class ServicioEquipo {
 /// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
 /// 20). El servidor lo hace cumplir también: esto solo muestra lo que vale.
 class Permisos {
-  const Permisos(this.rol);
+  const Permisos(this.rol, {this._misCajas});
 
   static const delDueno = Permisos(Rol.dueno);
 
   final Rol rol;
+  final Set<TipoCuenta>? _misCajas;
+
+  /// Las cajas a su cargo (entrega 21); nulo para dueños y contador, que ven
+  /// todas. Sin ninguna asignada, la principal.
+  Set<TipoCuenta>? get misCajas => rol == Rol.dueno || rol == Rol.contador
+      ? null
+      : (_misCajas == null || _misCajas.isEmpty)
+      ? const {TipoCuenta.efectivo}
+      : _misCajas;
+
+  /// Si puede anotar o ver esta cuenta: las cajas, solo las suyas; Yape,
+  /// Plin y banco son del negocio.
+  bool puedeUsar(TipoCuenta cuenta) =>
+      misCajas == null || !cuenta.esCaja || misCajas!.contains(cuenta);
 
   /// El contador solo mira.
   bool get anota => rol != Rol.contador;
 
-  /// «Tienes hoy» y el saldo de cada cuenta. El ayudante ve lo que anotó
-  /// hoy (el saldo de su caja llega con las cajas, entrega 21).
-  bool get veSaldos => rol != Rol.ayudante;
+  /// «Tienes hoy» y el saldo de cada cuenta del negocio; el encargado y el
+  /// ayudante ven el de sus cajas (entrega 21).
+  bool get veSaldos => misCajas == null;
 
   bool get veInformes => rol == Rol.dueno || rol == Rol.contador;
 

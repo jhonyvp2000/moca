@@ -14,6 +14,11 @@ enum Rol { dueno, encargado, ayudante, contador }
 /// el nombre que ponga el dueño (decisiones.md, 13-10-2026 y 15-10-2026).
 enum TipoCuenta {
   efectivo,
+
+  /// Otras cajas de efectivo, con el nombre que les ponga el dueño («Caja
+  /// delivery»); la principal sigue siendo [efectivo] (entrega 21).
+  caja2,
+  caja3,
   yape,
 
   /// El BCP. Se llamaba «Banco» hasta la entrega 14.1.
@@ -34,18 +39,24 @@ enum TipoCuenta {
   /// Las cuentas que tiene todo negocio desde la primera venta.
   static const basicas = [efectivo, yape, banco];
 
+  /// Las cajas de efectivo: la principal y hasta dos más (entrega 21).
+  static const cajas = [efectivo, caja2, caja3];
+
   /// Las billeteras que el dueño puede agregar.
   static const billeteras = [plin, bbvaPlin, scotiabankPlin, sip, otra];
 
   /// Los bancos que el dueño puede agregar además del BCP.
   static const otrosBancos = [interbank, bbva, scotiabank, otroBanco];
 
-  /// Todo lo que se puede agregar después del alta.
-  static const agregables = [...billeteras, ...otrosBancos];
+  /// Todo lo que se puede agregar después del alta, con las otras cajas
+  /// (entrega 21).
+  static const agregables = [...billeteras, ...otrosBancos, caja2, caja3];
 
   /// Cómo se muestran: las billeteras junto a Yape y los bancos al final.
   static const enOrden = [
     efectivo,
+    caja2,
+    caja3,
     yape,
     plin,
     bbvaPlin,
@@ -61,12 +72,15 @@ enum TipoCuenta {
 
   bool get esBanco => this == banco || otrosBancos.contains(this);
 
+  bool get esCaja => cajas.contains(this);
+
   /// Las billeteras Plin: si el dueño dice «por Plin» y tiene más de una,
   /// Moca pregunta cuál (entrega 14.10).
   bool get esPlin => this == plin || this == bbvaPlin || this == scotiabankPlin;
 
   /// La cuenta que lleva el nombre que escribe el dueño.
-  bool get conNombrePropio => this == otra || this == otroBanco;
+  bool get conNombrePropio =>
+      this == otra || this == otroBanco || this == caja2 || this == caja3;
 }
 
 enum TipoContraparte { cliente, proveedor }
