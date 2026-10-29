@@ -197,7 +197,7 @@ void main() {
     expect(operaciones, contains('state="frozen"'));
     expect(operaciones, contains('<autoFilter'));
     // La primera operación: el 1 de setiembre es el día 46266 de Excel.
-    expect(operaciones, contains('<c r="A2" s="2"><v>46266</v></c>'));
+    expect(operaciones, matches(RegExp(r'<c r="A2" s="\d+"><v>46266</v></c>')));
     expect(
       nombreDelExcel('Bodega Don Lucho', DateTime(2026, 9)),
       'Moca-Bodega-Don-Lucho-operaciones-setiembre-2026.xlsx',

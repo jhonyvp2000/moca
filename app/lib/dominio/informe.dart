@@ -242,10 +242,100 @@ class OperacionDelMes {
   final int? igvCentimos;
 }
 
+/// Las filas del flujo que piden las entidades de crédito (docs/credito/,
+/// entrega 14.15). Cada una sale de una o más categorías de Moca.
+enum FilaFlujo {
+  ventasContado,
+  ventasCreditoCobradas,
+  otrosIngresos,
+  ingresosExtraordinarios,
+  mercaderia,
+  envases,
+  fletes,
+  alquiler,
+  servicios,
+  sueldos,
+  publicidad,
+  mantenimiento,
+  contabilidad,
+  otrosGastosFijos,
+}
+
+enum EstadoMesFlujo {
+  /// Moca todavía no anotaba: lo completa el dueño.
+  antesDeMoca,
+
+  /// El mes en que empezó Moca, desde ese día.
+  incompleto,
+  completo,
+}
+
+/// Un mes del flujo, en flujo de caja: cada pago cuenta el día que se pagó.
+class MesDelFlujo {
+  const MesDelFlujo({
+    required this.mes,
+    required this.estado,
+    this.centimos = const {},
+    this.cuotas = const [0, 0, 0],
+    this.retirosCentimos = 0,
+  });
+
+  final DateTime mes;
+  final EstadoMesFlujo estado;
+
+  /// Lo de cada fila; la que falta es cero.
+  final Map<FilaFlujo, int> centimos;
+
+  /// Lo pagado en cuotas a cada entidad de [FlujoParaCredito.entidades].
+  final List<int> cuotas;
+  final int retirosCentimos;
+}
+
+/// El flujo de los últimos seis meses completos, para la caja (Moca Plus).
+class FlujoParaCredito {
+  const FlujoParaCredito({
+    required this.meses,
+    this.entidades = const [],
+    this.propietario,
+    this.identificacionFiscal,
+    this.inicioMoca,
+    this.categoriasPorFila = const {},
+  });
+
+  /// Seis meses, del más antiguo al más nuevo; el mes en curso no va.
+  final List<MesDelFlujo> meses;
+
+  /// Hasta tres entidades a las que se pagan cuotas, de la que más se pagó
+  /// a la que menos; la tercera junta a las demás si hay más.
+  final List<String> entidades;
+  final String? propietario;
+  final String? identificacionFiscal;
+
+  /// El día desde el que Moca tiene lo anotado.
+  final DateTime? inicioMoca;
+
+  /// Las categorías del negocio que van a cada fila: el «de dónde sale».
+  final Map<FilaFlujo, List<String>> categoriasPorFila;
+
+  Iterable<MesDelFlujo> get conMoca =>
+      meses.where((m) => m.estado != EstadoMesFlujo.antesDeMoca);
+
+  /// Lo que retiró para él en promedio, solo en meses completos.
+  int? get retirosPromedioCentimos {
+    final completos = meses.where((m) => m.estado == EstadoMesFlujo.completo);
+    if (completos.isEmpty) return null;
+    return completos.fold(0, (s, m) => s + m.retirosCentimos) ~/
+        completos.length;
+  }
+}
+
 abstract interface class RepositorioInforme {
   /// El informe del mes que empieza en [mes]; nulo es el mes en curso.
   Stream<InformeMes> observarMes(DateTime? mes);
 
   /// Lo que el PDF necesita además del informe.
   Future<DetalleParaPdf> detalleParaPdf(InformeMes informe);
+
+  /// El flujo de los últimos seis meses completos para la caja.
+  Future<FlujoParaCredito> flujoParaCredito();
 }

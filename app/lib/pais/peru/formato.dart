@@ -94,6 +94,10 @@ String formatearFechaLarga(DateTime fecha) =>
 /// «octubre».
 String nombreDelMes(DateTime fecha) => _meses[fecha.month - 1];
 
+/// «Oct», «Set».
+String nombreDelMesCorto(DateTime fecha) =>
+    _mayuscula(nombreDelMes(fecha).substring(0, 3));
+
 /// «Octubre».
 String nombreDelMesConMayuscula(DateTime fecha) =>
     _mayuscula(nombreDelMes(fecha));

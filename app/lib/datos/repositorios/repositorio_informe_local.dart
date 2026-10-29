@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../../dominio/cifras.dart';
 import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
@@ -460,6 +462,164 @@ class RepositorioInformeLocal implements RepositorioInforme {
       comprobantes: comprobantes,
       meses: meses,
       operaciones: operaciones,
+    );
+  }
+
+  @override
+  Future<FlujoParaCredito> flujoParaCredito() async {
+    final ahora = _a.ahora();
+    final actual = DateTime(ahora.year, ahora.month);
+    final meses = [
+      for (var i = 6; i >= 1; i--) DateTime(actual.year, actual.month - i),
+    ];
+    final empresa = await _a.empresa();
+    if (empresa == null) {
+      return FlujoParaCredito(
+        meses: [
+          for (final m in meses)
+            MesDelFlujo(mes: m, estado: EstadoMesFlujo.antesDeMoca),
+        ],
+      );
+    }
+
+    // Las mismas reglas que el informe y el saldo: solo lo pagado, el día
+    // que se pagó y desde el saldo inicial de su cuenta.
+    final cuentas = await _a.cuentas(empresa.id);
+    final desdeDe = {for (final c in cuentas) c.id: c.fechaSaldoInicial};
+    bool cuenta(String cuentaId, DateTime fecha) {
+      final desde = desdeDe[cuentaId];
+      return desde == null || !fecha.isBefore(desde);
+    }
+
+    final pagados = [
+      for (final m in await _a.movimientos(empresa.id))
+        if (m.estado == EstadoRegistro.vigente &&
+            m.estadoPago == EstadoPago.pagado &&
+            cuenta(m.cuentaId, _fecha(m)))
+          m,
+    ];
+    final fechas = [
+      for (final m in pagados) _fecha(m),
+      for (final c in cuentas) ?c.fechaSaldoInicial,
+    ];
+    final inicio = fechas.isEmpty
+        ? null
+        : fechas.reduce((a, b) => a.isBefore(b) ? a : b);
+
+    final categorias = {
+      for (final c in await (_base.select(
+        _base.categorias,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+    final proveedores = {
+      for (final c in await (_base.select(
+        _base.contrapartes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+
+    // A quién se pagan cuotas: el proveedor, o la nota si no hay.
+    String entidad(Movimiento m) {
+      final nombre = proveedores[m.contraparteId] ?? m.nota?.trim();
+      return nombre == null || nombre.isEmpty ? 'Sin nombre' : nombre;
+    }
+
+    bool esCuota(Movimiento m) =>
+        m.tipo == TipoMovimiento.egreso &&
+        categorias[m.categoriaId] == categoriaCuotaDePrestamo;
+    final desde6 = meses.first;
+    final hasta6 = actual;
+    final enPeriodo = [
+      for (final m in pagados)
+        if (!_fecha(m).isBefore(desde6) && _fecha(m).isBefore(hasta6)) m,
+    ];
+    final porEntidad = <String, int>{};
+    for (final m in enPeriodo.where(esCuota)) {
+      porEntidad[entidad(m)] = (porEntidad[entidad(m)] ?? 0) + m.montoCentimos;
+    }
+    final ordenadas = porEntidad.keys.toList()
+      ..sort((a, b) => porEntidad[b]!.compareTo(porEntidad[a]!));
+    final entidades = ordenadas.length <= 3
+        ? ordenadas
+        : [...ordenadas.take(2), 'Otras ${ordenadas.length - 2} entidades'];
+    int filaDeCuota(String nombre) {
+      final i = ordenadas.indexOf(nombre);
+      return i < 2 ? i : 2;
+    }
+
+    final resultado = <MesDelFlujo>[];
+    for (final mes in meses) {
+      final fin = DateTime(mes.year, mes.month + 1);
+      if (inicio == null || !inicio.isBefore(fin)) {
+        resultado.add(
+          MesDelFlujo(mes: mes, estado: EstadoMesFlujo.antesDeMoca),
+        );
+        continue;
+      }
+      final filas = <FilaFlujo, int>{};
+      final cuotas = [0, 0, 0];
+      var retiros = 0;
+      for (final m in enPeriodo) {
+        final f = _fecha(m);
+        if (f.isBefore(mes) || !f.isBefore(fin)) continue;
+        if (m.tipo == TipoMovimiento.retiro) {
+          retiros += m.montoCentimos;
+          continue;
+        }
+        // Lo que puso el dueño no es ingreso del negocio.
+        if (m.tipo == TipoMovimiento.aporte) continue;
+        if (esCuota(m)) {
+          cuotas[filaDeCuota(entidad(m))] += m.montoCentimos;
+          continue;
+        }
+        final fila =
+            filaDelFlujo[categorias[m.categoriaId]] ??
+            (m.tipo == TipoMovimiento.ingreso
+                ? FilaFlujo.otrosIngresos
+                : FilaFlujo.otrosGastosFijos);
+        filas[fila] = (filas[fila] ?? 0) + m.montoCentimos;
+      }
+      resultado.add(
+        MesDelFlujo(
+          mes: mes,
+          estado: inicio.isAfter(mes)
+              ? EstadoMesFlujo.incompleto
+              : EstadoMesFlujo.completo,
+          centimos: filas,
+          cuotas: cuotas,
+          retirosCentimos: retiros,
+        ),
+      );
+    }
+
+    final porFila = <FilaFlujo, List<String>>{};
+    for (final c
+        in await (_base.select(_base.categorias)
+              ..where(
+                (c) => c.empresaId.equals(empresa.id) & c.activa.equals(true),
+              )
+              ..orderBy([(c) => OrderingTerm(expression: c.orden)]))
+            .get()) {
+      if (c.nombre == categoriaCuotaDePrestamo) continue;
+      final fila =
+          filaDelFlujo[c.nombre] ??
+          (c.tipoMovimiento == TipoMovimiento.ingreso
+              ? FilaFlujo.otrosIngresos
+              : FilaFlujo.otrosGastosFijos);
+      (porFila[fila] ??= []).add(c.nombre);
+    }
+
+    final usuario = await (_base.select(
+      _base.usuarios,
+    )..limit(1)).getSingleOrNull();
+    return FlujoParaCredito(
+      categoriasPorFila: porFila,
+      meses: resultado,
+      entidades: entidades,
+      propietario: usuario?.nombre,
+      identificacionFiscal: empresa.identificacionFiscal,
+      inicioMoca: inicio,
     );
   }
 

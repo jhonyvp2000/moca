@@ -4,19 +4,32 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 /// Un .xlsx mínimo (entrega 14.13): un zip con el XML de Office Open. Basta
-/// para texto, montos y fechas con formato, encabezado fijo y filtros; así
-/// no hace falta otra librería.
+/// para texto, montos, fechas, fórmulas, rellenos, encabezado fijo y filtros;
+/// así no hace falta otra librería. Las fórmulas se recalculan al abrir el
+/// archivo (entrega 14.15).
 
 /// Cómo se ve un número.
-enum FormatoNumero { general, soles, solesEnteros }
+enum FormatoNumero { general, soles, solesEnteros, fecha, porcentaje }
+
+/// El fondo de la celda. En el flujo para la caja, amarillo es lo que llena
+/// el dueño y gris lo que se calcula solo, como en la plantilla.
+enum Relleno { ninguno, encabezado, paraLlenar, calculado }
 
 sealed class Celda {
-  const Celda({this.fuerte = false});
+  const Celda({
+    this.fuerte = false,
+    this.relleno = Relleno.ninguno,
+    this.ajustar = false,
+  });
   final bool fuerte;
+  final Relleno relleno;
+
+  /// El texto largo baja a otra línea dentro de la celda.
+  final bool ajustar;
 }
 
 class CeldaTexto extends Celda {
-  const CeldaTexto(this.texto, {super.fuerte});
+  const CeldaTexto(this.texto, {super.fuerte, super.relleno, super.ajustar});
   final String texto;
 }
 
@@ -25,15 +38,21 @@ class CeldaNumero extends Celda {
     this.valor, {
     this.formato = FormatoNumero.general,
     super.fuerte,
+    super.relleno,
   });
 
   /// Un monto en soles con sus céntimos.
-  CeldaNumero.soles(int centimos, {bool enteros = false, bool fuerte = false})
-    : this(
-        centimos / 100,
-        formato: enteros ? FormatoNumero.solesEnteros : FormatoNumero.soles,
-        fuerte: fuerte,
-      );
+  CeldaNumero.soles(
+    int centimos, {
+    bool enteros = false,
+    bool fuerte = false,
+    Relleno relleno = Relleno.ninguno,
+  }) : this(
+         centimos / 100,
+         formato: enteros ? FormatoNumero.solesEnteros : FormatoNumero.soles,
+         fuerte: fuerte,
+         relleno: relleno,
+       );
 
   final num valor;
   final FormatoNumero formato;
@@ -42,6 +61,28 @@ class CeldaNumero extends Celda {
 class CeldaFecha extends Celda {
   const CeldaFecha(this.fecha);
   final DateTime fecha;
+}
+
+/// Una fórmula de Excel, en inglés y sin el «=» del inicio
+/// («SUM(B5:B8)»).
+class CeldaFormula extends Celda {
+  const CeldaFormula(
+    this.formula, {
+    this.formato = FormatoNumero.general,
+    super.fuerte,
+    super.relleno = Relleno.calculado,
+  });
+  final String formula;
+  final FormatoNumero formato;
+}
+
+/// Una celda vacía con formato: la que llena el dueño.
+class CeldaVacia extends Celda {
+  const CeldaVacia({
+    this.formato = FormatoNumero.general,
+    super.relleno = Relleno.paraLlenar,
+  });
+  final FormatoNumero formato;
 }
 
 class HojaXlsx {
@@ -101,6 +142,8 @@ Uint8List armarXlsx(List<HojaXlsx> hojas) {
         '${[for (final (i, h) in hojas.indexed) '<sheet name="${_escapar(h.nombre)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>'].join()}'
         '</sheets>'
         '${filtros.isEmpty ? '' : '<definedNames>${filtros.join()}</definedNames>'}'
+        // Las fórmulas van sin resultado guardado: se calculan al abrir.
+        '<calcPr calcId="191029" fullCalcOnLoad="1"/>'
         '</workbook>',
   );
   agregar(
@@ -110,9 +153,11 @@ Uint8List armarXlsx(List<HojaXlsx> hojas) {
         '<Relationship Id="rId${hojas.length + 1}" Type="$_relaciones/styles" Target="styles.xml"/>'
         '</Relationships>',
   );
-  agregar('xl/styles.xml', _estilos);
-  for (final (i, h) in hojas.indexed) {
-    agregar('xl/worksheets/sheet${i + 1}.xml', _hoja(h));
+  final estilos = _Estilos();
+  final xmlHojas = [for (final h in hojas) _hoja(h, estilos)];
+  agregar('xl/styles.xml', estilos.xml());
+  for (final (i, xml) in xmlHojas.indexed) {
+    agregar('xl/worksheets/sheet${i + 1}.xml', xml);
   }
   return ZipEncoder().encodeBytes(archivo);
 }
@@ -122,52 +167,81 @@ const _principal = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const _relaciones =
     'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 
-// Los estilos, por posición: 0 normal, 1 encabezado, 2 fecha, 3 soles,
-// 4 soles enteros, 5 soles enteros en negrita, 6 soles en negrita, 7 texto
-// en negrita.
-const _estilos =
-    '<styleSheet xmlns="$_principal">'
-    '<numFmts count="3">'
-    '<numFmt numFmtId="164" formatCode="dd/mm/yyyy"/>'
-    '<numFmt numFmtId="165" formatCode="&quot;S/ &quot;#,##0.00"/>'
-    '<numFmt numFmtId="166" formatCode="&quot;S/ &quot;#,##0"/>'
-    '</numFmts>'
-    '<fonts count="2">'
-    '<font><sz val="11"/><name val="Calibri"/></font>'
-    '<font><b/><sz val="11"/><name val="Calibri"/></font>'
-    '</fonts>'
-    '<fills count="3">'
-    '<fill><patternFill patternType="none"/></fill>'
-    '<fill><patternFill patternType="gray125"/></fill>'
-    '<fill><patternFill patternType="solid"><fgColor rgb="FFE3ECFB"/>'
-    '<bgColor indexed="64"/></patternFill></fill>'
-    '</fills>'
-    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/>'
-    '</border></borders>'
-    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" '
-    'borderId="0"/></cellStyleXfs>'
-    '<cellXfs count="8">'
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" '
-    'applyFont="1" applyFill="1"/>'
-    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" '
-    'applyNumberFormat="1"/>'
-    '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" '
-    'applyNumberFormat="1"/>'
-    '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" '
-    'applyNumberFormat="1"/>'
-    '<xf numFmtId="166" fontId="1" fillId="0" borderId="0" xfId="0" '
-    'applyNumberFormat="1" applyFont="1"/>'
-    '<xf numFmtId="165" fontId="1" fillId="0" borderId="0" xfId="0" '
-    'applyNumberFormat="1" applyFont="1"/>'
-    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" '
-    'applyFont="1"/>'
-    '</cellXfs>'
-    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/>'
-    '</cellStyles>'
-    '</styleSheet>';
+/// Los estilos que se usan, en el orden en que aparecen. El 0 es el normal.
+class _Estilos {
+  final _lista = <(FormatoNumero, bool, Relleno, bool)>[
+    (FormatoNumero.general, false, Relleno.ninguno, false),
+  ];
 
-String _hoja(HojaXlsx h) {
+  int indice(
+    FormatoNumero formato,
+    bool fuerte,
+    Relleno relleno,
+    bool ajustar,
+  ) {
+    final estilo = (formato, fuerte, relleno, ajustar);
+    final i = _lista.indexOf(estilo);
+    if (i >= 0) return i;
+    _lista.add(estilo);
+    return _lista.length - 1;
+  }
+
+  static int _formato(FormatoNumero f) => switch (f) {
+    FormatoNumero.general => 0,
+    FormatoNumero.fecha => 164,
+    FormatoNumero.soles => 165,
+    FormatoNumero.solesEnteros => 166,
+    FormatoNumero.porcentaje => 167,
+  };
+
+  static int _relleno(Relleno r) => switch (r) {
+    Relleno.ninguno => 0,
+    Relleno.encabezado => 2,
+    Relleno.paraLlenar => 3,
+    Relleno.calculado => 4,
+  };
+
+  String xml() {
+    final xfs = [
+      for (final (formato, fuerte, relleno, ajustar) in _lista)
+        '<xf numFmtId="${_formato(formato)}" fontId="${fuerte ? 1 : 0}" '
+            'fillId="${_relleno(relleno)}" borderId="0" xfId="0"'
+            '${formato == FormatoNumero.general ? '' : ' applyNumberFormat="1"'}'
+            '${fuerte ? ' applyFont="1"' : ''}'
+            '${relleno == Relleno.ninguno ? '' : ' applyFill="1"'}'
+            '${ajustar ? ' applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>' : '/>'}',
+    ];
+    String solido(String rgb) =>
+        '<fill><patternFill patternType="solid"><fgColor rgb="$rgb"/>'
+        '<bgColor indexed="64"/></patternFill></fill>';
+    return '<styleSheet xmlns="$_principal">'
+        '<numFmts count="4">'
+        '<numFmt numFmtId="164" formatCode="dd/mm/yyyy"/>'
+        '<numFmt numFmtId="165" formatCode="&quot;S/ &quot;#,##0.00"/>'
+        '<numFmt numFmtId="166" formatCode="&quot;S/ &quot;#,##0"/>'
+        '<numFmt numFmtId="167" formatCode="0.0%"/>'
+        '</numFmts>'
+        '<fonts count="2">'
+        '<font><sz val="11"/><name val="Calibri"/></font>'
+        '<font><b/><sz val="11"/><name val="Calibri"/></font>'
+        '</fonts>'
+        '<fills count="5">'
+        '<fill><patternFill patternType="none"/></fill>'
+        '<fill><patternFill patternType="gray125"/></fill>'
+        '${solido('FFE3ECFB')}${solido('FFFFF2CC')}${solido('FFF2F2F2')}'
+        '</fills>'
+        '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/>'
+        '</border></borders>'
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" '
+        'borderId="0"/></cellStyleXfs>'
+        '<cellXfs count="${xfs.length}">${xfs.join()}</cellXfs>'
+        '<cellStyles count="1"><cellStyle name="Normal" xfId="0" '
+        'builtinId="0"/></cellStyles>'
+        '</styleSheet>';
+  }
+}
+
+String _hoja(HojaXlsx h, _Estilos estilos) {
   final b = StringBuffer('<worksheet xmlns="$_principal">');
   if (h.encabezado) {
     b.write(
@@ -192,27 +266,33 @@ String _hoja(HojaXlsx h) {
       if (celda == null) continue;
       final ref = '${_columna(c)}${f + 1}';
       final encabezado = h.encabezado && f == 0;
+      String s(FormatoNumero formato) {
+        final i = estilos.indice(
+          formato,
+          celda.fuerte || encabezado,
+          encabezado ? Relleno.encabezado : celda.relleno,
+          celda.ajustar,
+        );
+        return i == 0 ? '' : ' s="$i"';
+      }
+
       switch (celda) {
         case CeldaTexto(:final texto):
-          if (texto.isEmpty) continue;
-          final s = encabezado
-              ? 1
-              : celda.fuerte
-              ? 7
-              : 0;
+          if (texto.isEmpty && celda.relleno == Relleno.ninguno) continue;
           b.write(
-            '<c r="$ref" t="inlineStr"${s == 0 ? '' : ' s="$s"'}><is>'
+            '<c r="$ref" t="inlineStr"${s(FormatoNumero.general)}><is>'
             '<t xml:space="preserve">${_escapar(texto)}</t></is></c>',
           );
         case CeldaNumero(:final valor, :final formato):
-          final s = switch (formato) {
-            FormatoNumero.general => celda.fuerte ? 7 : 0,
-            FormatoNumero.soles => celda.fuerte ? 6 : 3,
-            FormatoNumero.solesEnteros => celda.fuerte ? 5 : 4,
-          };
-          b.write('<c r="$ref"${s == 0 ? '' : ' s="$s"'}><v>$valor</v></c>');
+          b.write('<c r="$ref"${s(formato)}><v>$valor</v></c>');
         case CeldaFecha(:final fecha):
-          b.write('<c r="$ref" s="2"><v>${_serial(fecha)}</v></c>');
+          b.write(
+            '<c r="$ref"${s(FormatoNumero.fecha)}><v>${_serial(fecha)}</v></c>',
+          );
+        case CeldaFormula(:final formula, :final formato):
+          b.write('<c r="$ref"${s(formato)}><f>${_escapar(formula)}</f></c>');
+        case CeldaVacia(:final formato):
+          b.write('<c r="$ref"${s(formato)}/>');
       }
     }
     b.write('</row>');
@@ -232,6 +312,8 @@ String _rango(HojaXlsx h, {bool absoluto = false}) {
 }
 
 /// 0 → A, 25 → Z, 26 → AA.
+String columnaXlsx(int i) => _columna(i);
+
 String _columna(int i) =>
     (i >= 26 ? _columna(i ~/ 26 - 1) : '') + String.fromCharCode(65 + i % 26);
 

@@ -1,3 +1,4 @@
+import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
 
 // Categorías provisionales de docs/prototipo-v1.md, hasta que la Fase 0
@@ -54,3 +55,32 @@ const categoriasEgresoPorNegocio = {
 /// mucho, porque bajan la ganancia del mes aunque la mercadería siga en la
 /// tienda.
 const categoriasDeMercaderia = {'Mercadería', 'Insumos de cocina'};
+
+/// Categoría → fila del flujo que pide la caja (docs/credito/, entrega
+/// 14.15). Una entrada sin categoría o con otra va a «Otros ingresos
+/// operativos»; una salida, a «Otros gastos fijos». La cuota de préstamo
+/// tiene filas propias, por entidad.
+const filaDelFlujo = {
+  categoriaVentaDelDia: FilaFlujo.ventasContado,
+  categoriaCobroDeFiado: FilaFlujo.ventasCreditoCobradas,
+  'Otro ingreso': FilaFlujo.otrosIngresos,
+  'Ingreso ocasional': FilaFlujo.ingresosExtraordinarios,
+  'Mercadería': FilaFlujo.mercaderia,
+  'Insumos de cocina': FilaFlujo.mercaderia,
+  'Bebidas': FilaFlujo.mercaderia,
+  'Gas': FilaFlujo.mercaderia,
+  'Materiales': FilaFlujo.mercaderia,
+  'Bolsas y envases': FilaFlujo.envases,
+  'Descartables': FilaFlujo.envases,
+  'Flete': FilaFlujo.fletes,
+  'Alquiler': FilaFlujo.alquiler,
+  'Servicios (luz, agua, internet, teléfono)': FilaFlujo.servicios,
+  'Sueldos del personal': FilaFlujo.sueldos,
+  'Publicidad': FilaFlujo.publicidad,
+  'Mantenimiento y reparaciones': FilaFlujo.mantenimiento,
+  'Herramientas y repuestos': FilaFlujo.mantenimiento,
+  'Contador o gestoría': FilaFlujo.contabilidad,
+  'Movilidad del negocio': FilaFlujo.otrosGastosFijos,
+  'Impuestos y trámites': FilaFlujo.otrosGastosFijos,
+  'Otros': FilaFlujo.otrosGastosFijos,
+};

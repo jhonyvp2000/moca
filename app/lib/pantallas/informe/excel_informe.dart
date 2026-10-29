@@ -7,7 +7,7 @@ import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
 import '../../pais/peru/formato.dart';
 import '../../textos/textos.dart';
-import 'xlsx.dart';
+import '../../comun/xlsx.dart';
 
 const tipoExcel =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
