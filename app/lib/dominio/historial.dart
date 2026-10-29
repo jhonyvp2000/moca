@@ -18,6 +18,10 @@ class FilaHistorial {
     this.nota,
     this.proveedor,
     this.ajusteArqueo = false,
+    this.deOtro = false,
+    this.autorNombre,
+    this.autorRol,
+    this.anotadoEn,
   });
 
   final String id;
@@ -41,6 +45,15 @@ class FilaHistorial {
   /// sé»). No es gasto ni ingreso: solo sale en «Todo». [tipo] dice si sobró
   /// (ingreso) o faltó (egreso).
   final bool ajusteArqueo;
+
+  /// Lo anotó otra persona del negocio (entrega 20): su nombre y su rol, si
+  /// se saben.
+  final bool deOtro;
+  final String? autorNombre;
+  final Rol? autorRol;
+
+  /// Cuándo se anotó en el teléfono (el ayudante deshace lo suyo del día).
+  final DateTime? anotadoEn;
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,

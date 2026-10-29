@@ -231,6 +231,12 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect(lo.datos.cuentas[0].saldo_inicial_centimos).toBeNull();
     expect(lo.datos.categorias).toHaveLength(1);
     expect(lo.cifras).toBeNull();
+    // Los nombres de quienes anotan, para «Lo anotó Rosa» (entrega 20).
+    expect(lo.datos.equipo.slice(0, 2)).toMatchObject([
+      { usuario_id: lucho.usuarioId, nombre: null, rol: 'dueno', titular: true },
+      { usuario_id: pepe.usuarioId, nombre: 'Pepe', rol: 'ayudante', titular: false },
+    ]);
+    expect(lo.datos.equipo[0]).not.toHaveProperty('celular');
     // Y el equipo, sin celulares.
     const equipo = (await pedir(pepe, 'GET', '/equipo')).json();
     expect(equipo.personas.every((p: { celular: string | null }) => p.celular === null)).toBe(true);

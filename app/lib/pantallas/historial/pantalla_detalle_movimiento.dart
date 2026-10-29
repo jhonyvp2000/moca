@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
@@ -134,6 +135,17 @@ class _EstadoDetalleMovimiento
     }
     final f = d.fila;
     final activo = d.vigente && !_ocupado;
+    // Quién puede corregir, deshacer o pagar esto (entrega 20).
+    final hoy = ref.watch(relojProvider)();
+    final anotado = f.anotadoEn ?? f.fecha;
+    final puedeCambiar =
+        (ref.watch(permisosProvider).value ?? Permisos.delDueno).puedeCambiar(
+          deOtro: f.deOtro,
+          delDia:
+              anotado.year == hoy.year &&
+              anotado.month == hoy.month &&
+              anotado.day == hoy.day,
+        );
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
@@ -166,6 +178,11 @@ class _EstadoDetalleMovimiento
               ),
               const SizedBox(height: 2),
               Text(fechaYHora(f.fecha), style: Tipografia.secundario),
+              if (f.deOtro)
+                Text(
+                  Textos.loAnoto(f.autorNombre, f.autorRol),
+                  style: Tipografia.secundario,
+                ),
             ],
           ),
         ),
@@ -215,12 +232,12 @@ class _EstadoDetalleMovimiento
       ],
       acciones: [
         // Un ajuste del arqueo se ve, pero no se corrige ni se deshace.
-        if (d.vigente && d.ajuste == null && f.loDebes)
+        if (puedeCambiar && d.vigente && d.ajuste == null && f.loDebes)
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
             child: const Text(Textos.yaLoPague),
           ),
-        if (d.vigente && d.ajuste == null)
+        if (puedeCambiar && d.vigente && d.ajuste == null)
           Row(
             children: [
               Expanded(

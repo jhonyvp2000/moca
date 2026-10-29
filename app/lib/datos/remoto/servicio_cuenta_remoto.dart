@@ -778,6 +778,7 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
         if (cuerpo['personas'] case final int personas) {
           await _a.guardarAjuste(_clavePersonas, '$personas');
         }
+        await _guardarEquipo(cuerpo);
         await _a.guardarAjuste(_claveActualizado, _a.ahora().toIso8601String());
         // Sin nada propio por subir, el teléfono sigue al día con el
         // servidor.
@@ -811,6 +812,13 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
           UsuariosCompanion.insert(id: id, creadoEn: _a.ahora()),
       ], mode: InsertMode.insertOrIgnore),
     );
+  }
+
+  /// Quiénes están en el negocio, para «Lo anotó Rosa» (entrega 20).
+  Future<void> _guardarEquipo(Map<String, Object?> datos) async {
+    if (datos['equipo'] case final List equipo) {
+      await _a.guardarAjuste(AccesoLocal.claveEquipo, jsonEncode(equipo));
+    }
   }
 
   /// La huella de una fila tal como se sube.
@@ -985,6 +993,11 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
       );
       if (datos['hasta'] case final int hasta) {
         await _a.guardarAjuste(_claveDesde, '$hasta');
+      }
+      await _guardarEquipo(datos);
+      final equipo = datos['equipo'];
+      if (equipo is List) {
+        await _a.guardarAjuste(_clavePersonas, '${equipo.length}');
       }
       await _a.guardarAjuste(_claveHuellaSubida, await _a.huella());
       // Lo anotado en este teléfono se suma a la cuenta y queda por subir

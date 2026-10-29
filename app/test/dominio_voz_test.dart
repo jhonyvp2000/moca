@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:moca/dominio/equipo.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/voz.dart';
 
@@ -80,5 +81,44 @@ void main() {
       ),
       isNull,
     );
+  });
+
+  test('Lo que ve y hace cada rol (entrega 20)', () {
+    const dueno = Permisos(Rol.dueno);
+    const encargado = Permisos(Rol.encargado);
+    const ayudante = Permisos(Rol.ayudante);
+    const contador = Permisos(Rol.contador);
+    expect([dueno, encargado, ayudante, contador].map((p) => p.anota), [
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect([dueno, encargado, ayudante, contador].map((p) => p.veInformes), [
+      true,
+      false,
+      false,
+      true,
+    ]);
+    expect([dueno, encargado, ayudante, contador].map((p) => p.veSaldos), [
+      true,
+      true,
+      false,
+      true,
+    ]);
+    expect([dueno, encargado, ayudante, contador].map((p) => p.haceArqueo), [
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(dueno.puedeCambiar(deOtro: true, delDia: false), isTrue);
+    expect(encargado.puedeCambiar(deOtro: true, delDia: false), isTrue);
+    expect(ayudante.puedeCambiar(deOtro: false, delDia: true), isTrue);
+    expect(ayudante.puedeCambiar(deOtro: false, delDia: false), isFalse);
+    expect(ayudante.puedeCambiar(deOtro: true, delDia: true), isFalse);
+    expect(contador.puedeCambiar(deOtro: false, delDia: true), isFalse);
+    expect(ayudante.soloLoDeHoy, isTrue);
+    expect(encargado.anotaLoDelDueno, isFalse);
   });
 }

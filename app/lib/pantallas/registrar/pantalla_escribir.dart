@@ -7,6 +7,7 @@ import '../../comun/estructura.dart';
 import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/historial.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../inyeccion.dart';
@@ -260,7 +261,15 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           const Text(Textos.queFue, style: etiqueta),
           const SizedBox(height: 8),
           Opciones<TipoMovimiento>(
-            opciones: _nombresTipo,
+            // Retiros y aportes, solo los dueños (entrega 20).
+            opciones:
+                (ref.watch(permisosProvider).value ?? Permisos.delDueno)
+                    .anotaLoDelDueno
+                ? _nombresTipo
+                : {
+                    for (final e in _nombresTipo.entries)
+                      if (!e.key.delDueno) e.key: e.value,
+                  },
             elegida: tipo,
             alElegir: _elegirTipo,
           ),

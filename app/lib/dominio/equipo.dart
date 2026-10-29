@@ -136,3 +136,49 @@ abstract interface class ServicioEquipo {
   /// que su rol puede ver.
   Future<ResultadoEquipo> aceptar(String invitacionId);
 }
+
+/// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
+/// 20). El servidor lo hace cumplir también: esto solo muestra lo que vale.
+class Permisos {
+  const Permisos(this.rol);
+
+  static const delDueno = Permisos(Rol.dueno);
+
+  final Rol rol;
+
+  /// El contador solo mira.
+  bool get anota => rol != Rol.contador;
+
+  /// «Tienes hoy» y el saldo de cada cuenta. El ayudante ve lo que anotó
+  /// hoy (el saldo de su caja llega con las cajas, entrega 21).
+  bool get veSaldos => rol != Rol.ayudante;
+
+  bool get veInformes => rol == Rol.dueno || rol == Rol.contador;
+
+  /// Los avisos y el resumen de la semana de la pestaña Moca.
+  bool get veAvisos => rol == Rol.dueno || rol == Rol.contador;
+  bool get haceArqueo => rol == Rol.dueno || rol == Rol.encargado;
+  bool get cambiaCuentas => rol == Rol.dueno;
+
+  /// «Retiro para mí» y «Puse de mi bolsillo» son de la plata del dueño.
+  bool get anotaLoDelDueno => rol == Rol.dueno;
+  bool get gestionaEquipo => rol == Rol.dueno;
+
+  /// El camino del primer día es del dueño que empieza su negocio.
+  bool get tienePrimerDia => rol == Rol.dueno;
+
+  /// El aviso de la hora de cierre y el de cada día.
+  bool get recibeAvisos => rol == Rol.dueno;
+
+  /// En el Historial, el ayudante ve solo lo que anotó hoy.
+  bool get soloLoDeHoy => rol == Rol.ayudante;
+
+  /// Corregir, deshacer o marcar «Ya lo pagué»: dueños y encargado, todo;
+  /// el ayudante, solo lo suyo del día; el contador, nada.
+  bool puedeCambiar({required bool deOtro, required bool delDia}) =>
+      switch (rol) {
+        Rol.dueno || Rol.encargado => true,
+        Rol.ayudante => !deOtro && delDia,
+        Rol.contador => false,
+      };
+}

@@ -41,6 +41,10 @@ class AccesoLocal {
   /// El celular verificado de verdad (entrega 11). Sin él, no hay cuenta.
   static const claveCuentaVerificada = 'cuenta_verificada';
 
+  /// Quiénes están en el negocio (nombre, rol y titular), tal como bajó del
+  /// servidor: para «Lo anotó Rosa» (entrega 20).
+  static const claveEquipo = 'equipo';
+
   /// Fotos de prueba que le quedan al teléfono sin cuenta (entrega 14.2).
   static const claveFotosDePrueba = 'fotos_de_prueba';
   static const fotosDePruebaIniciales = fotosDePruebaPorTelefono;
@@ -146,6 +150,32 @@ class AccesoLocal {
   /// teléfono guarda también a las otras personas del negocio (como autores
   /// de lo que anotaron), sin membresía aquí.
   Future<Usuario> usuario() async => (await usuarioONulo())!;
+
+  /// El rol de quien usa este teléfono; sin membresía todavía (antes del
+  /// alta), es el dueño.
+  Future<Rol> miRol() async {
+    final yo = await usuarioONulo();
+    if (yo == null) return Rol.dueno;
+    final membresia = await (base.select(
+      base.membresias,
+    )..where((m) => m.usuarioId.equals(yo.id))).getSingleOrNull();
+    return membresia?.rol ?? Rol.dueno;
+  }
+
+  /// Nombre y rol de cada persona del negocio, por usuario.
+  Future<Map<String, (String?, Rol?)>> equipo() async {
+    final texto = await leerAjuste(claveEquipo);
+    if (texto == null) return const {};
+    try {
+      return {
+        for (final p in jsonDecode(texto) as List)
+          if (p case {'usuario_id': final String id})
+            id: (p['nombre'] as String?, Rol.values.asNameMap()[p['rol']]),
+      };
+    } on FormatException {
+      return const {};
+    }
+  }
 
   Future<Usuario?> usuarioONulo() async {
     final propio = await (base.select(base.usuarios).join([
@@ -390,6 +420,8 @@ class AccesoLocal {
       .tableUpdates(
         TableUpdateQuery.onAllTables([
           base.usuarios,
+          // El rol de la membresía cambia lo que se ve (entrega 20).
+          base.membresias,
           base.empresas,
           base.cuentas,
           base.movimientos,

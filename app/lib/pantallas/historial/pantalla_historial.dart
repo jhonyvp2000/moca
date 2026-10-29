@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -35,8 +36,18 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
   Widget build(BuildContext context) {
     final resumen = ref.watch(historialProvider).value;
     final hoy = ref.watch(relojProvider)();
+    // El ayudante ve solo lo que anotó hoy (entrega 20).
+    final soloHoy =
+        (ref.watch(permisosProvider).value ?? Permisos.delDueno).soloLoDeHoy;
+    bool deHoy(FilaHistorial f) =>
+        f.fecha.year == hoy.year &&
+        f.fecha.month == hoy.month &&
+        f.fecha.day == hoy.day;
     final filas =
-        resumen?.filas.where((f) => f.cumple(_filtro)).toList() ?? const [];
+        resumen?.filas
+            .where((f) => f.cumple(_filtro) && (!soloHoy || deHoy(f)))
+            .toList() ??
+        const [];
 
     // Agrupadas por el día en que se anotaron.
     final dias = <DateTime, List<FilaHistorial>>{};
@@ -95,6 +106,19 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
             ),
           ),
           const SizedBox(height: 8),
+          if (soloHoy)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                Medidas.margenLateral,
+                0,
+                Medidas.margenLateral,
+                12,
+              ),
+              child: Text(
+                Textos.soloLoDeHoyAyudante,
+                style: Tipografia.secundario,
+              ),
+            ),
           if (resumen != null && filas.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(

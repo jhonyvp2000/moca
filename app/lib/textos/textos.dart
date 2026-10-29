@@ -190,6 +190,20 @@ abstract final class Textos {
   static const cuentaAbiertaEnOtroDetalle =
       'Lo que anotes aquí desde ahora no se guarda en tu cuenta.';
   static const avanceGuardado = 'Listo. Tu avance está guardado.';
+  static const hoyAnotaste = 'Ventas que anotaste hoy';
+  static const loDemasLoVeElDueno =
+      'La plata del negocio la ve el dueño. Lo que anotas le llega solo.';
+  static String loAnoto(String? nombre, Rol? rol) => nombre != null
+      ? 'Lo anotó $nombre'
+      : switch (rol) {
+          Rol.dueno => 'Lo anotó el dueño',
+          Rol.encargado => 'Lo anotó el encargado',
+          Rol.ayudante => 'Lo anotó el ayudante',
+          _ => 'Lo anotó otra persona',
+        };
+  static const soloLoDeHoyAyudante =
+      'Aquí ves lo que anotaste hoy. Lo de otros días lo ve el dueño.';
+
   // Equipo (entregas 17 a 19)
   static const miEquipo = 'Mi equipo';
   static const miEquipoDetalle = 'Quiénes anotan en tu negocio';

@@ -229,7 +229,15 @@ final repositorioAvisoCierreProvider = Provider<RepositorioAvisoCierre>(
 );
 
 final planNotificacionesProvider = StreamProvider<List<NotificacionProgramada>>(
-  (ref) => ref.watch(repositorioAvisoCierreProvider).observarPlan(),
+  (ref) {
+    // Los avisos de cierre y del día son del dueño (entrega 20): a los demás
+    // no se les programa nada.
+    final permisos = ref.watch(permisosProvider).value;
+    if (permisos != null && !permisos.recibeAvisos) {
+      return Stream.value(const <NotificacionProgramada>[]);
+    }
+    return ref.watch(repositorioAvisoCierreProvider).observarPlan();
+  },
 );
 
 final permisoAvisosPreguntadoProvider = FutureProvider<bool>(
@@ -391,6 +399,15 @@ final servicioCuentaProvider = Provider<ServicioCuenta>(
 final servicioEquipoProvider = Provider<ServicioEquipo>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioEquipo,
 );
+
+/// Lo que el rol de quien usa el teléfono le deja ver y hacer (entrega 20).
+final permisosProvider = StreamProvider<Permisos>((ref) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  return acceso.cambios().asyncMap((_) async => Permisos(await acceso.miRol()));
+});
 
 final situacionCuentaProvider = StreamProvider<SituacionCuenta>(
   (ref) => ref.watch(servicioCuentaProvider).observar(),

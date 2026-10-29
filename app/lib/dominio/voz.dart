@@ -195,6 +195,15 @@ extension RespuestasVoz on LecturaVoz {
 
   LecturaVoz conTipo(TipoMovimiento tipo) => _con(tipo: tipo);
 
+  /// Sin el tipo entendido, para preguntarlo: quien no es dueño no anota
+  /// retiros ni aportes (entrega 20).
+  LecturaVoz sinTipo() => LecturaVoz(
+    textoDicho: textoDicho,
+    partidas: partidas,
+    montosPosibles: montosPosibles,
+    categoria: categoria,
+  );
+
   LecturaVoz conCuenta(int indicePartida, TipoCuenta cuenta) => _con(
     partidas: [
       for (final (i, p) in partidas.indexed)

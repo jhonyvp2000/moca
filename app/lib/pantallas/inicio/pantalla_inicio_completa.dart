@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/moca.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
@@ -24,6 +25,7 @@ class PantallaInicioCompleta extends StatefulWidget {
     this.aviso,
     this.tarjetaAvisos,
     this.actualizado,
+    this.permisos = Permisos.delDueno,
   });
 
   final ResumenInicio resumen;
@@ -38,6 +40,9 @@ class PantallaInicioCompleta extends StatefulWidget {
 
   /// «Actualizado hace 5 min», si hay varias personas (entrega 18).
   final String? actualizado;
+
+  /// Lo que el rol deja ver y hacer (entrega 20).
+  final Permisos permisos;
 
   @override
   State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
@@ -95,76 +100,111 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
               relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    Textos.tienesHoy,
-                    style: Tipografia.textoFuerte.copyWith(
-                      color: Colores.textoSecundario,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _soles(r.tienesHoyCentimos),
-                      maxLines: 1,
-                      style: Tipografia.cifra(
-                        const TextStyle(
-                          fontFamily: Tipografia.familia,
-                          fontSize: 46,
-                          height: 1.05,
-                          fontWeight: FontWeight.w700,
-                          color: Colores.textoPrincipal,
+                children: widget.permisos.veSaldos
+                    ? [
+                        Text(
+                          Textos.tienesHoy,
+                          style: Tipografia.textoFuerte.copyWith(
+                            color: Colores.textoSecundario,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  DesgloseDeCuentas(saldos: r.saldosPorCuenta, formato: _soles),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: widget.alHacerArqueo,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(
-                          0,
-                          Medidas.objetivoTactilMinimo,
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _soles(r.tienesHoyCentimos),
+                            maxLines: 1,
+                            style: Tipografia.cifra(
+                              const TextStyle(
+                                fontFamily: Tipografia.familia,
+                                fontSize: 46,
+                                height: 1.05,
+                                fontWeight: FontWeight.w700,
+                                color: Colores.textoPrincipal,
+                              ),
+                            ),
+                          ),
                         ),
-                        foregroundColor: Colores.marca,
-                        textStyle: Tipografia.textoFuerte,
-                      ),
-                      child: const Text(Textos.hacerArqueo),
-                    ),
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  ..._semana(r),
-                ],
+                        const SizedBox(height: 10),
+                        DesgloseDeCuentas(
+                          saldos: r.saldosPorCuenta,
+                          formato: _soles,
+                        ),
+                        if (widget.permisos.haceArqueo)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: widget.alHacerArqueo,
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(
+                                  0,
+                                  Medidas.objetivoTactilMinimo,
+                                ),
+                                foregroundColor: Colores.marca,
+                                textStyle: Tipografia.textoFuerte,
+                              ),
+                              child: const Text(Textos.hacerArqueo),
+                            ),
+                          ),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        ..._semana(r),
+                      ]
+                    : [
+                        // El ayudante ve lo que anotó hoy, no la plata del
+                        // negocio (entrega 20).
+                        Text(
+                          Textos.hoyAnotaste,
+                          style: Tipografia.textoFuerte.copyWith(
+                            color: Colores.textoSecundario,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _soles(r.ventaDeHoyCentimos),
+                          style: Tipografia.cifra(
+                            const TextStyle(
+                              fontFamily: Tipografia.familia,
+                              fontSize: 40,
+                              height: 1.05,
+                              fontWeight: FontWeight.w700,
+                              color: Colores.textoPrincipal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          Textos.loDemasLoVeElDueno,
+                          style: Tipografia.secundario,
+                        ),
+                      ],
               ),
             ),
           ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          _conMargen(
-            FilledButton.icon(
-              onPressed: widget.alAnotarVenta,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          if (widget.permisos.anota) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            _conMargen(
+              FilledButton.icon(
+                onPressed: widget.alAnotarVenta,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+                  ),
                 ),
+                icon: const IconoTrazo(
+                  Icono.microfono,
+                  color: Colores.sobreMarca,
+                ),
+                label: const Text(Textos.anotarVentaDeHoy),
               ),
-              icon: const IconoTrazo(
-                Icono.microfono,
-                color: Colores.sobreMarca,
-              ),
-              label: const Text(Textos.anotarVentaDeHoy),
             ),
-          ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          // El aviso más importante; si no hay, la venta de hoy y el arqueo.
-          _conMargen(_tarjetaMoca(r)),
+            const SizedBox(height: Medidas.separacionTarjetas),
+            // El aviso más importante; si no hay, la venta de hoy y el arqueo.
+            _conMargen(_tarjetaMoca(r)),
+          ],
         ],
       ),
     );
@@ -183,6 +223,8 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
     final venta = r.ventaDeHoyCentimos > 0
         ? Textos.mocaYaAnotasteHoy
         : Textos.mocaFaltaVentaDeHoy;
+    // Sin arqueo para su rol, solo la venta de hoy (entrega 20).
+    if (!widget.permisos.haceArqueo) return TarjetaMoca(texto: venta);
     final boton = FilledButton(
       onPressed: widget.alHacerArqueo,
       child: const Text(Textos.hacerArqueo),

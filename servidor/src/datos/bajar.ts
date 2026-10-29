@@ -54,6 +54,20 @@ export async function ultimoCambio(cliente: Cliente, empresaId: string): Promise
 }
 
 /**
+ * Quiénes están en la empresa en curso, sin celulares: para que el teléfono
+ * diga «Lo anotó Rosa» (entrega 20).
+ */
+export async function equipoVisible(cliente: Cliente, empresaId: string) {
+  const { rows } = await cliente.query(
+    `SELECT usuario_id, nombre, rol, titular FROM membresias
+      WHERE quitada_en IS NULL AND empresa_id = $1
+      ORDER BY titular DESC, creado_en`,
+    [empresaId],
+  );
+  return rows;
+}
+
+/**
  * Todo lo de la empresa del usuario que su rol puede ver, para «Ya tengo
  * cuenta» (entrega 12). Con [empresaId], esa empresa (el contador puede
  * tener varias); si no, la primera. Nulo si no tiene ninguna activa.
@@ -88,6 +102,7 @@ export async function bajar(
         await cliente.query(`SELECT ${columnasEmpresa.join(', ')} FROM empresas`)
       ).rows[0],
       hasta,
+      equipo: await equipoVisible(cliente, miembro.empresaId),
     };
     for (const [tabla, columnas] of Object.entries(tablas)) {
       datos[tabla] = await leerTabla(cliente, tabla, columnas, miembro, usuarioId);

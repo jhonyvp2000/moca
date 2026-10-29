@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
@@ -38,14 +39,22 @@ class PantallaInicio extends ConsumerWidget {
           )
         : null;
 
-    if (!inicio.mostrarPrimerDia) {
+    // El primer día es del dueño que empieza; los demás roles ven el
+    // Inicio según lo que les toca (entrega 20).
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    if (!inicio.mostrarPrimerDia || !permisos.tienePrimerDia) {
       return PantallaInicioCompleta(
         resumen: inicio,
         actualizado: actualizado,
+        permisos: permisos,
         alAnotarVenta: anotarVenta,
         alHacerArqueo: () => context.push(Rutas.arqueo),
-        aviso: ref.watch(avisosProvider).value?.firstOrNull,
-        tarjetaAvisos: const TarjetaPermisoAvisos(),
+        aviso: permisos.veAvisos
+            ? ref.watch(avisosProvider).value?.firstOrNull
+            : null,
+        tarjetaAvisos: permisos.recibeAvisos
+            ? const TarjetaPermisoAvisos()
+            : null,
       );
     }
 

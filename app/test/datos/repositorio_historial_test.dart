@@ -1,6 +1,10 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
@@ -241,5 +245,61 @@ void main() {
     final id = (await historial()).filas.single.id;
     final d = await detalle(id);
     expect((d.cambios.single as CambioCreado).fuente, Fuente.texto);
+  });
+
+  test('Lo que anotó otra persona dice quién (entrega 20)', () async {
+    const rosa = '0f0e0d0c-0000-4000-8000-0000000000ee';
+    final empresa = await base.select(base.empresas).getSingle();
+    final efectivo = (await (base.select(
+      base.cuentas,
+    )..where((c) => c.tipo.equalsValue(TipoCuenta.efectivo))).getSingle()).id;
+    await base
+        .into(base.usuarios)
+        .insert(UsuariosCompanion.insert(id: rosa, creadoEn: ahora));
+    await base
+        .into(base.movimientos)
+        .insert(
+          MovimientosCompanion.insert(
+            id: 'de-rosa',
+            empresaId: empresa.id,
+            tipo: TipoMovimiento.egreso,
+            cuentaId: efectivo,
+            montoCentimos: 2000,
+            fechaMovimiento: ahora,
+            estadoPago: EstadoPago.pagado,
+            montoPagadoCentimos: 2000,
+            categoriaId: Value(servicios),
+            nivelConfianza: NivelConfianza.d,
+            fuente: Fuente.voz,
+            autorId: rosa,
+            estado: EstadoRegistro.vigente,
+            estadoSincronizacion: EstadoSincronizacion.subido,
+            creadoEn: ahora,
+          ),
+        );
+    final acceso = AccesoLocal(base, () => ahora);
+    await acceso.guardarAjuste(
+      AccesoLocal.claveEquipo,
+      jsonEncode([
+        {
+          'usuario_id': rosa,
+          'nombre': 'Rosa',
+          'rol': 'ayudante',
+          'titular': false,
+        },
+      ]),
+    );
+
+    final filas = (await repo.observarHistorial().first).filas;
+    final deRosa = filas.firstWhere((f) => f.id == 'de-rosa');
+    expect(deRosa.deOtro, isTrue);
+    expect(deRosa.autorNombre, 'Rosa');
+    expect(deRosa.autorRol, Rol.ayudante);
+    // Lo propio no dice nada.
+    expect(
+      filas.where((f) => f.id != 'de-rosa').every((f) => !f.deOtro),
+      isTrue,
+    );
+    expect(await acceso.miRol(), Rol.dueno);
   });
 }

@@ -2799,6 +2799,70 @@ void main() {
     });
   });
 
+  group('Entrega 20: cada rol ve lo suyo', () {
+    Future<BaseLocal> comoRol(WidgetTester tester, Rol rol) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(
+        () => base
+            .update(base.membresias)
+            .write(MembresiasCompanion(rol: Value(rol))),
+      );
+      await esperar(tester);
+      return base;
+    }
+
+    testWidgets('El ayudante anota y ve lo suyo de hoy, sin la plata del '
+        'negocio', (tester) async {
+      await comoRol(tester, Rol.ayudante);
+      expect(find.text(Textos.tienesHoy), findsNothing);
+      expect(find.text(Textos.hoyAnotaste), findsOneWidget);
+      expect(find.text(Textos.loDemasLoVeElDueno), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      expect(find.text(Textos.pestanaInformes), findsNothing);
+      expect(find.bySemanticsLabel(Textos.registrar), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      expect(find.text(Textos.soloLoDeHoyAyudante), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.avisos), findsNothing);
+      expect(find.text(Textos.misCuentas), findsNothing);
+
+      // Anota ventas y gastos, no retiros ni aportes.
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      expect(find.text(Textos.entro), findsOneWidget);
+      expect(find.text(Textos.retiroParaMi), findsNothing);
+      expect(find.text(Textos.puseDeMiBolsillo), findsNothing);
+    });
+
+    testWidgets('El contador solo mira', (tester) async {
+      await comoRol(tester, Rol.contador);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.bySemanticsLabel(Textos.registrar), findsNothing);
+      expect(find.text(Textos.anotarVentaDeHoy), findsNothing);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      expect(find.text(Textos.pestanaInformes), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tocar(tester, find.text('Venta del día'));
+      expect(find.text(Textos.tituloDetalle), findsOneWidget);
+      expect(find.text(Textos.corregir), findsNothing);
+      expect(find.text(Textos.deshacerRegistro), findsNothing);
+    });
+
+    testWidgets('El encargado no ve los informes ni cambia las cuentas', (
+      tester,
+    ) async {
+      await comoRol(tester, Rol.encargado);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsWidgets);
+      expect(find.text(Textos.pestanaInformes), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.misCuentas), findsNothing);
+    });
+  });
+
   group('Entrega 14.8: borrar todo, también en el servidor', () {
     Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
       final base = await abrirApp(tester, listo: true);

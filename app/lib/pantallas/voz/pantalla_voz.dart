@@ -24,6 +24,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 import '../registrar/franja_sin_senal.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/medicion.dart';
 
 /// En qué modo se abre la voz.
@@ -141,10 +142,16 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       case VozFinal(:final alternativas):
         // La frase de ejemplo del operador se usa una sola vez.
         ref.read(fraseElegidaProvider.notifier).usar();
-        final lectura = interpretarVoz(
+        var lectura = interpretarVoz(
           alternativas,
           soloVenta: widget.modo == ModoVoz.primeraVenta,
         ).conPlinDelNegocio({...ref.read(tiposDeCuentaProvider)});
+        // Quien no es dueño no anota retiros ni aportes: se le pregunta.
+        if (lectura.tipo?.delDueno ?? false) {
+          final permisos =
+              ref.read(permisosProvider).value ?? Permisos.delDueno;
+          if (!permisos.anotaLoDelDueno) lectura = lectura.sinTipo();
+        }
         setState(() {
           _lectura = widget.modo == ModoVoz.ventaDelDia && lectura.tipo == null
               ? lectura.conTipo(TipoMovimiento.ingreso)
@@ -474,11 +481,15 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         return _TarjetaPregunta(
           texto: Textos.entroOSalio,
           hijo: Opciones<TipoMovimiento>(
-            opciones: const {
+            opciones: {
               TipoMovimiento.ingreso: Textos.entro,
               TipoMovimiento.egreso: Textos.salio,
-              TipoMovimiento.retiro: Textos.retiroParaMi,
-              TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
+              // Retiros y aportes, solo los dueños (entrega 20).
+              if ((ref.watch(permisosProvider).value ?? Permisos.delDueno)
+                  .anotaLoDelDueno) ...{
+                TipoMovimiento.retiro: Textos.retiroParaMi,
+                TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
+              },
             },
             elegida: null,
             alElegir: (t) => setState(() {

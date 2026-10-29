@@ -42,6 +42,8 @@ List<String> _partes(FilaHistorial f) {
     if (!tituloEsCategoria && f.categoria != null) f.categoria!,
     if (!f.loDebes) cuenta,
     if (f.porSubir) Textos.marcaPorSubir,
+    // Con varias personas, quién lo anotó (entrega 20).
+    if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
   ];
 }
 

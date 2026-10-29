@@ -34,6 +34,7 @@ import 'tema/colores.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'dominio/equipo.dart';
 import 'dominio/medicion.dart';
 import 'inyeccion.dart';
 
@@ -333,9 +334,16 @@ class _ConBarraInferior extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    // Quien no ve los informes no se queda en esa pestaña (entrega 20).
+    if (!permisos.veInformes && ramas.currentIndex == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => ramas.goBranch(0));
+    }
     return Scaffold(
       body: ramas,
       bottomNavigationBar: BarraInferior(
+        conInformes: permisos.veInformes,
+        conRegistrar: permisos.anota,
         pestanaActual: ramas.currentIndex,
         alElegirPestana: (indice) {
           // Medición: cuándo se mira el informe y la pestaña Moca.

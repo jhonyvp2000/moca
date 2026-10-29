@@ -13,12 +13,19 @@ class BarraInferior extends StatelessWidget {
     required this.pestanaActual,
     required this.alElegirPestana,
     required this.alRegistrar,
+    this.conInformes = true,
+    this.conRegistrar = true,
   });
 
   /// 0 Inicio, 1 Historial, 2 Informes, 3 Moca.
   final int pestanaActual;
   final ValueChanged<int> alElegirPestana;
   final VoidCallback alRegistrar;
+
+  /// Según el rol (entrega 20): el encargado y el ayudante no ven los
+  /// informes; el contador no anota.
+  final bool conInformes;
+  final bool conRegistrar;
 
   @override
   Widget build(BuildContext context) {
@@ -44,8 +51,10 @@ class BarraInferior extends StatelessWidget {
             children: [
               pestana(0, Icono.inicio, Textos.pestanaInicio),
               pestana(1, Icono.historial, Textos.pestanaHistorial),
-              Expanded(child: _BotonRegistrar(alTocar: alRegistrar)),
-              pestana(2, Icono.informes, Textos.pestanaInformes),
+              if (conRegistrar)
+                Expanded(child: _BotonRegistrar(alTocar: alRegistrar)),
+              if (conInformes)
+                pestana(2, Icono.informes, Textos.pestanaInformes),
               pestana(3, Icono.moca, Textos.pestanaMoca),
             ],
           ),

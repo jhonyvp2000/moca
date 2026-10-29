@@ -39,6 +39,8 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       _base.comprobantes,
     )..where((c) => c.empresaId.equals(empresa.id))).get();
     return _Datos(
+      yo: (await _a.usuarioONulo())?.id,
+      equipo: await _a.equipo(),
       empresa: empresa,
       cuentas: cuentas,
       movimientos: await _a.movimientos(empresa.id),
@@ -77,6 +79,10 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       categoria: d.categorias[m.categoriaId],
       nota: m.nota,
       proveedor: d.contrapartes[m.contraparteId] ?? comprobante?.emisorNombre,
+      deOtro: d.yo != null && m.autorId != d.yo,
+      autorNombre: d.equipo[m.autorId]?.$1,
+      autorRol: d.equipo[m.autorId]?.$2,
+      anotadoEn: m.creadoEn,
     );
   }
 
@@ -455,6 +461,8 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
 
 class _Datos {
   _Datos({
+    required this.yo,
+    required this.equipo,
     required this.empresa,
     required this.cuentas,
     required this.movimientos,
@@ -464,6 +472,9 @@ class _Datos {
     required this.ajustes,
   });
 
+  /// Quien usa el teléfono y los nombres del equipo (entrega 20).
+  final String? yo;
+  final Map<String, (String?, Rol?)> equipo;
   final Empresa empresa;
   final List<Cuenta> cuentas;
   final List<Movimiento> movimientos;

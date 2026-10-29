@@ -8,6 +8,7 @@ import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
 import '../../dominio/cuenta_real.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
 import '../../inyeccion.dart';
@@ -68,7 +69,11 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
 
   @override
   Widget build(BuildContext context) {
-    final resumen = ref.watch(resumenSemanaProvider).value;
+    // El resumen y los avisos son del dueño y del contador (entrega 20).
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    final resumen = permisos.veAvisos
+        ? ref.watch(resumenSemanaProvider).value
+        : null;
     final avisos = ref.watch(avisosProvider).value;
 
     return SafeArea(
@@ -117,50 +122,56 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
           const SizedBox(height: 14),
           const TarjetaGuardarAvance(),
           if (resumen != null) _tarjetaSemana(resumenEnTexto(resumen)),
-          const SizedBox(height: 18),
-          Semantics(
-            header: true,
-            child: Text(
-              Textos.avisos,
-              style: Tipografia.secundario.copyWith(
-                fontWeight: FontWeight.w700,
+          if (permisos.veAvisos) ...[
+            const SizedBox(height: 18),
+            Semantics(
+              header: true,
+              child: Text(
+                Textos.avisos,
+                style: Tipografia.secundario.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          if (avisos != null)
-            avisos.isEmpty
-                ? const Tarjeta(
-                    child: Text(Textos.sinAvisos, style: Tipografia.texto),
-                  )
-                : Tarjeta(
-                    relleno: EdgeInsets.zero,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                      child: Material(
-                        color: Colores.superficie,
-                        child: Column(
-                          children: [
-                            for (final (i, a) in avisos.indexed)
-                              _FilaAviso(
-                                aviso: a,
-                                conSeparador: i < avisos.length - 1,
-                                alDescartar: () => ref
-                                    .read(repositorioMocaProvider)
-                                    .descartar(a),
-                              ),
-                          ],
+            const SizedBox(height: 8),
+            if (avisos != null)
+              avisos.isEmpty
+                  ? const Tarjeta(
+                      child: Text(Textos.sinAvisos, style: Tipografia.texto),
+                    )
+                  : Tarjeta(
+                      relleno: EdgeInsets.zero,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          Medidas.radioTarjeta,
+                        ),
+                        child: Material(
+                          color: Colores.superficie,
+                          child: Column(
+                            children: [
+                              for (final (i, a) in avisos.indexed)
+                                _FilaAviso(
+                                  aviso: a,
+                                  conSeparador: i < avisos.length - 1,
+                                  alDescartar: () => ref
+                                      .read(repositorioMocaProvider)
+                                      .descartar(a),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+          ],
           const SeccionAprende(),
-          const SizedBox(height: 18),
-          const _Enlace(
-            titulo: Textos.misCuentas,
-            detalle: Textos.misCuentasDetalle,
-            ruta: Rutas.cuentas,
-          ),
+          if (permisos.cambiaCuentas) ...[
+            const SizedBox(height: 18),
+            const _Enlace(
+              titulo: Textos.misCuentas,
+              detalle: Textos.misCuentasDetalle,
+              ruta: Rutas.cuentas,
+            ),
+          ],
           // Con la cuenta guardada, el equipo del negocio (entrega 19).
           if (ref.watch(situacionCuentaProvider).value?.estado ==
               EstadoCuenta.guardada) ...[
