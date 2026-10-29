@@ -6,7 +6,7 @@ import { autenticar } from '../datos/subir.js';
 const tablasDeLaEmpresa = [
   'bitacora', 'videos_vistos', 'alertas', 'dias_cerrados', 'arqueo_cuentas', 'arqueos',
   'movimientos', 'items_comprobante', 'comprobantes', 'reglas_clasificacion', 'periodos',
-  'contrapartes', 'categorias', 'cuentas', 'membresias', 'empresas',
+  'contrapartes', 'categorias', 'cuentas', 'invitaciones', 'membresias', 'empresas',
 ];
 
 /**
@@ -20,7 +20,9 @@ export async function borrarDatos(pool: Pool, usuarioId: string): Promise<number
     await cliente.query('BEGIN');
     await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
     const { rows } = await cliente.query<{ empresa_id: string }>(
-      `SELECT empresa_id FROM membresias WHERE usuario_id = $1 AND rol = 'dueno'`,
+      // Solo el titular borra el negocio (entrega 17).
+      `SELECT empresa_id FROM membresias
+        WHERE usuario_id = $1 AND titular AND quitada_en IS NULL`,
       [usuarioId],
     );
     for (const { empresa_id: empresaId } of rows) {
@@ -64,6 +66,27 @@ export function rutasBorrar(app: FastifyInstance, pool: Pool): void {
     if (peticion.body?.confirmacion !== 'BORRAR') {
       return respuesta.code(400).send({ error: 'sin_confirmacion' });
     }
+    // Quien está en un negocio sin ser su titular no lo puede borrar.
+    if (await soloEnNegocioDeOtro(pool, usuarioId)) {
+      return respuesta.code(403).send({ error: 'solo_titular' });
+    }
     return { borradas: await borrarDatos(pool, usuarioId) };
   });
+}
+
+/** Si el usuario está en algún negocio, pero en ninguno como titular. */
+async function soloEnNegocioDeOtro(pool: Pool, usuarioId: string): Promise<boolean> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+    const { rows } = await cliente.query<{ titular: boolean }>(
+      'SELECT titular FROM membresias WHERE usuario_id = $1 AND quitada_en IS NULL',
+      [usuarioId],
+    );
+    await cliente.query('COMMIT');
+    return rows.length > 0 && !rows.some((m) => m.titular);
+  } finally {
+    cliente.release();
+  }
 }

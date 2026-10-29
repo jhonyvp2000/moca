@@ -6,7 +6,7 @@ const tablasDeNegocio = [
   'usuarios', 'empresas', 'membresias', 'cuentas', 'categorias',
   'contrapartes', 'comprobantes', 'items_comprobante', 'movimientos',
   'arqueos', 'arqueo_cuentas', 'alertas', 'dias_cerrados', 'periodos',
-  'reglas_clasificacion', 'bitacora', 'videos_vistos',
+  'reglas_clasificacion', 'bitacora', 'videos_vistos', 'invitaciones',
 ];
 
 describe('Migraciones', () => {

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
 import { cifrasDe, enviarJson } from '../cifras/rutas.js';
 import { usuarioDeLlave } from '../cuenta/sesiones.js';
+import { miembroDe, type Miembro } from '../equipo/miembros.js';
 
 /**
  * Las tablas que sube el teléfono, con sus columnas, en el orden en que se
@@ -92,15 +93,111 @@ class ErrorDeSubida extends Error {
   }
 }
 
+/** La fecha en Lima («2026-10-29»): el ayudante deshace lo suyo del día. */
+const diaEnLima = (fecha: Date) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(fecha);
+
+/** Lo que cada rol puede crear o cambiar, además de lo suyo (entrega 17). */
+const tablasPorRol: Record<Miembro['rol'], ReadonlySet<string>> = {
+  dueno: new Set(Object.keys(tablas)),
+  encargado: new Set([
+    'contrapartes', 'comprobantes', 'items_comprobante', 'movimientos', 'arqueos',
+    'arqueo_cuentas', 'dias_cerrados', 'alertas', 'videos_vistos', 'bitacora',
+  ]),
+  ayudante: new Set([
+    'contrapartes', 'comprobantes', 'items_comprobante', 'movimientos', 'videos_vistos',
+    'bitacora',
+  ]),
+  contador: new Set(),
+};
+
 /**
- * Guarda lo que el teléfono tiene de su empresa. Repetirlo no duplica nada.
- * Si la empresa no existe, la crea con quien sube como dueño; si existe,
- * solo la puede tocar alguien que sea miembro.
+ * Las filas que de verdad son nuevas o cambian: lo que sube igual a lo que
+ * ya está no cuenta. Para cada una, si es nueva y su autor antes y ahora.
+ */
+async function filasQueCambian(
+  cliente: Cliente,
+  tabla: string,
+  columnas: readonly string[],
+  filas: Fila[],
+): Promise<{ nueva: boolean; autor: unknown; autorAntes: unknown; creadaAntes: Date | null }[]> {
+  if (!filas.length) return [];
+  const comparar = columnas.filter((c) => c !== 'empresa_id');
+  const conAutor = columnas.includes('autor_id');
+  const { rows } = await cliente.query(
+    `SELECT o.id IS NULL AS nueva,
+            ${conAutor ? 'n.autor_id AS autor, o.autor_id AS autor_antes' : 'NULL AS autor, NULL AS autor_antes'},
+            ${columnas.includes('creado_en') ? 'o.creado_en' : 'NULL::timestamptz'} AS creada_antes
+       FROM jsonb_populate_recordset(NULL::${tabla}, $1::jsonb) n
+       LEFT JOIN ${tabla} o ON o.id = n.id
+      WHERE o.id IS NULL
+         OR (${comparar.map((c) => `n.${c}`).join(', ')})
+            IS DISTINCT FROM (${comparar.map((c) => `o.${c}`).join(', ')})`,
+    [JSON.stringify(filas)],
+  );
+  return rows.map((f) => ({
+    nueva: f.nueva as boolean,
+    autor: f.autor,
+    autorAntes: f.autor_antes,
+    creadaAntes: f.creada_antes as Date | null,
+  }));
+}
+
+/**
+ * Revisa que quien sube pueda crear o cambiar cada fila. Lo nuevo siempre
+ * lleva como autor a quien sube. Corregir lo de otro, solo dueños y
+ * encargado; el ayudante, solo lo suyo y del mismo día; el contador no sube.
+ */
+async function revisarPermisos(
+  cliente: Cliente,
+  miembro: Miembro,
+  usuarioId: string,
+  datos: Subida,
+  ahora: Date,
+): Promise<void> {
+  const empresa = await filasQueCambian(cliente, 'empresas', columnasEmpresa, [datos.empresa]);
+  if (empresa.length && miembro.rol !== 'dueno') throw new ErrorDeSubida(403, 'sin_permiso');
+
+  for (const [tabla, columnas] of Object.entries(tablas) as [Tabla, readonly string[]][]) {
+    const filas = ((datos[tabla] as Fila[] | undefined) ?? []).map((f) => ({
+      ...f,
+      empresa_id: miembro.empresaId,
+    }));
+    for (const fila of await filasQueCambian(cliente, tabla, columnas, filas)) {
+      if (fila.nueva && fila.autor != null && fila.autor !== usuarioId) {
+        throw new ErrorDeSubida(400, 'autor_distinto');
+      }
+      if (!fila.nueva && fila.autor !== fila.autorAntes) {
+        throw new ErrorDeSubida(400, 'autor_distinto');
+      }
+      if (!tablasPorRol[miembro.rol].has(tabla)) throw new ErrorDeSubida(403, 'sin_permiso');
+      if (fila.nueva) continue;
+      // Cambiar algo que ya estaba.
+      const deOtro = fila.autorAntes != null && fila.autorAntes !== usuarioId;
+      if (miembro.rol === 'ayudante') {
+        const delDia =
+          fila.creadaAntes != null && diaEnLima(fila.creadaAntes) === diaEnLima(ahora);
+        if (tabla !== 'movimientos' || deOtro || !delDia) {
+          throw new ErrorDeSubida(403, 'sin_permiso');
+        }
+      } else if (deOtro && miembro.rol !== 'dueno' && miembro.rol !== 'encargado') {
+        throw new ErrorDeSubida(403, 'sin_permiso');
+      }
+    }
+  }
+}
+
+/**
+ * Guarda lo que el teléfono tiene de su empresa, o solo lo que cambió.
+ * Repetirlo no duplica nada. Si la empresa no existe, la crea con quien sube
+ * como dueño titular; si existe, solo la puede tocar un miembro activo y
+ * según su rol (entrega 17).
  */
 export async function subir(
   pool: Pool,
   usuarioId: string,
   datos: Subida,
+  ahora = new Date(),
 ): Promise<Record<string, number>> {
   const empresaId = String(datos.empresa.id ?? '');
   const cliente = await pool.connect();
@@ -111,19 +208,26 @@ export async function subir(
               set_config('app.usuario_id', $2, true)`,
       [empresaId, usuarioId],
     );
-    const existe = await cliente.query('SELECT 1 FROM empresas WHERE id = $1', [empresaId]);
+    // Una subida a la vez por empresa: así «lo nuevo desde el cambio N» no
+    // se salta nada.
+    const existe = await cliente.query('SELECT 1 FROM empresas WHERE id = $1 FOR UPDATE', [
+      empresaId,
+    ]);
+    // Solo los dueños cambian la empresa; lo demás se revisa fila por fila.
+    let tocaLaEmpresa = true;
     if (existe.rowCount) {
-      const miembro = await cliente.query(
-        'SELECT 1 FROM membresias WHERE usuario_id = $1',
-        [usuarioId],
-      );
-      if (!miembro.rowCount) throw new ErrorDeSubida(403, 'no_es_tu_empresa');
+      const miembro = await miembroDe(cliente, usuarioId, empresaId);
+      if (!miembro) throw new ErrorDeSubida(403, 'no_es_tu_empresa');
+      await revisarPermisos(cliente, miembro, usuarioId, datos, ahora);
+      tocaLaEmpresa = miembro.rol === 'dueno';
     }
-    await guardar(cliente, 'empresas', columnasEmpresa, [datos.empresa], false);
+    if (tocaLaEmpresa) {
+      await guardar(cliente, 'empresas', columnasEmpresa, [datos.empresa], false);
+    }
     if (!existe.rowCount) {
       await cliente.query(
-        `INSERT INTO membresias (id, empresa_id, usuario_id, rol)
-         VALUES (gen_random_uuid(), $1, $2, 'dueno')`,
+        `INSERT INTO membresias (id, empresa_id, usuario_id, rol, titular)
+         VALUES (gen_random_uuid(), $1, $2, 'dueno', true)`,
         [empresaId, usuarioId],
       );
     }
@@ -134,8 +238,7 @@ export async function subir(
         ...f,
         empresa_id: empresaId,
       }));
-      // En la V1 cada empresa tiene un solo usuario: todo lo anotó él.
-      if (filas.some((f) => 'autor_id' in f && f.autor_id !== usuarioId)) {
+      if (!existe.rowCount && filas.some((f) => 'autor_id' in f && f.autor_id !== usuarioId)) {
         throw new ErrorDeSubida(400, 'autor_distinto');
       }
       recibidos[tabla] = await guardar(cliente, tabla, columnas, filas, soloAgregar.has(tabla));
@@ -183,7 +286,7 @@ export function rutasDatos(app: FastifyInstance, pool: Pool, ahora: () => Date):
       const usuarioId = await autenticar(pool, peticion);
       if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
       try {
-        const recibidos = await subir(pool, usuarioId, peticion.body);
+        const recibidos = await subir(pool, usuarioId, peticion.body, ahora());
         // Las cifras con lo recién subido (entrega 13).
         return enviarJson(peticion, respuesta, {
           recibidos,

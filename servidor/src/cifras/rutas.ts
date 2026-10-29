@@ -1,14 +1,18 @@
 import { gzipSync } from 'node:zlib';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from '../base/conexion.js';
-import { bajar } from '../datos/bajar.js';
+import { bajar, cifrasPara, empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
-import { calcularCifras, type Cifras, type DatosEmpresa } from './calcular.js';
+import type { Cifras } from './calcular.js';
 
 /** Las cifras de la empresa del usuario ahora; nulas si no tiene empresa. */
-export async function cifrasDe(pool: Pool, usuarioId: string, ahora: Date): Promise<Cifras | null> {
-  const datos = await bajar(pool, usuarioId);
-  return datos && calcularCifras(datos as unknown as DatosEmpresa, ahora);
+export async function cifrasDe(
+  pool: Pool,
+  usuarioId: string,
+  ahora: Date,
+  empresaId?: string,
+): Promise<Cifras | null> {
+  return cifrasPara(await bajar(pool, usuarioId, empresaId), ahora);
 }
 
 /** Responde en gzip si el teléfono lo acepta. */
@@ -27,6 +31,8 @@ export function rutasCifras(app: FastifyInstance, pool: Pool, ahora: () => Date)
   app.get('/cifras', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
-    return enviarJson(peticion, respuesta, { cifras: await cifrasDe(pool, usuarioId, ahora()) });
+    return enviarJson(peticion, respuesta, {
+      cifras: await cifrasDe(pool, usuarioId, ahora(), empresaPedida(peticion.query)),
+    });
   });
 }

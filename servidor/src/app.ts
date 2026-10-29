@@ -8,7 +8,9 @@ import { rutasCifras } from './cifras/rutas.js';
 import type { Lector } from './comprobantes/lector.js';
 import { rutasComprobantes } from './comprobantes/rutas.js';
 import { rutasBajada } from './datos/bajar.js';
+import { rutasCambios } from './datos/cambios.js';
 import { rutasDatos } from './datos/subir.js';
+import { rutasEquipo } from './equipo/rutas.js';
 
 export interface Dependencias {
   pool: Pool;
@@ -73,6 +75,8 @@ export function crearApp({
   rutasBorrar(app, pool);
   rutasDatos(app, pool, ahora);
   rutasBajada(app, pool, ahora);
+  rutasCambios(app, pool);
+  rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
 

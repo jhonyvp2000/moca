@@ -3,6 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import type { Pool } from '../base/conexion.js';
 import { aInternacional, esCelularPeru } from './celular.js';
 import { crearSesion } from './sesiones.js';
+import { diasDeLaInvitacion } from '../equipo/miembros.js';
+import { invitacionesPara } from '../equipo/rutas.js';
 import type { Verificador } from './verificador.js';
 
 /** Límites de códigos enviados en una hora. */
@@ -67,8 +69,10 @@ export function rutasCuenta(
     const celular = String(peticion.body?.celular ?? '');
     const codigo = String(peticion.body?.codigo ?? '');
     // «guardar»: el teléfono guarda su avance (S01). «entrar»: «Ya tengo
-    // cuenta», desde un teléfono sin datos (entrega 12).
+    // cuenta», desde un teléfono sin datos (entrega 12). «invitado»: alguien
+    // a quien un dueño invitó a su negocio (entrega 17).
     const entrar = peticion.body?.modo === 'entrar';
+    const invitado = peticion.body?.modo === 'invitado';
     const usuarioDelTelefono = String(peticion.body?.usuarioId ?? '');
     if (
       !esCelularPeru(celular) ||
@@ -105,6 +109,20 @@ export function rutasCuenta(
         // Entrar no crea cuentas.
         await cliente.query('ROLLBACK');
         return respuesta.code(404).send({ error: 'sin_cuenta' });
+      } else if (
+        invitado &&
+        !(
+          await cliente.query(
+            `SELECT 1 FROM invitaciones
+              WHERE celular = $1 AND aceptada_en IS NULL AND anulada_en IS NULL
+                AND creada_en > now() - make_interval(days => ${diasDeLaInvitacion})`,
+            [internacional],
+          )
+        ).rowCount
+      ) {
+        // Sin invitación no se crea una cuenta por esta puerta.
+        await cliente.query('ROLLBACK');
+        return respuesta.code(404).send({ error: 'sin_invitacion' });
       } else {
         const ocupado = await cliente.query('SELECT 1 FROM usuarios WHERE id = $1', [
           usuarioDelTelefono,
@@ -123,7 +141,7 @@ export function rutasCuenta(
       await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
       empresas = (
         await cliente.query<{ empresa_id: string }>(
-          'SELECT empresa_id FROM membresias WHERE usuario_id = $1',
+          'SELECT empresa_id FROM membresias WHERE usuario_id = $1 AND quitada_en IS NULL',
           [usuarioId],
         )
       ).rows.map((f) => f.empresa_id);
@@ -138,6 +156,16 @@ export function rutasCuenta(
     if (entrar && !empresas.length) {
       // Una cuenta sin datos todavía: para entrar no hay nada que bajar.
       return respuesta.code(404).send({ error: 'sin_cuenta' });
+    }
+    if (invitado) {
+      // El invitado entra con su llave y ve sus invitaciones para aceptar.
+      return {
+        llave: await crearSesion(pool, usuarioId),
+        usuarioId,
+        empresas,
+        cuentaExistente: usuarioId !== usuarioDelTelefono,
+        invitaciones: await invitacionesPara(pool, usuarioId),
+      };
     }
     if (!entrar && usuarioId !== usuarioDelTelefono) {
       // El número ya tenía una cuenta en otro teléfono, y este teléfono
@@ -269,7 +297,7 @@ async function empresasDe(pool: Pool, usuarioId: string): Promise<string[]> {
     await cliente.query('BEGIN');
     await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
     const { rows } = await cliente.query<{ empresa_id: string }>(
-      'SELECT empresa_id FROM membresias WHERE usuario_id = $1',
+      'SELECT empresa_id FROM membresias WHERE usuario_id = $1 AND quitada_en IS NULL',
       [usuarioId],
     );
     await cliente.query('COMMIT');
