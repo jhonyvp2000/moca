@@ -335,6 +335,16 @@ class AccesoLocal {
     fecha: m.fechaPago ?? m.fechaMovimiento,
   );
 
+  /// Un pase visto desde la cuenta a la que llega: entra (entrega 21.1).
+  static MovimientoParaSaldo paraSaldoDestino(Movimiento m) =>
+      MovimientoParaSaldo(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: m.montoCentimos,
+        estado: m.estado,
+        estadoPago: m.estadoPago,
+        fecha: m.fechaPago ?? m.fechaMovimiento,
+      );
+
   /// Saldo de cada cuenta, calculado aquí y no en las pantallas. Los
   /// [ajustes] del arqueo cambian el saldo sin ser gasto ni ingreso.
   static Map<TipoCuenta, int> saldosPorCuenta(
@@ -348,6 +358,10 @@ class AccesoLocal {
         fechaSaldoInicial: cuenta.fechaSaldoInicial,
         movimientos: [
           ...movimientos.where((m) => m.cuentaId == cuenta.id).map(paraSaldo),
+          // Lo que llegó de un pase (entrega 21.1).
+          ...movimientos
+              .where((m) => m.cuentaDestinoId == cuenta.id)
+              .map(paraSaldoDestino),
           for (final a in ajustes)
             if (a.cuentaId == cuenta.id) a.paraSaldo,
         ],

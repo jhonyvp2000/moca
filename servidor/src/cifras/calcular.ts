@@ -126,9 +126,14 @@ const compararTexto = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 interface Movimiento {
   id: string;
-  /** «aporte»: lo que el dueño puso de su bolsillo (entrega 14.11). */
-  tipo: 'ingreso' | 'egreso' | 'retiro' | 'aporte';
+  /**
+   * «aporte»: lo que el dueño puso de su bolsillo (entrega 14.11);
+   * «transferencia»: un pase de una cuenta a otra (entrega 21.1).
+   */
+  tipo: 'ingreso' | 'egreso' | 'retiro' | 'aporte' | 'transferencia';
   cuentaId: string;
+  /** En un pase, la cuenta a la que llega la plata. */
+  cuentaDestinoId: string | null;
   monto: number;
   fechaMovimiento: number;
   fechaComprobante: number | null;
@@ -158,6 +163,12 @@ const paraSaldo = (m: Movimiento): ParaSaldo => ({
   vigente: m.vigente,
   pagado: m.estadoPago === 'pagado',
   fecha: m.fechaPago ?? m.fechaMovimiento,
+});
+
+/** Un pase visto desde la cuenta a la que llega: entra (entrega 21.1). */
+const paraSaldoDestino = (m: Movimiento): ParaSaldo => ({
+  ...paraSaldo(m),
+  tipo: 'ingreso',
 });
 
 interface AjusteArqueo {
@@ -211,9 +222,10 @@ function resumirPeriodo(ms: ParaSaldo[], desde: number, hasta: number) {
       cantidad++;
     } else if (m.tipo === 'retiro') {
       retiros += m.monto;
-    } else {
+    } else if (m.tipo === 'aporte') {
       aportes += m.monto;
     }
+    // Un pase solo cambia la plata de cuenta: no cuenta aquí.
   }
   return { entro, salio, retiros, aportes, cantidad, quedo: entro - salio };
 }
@@ -251,6 +263,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
     id: String(m.id),
     tipo: m.tipo as Movimiento['tipo'],
     cuentaId: String(m.cuenta_id),
+    cuentaDestinoId: (m.cuenta_destino_id as string | null) ?? null,
     monto: Number(m.monto_centimos),
     fechaMovimiento: local(m.fecha_movimiento),
     fechaComprobante: localONulo(m.fecha_comprobante),
@@ -298,6 +311,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
   for (const c of cuentas) {
     saldos[c.tipo] = saldoDeCuenta(c.inicial, c.desde, [
       ...movimientos.filter((m) => m.cuentaId === c.id).map(paraSaldo),
+      ...movimientos.filter((m) => m.cuentaDestinoId === c.id).map(paraSaldoDestino),
       ...ajustes.filter((a) => a.cuentaId === c.id).map(ajusteParaSaldo),
     ]);
   }
@@ -544,8 +558,10 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
         total += c.inicial ?? 0;
         if (c.desde != null && c.desde >= momento) continue;
         for (const m of pagados) {
-          if (m.cuentaId !== c.id || fechaInforme(m) >= momento) continue;
-          total += entraPlata(m.tipo) ? m.monto : -m.monto;
+          if (fechaInforme(m) >= momento) continue;
+          if (m.cuentaId === c.id) total += entraPlata(m.tipo) ? m.monto : -m.monto;
+          // Lo que llegó a esta cuenta en un pase (entrega 21.1).
+          if (m.cuentaDestinoId === c.id) total += m.monto;
         }
         for (const a of ajustesDelInforme) {
           if (a.cuentaId === c.id && a.fecha < momento) total += a.centimos;

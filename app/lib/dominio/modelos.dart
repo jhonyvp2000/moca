@@ -93,14 +93,25 @@ enum TipoMovimiento {
 
   /// Plata que el dueño puso de su bolsillo (entrega 14.11): sube la plata
   /// del negocio, pero no es venta. Lo contrario del retiro.
-  aporte;
+  aporte,
 
-  /// Lo que sube la plata: lo que entró y lo que puso el dueño.
+  /// «Pasé plata de una caja a otra» (entrega 21.1): sale de una cuenta y
+  /// entra a otra del mismo negocio. No es venta ni gasto y el total no
+  /// cambia. Depositar en el banco es esto mismo.
+  transferencia;
+
+  /// Lo que sube la plata del negocio: lo que entró y lo que puso el dueño.
   bool get entraPlata => this == ingreso || this == aporte;
 
   /// Plata entre el dueño y el negocio: no lleva categoría ni es venta ni
   /// gasto.
   bool get delDueno => this == retiro || this == aporte;
+
+  /// Plata que solo cambia de cuenta: tampoco lleva categoría.
+  bool get esPase => this == transferencia;
+
+  /// Sin categoría: lo del dueño y los pases.
+  bool get sinCategoria => delDueno || esPase;
 }
 
 enum EstadoPago { pagado, pendiente, parcial }

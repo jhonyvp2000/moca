@@ -89,6 +89,9 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
                 ...movimientos
                     .where((m) => m.cuentaId == cuenta.id)
                     .map(AccesoLocal.paraSaldo),
+                ...movimientos
+                    .where((m) => m.cuentaDestinoId == cuenta.id)
+                    .map(AccesoLocal.paraSaldoDestino),
                 for (final a in ajustes)
                   if (a.cuentaId == cuenta.id) a.paraSaldo,
               ],

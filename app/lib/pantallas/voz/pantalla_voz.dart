@@ -24,6 +24,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 import '../registrar/franja_sin_senal.dart';
+import '../../dominio/cuentas.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/medicion.dart';
 
@@ -224,6 +225,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     _escribir(
       borrador: BorradorMovimiento(
         tipo: _lectura.tipo,
+        cuentaDestino: _lectura.cuentaDestino,
         montoCentimos: partida?.centimos,
         cuenta: partida?.cuenta,
         categoriaId: _idCategoria(categorias),
@@ -271,6 +273,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               tipo: _lectura.tipo!,
               montoCentimos: p.centimos,
               cuenta: p.cuenta!,
+              cuentaDestino: _lectura.tipo!.esPase
+                  ? _lectura.cuentaDestino
+                  : null,
               categoriaId: _idCategoria(categorias),
               fuente: Fuente.voz,
             ),
@@ -342,6 +347,12 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 ? {categoriaVentaDelDia}
                 : validas,
             cuentasValidas: {...ref.watch(tiposDeCuentaProvider)},
+            // Un pase puede ir a cualquier cuenta del negocio (entrega 21.1).
+            destinosValidos: {
+              for (final c
+                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+                c.tipo,
+            },
           )
         : null;
     final completo = _fase == _Fase.revisando && pregunta == null;
@@ -523,6 +534,20 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 setState(() => _lectura = _lectura.conCuenta(indicePartida, c)),
           ),
         );
+      case PreguntaDestino():
+        final origen = _lectura.partidas.firstOrNull?.cuenta;
+        return _TarjetaPregunta(
+          texto: Textos.aDondeVaPase,
+          hijo: Opciones<TipoCuenta>(
+            opciones: {
+              for (final c
+                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+                if (c.tipo != origen) c.tipo: Textos.nombreCuenta(c.tipo),
+            },
+            elegida: null,
+            alElegir: (c) => setState(() => _lectura = _lectura.conDestino(c)),
+          ),
+        );
       case PreguntaCategoria():
         return _TarjetaPregunta(
           texto: _lectura.tipo == TipoMovimiento.ingreso
@@ -543,6 +568,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     final titulo = switch (tipo) {
       TipoMovimiento.retiro => Textos.retiroParaMi,
       TipoMovimiento.aporte => Textos.puseDeMiBolsillo,
+      TipoMovimiento.transferencia => Textos.pasePlata,
       _ => _lectura.categoria ?? '',
     };
     final total = _lectura.partidas.fold<int>(0, (s, p) => s + p.centimos);
@@ -562,7 +588,13 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         _TarjetaPartida(
           icono: tipo.entraPlata ? Icono.entro : Icono.salio,
           titulo: titulo,
-          detalle: '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
+          detalle: switch (_lectura.cuentaDestino) {
+            // «Efectivo → BCP» (entrega 21.1).
+            final destino? when tipo.esPase =>
+              '${Textos.pase(Textos.nombreCuenta(p.cuenta!), Textos.nombreCuenta(destino))}'
+                  ' · ${Textos.loQueDijiste}',
+            _ => '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
+          },
           monto: formatearSolesComprobante(p.centimos),
         ),
         const SizedBox(height: 8),

@@ -339,6 +339,49 @@ void main() {
     });
   });
 
+  test('Un pase cambia la plata de cuenta, no el total ni el informe '
+      '(entrega 21.1)', () async {
+    final antes = await informe.observarMes(null).first;
+    final inicioAntes = await movimientos.observarInicio().first;
+    await movimientos.registrar(
+      const NuevoMovimiento(
+        tipo: TipoMovimiento.transferencia,
+        montoCentimos: 20000,
+        cuenta: TipoCuenta.efectivo,
+        cuentaDestino: TipoCuenta.yape,
+      ),
+    );
+    final despues = await informe.observarMes(null).first;
+    final inicio = await movimientos.observarInicio().first;
+    expect(
+      inicio.saldosPorCuenta[TipoCuenta.efectivo],
+      inicioAntes.saldosPorCuenta[TipoCuenta.efectivo]! - 20000,
+    );
+    expect(
+      inicio.saldosPorCuenta[TipoCuenta.yape],
+      (inicioAntes.saldosPorCuenta[TipoCuenta.yape] ?? 0) + 20000,
+    );
+    expect(inicio.tienesHoyCentimos, inicioAntes.tienesHoyCentimos);
+    expect(inicio.semanaEntroCentimos, inicioAntes.semanaEntroCentimos);
+    expect(inicio.semanaSalioCentimos, inicioAntes.semanaSalioCentimos);
+    expect(despues.entroCentimos, antes.entroCentimos);
+    expect(despues.salioCentimos, antes.salioCentimos);
+    expect(despues.crecioCentimos, antes.crecioCentimos);
+    expect(despues.finCentimos, inicio.tienesHoyCentimos);
+    // A la misma cuenta, no.
+    expect(
+      () => movimientos.registrar(
+        const NuevoMovimiento(
+          tipo: TipoMovimiento.transferencia,
+          montoCentimos: 100,
+          cuenta: TipoCuenta.yape,
+          cuentaDestino: TipoCuenta.yape,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   group('Avisos', () {
     test('Dos días sin anotar dan aviso, y se va al anotar', () async {
       ahora = DateTime(2026, 10, 14, 9);

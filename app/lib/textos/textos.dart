@@ -234,6 +234,15 @@ abstract final class Textos {
       'Quita la venta de Pepe y vuelve a verse como dueño.';
   static const simulacionTerminada = 'Listo: todo vuelve a ser real.';
 
+  // «Pasé plata» (entrega 21.1)
+  static const pasePlata = 'Pasé plata';
+  static const pasePlataDetalle =
+      'De una caja o cuenta a otra. No es venta ni gasto: tu plata no cambia.';
+  static const deDondeSalePase = '¿De dónde sale?';
+  static const aDondeVaPase = '¿A dónde va?';
+  static String pase(String de, String a) => '$de → $a';
+  static const paseNoCuenta = 'Pase entre cuentas';
+
   // Cajas (entrega 21)
   static const agregarUnaCaja = '¿Tienes otra caja de efectivo?';
   static const otraCaja = 'Otra caja';
@@ -629,6 +638,7 @@ abstract final class Textos {
     TipoMovimiento.egreso => salio,
     TipoMovimiento.retiro => retiroParaMi,
     TipoMovimiento.aporte => puseDeMiBolsillo,
+    TipoMovimiento.transferencia => pasePlata,
   };
   static String comoSeAnoto(Fuente fuente) => switch (fuente) {
     Fuente.voz => 'Lo dijiste por voz',

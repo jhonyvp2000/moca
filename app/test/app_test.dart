@@ -2922,6 +2922,27 @@ void main() {
     });
   });
 
+  testWidgets('Entrega 21.1: «Pasé plata» de la caja a Yape sale en el '
+      'Historial como una sola fila', (tester) async {
+    await abrirApp(tester, listo: true);
+    await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+    await tocar(tester, find.text(Textos.escribirlo));
+    await tocar(tester, find.text(Textos.pasePlata));
+    expect(find.text(Textos.pasePlataDetalle), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, '100');
+    await tester.pump();
+    expect(find.text(Textos.deDondeSalePase), findsOneWidget);
+    await tocar(tester, find.text(Textos.efectivo));
+    await tocar(tester, find.text(Textos.yape).last);
+    await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+    await tocar(tester, find.text(Textos.pestanaHistorial));
+    expect(find.text(Textos.pasePlata), findsOneWidget);
+    expect(
+      find.text(Textos.pase(Textos.efectivo, Textos.yape)),
+      findsOneWidget,
+    );
+  });
+
   group('Entrega 20.1: simular otra persona con un solo teléfono', () {
     testWidgets('«Ver como» muestra la app de otro rol y se vuelve con un '
         'toque', (tester) async {

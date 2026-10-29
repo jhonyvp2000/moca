@@ -446,6 +446,40 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect((await anotar(lucy.ids.efectivo)).json()).toEqual({ error: 'sin_permiso' });
   });
 
+  it('el ayudante pasa plata desde su caja, no desde la de otro (entrega 21.1)', async () => {
+    const lo = await bajar(pepe);
+    const delivery = lo.datos.membresia.cajas[0] as string;
+    const pase = (id: string, de: string, a: string) => ({
+      ...movimiento(id, pepe.usuarioId, de, lucy.ids.venta),
+      tipo: 'transferencia',
+      categoria_id: null,
+      cuenta_destino_id: a,
+    });
+    const entrega = randomUUID();
+    // Entrega lo de su caja a la principal del dueño.
+    const r = await pedir(pepe, 'POST', '/datos/subir', {
+      empresa: lucy.datos.empresa,
+      movimientos: [pase(entrega, delivery, lucy.ids.efectivo)],
+    });
+    expect(r.statusCode).toBe(200);
+    // Desde la caja principal, que no es suya, no.
+    const ajena = await pedir(pepe, 'POST', '/datos/subir', {
+      empresa: lucy.datos.empresa,
+      movimientos: [pase(randomUUID(), lucy.ids.efectivo, delivery)],
+    });
+    expect(ajena.json()).toEqual({ error: 'sin_permiso' });
+    // Un pase a la misma cuenta no vale.
+    const mismo = await pedir(lucho, 'POST', '/datos/subir', {
+      empresa: lucy.datos.empresa,
+      movimientos: [{ ...pase(randomUUID(), delivery, delivery), autor_id: lucho.usuarioId }],
+    });
+    expect(mismo.statusCode).toBe(400);
+
+    // El dueño lo ve: la plata cambia de caja, el total no.
+    const deLucho = await bajar(lucho);
+    expect(deLucho.datos.movimientos.some((m: { id: string }) => m.id === entrega)).toBe(true);
+  });
+
   it('la otra dueña ve todo y corrige; solo el titular borra el negocio', async () => {
     const lo = await bajar(rosa);
     expect(lo.datos.membresia).toMatchObject({ rol: 'dueno', titular: false });
@@ -524,7 +558,7 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     const deLucho = await bajar(lucho);
     expect(
       deLucho.datos.movimientos.filter((m: { autor_id: string }) => m.autor_id === pepe.usuarioId),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
     // Y su lugar queda libre.
     const nueva = await pedir(lucho, 'POST', '/equipo/invitar', {
       celular: '987000004',

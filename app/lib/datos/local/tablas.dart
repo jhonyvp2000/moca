@@ -100,6 +100,10 @@ class Movimientos extends Table with _ConId {
   TextColumn get empresaId => text().references(Empresas, #id)();
   TextColumn get tipo => textEnum<TipoMovimiento>()();
   TextColumn get cuentaId => text().references(Cuentas, #id)();
+
+  /// A dónde fue la plata en un pase de una cuenta a otra (entrega 21.1).
+  TextColumn get cuentaDestinoId =>
+      text().nullable().references(Cuentas, #id)();
   IntColumn get montoCentimos => integer()();
   DateTimeColumn get fechaMovimiento => dateTime()();
   DateTimeColumn get fechaComprobante => dateTime().nullable()();

@@ -23,7 +23,7 @@ export const tablas = {
     'precio_unitario_centimos', 'importe_centimos',
   ],
   movimientos: [
-    'id', 'empresa_id', 'tipo', 'cuenta_id', 'monto_centimos', 'fecha_movimiento',
+    'id', 'empresa_id', 'tipo', 'cuenta_id', 'cuenta_destino_id', 'monto_centimos', 'fecha_movimiento',
     'fecha_comprobante', 'estado_pago', 'monto_pagado_centimos', 'fecha_vencimiento',
     'fecha_pago', 'categoria_id', 'contraparte_id', 'comprobante_id',
     'nivel_confianza', 'fuente', 'autor_id', 'nota', 'estado', 'reemplaza_a',

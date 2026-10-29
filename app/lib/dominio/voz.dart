@@ -42,6 +42,7 @@ class LecturaVoz {
     this.montosPosibles = const [],
     this.categoria,
     this.prestamo = false,
+    this.cuentaDestino,
   });
 
   static const vacia = LecturaVoz(textoDicho: '');
@@ -61,6 +62,9 @@ class LecturaVoz {
   /// Dijo que le prestaron plata: Moca avisa que no es venta (entrega
   /// 14.14).
   final bool prestamo;
+
+  /// En un pase («pasé 500 de la caja a Yape»), a dónde va (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
 
   bool get montoDudoso => montosPosibles.isNotEmpty;
   bool get entendida => partidas.isNotEmpty || montoDudoso;
@@ -143,6 +147,11 @@ class PreguntaCategoria extends PreguntaVoz {
   const PreguntaCategoria();
 }
 
+/// En un pase: a dónde va la plata (entrega 21.1).
+class PreguntaDestino extends PreguntaVoz {
+  const PreguntaDestino();
+}
+
 /// Qué falta preguntar. Nulo si ya está todo. [categoriasValidas] y
 /// [cuentasValidas] son las del negocio: una categoría o una cuenta
 /// reconocida que el negocio no tiene se pregunta («por Plin» sin Plin).
@@ -150,6 +159,7 @@ PreguntaVoz? siguientePregunta(
   LecturaVoz lectura, {
   required Set<String> categoriasValidas,
   Set<TipoCuenta> cuentasValidas = const {...TipoCuenta.values},
+  Set<TipoCuenta>? destinosValidos,
 }) {
   if (lectura.montoDudoso) return PreguntaMonto(lectura.montosPosibles);
   if (lectura.tipo == null) return const PreguntaTipo();
@@ -162,7 +172,17 @@ PreguntaVoz? siguientePregunta(
       return PreguntaCuenta(i);
     }
   }
-  if (!(lectura.tipo?.delDueno ?? false) &&
+  if (lectura.tipo?.esPase ?? false) {
+    final destino = lectura.cuentaDestino;
+    final origen = lectura.partidas.firstOrNull?.cuenta;
+    if (destino == null ||
+        destino == origen ||
+        !(destinosValidos ?? cuentasValidas).contains(destino)) {
+      return const PreguntaDestino();
+    }
+    return null;
+  }
+  if (!(lectura.tipo?.sinCategoria ?? false) &&
       !categoriasValidas.contains(lectura.categoria)) {
     return const PreguntaCategoria();
   }
@@ -175,6 +195,7 @@ extension RespuestasVoz on LecturaVoz {
     List<PartidaVoz>? partidas,
     List<int>? montosPosibles,
     String? categoria,
+    TipoCuenta? cuentaDestino,
   }) => LecturaVoz(
     textoDicho: textoDicho,
     tipo: tipo ?? this.tipo,
@@ -182,6 +203,7 @@ extension RespuestasVoz on LecturaVoz {
     montosPosibles: montosPosibles ?? this.montosPosibles,
     categoria: categoria ?? this.categoria,
     prestamo: prestamo,
+    cuentaDestino: cuentaDestino ?? this.cuentaDestino,
   );
 
   /// El dueño eligió o escribió el monto: queda una sola partida, con la
@@ -212,6 +234,8 @@ extension RespuestasVoz on LecturaVoz {
   );
 
   LecturaVoz conCategoria(String categoria) => _con(categoria: categoria);
+
+  LecturaVoz conDestino(TipoCuenta cuenta) => _con(cuentaDestino: cuenta);
 
   /// «Por Plin» sin banco va al único Plin que tenga el negocio.
   LecturaVoz conPlinDelNegocio(Set<TipoCuenta> cuentas) {

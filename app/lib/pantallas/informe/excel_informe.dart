@@ -64,7 +64,13 @@ Uint8List armarExcelDelInforme(
           t(o.ruc),
           t(o.comprobante),
           if (o.igvCentimos case final igv?) soles(igv) else null,
-          t(Textos.nombreCuenta(o.cuenta)),
+          t(switch (o.cuentaDestino) {
+            final destino? => Textos.pase(
+              Textos.nombreCuenta(o.cuenta),
+              Textos.nombreCuenta(destino),
+            ),
+            null => Textos.nombreCuenta(o.cuenta),
+          }),
           soles(o.centimos),
           t(switch (o.estadoPago) {
             EstadoPago.pagado => Textos.si,

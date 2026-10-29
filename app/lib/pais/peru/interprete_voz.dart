@@ -50,6 +50,7 @@ LecturaVoz interpretarVoz(
     montosPosibles: posibles,
     categoria: categoria,
     prestamo: !soloVenta && frase.prestamo,
+    cuentaDestino: soloVenta ? null : frase.destino,
   );
 }
 
@@ -60,6 +61,7 @@ class _Frase {
     this.categoria,
     this.cortada, {
     this.prestamo = false,
+    this.destino,
   });
 
   final TipoMovimiento? tipo;
@@ -71,6 +73,9 @@ class _Frase {
 
   /// Dijo que le prestaron plata (entrega 14.14).
   final bool prestamo;
+
+  /// En un pase, a dónde va la plata (entrega 21.1).
+  final TipoCuenta? destino;
 }
 
 _Frase _leerFrase(String original) {
@@ -80,6 +85,18 @@ _Frase _leerFrase(String original) {
   // Un préstamo recibido no es venta: hasta que lleguen los préstamos
   // (V1.1), se sugiere «Puse de mi bolsillo» y Moca lo avisa.
   final prestamo = _prestamoRecibido.hasMatch(texto) && !_pagoDeCuota(texto);
+  // «Pasé 500 de la caja a Yape», «deposité 1,000 al banco» (entrega 21.1).
+  if (!prestamo && _pase.hasMatch(texto)) {
+    final (origen, destino) = _cuentasDelPase(texto);
+    final monto = _partidas(fichas).firstOrNull;
+    return _Frase(
+      TipoMovimiento.transferencia,
+      [if (monto != null) PartidaVoz(monto.centimos, origen)],
+      null,
+      cortada,
+      destino: destino,
+    );
+  }
   final tipo = prestamo ? TipoMovimiento.aporte : _tipo(texto);
   return _Frase(
     tipo,
@@ -117,6 +134,49 @@ final _retiro = RegExp(
   // «Gasto personal» es del dueño, no sueldo del personal (entrega 14.14).
   r'\b(gasto|gastos|uso|compra|compras|cosa|cosas) personal(es)?\b',
 );
+
+/// «Pasé 500 de la caja a Yape», «deposité 1,000 al banco» (entrega 21.1).
+final _pase = RegExp(
+  r'\b(pase|pasamos|deposite|depositamos|transferi|transferimos|movi)\b',
+);
+
+/// De dónde y a dónde, por las palabras de antes: «de la caja», «a Yape».
+/// Sin «de» ni «a», la primera es el origen y la segunda el destino; al
+/// depositar, el origen que no se dice es el efectivo.
+(TipoCuenta?, TipoCuenta?) _cuentasDelPase(String texto) {
+  final palabras = texto.split(' ');
+  TipoCuenta? origen;
+  TipoCuenta? destino;
+  final sueltas = <TipoCuenta>[];
+  for (final (i, palabra) in palabras.indexed) {
+    final cuenta = _palabrasCuenta[palabra.replaceAll('.', '')];
+    if (cuenta == null) continue;
+    // Lo que va delante, saltando «la», «el», «mi».
+    var j = i - 1;
+    while (j >= 0 && const {'la', 'el', 'mi', 'su'}.contains(palabras[j])) {
+      j--;
+    }
+    final antes = j >= 0 ? palabras[j] : '';
+    if (const {'de', 'del', 'desde'}.contains(antes)) {
+      origen ??= cuenta;
+    } else if (const {'a', 'al', 'hacia', 'en'}.contains(antes)) {
+      destino ??= cuenta;
+    } else {
+      sueltas.add(cuenta);
+    }
+  }
+  for (final cuenta in sueltas) {
+    if (origen == null) {
+      origen = cuenta;
+    } else {
+      destino ??= cuenta;
+    }
+  }
+  if (origen == null && RegExp(r'\bdeposit').hasMatch(texto)) {
+    origen = TipoCuenta.efectivo;
+  }
+  return (origen, destino == origen ? null : destino);
+}
 
 /// «Me prestaron 2,000», «saqué un préstamo».
 final _prestamoRecibido = RegExp(
@@ -258,7 +318,10 @@ String? _categoria(String t, TipoMovimiento? tipo) {
     case TipoMovimiento.ingreso:
       if (_fiado.hasMatch(t)) return categoriaCobroDeFiado;
       return _palabraVenta.hasMatch(t) ? categoriaVentaDelDia : null;
-    case TipoMovimiento.retiro || TipoMovimiento.aporte || null:
+    case TipoMovimiento.retiro ||
+        TipoMovimiento.aporte ||
+        TipoMovimiento.transferencia ||
+        null:
       return null;
   }
 }

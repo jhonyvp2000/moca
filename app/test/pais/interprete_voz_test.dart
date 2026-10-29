@@ -352,4 +352,37 @@ void main() {
       expect(l.conCuenta(0, TipoCuenta.yape).prestamo, isTrue);
     });
   });
+
+  group('«Pasé plata» (entrega 21.1)', () {
+    test('De la caja a Yape', () {
+      final l = leer('pasé 500 de la caja a Yape');
+      expect(l.tipo, TipoMovimiento.transferencia);
+      expect(partidas(l), [(50000, TipoCuenta.efectivo)]);
+      expect(l.cuentaDestino, TipoCuenta.yape);
+      expect(l.categoria, isNull);
+    });
+
+    test('Depositar en el banco sale del efectivo', () {
+      final l = leer('deposité 1000 al banco');
+      expect(l.tipo, TipoMovimiento.transferencia);
+      expect(partidas(l), [(100000, TipoCuenta.efectivo)]);
+      expect(l.cuentaDestino, TipoCuenta.banco);
+    });
+
+    test('Sin decir a dónde, Moca lo pregunta', () {
+      final l = leer('pasé 200 del efectivo');
+      expect(l.cuentaDestino, isNull);
+      expect(
+        siguientePregunta(l, categoriasValidas: const {}),
+        isA<PreguntaDestino>(),
+      );
+      expect(
+        siguientePregunta(
+          l.conDestino(TipoCuenta.yape),
+          categoriasValidas: const {},
+        ),
+        isNull,
+      );
+    });
+  });
 }

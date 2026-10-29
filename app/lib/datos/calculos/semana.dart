@@ -57,6 +57,9 @@ ResumenPeriodo resumirPeriodo(
         retiros += m.montoCentimos;
       case TipoMovimiento.aporte:
         aportes += m.montoCentimos;
+      // Un pase solo cambia la plata de cuenta (entrega 21.1).
+      case TipoMovimiento.transferencia:
+        break;
     }
   }
   return ResumenPeriodo(

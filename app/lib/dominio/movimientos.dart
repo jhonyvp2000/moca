@@ -7,6 +7,7 @@ class NuevoMovimiento {
     required this.tipo,
     required this.montoCentimos,
     required this.cuenta,
+    this.cuentaDestino,
     this.categoriaId,
     this.nota,
     this.fuente = Fuente.texto,
@@ -15,6 +16,9 @@ class NuevoMovimiento {
   final TipoMovimiento tipo;
   final int montoCentimos;
   final TipoCuenta cuenta;
+
+  /// En un pase, la cuenta a la que va la plata (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
 
   /// Nula en un retiro para el dueño, que no lleva categoría.
   final String? categoriaId;
@@ -31,12 +35,14 @@ class BorradorMovimiento {
     this.tipo,
     this.montoCentimos,
     this.cuenta,
+    this.cuentaDestino,
     this.categoriaId,
   });
 
   final TipoMovimiento? tipo;
   final int? montoCentimos;
   final TipoCuenta? cuenta;
+  final TipoCuenta? cuentaDestino;
   final String? categoriaId;
 }
 

@@ -10,14 +10,22 @@ import '../../textos/textos.dart';
 /// «+ S/ 350» para lo que entró, «− S/ 980» para lo que salió. Los signos y el
 /// símbolo no se separan de la cifra.
 String montoConSigno(TipoMovimiento tipo, int centimos) =>
-    '${tipo.entraPlata ? '+' : '−'} '
+    // Un pase no entra ni sale: sin signo (entrega 21.1).
+    '${tipo.esPase
+        ? ''
+        : tipo.entraPlata
+        ? '+ '
+        : '− '}'
     // Cada registro con sus céntimos si los tiene (decisiones.md, 16-10-2026).
     '${formatearSolesComprobante(centimos.abs())}';
 
 /// Lo que entró (y lo que puso el dueño) va en azul; lo que salió, en rojo
 /// sobrio (entrega 14.9.2).
-Color colorDelMonto(TipoMovimiento tipo) =>
-    tipo.entraPlata ? Colores.marca : Colores.salida;
+Color colorDelMonto(TipoMovimiento tipo) => tipo.esPase
+    ? Colores.textoPrincipal
+    : tipo.entraPlata
+    ? Colores.marca
+    : Colores.salida;
 
 /// El título de un movimiento: el proveedor, «Retiro para mí», la nota o la
 /// categoría.
@@ -26,6 +34,7 @@ String tituloDeFila(FilaHistorial f) {
   if (f.proveedor case final proveedor?) return proveedor;
   if (f.tipo == TipoMovimiento.retiro) return Textos.retiroParaMi;
   if (f.tipo == TipoMovimiento.aporte) return Textos.puseDeMiBolsillo;
+  if (f.tipo.esPase) return f.nota ?? Textos.pasePlata;
   return f.nota ?? f.categoria ?? Textos.nombreTipo(f.tipo);
 }
 
@@ -36,6 +45,14 @@ List<String> _partes(FilaHistorial f) {
   if (f.ajusteArqueo) return [Textos.ajusteNoCuenta, cuenta];
   if (f.tipo == TipoMovimiento.retiro) return [Textos.retiroNoCuenta, cuenta];
   if (f.tipo == TipoMovimiento.aporte) return [Textos.aporteNoCuenta, cuenta];
+  // «Efectivo → BCP» (entrega 21.1).
+  if (f.cuentaDestino case final destino? when f.tipo.esPase) {
+    return [
+      Textos.pase(cuenta, Textos.nombreCuenta(destino)),
+      if (f.porSubir) Textos.marcaPorSubir,
+      if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
+    ];
+  }
   final tituloEsCategoria =
       f.proveedor == null && f.nota == null && f.categoria != null;
   return [

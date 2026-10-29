@@ -93,7 +93,8 @@ export async function empresasActivas(cliente: Cliente, usuarioId: string): Prom
 export const veCifras = (rol: Rol) => rol === 'dueno' || rol === 'contador';
 
 /** Lo que es de las cajas del miembro ($3), o lo que anotó él ($1). */
-const deSusCajas = '(autor_id = $1 OR cuenta_id = ANY($3::uuid[]))';
+const deSusCajas =
+  '(autor_id = $1 OR cuenta_id = ANY($3::uuid[]) OR cuenta_destino_id = ANY($3::uuid[]))';
 
 /**
  * Lo que cada rol puede tener en su teléfono: «lo que no puede ver no baja».

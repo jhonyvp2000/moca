@@ -3910,6 +3910,20 @@ class $MovimientosTable extends Movimientos
       'REFERENCES cuentas (id)',
     ),
   );
+  static const VerificationMeta _cuentaDestinoIdMeta = const VerificationMeta(
+    'cuentaDestinoId',
+  );
+  @override
+  late final GeneratedColumn<String> cuentaDestinoId = GeneratedColumn<String>(
+    'cuenta_destino_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cuentas (id)',
+    ),
+  );
   static const VerificationMeta _montoCentimosMeta = const VerificationMeta(
     'montoCentimos',
   );
@@ -4119,6 +4133,7 @@ class $MovimientosTable extends Movimientos
     empresaId,
     tipo,
     cuentaId,
+    cuentaDestinoId,
     montoCentimos,
     fechaMovimiento,
     fechaComprobante,
@@ -4170,6 +4185,15 @@ class $MovimientosTable extends Movimientos
       );
     } else if (isInserting) {
       context.missing(_cuentaIdMeta);
+    }
+    if (data.containsKey('cuenta_destino_id')) {
+      context.handle(
+        _cuentaDestinoIdMeta,
+        cuentaDestinoId.isAcceptableOrUnknown(
+          data['cuenta_destino_id']!,
+          _cuentaDestinoIdMeta,
+        ),
+      );
     }
     if (data.containsKey('monto_centimos')) {
       context.handle(
@@ -4310,6 +4334,10 @@ class $MovimientosTable extends Movimientos
         DriftSqlType.string,
         data['${effectivePrefix}cuenta_id'],
       )!,
+      cuentaDestinoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cuenta_destino_id'],
+      ),
       montoCentimos: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}monto_centimos'],
@@ -4425,6 +4453,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
   final String empresaId;
   final TipoMovimiento tipo;
   final String cuentaId;
+
+  /// A dónde fue la plata en un pase de una cuenta a otra (entrega 21.1).
+  final String? cuentaDestinoId;
   final int montoCentimos;
   final DateTime fechaMovimiento;
   final DateTime? fechaComprobante;
@@ -4452,6 +4483,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     required this.empresaId,
     required this.tipo,
     required this.cuentaId,
+    this.cuentaDestinoId,
     required this.montoCentimos,
     required this.fechaMovimiento,
     this.fechaComprobante,
@@ -4482,6 +4514,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       );
     }
     map['cuenta_id'] = Variable<String>(cuentaId);
+    if (!nullToAbsent || cuentaDestinoId != null) {
+      map['cuenta_destino_id'] = Variable<String>(cuentaDestinoId);
+    }
     map['monto_centimos'] = Variable<int>(montoCentimos);
     map['fecha_movimiento'] = Variable<DateTime>(fechaMovimiento);
     if (!nullToAbsent || fechaComprobante != null) {
@@ -4547,6 +4582,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       empresaId: Value(empresaId),
       tipo: Value(tipo),
       cuentaId: Value(cuentaId),
+      cuentaDestinoId: cuentaDestinoId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cuentaDestinoId),
       montoCentimos: Value(montoCentimos),
       fechaMovimiento: Value(fechaMovimiento),
       fechaComprobante: fechaComprobante == null && nullToAbsent
@@ -4594,6 +4632,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         serializer.fromJson<String>(json['tipo']),
       ),
       cuentaId: serializer.fromJson<String>(json['cuentaId']),
+      cuentaDestinoId: serializer.fromJson<String?>(json['cuentaDestinoId']),
       montoCentimos: serializer.fromJson<int>(json['montoCentimos']),
       fechaMovimiento: serializer.fromJson<DateTime>(json['fechaMovimiento']),
       fechaComprobante: serializer.fromJson<DateTime?>(
@@ -4639,6 +4678,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         $MovimientosTable.$convertertipo.toJson(tipo),
       ),
       'cuentaId': serializer.toJson<String>(cuentaId),
+      'cuentaDestinoId': serializer.toJson<String?>(cuentaDestinoId),
       'montoCentimos': serializer.toJson<int>(montoCentimos),
       'fechaMovimiento': serializer.toJson<DateTime>(fechaMovimiento),
       'fechaComprobante': serializer.toJson<DateTime?>(fechaComprobante),
@@ -4677,6 +4717,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     String? empresaId,
     TipoMovimiento? tipo,
     String? cuentaId,
+    Value<String?> cuentaDestinoId = const Value.absent(),
     int? montoCentimos,
     DateTime? fechaMovimiento,
     Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -4700,6 +4741,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     empresaId: empresaId ?? this.empresaId,
     tipo: tipo ?? this.tipo,
     cuentaId: cuentaId ?? this.cuentaId,
+    cuentaDestinoId: cuentaDestinoId.present
+        ? cuentaDestinoId.value
+        : this.cuentaDestinoId,
     montoCentimos: montoCentimos ?? this.montoCentimos,
     fechaMovimiento: fechaMovimiento ?? this.fechaMovimiento,
     fechaComprobante: fechaComprobante.present
@@ -4733,6 +4777,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       empresaId: data.empresaId.present ? data.empresaId.value : this.empresaId,
       tipo: data.tipo.present ? data.tipo.value : this.tipo,
       cuentaId: data.cuentaId.present ? data.cuentaId.value : this.cuentaId,
+      cuentaDestinoId: data.cuentaDestinoId.present
+          ? data.cuentaDestinoId.value
+          : this.cuentaDestinoId,
       montoCentimos: data.montoCentimos.present
           ? data.montoCentimos.value
           : this.montoCentimos,
@@ -4785,6 +4832,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           ..write('empresaId: $empresaId, ')
           ..write('tipo: $tipo, ')
           ..write('cuentaId: $cuentaId, ')
+          ..write('cuentaDestinoId: $cuentaDestinoId, ')
           ..write('montoCentimos: $montoCentimos, ')
           ..write('fechaMovimiento: $fechaMovimiento, ')
           ..write('fechaComprobante: $fechaComprobante, ')
@@ -4813,6 +4861,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     empresaId,
     tipo,
     cuentaId,
+    cuentaDestinoId,
     montoCentimos,
     fechaMovimiento,
     fechaComprobante,
@@ -4840,6 +4889,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           other.empresaId == this.empresaId &&
           other.tipo == this.tipo &&
           other.cuentaId == this.cuentaId &&
+          other.cuentaDestinoId == this.cuentaDestinoId &&
           other.montoCentimos == this.montoCentimos &&
           other.fechaMovimiento == this.fechaMovimiento &&
           other.fechaComprobante == this.fechaComprobante &&
@@ -4865,6 +4915,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
   final Value<String> empresaId;
   final Value<TipoMovimiento> tipo;
   final Value<String> cuentaId;
+  final Value<String?> cuentaDestinoId;
   final Value<int> montoCentimos;
   final Value<DateTime> fechaMovimiento;
   final Value<DateTime?> fechaComprobante;
@@ -4889,6 +4940,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     this.empresaId = const Value.absent(),
     this.tipo = const Value.absent(),
     this.cuentaId = const Value.absent(),
+    this.cuentaDestinoId = const Value.absent(),
     this.montoCentimos = const Value.absent(),
     this.fechaMovimiento = const Value.absent(),
     this.fechaComprobante = const Value.absent(),
@@ -4914,6 +4966,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     required String empresaId,
     required TipoMovimiento tipo,
     required String cuentaId,
+    this.cuentaDestinoId = const Value.absent(),
     required int montoCentimos,
     required DateTime fechaMovimiento,
     this.fechaComprobante = const Value.absent(),
@@ -4952,6 +5005,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Expression<String>? empresaId,
     Expression<String>? tipo,
     Expression<String>? cuentaId,
+    Expression<String>? cuentaDestinoId,
     Expression<int>? montoCentimos,
     Expression<DateTime>? fechaMovimiento,
     Expression<DateTime>? fechaComprobante,
@@ -4977,6 +5031,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       if (empresaId != null) 'empresa_id': empresaId,
       if (tipo != null) 'tipo': tipo,
       if (cuentaId != null) 'cuenta_id': cuentaId,
+      if (cuentaDestinoId != null) 'cuenta_destino_id': cuentaDestinoId,
       if (montoCentimos != null) 'monto_centimos': montoCentimos,
       if (fechaMovimiento != null) 'fecha_movimiento': fechaMovimiento,
       if (fechaComprobante != null) 'fecha_comprobante': fechaComprobante,
@@ -5006,6 +5061,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Value<String>? empresaId,
     Value<TipoMovimiento>? tipo,
     Value<String>? cuentaId,
+    Value<String?>? cuentaDestinoId,
     Value<int>? montoCentimos,
     Value<DateTime>? fechaMovimiento,
     Value<DateTime?>? fechaComprobante,
@@ -5031,6 +5087,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       empresaId: empresaId ?? this.empresaId,
       tipo: tipo ?? this.tipo,
       cuentaId: cuentaId ?? this.cuentaId,
+      cuentaDestinoId: cuentaDestinoId ?? this.cuentaDestinoId,
       montoCentimos: montoCentimos ?? this.montoCentimos,
       fechaMovimiento: fechaMovimiento ?? this.fechaMovimiento,
       fechaComprobante: fechaComprobante ?? this.fechaComprobante,
@@ -5069,6 +5126,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     }
     if (cuentaId.present) {
       map['cuenta_id'] = Variable<String>(cuentaId.value);
+    }
+    if (cuentaDestinoId.present) {
+      map['cuenta_destino_id'] = Variable<String>(cuentaDestinoId.value);
     }
     if (montoCentimos.present) {
       map['monto_centimos'] = Variable<int>(montoCentimos.value);
@@ -5149,6 +5209,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
           ..write('empresaId: $empresaId, ')
           ..write('tipo: $tipo, ')
           ..write('cuentaId: $cuentaId, ')
+          ..write('cuentaDestinoId: $cuentaDestinoId, ')
           ..write('montoCentimos: $montoCentimos, ')
           ..write('fechaMovimiento: $fechaMovimiento, ')
           ..write('fechaComprobante: $fechaComprobante, ')
@@ -10526,24 +10587,6 @@ final class $$CuentasTableReferences
     );
   }
 
-  static MultiTypedResultKey<$MovimientosTable, List<Movimiento>>
-  _movimientosRefsTable(_$BaseLocal db) => MultiTypedResultKey.fromTable(
-    db.movimientos,
-    aliasName: 'cuentas__id__movimientos__cuenta_id',
-  );
-
-  $$MovimientosTableProcessedTableManager get movimientosRefs {
-    final manager = $$MovimientosTableTableManager(
-      $_db,
-      $_db.movimientos,
-    ).filter((f) => f.cuentaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_movimientosRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
   static MultiTypedResultKey<$ArqueoCuentasTable, List<ArqueoCuenta>>
   _arqueoCuentasRefsTable(_$BaseLocal db) => MultiTypedResultKey.fromTable(
     db.arqueoCuentas,
@@ -10624,31 +10667,6 @@ class $$CuentasTableFilterComposer
           ),
     );
     return composer;
-  }
-
-  Expression<bool> movimientosRefs(
-    Expression<bool> Function($$MovimientosTableFilterComposer f) f,
-  ) {
-    final $$MovimientosTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.movimientos,
-      getReferencedColumn: (t) => t.cuentaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$MovimientosTableFilterComposer(
-            $db: $db,
-            $table: $db.movimientos,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
   }
 
   Expression<bool> arqueoCuentasRefs(
@@ -10794,31 +10812,6 @@ class $$CuentasTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> movimientosRefs<T extends Object>(
-    Expression<T> Function($$MovimientosTableAnnotationComposer a) f,
-  ) {
-    final $$MovimientosTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.movimientos,
-      getReferencedColumn: (t) => t.cuentaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$MovimientosTableAnnotationComposer(
-            $db: $db,
-            $table: $db.movimientos,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> arqueoCuentasRefs<T extends Object>(
     Expression<T> Function($$ArqueoCuentasTableAnnotationComposer a) f,
   ) {
@@ -10858,11 +10851,7 @@ class $$CuentasTableTableManager
           $$CuentasTableUpdateCompanionBuilder,
           (Cuenta, $$CuentasTableReferences),
           Cuenta,
-          PrefetchHooks Function({
-            bool empresaId,
-            bool movimientosRefs,
-            bool arqueoCuentasRefs,
-          })
+          PrefetchHooks Function({bool empresaId, bool arqueoCuentasRefs})
         > {
   $$CuentasTableTableManager(_$BaseLocal db, $CuentasTable table)
     : super(
@@ -10924,15 +10913,10 @@ class $$CuentasTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({
-                empresaId = false,
-                movimientosRefs = false,
-                arqueoCuentasRefs = false,
-              }) {
+              ({empresaId = false, arqueoCuentasRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (movimientosRefs) db.movimientos,
                     if (arqueoCuentasRefs) db.arqueoCuentas,
                   ],
                   addJoins:
@@ -10967,27 +10951,6 @@ class $$CuentasTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (movimientosRefs)
-                        await $_getPrefetchedData<
-                          Cuenta,
-                          $CuentasTable,
-                          Movimiento
-                        >(
-                          currentTable: table,
-                          referencedTable: $$CuentasTableReferences
-                              ._movimientosRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$CuentasTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).movimientosRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.cuentaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (arqueoCuentasRefs)
                         await $_getPrefetchedData<
                           Cuenta,
@@ -11029,11 +10992,7 @@ typedef $$CuentasTableProcessedTableManager =
       $$CuentasTableUpdateCompanionBuilder,
       (Cuenta, $$CuentasTableReferences),
       Cuenta,
-      PrefetchHooks Function({
-        bool empresaId,
-        bool movimientosRefs,
-        bool arqueoCuentasRefs,
-      })
+      PrefetchHooks Function({bool empresaId, bool arqueoCuentasRefs})
     >;
 typedef $$ContrapartesTableCreateCompanionBuilder =
     ContrapartesCompanion Function({
@@ -12936,6 +12895,7 @@ typedef $$MovimientosTableCreateCompanionBuilder =
       required String empresaId,
       required TipoMovimiento tipo,
       required String cuentaId,
+      Value<String?> cuentaDestinoId,
       required int montoCentimos,
       required DateTime fechaMovimiento,
       Value<DateTime?> fechaComprobante,
@@ -12962,6 +12922,7 @@ typedef $$MovimientosTableUpdateCompanionBuilder =
       Value<String> empresaId,
       Value<TipoMovimiento> tipo,
       Value<String> cuentaId,
+      Value<String?> cuentaDestinoId,
       Value<int> montoCentimos,
       Value<DateTime> fechaMovimiento,
       Value<DateTime?> fechaComprobante,
@@ -13015,6 +12976,23 @@ final class $$MovimientosTableReferences
       $_db.cuentas,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_cuentaIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CuentasTable _cuentaDestinoIdTable(_$BaseLocal db) =>
+      db.cuentas.createAlias('movimientos__cuenta_destino_id__cuentas__id');
+
+  $$CuentasTableProcessedTableManager? get cuentaDestinoId {
+    final $_column = $_itemColumn<String>('cuenta_destino_id');
+    if ($_column == null) return null;
+    final manager = $$CuentasTableTableManager(
+      $_db,
+      $_db.cuentas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_cuentaDestinoIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -13236,6 +13214,29 @@ class $$MovimientosTableFilterComposer
     final $$CuentasTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.cuentaId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableFilterComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CuentasTableFilterComposer get cuentaDestinoId {
+    final $$CuentasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
       referencedTable: $db.cuentas,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -13508,6 +13509,29 @@ class $$MovimientosTableOrderingComposer
     return composer;
   }
 
+  $$CuentasTableOrderingComposer get cuentaDestinoId {
+    final $$CuentasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableOrderingComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$CategoriasTableOrderingComposer get categoriaId {
     final $$CategoriasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -13725,6 +13749,29 @@ class $$MovimientosTableAnnotationComposer
     return composer;
   }
 
+  $$CuentasTableAnnotationComposer get cuentaDestinoId {
+    final $$CuentasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$CategoriasTableAnnotationComposer get categoriaId {
     final $$CategoriasTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -13859,6 +13906,7 @@ class $$MovimientosTableTableManager
           PrefetchHooks Function({
             bool empresaId,
             bool cuentaId,
+            bool cuentaDestinoId,
             bool categoriaId,
             bool contraparteId,
             bool comprobanteId,
@@ -13883,6 +13931,7 @@ class $$MovimientosTableTableManager
                 Value<String> empresaId = const Value.absent(),
                 Value<TipoMovimiento> tipo = const Value.absent(),
                 Value<String> cuentaId = const Value.absent(),
+                Value<String?> cuentaDestinoId = const Value.absent(),
                 Value<int> montoCentimos = const Value.absent(),
                 Value<DateTime> fechaMovimiento = const Value.absent(),
                 Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -13908,6 +13957,7 @@ class $$MovimientosTableTableManager
                 empresaId: empresaId,
                 tipo: tipo,
                 cuentaId: cuentaId,
+                cuentaDestinoId: cuentaDestinoId,
                 montoCentimos: montoCentimos,
                 fechaMovimiento: fechaMovimiento,
                 fechaComprobante: fechaComprobante,
@@ -13934,6 +13984,7 @@ class $$MovimientosTableTableManager
                 required String empresaId,
                 required TipoMovimiento tipo,
                 required String cuentaId,
+                Value<String?> cuentaDestinoId = const Value.absent(),
                 required int montoCentimos,
                 required DateTime fechaMovimiento,
                 Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -13958,6 +14009,7 @@ class $$MovimientosTableTableManager
                 empresaId: empresaId,
                 tipo: tipo,
                 cuentaId: cuentaId,
+                cuentaDestinoId: cuentaDestinoId,
                 montoCentimos: montoCentimos,
                 fechaMovimiento: fechaMovimiento,
                 fechaComprobante: fechaComprobante,
@@ -13990,6 +14042,7 @@ class $$MovimientosTableTableManager
               ({
                 empresaId = false,
                 cuentaId = false,
+                cuentaDestinoId = false,
                 categoriaId = false,
                 contraparteId = false,
                 comprobanteId = false,
@@ -14036,6 +14089,17 @@ class $$MovimientosTableTableManager
                                 ._cuentaIdTable(db),
                             referencedColumn: $$MovimientosTableReferences
                                 ._cuentaIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (cuentaDestinoId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.cuentaDestinoId,
+                            referencedTable: $$MovimientosTableReferences
+                                ._cuentaDestinoIdTable(db),
+                            referencedColumn: $$MovimientosTableReferences
+                                ._cuentaDestinoIdTable(db)
                                 .id,
                           ) as T;
                         }
@@ -14132,6 +14196,7 @@ typedef $$MovimientosTableProcessedTableManager =
       PrefetchHooks Function({
         bool empresaId,
         bool cuentaId,
+        bool cuentaDestinoId,
         bool categoriaId,
         bool contraparteId,
         bool comprobanteId,

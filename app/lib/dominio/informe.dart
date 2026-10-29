@@ -209,6 +209,7 @@ class OperacionDelMes {
     required this.fecha,
     required this.tipo,
     required this.cuenta,
+    this.cuentaDestino,
     required this.centimos,
     required this.estadoPago,
     required this.fuente,
@@ -226,6 +227,9 @@ class OperacionDelMes {
   final DateTime fecha;
   final TipoMovimiento tipo;
   final TipoCuenta cuenta;
+
+  /// En un pase, a dónde fue la plata (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
   final int centimos;
   final EstadoPago estadoPago;
   final int pagadoCentimos;

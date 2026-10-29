@@ -7,6 +7,7 @@ import '../../comun/estructura.dart';
 import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/historial.dart';
+import '../../dominio/cuentas.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
@@ -52,6 +53,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   final _nota = TextEditingController();
   TipoMovimiento? _tipo;
   TipoCuenta _cuenta = TipoCuenta.efectivo;
+
+  /// En un pase, a dónde va la plata (entrega 21.1).
+  TipoCuenta? _destino;
   String? _categoriaId;
   bool _guardando = false;
 
@@ -60,6 +64,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     TipoMovimiento.egreso: Textos.salio,
     TipoMovimiento.retiro: Textos.retiroParaMi,
     TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
+    TipoMovimiento.transferencia: Textos.pasePlata,
   };
 
   /// En una compra con comprobante, el monto y el tipo no se corrigen.
@@ -74,6 +79,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     if (widget.corrigiendo case final d?) {
       _tipo = d.fila.tipo;
       _cuenta = d.fila.cuenta;
+      _destino = d.fila.cuentaDestino;
       _categoriaId = d.categoriaId;
       _montoOriginal = d.fila.montoCentimos;
       _monto.text = separarMiles(d.fila.montoCentimos ~/ 100);
@@ -86,6 +92,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     final permisos = ref.read(permisosProvider).value ?? Permisos.delDueno;
     if (!permisos.puedeUsar(_cuenta)) _cuenta = permisos.misCajas!.first;
     _cuenta = borrador?.cuenta ?? _cuenta;
+    _destino = borrador?.cuentaDestino;
     _categoriaId = borrador?.categoriaId;
     if (borrador?.montoCentimos case final centimos?) {
       _monto.text = separarMiles(centimos ~/ 100);
@@ -105,7 +112,10 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   bool get _completo =>
       _tipo != null &&
       _montoCentimos > 0 &&
-      ((_tipo?.delDueno ?? false) || _categoriaId != null);
+      switch (_tipo!) {
+        TipoMovimiento.transferencia => _destino != null && _destino != _cuenta,
+        final t => t.delDueno || _categoriaId != null,
+      };
 
   /// Al corregir, si no cambió nada no se guarda nada.
   bool get _sinCambios {
@@ -114,7 +124,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     return _tipo == d.fila.tipo &&
         _montoCentimos == d.fila.montoCentimos &&
         _cuenta == d.fila.cuenta &&
-        ((_tipo?.delDueno ?? false) || _categoriaId == d.categoriaId) &&
+        _destino == d.fila.cuentaDestino &&
+        ((_tipo?.sinCategoria ?? false) || _categoriaId == d.categoriaId) &&
         (nota.isEmpty ? null : nota) == d.fila.nota;
   }
 
@@ -148,6 +159,12 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   void _elegirTipo(TipoMovimiento tipo) => setState(() {
     _tipo = tipo;
     _categoriaId = null;
+    // El encargado y el ayudante pasan plata solo desde su caja.
+    final misCajas =
+        (ref.read(permisosProvider).value ?? Permisos.delDueno).misCajas;
+    if (tipo.esPase && misCajas != null && !misCajas.contains(_cuenta)) {
+      _cuenta = misCajas.first;
+    }
   });
 
   Future<void> _guardar() async {
@@ -156,6 +173,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       tipo: _tipo!,
       montoCentimos: _montoCentimos,
       cuenta: _cuenta,
+      cuentaDestino: _tipo!.esPase ? _destino : null,
       categoriaId: _categoriaId,
       nota: _nota.text,
     );
@@ -212,7 +230,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   @override
   Widget build(BuildContext context) {
     final tipo = _tipo;
-    final categorias = tipo == null || tipo.delDueno
+    final categorias = tipo == null || tipo.sinCategoria
         ? null
         : ref.watch(categoriasProvider(tipo)).value;
 
@@ -232,6 +250,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     );
 
     final corrigiendo = widget.corrigiendo;
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
@@ -265,9 +284,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           const SizedBox(height: 8),
           Opciones<TipoMovimiento>(
             // Retiros y aportes, solo los dueños (entrega 20).
-            opciones:
-                (ref.watch(permisosProvider).value ?? Permisos.delDueno)
-                    .anotaLoDelDueno
+            opciones: permisos.anotaLoDelDueno
                 ? _nombresTipo
                 : {
                     for (final e in _nombresTipo.entries)
@@ -284,6 +301,10 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             const SizedBox(height: 8),
             const Text(Textos.aporteDetalle, style: Tipografia.secundario),
           ],
+          if (tipo == TipoMovimiento.transferencia) ...[
+            const SizedBox(height: 8),
+            const Text(Textos.pasePlataDetalle, style: Tipografia.secundario),
+          ],
           const SizedBox(height: 18),
           GrupoMontos(
             filas: [
@@ -298,19 +319,41 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           ),
         ],
         const SizedBox(height: 18),
-        Text(
-          tipo?.entraPlata ?? false ? Textos.aDondeEntro : Textos.deDondeSalio,
-          style: etiqueta,
-        ),
+        Text(switch (tipo) {
+          TipoMovimiento.transferencia => Textos.deDondeSalePase,
+          final t? when t.entraPlata => Textos.aDondeEntro,
+          _ => Textos.deDondeSalio,
+        }, style: etiqueta),
         const SizedBox(height: 8),
         Opciones<TipoCuenta>(
           opciones: {
             for (final cuenta in ref.watch(tiposDeCuentaProvider))
-              cuenta: Textos.nombreCuenta(cuenta),
+              // El encargado y el ayudante pasan plata solo desde su caja.
+              if (tipo != TipoMovimiento.transferencia ||
+                  (permisos.misCajas?.contains(cuenta) ?? true))
+                cuenta: Textos.nombreCuenta(cuenta),
           },
           elegida: _cuenta,
-          alElegir: (cuenta) => setState(() => _cuenta = cuenta),
+          alElegir: (cuenta) => setState(() {
+            _cuenta = cuenta;
+            if (_destino == cuenta) _destino = null;
+          }),
         ),
+        // A cualquier cuenta del negocio, también a otra caja (entrega 21.1).
+        if (tipo == TipoMovimiento.transferencia) ...[
+          const SizedBox(height: 18),
+          const Text(Textos.aDondeVaPase, style: etiqueta),
+          const SizedBox(height: 8),
+          Opciones<TipoCuenta>(
+            opciones: {
+              for (final c
+                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+                if (c.tipo != _cuenta) c.tipo: Textos.nombreCuenta(c.tipo),
+            },
+            elegida: _destino,
+            alElegir: (cuenta) => setState(() => _destino = cuenta),
+          ),
+        ],
         if (categorias != null) ...[
           const SizedBox(height: 18),
           Text(

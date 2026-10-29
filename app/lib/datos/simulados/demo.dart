@@ -258,6 +258,21 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
         );
       }
 
+      // Hace dos semanas depositó en el BCP lo que sobraba en la caja
+      // (entrega 21.1): no es venta ni gasto. Sin azar, como el aporte.
+      if (hace == 13) {
+        reloj = alas(10);
+        await movimientos.registrar(
+          const NuevoMovimiento(
+            tipo: TipoMovimiento.transferencia,
+            montoCentimos: 30000,
+            cuenta: TipoCuenta.efectivo,
+            cuentaDestino: TipoCuenta.banco,
+            nota: 'Depósito al BCP',
+          ),
+        );
+      }
+
       // El domingo: retiro para el dueño y arqueo.
       if (dia.weekday == DateTime.sunday) {
         reloj = alas(21, 20);

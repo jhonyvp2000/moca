@@ -141,8 +141,12 @@ class RepositorioInformeLocal implements RepositorioInforme {
         final desde = c.fechaSaldoInicial;
         if (desde != null && !desde.isBefore(momento)) continue;
         for (final m in pagados) {
-          if (m.cuentaId != c.id || !_fecha(m).isBefore(momento)) continue;
-          total += m.tipo.entraPlata ? m.montoCentimos : -m.montoCentimos;
+          if (!_fecha(m).isBefore(momento)) continue;
+          if (m.cuentaId == c.id) {
+            total += m.tipo.entraPlata ? m.montoCentimos : -m.montoCentimos;
+          }
+          // Lo que llegó a esta cuenta en un pase (entrega 21.1).
+          if (m.cuentaDestinoId == c.id) total += m.montoCentimos;
         }
         for (final a in ajustes) {
           if (a.cuentaId == c.id && a.fecha.isBefore(momento)) {
@@ -353,6 +357,10 @@ class RepositorioInformeLocal implements RepositorioInforme {
               if (m.cuentaId == cuenta.id &&
                   (cierre == null || _fecha(m).isBefore(cierre)))
                 AccesoLocal.paraSaldo(m),
+            for (final m in vigentes)
+              if (m.cuentaDestinoId == cuenta.id &&
+                  (cierre == null || _fecha(m).isBefore(cierre)))
+                AccesoLocal.paraSaldoDestino(m),
             for (final a in ajustes)
               if (a.cuentaId == cuenta.id &&
                   (cierre == null || a.fecha.isBefore(cierre)))
@@ -447,6 +455,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
             m,
             tipoDeCuenta[m.cuentaId] ?? TipoCuenta.efectivo,
             datosComprobante[m.comprobanteId],
+            cuentaDestino: tipoDeCuenta[m.cuentaDestinoId],
             categoria: categorias[m.categoriaId],
             proveedor: proveedores[m.contraparteId],
             ruc: rucs[m.contraparteId],
@@ -573,8 +582,9 @@ class RepositorioInformeLocal implements RepositorioInforme {
           retiros += m.montoCentimos;
           continue;
         }
-        // Lo que puso el dueño no es ingreso del negocio.
-        if (m.tipo == TipoMovimiento.aporte) continue;
+        // Lo que puso el dueño no es ingreso del negocio, y un pase solo
+        // cambia la plata de cuenta (entrega 21.1).
+        if (m.tipo == TipoMovimiento.aporte || m.tipo.esPase) continue;
         if (esCuota(m)) {
           cuotas[filaDeCuota(entidad(m))] += m.montoCentimos;
           continue;
@@ -633,6 +643,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
     Movimiento m,
     TipoCuenta cuenta,
     Comprobante? c, {
+    TipoCuenta? cuentaDestino,
     String? categoria,
     String? proveedor,
     String? ruc,
@@ -646,6 +657,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
       fecha: m.fechaMovimiento,
       tipo: m.tipo,
       cuenta: cuenta,
+      cuentaDestino: cuentaDestino,
       centimos: m.montoCentimos,
       estadoPago: m.estadoPago,
       pagadoCentimos: m.montoPagadoCentimos,

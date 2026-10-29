@@ -18,6 +18,7 @@ class FilaHistorial {
     this.nota,
     this.proveedor,
     this.ajusteArqueo = false,
+    this.cuentaDestino,
     this.deOtro = false,
     this.autorNombre,
     this.autorRol,
@@ -46,6 +47,9 @@ class FilaHistorial {
   /// (ingreso) o faltó (egreso).
   final bool ajusteArqueo;
 
+  /// En un pase, a dónde fue la plata (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
+
   /// Lo anotó otra persona del negocio (entrega 20): su nombre y su rol, si
   /// se saben.
   final bool deOtro;
@@ -57,8 +61,9 @@ class FilaHistorial {
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,
+    // Un pase no entra ni sale del negocio: solo en «Todo».
     FiltroHistorial.entro => !ajusteArqueo && tipo.entraPlata,
-    FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata,
+    FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata && !tipo.esPase,
     FiltroHistorial.porSubir => porSubir,
   };
 }

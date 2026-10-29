@@ -172,7 +172,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       TipoMovimiento.ingreso ||
       TipoMovimiento.aporte => actual + m.montoCentimos,
       TipoMovimiento.egreso ||
-      TipoMovimiento.retiro => actual - m.montoCentimos,
+      TipoMovimiento.retiro ||
+      TipoMovimiento.transferencia => actual - m.montoCentimos,
     };
   }
 
@@ -181,16 +182,22 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     if (m.montoCentimos <= 0) {
       throw ArgumentError('El monto tiene que ser mayor que cero.');
     }
-    if (!m.tipo.delDueno && m.categoriaId == null) {
+    if (!m.tipo.sinCategoria && m.categoriaId == null) {
       throw ArgumentError('Entró y salió llevan categoría.');
+    }
+    if (m.tipo.esPase &&
+        (m.cuentaDestino == null || m.cuentaDestino == m.cuenta)) {
+      throw ArgumentError('Un pase va de una cuenta a otra distinta.');
     }
     return _base.transaction(() async {
       final id = await _insertar(
         tipo: m.tipo,
         cuenta: m.cuenta,
         montoCentimos: m.montoCentimos,
-        // La plata entre el dueño y el negocio no lleva categoría.
-        categoriaId: m.tipo.delDueno ? null : m.categoriaId,
+        cuentaDestino: m.tipo.esPase ? m.cuentaDestino : null,
+        // La plata entre el dueño y el negocio y los pases no llevan
+        // categoría.
+        categoriaId: m.tipo.sinCategoria ? null : m.categoriaId,
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
         fuente: m.fuente,
       );
@@ -231,15 +238,18 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     required TipoMovimiento tipo,
     required TipoCuenta cuenta,
     required int montoCentimos,
+    TipoCuenta? cuentaDestino,
     String? categoriaId,
     String? nota,
     Fuente fuente = Fuente.texto,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
-    final cuentaId = (await _a.cuentas(empresa.id))
-        .firstWhere((c) => c.tipo == cuenta)
-        .id;
+    final cuentas = await _a.cuentas(empresa.id);
+    final cuentaId = cuentas.firstWhere((c) => c.tipo == cuenta).id;
+    final destinoId = cuentaDestino == null
+        ? null
+        : cuentas.firstWhere((c) => c.tipo == cuentaDestino).id;
     final ahora = _a.ahora();
     final id = _a.nuevoId();
     await _base
@@ -250,6 +260,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             empresaId: empresa.id,
             tipo: tipo,
             cuentaId: cuentaId,
+            cuentaDestinoId: Value(destinoId),
             montoCentimos: montoCentimos,
             fechaMovimiento: ahora,
             estadoPago: EstadoPago.pagado,
@@ -275,6 +286,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       nuevo: {
         'tipo': tipo.name,
         'cuenta': cuenta.name,
+        'cuentaDestino': ?cuentaDestino?.name,
         'montoCentimos': montoCentimos,
         'categoriaId': categoriaId,
         'nota': nota,
