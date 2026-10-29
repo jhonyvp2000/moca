@@ -31,6 +31,8 @@ import 'pantallas/equipo/pantalla_invitacion.dart';
 import 'pantallas/equipo/pantalla_invitar.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
+import 'tema/tipografia.dart';
+import 'textos/textos.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -339,8 +341,18 @@ class _ConBarraInferior extends ConsumerWidget {
     if (!permisos.veInformes && ramas.currentIndex == 2) {
       WidgetsBinding.instance.addPostFrameCallback((_) => ramas.goBranch(0));
     }
+    final simulado = ref.watch(verComoProvider).value;
     return Scaffold(
-      body: ramas,
+      // Simulando otro rol desde el ajuste oculto: se avisa siempre
+      // (entrega 20.1).
+      body: simulado == null
+          ? ramas
+          : Column(
+              children: [
+                _FranjaVerComo(rol: simulado),
+                Expanded(child: ramas),
+              ],
+            ),
       bottomNavigationBar: BarraInferior(
         conInformes: permisos.veInformes,
         conRegistrar: permisos.anota,
@@ -358,6 +370,42 @@ class _ConBarraInferior extends ConsumerWidget {
           ramas.goBranch(indice, initialLocation: indice == ramas.currentIndex);
         },
         alRegistrar: () => context.push(Rutas.registrar),
+      ),
+    );
+  }
+}
+
+class _FranjaVerComo extends ConsumerWidget {
+  const _FranjaVerComo({required this.rol});
+
+  final Rol rol;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: Colores.tinteAzul,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Textos.viendoComo(Textos.nombreRol(rol)),
+                  style: Tipografia.secundario.copyWith(
+                    color: Colores.azulOscuro,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () =>
+                    ref.read(repositorioOperadorProvider).verComo(null),
+                child: const Text(Textos.volverADueno),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

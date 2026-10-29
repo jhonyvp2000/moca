@@ -2863,6 +2863,52 @@ void main() {
     });
   });
 
+  group('Entrega 20.1: simular otra persona con un solo teléfono', () {
+    testWidgets('«Ver como» muestra la app de otro rol y se vuelve con un '
+        'toque', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.verComoRol));
+      await tocar(tester, find.text(Textos.nombreRol(Rol.ayudante)));
+      expect(
+        find.text(Textos.viendoComo(Textos.nombreRol(Rol.ayudante))),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.hoyAnotaste), findsOneWidget);
+      expect(find.text(Textos.pestanaInformes), findsNothing);
+
+      await tocar(tester, find.text(Textos.volverADueno));
+      expect(find.text(Textos.pestanaInformes), findsOneWidget);
+      expect(
+        find.text(Textos.viendoComo(Textos.nombreRol(Rol.ayudante))),
+        findsNothing,
+      );
+    });
+
+    testWidgets('La venta de Pepe dice quién la anotó, no se sube y se va al '
+        'salir', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.simularVentaDeOtro));
+      expect(find.text(Textos.ventaDeOtroSimulada), findsOneWidget);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      expect(
+        find.text('Efectivo · ${Textos.loAnoto('Pepe', null)}'),
+        findsOneWidget,
+      );
+
+      await abrirAjusteOculto(tester);
+      await tocar(tester, find.text(Textos.salirDeLaSimulacion));
+      final dePepe = await tester.runAsync(
+        () => (base.select(
+          base.movimientos,
+        )..where((m) => m.autorId.equals(AccesoLocal.usuarioSimulado))).get(),
+      );
+      expect(dePepe, isEmpty);
+    });
+  });
+
   group('Entrega 14.8: borrar todo, también en el servidor', () {
     Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
       final base = await abrirApp(tester, listo: true);

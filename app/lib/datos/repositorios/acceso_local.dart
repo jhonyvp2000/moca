@@ -45,6 +45,12 @@ class AccesoLocal {
   /// servidor: para «Lo anotó Rosa» (entrega 20).
   static const claveEquipo = 'equipo';
 
+  /// La simulación del ajuste oculto (entrega 20.1): con qué rol se ve la
+  /// app y quién es «Pepe», la persona simulada. Lo de Pepe no se sube.
+  static const claveVerComo = 'ver_como';
+  static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';
+  static const nombreSimulado = 'Pepe';
+
   /// Fotos de prueba que le quedan al teléfono sin cuenta (entrega 14.2).
   static const claveFotosDePrueba = 'fotos_de_prueba';
   static const fotosDePruebaIniciales = fotosDePruebaPorTelefono;
@@ -154,6 +160,10 @@ class AccesoLocal {
   /// El rol de quien usa este teléfono; sin membresía todavía (antes del
   /// alta), es el dueño.
   Future<Rol> miRol() async {
+    if (Rol.values.asNameMap()[await leerAjuste(claveVerComo)]
+        case final simulado?) {
+      return simulado;
+    }
     final yo = await usuarioONulo();
     if (yo == null) return Rol.dueno;
     final membresia = await (base.select(
@@ -165,15 +175,17 @@ class AccesoLocal {
   /// Nombre y rol de cada persona del negocio, por usuario.
   Future<Map<String, (String?, Rol?)>> equipo() async {
     final texto = await leerAjuste(claveEquipo);
-    if (texto == null) return const {};
+    const simulado = {usuarioSimulado: (nombreSimulado, Rol.ayudante)};
+    if (texto == null) return simulado;
     try {
       return {
+        ...simulado,
         for (final p in jsonDecode(texto) as List)
           if (p case {'usuario_id': final String id})
             id: (p['nombre'] as String?, Rol.values.asNameMap()[p['rol']]),
       };
     } on FormatException {
-      return const {};
+      return simulado;
     }
   }
 

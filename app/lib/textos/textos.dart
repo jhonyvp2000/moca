@@ -204,6 +204,25 @@ abstract final class Textos {
   static const soloLoDeHoyAyudante =
       'Aquí ves lo que anotaste hoy. Lo de otros días lo ve el dueño.';
 
+  // Simular otra persona (entrega 20.1)
+  static const verComoRol = 'Ver como…';
+  static const verComoRolDetalle =
+      'La app se ve como la de un encargado, un ayudante o un contador. No '
+      'cambia nada en el servidor.';
+  static String viendoComo(String rol) =>
+      'Viendo como $rol. Lo que anotes ahora es de verdad y queda a tu nombre.';
+  static const volverADueno = 'Volver';
+  static const simularVentaDeOtro = 'Simular una venta de Pepe';
+  static const simularVentaDeOtroDetalle =
+      'Aparece en el Historial «Lo anotó Pepe», como si viniera de otro '
+      'teléfono. No se sube.';
+  static const ventaDeOtroSimulada =
+      'Listo: en el Historial verás «Lo anotó Pepe».';
+  static const salirDeLaSimulacion = 'Salir de la simulación';
+  static const salirDeLaSimulacionDetalle =
+      'Quita la venta de Pepe y vuelve a verse como dueño.';
+  static const simulacionTerminada = 'Listo: todo vuelve a ser real.';
+
   // Equipo (entregas 17 a 19)
   static const miEquipo = 'Mi equipo';
   static const miEquipoDetalle = 'Quiénes anotan en tu negocio';

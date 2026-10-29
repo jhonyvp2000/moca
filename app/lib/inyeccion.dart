@@ -248,6 +248,11 @@ final notificadorProvider = Provider<Notificador>(
   (ref) => NotificadorAndroid(ref.watch(baseLocalProvider)),
 );
 
+/// El rol con que se simula la app desde el ajuste oculto (entrega 20.1).
+final verComoProvider = StreamProvider<Rol?>(
+  (ref) => ref.watch(repositorioOperadorProvider).observarVerComo(),
+);
+
 final enDemoProvider = StreamProvider<bool>(
   (ref) => ref.watch(repositorioOperadorProvider).observarDemo(),
 );

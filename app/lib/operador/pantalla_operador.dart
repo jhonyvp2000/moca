@@ -9,6 +9,7 @@ import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
 import '../dominio/cuenta_real.dart';
 import '../dominio/voz.dart';
+import '../dominio/modelos.dart';
 import '../inyeccion.dart';
 import '../pais/peru/formato.dart';
 import '../rutas.dart';
@@ -106,6 +107,41 @@ class PantallaOperador extends ConsumerWidget {
                     await ref.read(repositorioOperadorProvider).pedirArqueo();
                     mensajes.showSnackBar(
                       const SnackBar(content: Text(Textos.arqueoPedido)),
+                    );
+                  },
+                ),
+                // Simular otra persona con un solo teléfono (entrega 20.1).
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.verComoRol,
+                  detalle: Textos.verComoRolDetalle,
+                  alTocar: () => _verComo(context, ref),
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.simularVentaDeOtro,
+                  detalle: Textos.simularVentaDeOtroDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref
+                        .read(repositorioOperadorProvider)
+                        .simularVentaDeOtro();
+                    mensajes.showSnackBar(
+                      const SnackBar(content: Text(Textos.ventaDeOtroSimulada)),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.salirDeLaSimulacion,
+                  detalle: Textos.salirDeLaSimulacionDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref
+                        .read(repositorioOperadorProvider)
+                        .salirDeLaSimulacion();
+                    mensajes.showSnackBar(
+                      const SnackBar(content: Text(Textos.simulacionTerminada)),
                     );
                   },
                 ),
@@ -237,6 +273,38 @@ class PantallaOperador extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _verComo(BuildContext context, WidgetRef ref) async {
+    final elegido = await showModalBottomSheet<Rol>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            for (final rol in Rol.values)
+              ListTile(
+                minTileHeight: Medidas.objetivoTactilMinimo + 12,
+                title: Text(
+                  Textos.nombreRol(rol),
+                  style: Tipografia.textoFuerte,
+                ),
+                subtitle: Text(
+                  Textos.detalleRol(rol),
+                  style: Tipografia.secundario,
+                ),
+                onTap: () => Navigator.of(context).pop(rol),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (elegido == null) return;
+    await ref
+        .read(repositorioOperadorProvider)
+        .verComo(elegido == Rol.dueno ? null : elegido);
+    if (context.mounted) context.go(Rutas.inicio);
   }
 
   Future<void> _elegirFrase(BuildContext context, WidgetRef ref) async {

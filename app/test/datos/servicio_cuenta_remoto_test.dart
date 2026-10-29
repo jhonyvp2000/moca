@@ -15,6 +15,7 @@ import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
 import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
+import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/demo.dart';
@@ -784,6 +785,19 @@ void main() {
               .getSingle();
       expect(anulado.estado, EstadoRegistro.anulado);
       expect(await servicio.hayCambiosSinSubir(), isFalse);
+    });
+
+    test('La venta simulada de Pepe (entrega 20.1) no se sube', () async {
+      await RepositorioOperadorLocal(
+        base,
+        ahora: () => ahora,
+      ).simularVentaDeOtro();
+      await servicio.subirTodo();
+      for (final subida in subidas) {
+        for (final m in subida['movimientos']! as List) {
+          expect((m as Map)['autor_id'], isNot(AccesoLocal.usuarioSimulado));
+        }
+      }
     });
 
     test('Si un dueño lo quita del negocio, deja de subir y lo dice', () async {

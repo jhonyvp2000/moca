@@ -1,3 +1,5 @@
+import 'modelos.dart';
+
 /// Lo que necesita el ajuste oculto del operador de la prueba.
 abstract interface class RepositorioOperador {
   /// Cuántos registros hay guardados en el teléfono, sumando todas las tablas.
@@ -17,4 +19,18 @@ abstract interface class RepositorioOperador {
 
   /// Si la app está mostrando la Demo.
   Stream<bool> observarDemo();
+
+  /// Simular otra persona con un solo teléfono (entrega 20.1): el teléfono
+  /// se ve como el rol elegido; nulo vuelve a lo real. No toca el servidor.
+  Future<void> verComo(Rol? rol);
+
+  /// El rol con que se está viendo la app; nulo si no se simula.
+  Stream<Rol?> observarVerComo();
+
+  /// Agrega en este teléfono una venta de «Pepe», como si viniera de otro
+  /// teléfono del negocio. No se sube.
+  Future<void> simularVentaDeOtro();
+
+  /// Vuelve a lo real: quita la venta simulada y el «Ver como».
+  Future<void> salirDeLaSimulacion();
 }
