@@ -32,7 +32,7 @@ on:
   workflow_dispatch:
     inputs:
       entrega:
-        description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M o piloto-N). Vacío: solo arma el APK."
+        description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M, entrega-N.M.K o piloto-N). Vacío: solo arma el APK."
         required: false
         default: ""
 
@@ -150,9 +150,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # entrega-N, entrega-N.M (corrección de esa entrega) o piloto-N.
-          if [[ ! "$ENTREGA" =~ ^(entrega|piloto)-[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "::error::El nombre debe ser entrega-N, entrega-N.M o piloto-N (por ejemplo entrega-3.1)."
+          # entrega-N, entrega-N.M o entrega-N.M.K (correcciones) o piloto-N.
+          if [[ ! "$ENTREGA" =~ ^(entrega|piloto)-[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            echo "::error::El nombre debe ser entrega-N, entrega-N.M, entrega-N.M.K o piloto-N (por ejemplo entrega-14.9.2)."
             exit 1
           fi
           notas="APK de la $ENTREGA del prototipo V1. Firma: $FIRMA.
