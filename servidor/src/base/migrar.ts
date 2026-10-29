@@ -13,7 +13,12 @@ const candado = 20261014;
  * archivo va en su propia transacción: si falla, no queda a medias.
  * Devuelve los nombres de los que aplicó.
  */
-export async function migrar(pool: Pool): Promise<string[]> {
+export async function migrar(
+  pool: Pool,
+  // Solo para las pruebas: se detiene antes de este archivo, para probar una
+  // migración sobre datos de antes (entrega 20).
+  { antesDe }: { antesDe?: string } = {},
+): Promise<string[]> {
   const cliente = await pool.connect();
   try {
     await cliente.query('SELECT pg_advisory_lock($1)', [candado]);
@@ -32,6 +37,7 @@ export async function migrar(pool: Pool): Promise<string[]> {
     const aplicadas: string[] = [];
     for (const archivo of archivos) {
       if (hechas.has(archivo)) continue;
+      if (antesDe && archivo >= antesDe) break;
       const sql = await readFile(carpeta + archivo, 'utf8');
       await cliente.query('BEGIN');
       try {

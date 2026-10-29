@@ -2,6 +2,11 @@
 -- 29-10-2026). Roles, invitaciones por número y un número de «cambio» en
 -- cada registro para que cada teléfono baje solo lo nuevo.
 
+-- Las referencias se revisan al momento durante esta migración: con datos,
+-- una revisión pendiente al cerrar la transacción impide cambiar la tabla
+-- («pending trigger events»), y Render no arrancaba (entrega 20).
+SET CONSTRAINTS ALL IMMEDIATE;
+
 -- --- Roles -------------------------------------------------------------------
 
 -- Para tocar filas de todas las empresas, la migración se salta un momento el

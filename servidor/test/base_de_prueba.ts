@@ -37,7 +37,9 @@ export async function crearRol(): Promise<void> {
 }
 
 /** Una base nueva y migrada para un archivo de pruebas. */
-export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
+export async function crearBaseDePrueba({
+  migrarAntesDe,
+}: { migrarAntesDe?: string } = {}): Promise<BaseDePrueba> {
   const nombre = `moca_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
   const admin = new pg.Client({ connectionString: administrador });
   await admin.connect();
@@ -49,7 +51,7 @@ export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   direccion.password = clave;
   direccion.pathname = `/${nombre}`;
   const pool = crearPool(direccion.toString());
-  await migrar(pool);
+  await migrar(pool, { antesDe: migrarAntesDe });
 
   const directa = new URL(administrador);
   directa.pathname = `/${nombre}`;
