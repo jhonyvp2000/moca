@@ -403,8 +403,17 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       case _Fase.noEntendio:
         return const [TarjetaMoca(texto: Textos.noTeEntendi)];
       case _Fase.revisando:
-        if (pregunta != null) return [_pregunta(pregunta, categorias)];
-        return _entendido(categorias);
+        return [
+          // Un préstamo no es venta (entrega 14.14).
+          if (_lectura.prestamo) ...[
+            const Aviso(texto: Textos.prestamoNoEsVenta),
+            const SizedBox(height: 12),
+          ],
+          if (pregunta != null)
+            _pregunta(pregunta, categorias)
+          else
+            ..._entendido(categorias),
+        ];
     }
   }
 

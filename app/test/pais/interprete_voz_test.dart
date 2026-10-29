@@ -300,4 +300,56 @@ void main() {
       expect(leer('retiré 100 para mí').tipo, TipoMovimiento.retiro);
     });
   });
+
+  group('Categorías del flujo para crédito (entrega 14.14)', () {
+    test('Sueldos, movilidad, flete, publicidad, contador y cuota', () {
+      String? categoria(String t) => leer(t).categoria;
+      expect(categoria('pagué 300 al ayudante'), 'Sueldos del personal');
+      expect(categoria('pagué 900 al personal'), 'Sueldos del personal');
+      expect(categoria('gasté 15 en mototaxi'), 'Movilidad del negocio');
+      expect(categoria('pagué 40 de flete'), 'Flete');
+      expect(categoria('pagué 50 de volantes'), 'Publicidad');
+      expect(categoria('pagué 200 al contador'), 'Contador o gestoría');
+      expect(categoria('pagué 450 de la cuota'), 'Cuota de préstamo');
+    });
+
+    test('«Gasto personal» es un retiro, no un sueldo', () {
+      final l = leer('gasté 80 en un gasto personal');
+      expect(l.tipo, TipoMovimiento.retiro);
+      expect(l.categoria, isNull);
+      // «Personal» solo no elige sueldos.
+      expect(leer('gasté 80 personal').categoria, isNull);
+      expect(leer('pagué 300 para mi personal').tipo, TipoMovimiento.egreso);
+    });
+
+    test('«Cobré el fiado» es cobro de fiado, no venta del día', () {
+      final l = leer('cobré 50 del fiado en efectivo');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.categoria, 'Cobro de fiado');
+      expect(leer('me pagaron 30 que me debían').categoria, 'Cobro de fiado');
+    });
+
+    test('La cuota de la Caja Piura no va al efectivo', () {
+      final l = leer('pagué 450 de la cuota de la Caja Piura por Yape');
+      expect(l.categoria, 'Cuota de préstamo');
+      expect(partidas(l), [(45000, TipoCuenta.yape)]);
+      expect(partidas(leer('pagué 450 de la cuota de la Caja Piura')), [
+        (45000, null),
+      ]);
+    });
+
+    test('«Me prestaron» avisa y sugiere «Puse de mi bolsillo»', () {
+      final l = leer('me prestaron 2000 en efectivo');
+      expect(l.prestamo, isTrue);
+      expect(l.tipo, TipoMovimiento.aporte);
+      expect(partidas(l), [(200000, TipoCuenta.efectivo)]);
+      expect(leer('saqué un préstamo de 3000').prestamo, isTrue);
+      // Pagar la cuota no es recibir un préstamo.
+      final cuota = leer('pagué 300 del préstamo');
+      expect(cuota.prestamo, isFalse);
+      expect(cuota.categoria, 'Cuota de préstamo');
+      // Y la marca sigue al responder lo que falta.
+      expect(l.conCuenta(0, TipoCuenta.yape).prestamo, isTrue);
+    });
+  });
 }

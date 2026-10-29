@@ -35,6 +35,7 @@ import 'package:moca/inyeccion.dart';
 import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
+import 'package:moca/pais/peru/categorias.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
 import 'package:moca/rutas.dart';
 import 'package:moca/textos/textos.dart';
@@ -245,14 +246,21 @@ Map<String, Object?> _cuentaDeLucho() {
             .toIso8601String(),
       },
     ],
+    // Las categorías de hoy, para que lo que baja no cambie nada.
     'categorias': [
-      {
-        'id': categoria,
-        'nombre': 'Venta del día',
-        'tipo_movimiento': 'ingreso',
-        'orden': 0,
-        'activa': true,
-      },
+      for (final (i, (nombre, tipo)) in [
+        for (final n in categoriasComunesIngreso) (n, 'ingreso'),
+        for (final n in categoriasComunesEgreso) (n, 'egreso'),
+      ].indexed)
+        {
+          'id': i == 0
+              ? categoria
+              : '0f0e0d0c-0000-4000-8000-${(100 + i).toString().padLeft(12, '0')}',
+          'nombre': nombre,
+          'tipo_movimiento': tipo,
+          'orden': i,
+          'activa': true,
+        },
     ],
     'movimientos': [
       {
@@ -970,6 +978,18 @@ void main() {
       expect(movimientos!.map((m) => m.fuente).toSet(), {Fuente.voz});
     });
 
+    testWidgets('«Me prestaron» avisa que un préstamo no es venta '
+        '(entrega 14.14)', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [
+        const AlternativaVoz('Me prestaron 2000 en efectivo'),
+      ]);
+      expect(find.text(Textos.prestamoNoEsVenta), findsOneWidget);
+      expect(find.text(Textos.puseDeMiBolsillo), findsOneWidget);
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+    });
+
     testWidgets('Con duda del monto, Moca pregunta (S18) y no adivina', (
       tester,
     ) async {
@@ -1418,6 +1438,7 @@ void main() {
       expect(find.text(Textos.sinSenal), findsOneWidget);
       await tocar(tester, find.text(Textos.salio));
       await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
       await tocar(tester, find.text('Otros'));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
 
@@ -2271,7 +2292,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '80');
       await tester.pump();
       await tocar(tester, find.text(Textos.efectivo));
-      await tocar(tester, find.text('Transporte'));
+      await tocar(tester, find.text('Movilidad del negocio'));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.pump(const Duration(seconds: 6));
       await esperar(tester);

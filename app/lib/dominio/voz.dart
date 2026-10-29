@@ -41,6 +41,7 @@ class LecturaVoz {
     this.partidas = const [],
     this.montosPosibles = const [],
     this.categoria,
+    this.prestamo = false,
   });
 
   static const vacia = LecturaVoz(textoDicho: '');
@@ -56,6 +57,10 @@ class LecturaVoz {
 
   /// Nombre de la categoría reconocida, si se reconoció.
   final String? categoria;
+
+  /// Dijo que le prestaron plata: Moca avisa que no es venta (entrega
+  /// 14.14).
+  final bool prestamo;
 
   bool get montoDudoso => montosPosibles.isNotEmpty;
   bool get entendida => partidas.isNotEmpty || montoDudoso;
@@ -176,6 +181,7 @@ extension RespuestasVoz on LecturaVoz {
     partidas: partidas ?? this.partidas,
     montosPosibles: montosPosibles ?? this.montosPosibles,
     categoria: categoria ?? this.categoria,
+    prestamo: prestamo,
   );
 
   /// El dueño eligió o escribió el monto: queda una sola partida, con la

@@ -59,7 +59,7 @@ class LectorFotoSimulado implements LectorFoto {
         fechaEmision: dia,
         totalCentimos: 6000,
         cantidadItems: 1,
-        categoria: 'Transporte',
+        categoria: 'Movilidad del negocio',
         rutaImagen: ruta,
       ),
     ];

@@ -49,11 +49,18 @@ LecturaVoz interpretarVoz(
     partidas: frase.partidas,
     montosPosibles: posibles,
     categoria: categoria,
+    prestamo: !soloVenta && frase.prestamo,
   );
 }
 
 class _Frase {
-  _Frase(this.tipo, this.partidas, this.categoria, this.cortada);
+  _Frase(
+    this.tipo,
+    this.partidas,
+    this.categoria,
+    this.cortada, {
+    this.prestamo = false,
+  });
 
   final TipoMovimiento? tipo;
   final List<PartidaVoz> partidas;
@@ -61,14 +68,26 @@ class _Frase {
 
   /// La frase quedó a medias («Pagué trescientos…»).
   final bool cortada;
+
+  /// Dijo que le prestaron plata (entrega 14.14).
+  final bool prestamo;
 }
 
 _Frase _leerFrase(String original) {
   final cortada = original.contains('...') || original.contains('…');
   final texto = normalizar(original);
   final fichas = _fichas(texto);
-  final tipo = _tipo(texto);
-  return _Frase(tipo, _partidas(fichas), _categoria(texto, tipo), cortada);
+  // Un préstamo recibido no es venta: hasta que lleguen los préstamos
+  // (V1.1), se sugiere «Puse de mi bolsillo» y Moca lo avisa.
+  final prestamo = _prestamoRecibido.hasMatch(texto) && !_pagoDeCuota(texto);
+  final tipo = prestamo ? TipoMovimiento.aporte : _tipo(texto);
+  return _Frase(
+    tipo,
+    _partidas(fichas),
+    _categoria(texto, tipo),
+    cortada,
+    prestamo: prestamo,
+  );
 }
 
 /// Minúsculas, sin tildes y sin la moneda.
@@ -93,8 +112,21 @@ final _aporte = RegExp(
   r'\bmeti .* al negocio\b|\bpuse (plata|dinero) de mi\b|\baporte\b',
 );
 final _retiro = RegExp(
-  r'\bpara mi\b|\bpara la casa\b|\bpara mis gastos\b|\bretir(e|o|amos)\b',
+  r'\bpara mi\b(?! (personal|trabajador|trabajadora|ayudante|negocio|tienda|bodega))|'
+  r'\bpara la casa\b|\bpara mis gastos\b|\bretir(e|o|amos)\b|'
+  // «Gasto personal» es del dueño, no sueldo del personal (entrega 14.14).
+  r'\b(gasto|gastos|uso|compra|compras|cosa|cosas) personal(es)?\b',
 );
+
+/// «Me prestaron 2,000», «saqué un préstamo».
+final _prestamoRecibido = RegExp(
+  r'\bme prest(aron|o)\b|\b(saque|pedi|recibi) (un|el) (prestamo|credito)\b|'
+  r'\bme (dieron|dio|desembolsaron|aprobaron) (un|el) (prestamo|credito)\b|'
+  r'\bme desembolsaron\b',
+);
+
+bool _pagoDeCuota(String t) =>
+    RegExp(r'\b(cuota|cuotas|pague|pagamos|pago)\b').hasMatch(t);
 final _ingresoConPago = RegExp(
   r'\bme (pagaron|pago|yapearon|yapeo|depositaron)\b',
 );
@@ -119,6 +151,16 @@ TipoMovimiento? _tipo(String t) {
 // --- Categoría -------------------------------------------------------------------
 
 const _servicios = 'Servicios (luz, agua, internet, teléfono)';
+const _sueldos = 'Sueldos del personal';
+const _movilidad = 'Movilidad del negocio';
+const _contador = 'Contador o gestoría';
+
+/// «Pagué al personal»: sueldos. «Personal» solo no elige nada (entrega
+/// 14.14).
+final _alPersonal = RegExp(r'\b(al|del|el|mi|nuestro|a mi) personal\b');
+
+/// «Cobré el fiado», «me pagó lo que me debía».
+final _fiado = RegExp(r'\bfiado\b|\bfiados\b|\bme debia(n)?\b');
 
 /// Palabra que se dice → categoría provisional (prototipo-v1.md).
 const _palabrasEgreso = {
@@ -132,19 +174,39 @@ const _palabrasEgreso = {
   'alquiler': 'Alquiler',
   'renta': 'Alquiler',
   'local': 'Alquiler',
-  'sueldo': 'Personal',
-  'ayudante': 'Personal',
-  'trabajador': 'Personal',
-  'trabajadora': 'Personal',
-  'planilla': 'Personal',
-  'jornal': 'Personal',
-  'pasaje': 'Transporte',
-  'taxi': 'Transporte',
-  'mototaxi': 'Transporte',
-  'movilidad': 'Transporte',
-  'gasolina': 'Transporte',
-  'combustible': 'Transporte',
-  'flete': 'Transporte',
+  'sueldo': _sueldos,
+  'sueldos': _sueldos,
+  'ayudante': _sueldos,
+  'trabajador': _sueldos,
+  'trabajadora': _sueldos,
+  'trabajadores': _sueldos,
+  'empleado': _sueldos,
+  'empleada': _sueldos,
+  'planilla': _sueldos,
+  'jornal': _sueldos,
+  'pasaje': _movilidad,
+  'pasajes': _movilidad,
+  'taxi': _movilidad,
+  'mototaxi': _movilidad,
+  'movilidad': _movilidad,
+  'gasolina': _movilidad,
+  'combustible': _movilidad,
+  'flete': 'Flete',
+  'fletes': 'Flete',
+  'encomienda': 'Flete',
+  'publicidad': 'Publicidad',
+  'propaganda': 'Publicidad',
+  'volantes': 'Publicidad',
+  'afiches': 'Publicidad',
+  'anuncio': 'Publicidad',
+  'letrero': 'Publicidad',
+  'contador': _contador,
+  'contadora': _contador,
+  'contabilidad': _contador,
+  'gestoria': _contador,
+  'cuota': categoriaCuotaDePrestamo,
+  'cuotas': categoriaCuotaDePrestamo,
+  'prestamo': categoriaCuotaDePrestamo,
   'arreglo': 'Mantenimiento y reparaciones',
   'reparacion': 'Mantenimiento y reparaciones',
   'mantenimiento': 'Mantenimiento y reparaciones',
@@ -187,12 +249,14 @@ final _palabraVenta = RegExp(
 String? _categoria(String t, TipoMovimiento? tipo) {
   switch (tipo) {
     case TipoMovimiento.egreso:
+      if (_alPersonal.hasMatch(t)) return _sueldos;
       for (final palabra in t.split(' ')) {
         final categoria = _palabrasEgreso[palabra];
         if (categoria != null) return categoria;
       }
       return null;
     case TipoMovimiento.ingreso:
+      if (_fiado.hasMatch(t)) return categoriaCobroDeFiado;
       return _palabraVenta.hasMatch(t) ? categoriaVentaDelDia : null;
     case TipoMovimiento.retiro || TipoMovimiento.aporte || null:
       return null;
@@ -260,6 +324,22 @@ const _bancoSinNombre = {
   'tarjeta',
 };
 
+const _cajasEntidad = {
+  'piura',
+  'cusco',
+  'arequipa',
+  'trujillo',
+  'huancayo',
+  'sullana',
+  'ica',
+  'tacna',
+  'maynas',
+  'municipal',
+  'rural',
+  'raiz',
+  'los',
+};
+
 const _antesDeSip = {'por', 'con', 'en', 'a', 'al', 'mi', 'de', 'del'};
 
 /// «Plin» con su banco al lado: «BBVA Plin», «Plin de Scotiabank»
@@ -315,6 +395,12 @@ List<_Ficha> _fichas(String texto) {
       continue;
     }
     var cuenta = _palabrasCuenta[palabra];
+    // «La cuota de la Caja Piura»: es la entidad, no el efectivo.
+    if (palabra == 'caja' &&
+        i + 1 < palabras.length &&
+        _cajasEntidad.contains(palabras[i + 1])) {
+      cuenta = null;
+    }
     // «Sip» también es «sí»: solo es la billetera tras «por», «con», «en»…
     if (cuenta == TipoCuenta.sip &&
         (i == 0 || !_antesDeSip.contains(palabras[i - 1]))) {

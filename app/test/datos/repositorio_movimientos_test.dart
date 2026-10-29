@@ -7,6 +7,7 @@ import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
+import 'package:moca/pais/peru/categorias.dart';
 
 void main() {
   late BaseLocal base;
@@ -55,7 +56,7 @@ void main() {
 
   test('Las categorías dependen de si entró o salió', () async {
     final entro = await repo.categorias(TipoMovimiento.ingreso);
-    expect(entro.map((c) => c.nombre), ['Venta del día', 'Otro ingreso']);
+    expect(entro.map((c) => c.nombre), categoriasComunesIngreso);
     final salio = await repo.categorias(TipoMovimiento.egreso);
     expect(salio.map((c) => c.nombre), contains('Mercadería'));
     expect(await repo.categorias(TipoMovimiento.retiro), isEmpty);

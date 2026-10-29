@@ -5,17 +5,38 @@ import '../../dominio/modelos.dart';
 
 const categoriaVentaDelDia = 'Venta del día';
 
-const categoriasComunesIngreso = [categoriaVentaDelDia, 'Otro ingreso'];
+const categoriaCobroDeFiado = 'Cobro de fiado';
+const categoriaCuotaDePrestamo = 'Cuota de préstamo';
+
+/// Las del flujo que piden las entidades de crédito (docs/credito/,
+/// entrega 14.14): cada fila del flujo sale de una categoría.
+const categoriasComunesIngreso = [
+  categoriaVentaDelDia,
+  categoriaCobroDeFiado,
+  'Otro ingreso',
+  'Ingreso ocasional',
+];
 
 const categoriasComunesEgreso = [
   'Alquiler',
   'Servicios (luz, agua, internet, teléfono)',
-  'Personal',
-  'Transporte',
+  'Sueldos del personal',
+  'Movilidad del negocio',
+  'Flete',
+  'Publicidad',
+  'Contador o gestoría',
   'Mantenimiento y reparaciones',
   'Impuestos y trámites',
+  categoriaCuotaDePrestamo,
   'Otros',
 ];
+
+/// Nombres que cambiaron (entrega 14.14): «Personal» se confundía con un
+/// gasto personal del dueño, que es un retiro.
+const categoriasRenombradas = {
+  'Personal': 'Sueldos del personal',
+  'Transporte': 'Movilidad del negocio',
+};
 
 const categoriasEgresoPorNegocio = {
   TipoNegocio.bodega: ['Mercadería', 'Bolsas y envases'],

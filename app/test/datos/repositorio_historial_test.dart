@@ -59,7 +59,9 @@ void main() {
     );
     final egresos = await movimientos.categorias(TipoMovimiento.egreso);
     servicios = egresos.firstWhere((c) => c.nombre.startsWith('Servicios')).id;
-    transporte = egresos.firstWhere((c) => c.nombre == 'Transporte').id;
+    transporte = egresos
+        .firstWhere((c) => c.nombre == 'Movilidad del negocio')
+        .id;
     mercaderia = egresos.firstWhere((c) => c.nombre == 'Mercadería').id;
   });
 
@@ -172,7 +174,7 @@ void main() {
         CampoMovimiento.cuenta: (TipoCuenta.efectivo, TipoCuenta.yape),
         CampoMovimiento.categoria: (
           'Servicios (luz, agua, internet, teléfono)',
-          'Transporte',
+          'Movilidad del negocio',
         ),
         CampoMovimiento.nota: (null, 'Mototaxi'),
       },

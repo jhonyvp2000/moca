@@ -10,6 +10,7 @@ import '../../dominio/cuenta_real.dart';
 import '../../dominio/medicion.dart';
 import '../../dominio/modelos.dart';
 import '../local/base_local.dart';
+import '../local/categorias_al_dia.dart';
 import '../repositorios/acceso_local.dart';
 import '../repositorios/repositorio_tutoria_local.dart';
 
@@ -605,6 +606,10 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           ),
         );
       }
+
+      // Si la cuenta trae categorías con nombres viejos, se ponen al día y
+      // quedan por subir (entrega 14.14).
+      await ponerAlDiaCategorias(_base, _a.nuevoId);
 
       // Una cuenta que se guardó antes del alta sigue en el alta.
       final conAlta = (empresa['nombre']! as String).isNotEmpty;

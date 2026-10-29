@@ -207,7 +207,7 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
         reloj = alas(15);
         await gasto(
           entre(10, 20) * 100,
-          'Transporte',
+          'Movilidad del negocio',
           TipoCuenta.efectivo,
           nota: 'Mototaxi',
           fuente: Fuente.voz,
@@ -221,7 +221,12 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
       // El ayudante los sábados.
       if (dia.weekday == DateTime.saturday) {
         reloj = alas(20);
-        await gasto(30000, 'Personal', TipoCuenta.efectivo, nota: 'Ayudante');
+        await gasto(
+          30000,
+          'Sueldos del personal',
+          TipoCuenta.efectivo,
+          nota: 'Ayudante',
+        );
       }
 
       // La venta del día a la hora de cierre; más el fin de semana.

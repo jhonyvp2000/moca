@@ -71,7 +71,11 @@ void main() {
     test(
       'El primer mes: cómo se movió la plata, desde qué día y sustento',
       () async {
-        await anotar(TipoMovimiento.egreso, 80, categoria: 'Transporte');
+        await anotar(
+          TipoMovimiento.egreso,
+          80,
+          categoria: 'Movilidad del negocio',
+        );
         await anotar(TipoMovimiento.retiro, 100);
         final i = await informe.observarMes(null).first;
         expect(i.mes, DateTime(2026, 10));
@@ -89,7 +93,7 @@ void main() {
         expect(i.finCentimos, 517000);
         final inicio = await movimientos.observarInicio().first;
         expect(i.finCentimos, inicio.tienesHoyCentimos);
-        expect(i.gastos.single.nombre, 'Transporte');
+        expect(i.gastos.single.nombre, 'Movilidad del negocio');
         expect(i.confianza?.sinPapel, 100);
         expect(i.mesPrevio, isNull);
         expect(i.mesSiguiente, isNull);
@@ -199,8 +203,8 @@ void main() {
     test('Más de cinco categorías se juntan en «Lo demás»', () async {
       for (final (i, c) in [
         'Alquiler',
-        'Personal',
-        'Transporte',
+        'Sueldos del personal',
+        'Movilidad del negocio',
         'Mercadería',
         'Otros',
         'Bolsas y envases',
@@ -301,11 +305,15 @@ void main() {
 
   group('Resumen de la semana', () {
     test('La primera semana resume lo que va', () async {
-      await anotar(TipoMovimiento.egreso, 80, categoria: 'Transporte');
+      await anotar(
+        TipoMovimiento.egreso,
+        80,
+        categoria: 'Movilidad del negocio',
+      );
       final r = await moca.observarResumen().first;
       expect(r.semanaPasada, isFalse);
       expect(r.quedoCentimos, 27000);
-      expect(r.categoriaTop, 'Transporte');
+      expect(r.categoriaTop, 'Movilidad del negocio');
       expect(r.diferenciaCentimos, isNull);
     });
 
@@ -316,13 +324,17 @@ void main() {
         categoria: 'Venta del día',
         el: DateTime(2026, 10, 20),
       );
-      await anotar(TipoMovimiento.egreso, 50, categoria: 'Personal');
+      await anotar(
+        TipoMovimiento.egreso,
+        50,
+        categoria: 'Sueldos del personal',
+      );
       ahora = DateTime(2026, 10, 27);
       final r = await moca.observarResumen().first;
       expect(r.semanaPasada, isTrue);
       expect(r.quedoCentimos, 5000);
       expect(r.diferenciaCentimos, 5000 - 35000);
-      expect(r.categoriaTop, 'Personal');
+      expect(r.categoriaTop, 'Sueldos del personal');
     });
   });
 }

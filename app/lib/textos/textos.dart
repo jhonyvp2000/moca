@@ -424,6 +424,10 @@ abstract final class Textos {
   static const salio = 'Salió';
   static const retiroParaMi = 'Retiro para mí';
   // Plata que el dueño pone en el negocio (entrega 14.11).
+  static const prestamoNoEsVenta =
+      'Un préstamo no es venta: es plata que debes. Por ahora anótalo como '
+      '«Puse de mi bolsillo», así sube tu plata sin contar como venta. Los '
+      'préstamos llegan en una próxima versión.';
   static const puseDeMiBolsillo = 'Puse de mi bolsillo';
   static const retiroDetalle =
       'Baja la plata de la cuenta, pero no cuenta como gasto del negocio.';

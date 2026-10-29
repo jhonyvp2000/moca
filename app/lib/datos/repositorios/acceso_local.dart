@@ -119,6 +119,13 @@ class AccesoLocal {
     }
 
     final empresa = await this.empresa();
+    // Un cambio de nombre de categoría (entrega 14.14) también se sube.
+    final categorias = await base
+        .customSelect(
+          'SELECT COUNT(*) AS n, COALESCE(SUM(activa), 0) AS activas, '
+          'COALESCE(SUM(LENGTH(nombre)), 0) AS largo FROM categorias',
+        )
+        .getSingle();
     return [
       await contar(base.bitacora),
       await contar(base.movimientos),
@@ -128,6 +135,7 @@ class AccesoLocal {
       empresa?.nombre,
       empresa?.tipoNegocio.name,
       empresa?.horaCierreMinutos,
+      categorias.data.values.join('-'),
     ].join('|');
   }
 
