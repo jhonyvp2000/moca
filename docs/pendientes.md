@@ -37,7 +37,7 @@ Ver `fase-0.md`. En resumen:
 - Cómo funcionan en la V1 real «Ver una demo», «Ya tengo cuenta» y «Ahora no, seguir probando» (en el prototipo ya están resueltos).
 - Textos legales: consentimiento de datos (Ley 29733) y aviso de que Moca no reemplaza la contabilidad oficial.
 - Estimación de duración de las fases 1 y 2.
-- Quien fue quitado de un equipo no ve «Mis negocios» y, para aceptar otra invitación, tiene que borrar todo y entrar por «Me invitaron». Propuesta: mostrarle «Mis negocios» también a quien fue quitado, con sus invitaciones (29-10-2026, al escribir `prueba-varios-telefonos.md`).
+- ~~Quien fue quitado de un equipo no ve «Mis negocios»~~: se le muestra, con sus invitaciones (entrega 22.1, 29-10-2026).
 
 ## Se resuelven más adelante
 

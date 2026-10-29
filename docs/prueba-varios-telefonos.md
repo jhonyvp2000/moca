@@ -73,11 +73,8 @@ Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22,
 | 5.1 | A | «Mi equipo» → Quitar a Rosa → confirmar | Rosa desaparece; lo que anotó sigue en el Historial |
 | 5.2 | B | Sale y vuelve | La pestaña Moca dice «Ya no estás en este negocio»; lo que anote ya no sube |
 | 5.3 | A | Invita al número de B como Ayudante | Aparece la invitación |
-| 5.4 | B | Ajuste oculto → «Borrar todo y empezar de nuevo» | Vuelve a la Bienvenida |
-| 5.5 | B | «Me invitaron a un negocio», número de B y código | «Te invitaron a [tu negocio] · Como Ayudante» |
-| 5.6 | B | «Aceptar y entrar» | Baja lo del negocio y abre el Inicio |
-
-Hoy quien fue quitado no ve «Mis negocios», por eso vuelve a entrar desde la Bienvenida (ver `pendientes.md`).
+| 5.4 | B | Pestaña Moca → «Mis negocios» | Bajo «Te invitaron» aparece el negocio, «Como Ayudante» |
+| 5.5 | B | «Aceptar» | «Listo. Ahora ves [tu negocio].» y abre el Inicio; la tarjeta «Ya no estás en este negocio» desaparece |
 
 ## 6. Lo que ve y hace el ayudante
 

@@ -104,7 +104,10 @@ class _EstadoNegocios extends ConsumerState<PantallaNegocios> {
       contenido: [
         if (_cargando && negocios == null)
           const Center(child: CircularProgressIndicator())
-        else if (negocios != null)
+        else if (negocios != null && negocios.isEmpty && _invitaciones.isEmpty)
+          // A quien quitaron del equipo (entrega 22.1).
+          const Text(Textos.sinNegocios, style: Tipografia.secundario)
+        else if (negocios != null && negocios.isNotEmpty)
           Tarjeta(
             relleno: EdgeInsets.zero,
             child: Column(
@@ -129,7 +132,8 @@ class _EstadoNegocios extends ConsumerState<PantallaNegocios> {
             ),
           ),
         if (_invitaciones.isNotEmpty) ...[
-          const SizedBox(height: Medidas.separacionTarjetas),
+          if (negocios?.isNotEmpty ?? false)
+            const SizedBox(height: Medidas.separacionTarjetas),
           const Text(Textos.teInvitaronA, style: Tipografia.tituloTarjeta),
           const SizedBox(height: 8),
           Tarjeta(

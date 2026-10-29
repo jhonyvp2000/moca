@@ -255,6 +255,9 @@ abstract final class Textos {
       'Necesitas señal para ver y cambiar de negocio.';
   static const aceptar = 'Aceptar';
   static const teInvitaronA = 'Te invitaron';
+  static const sinNegocios =
+      'Ya no estás en ningún negocio. Si un dueño te invita, la invitación '
+      'aparece aquí.';
 
   // Cajas (entrega 21)
   static const agregarUnaCaja = '¿Tienes otra caja de efectivo?';

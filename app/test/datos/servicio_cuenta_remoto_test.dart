@@ -48,6 +48,7 @@ void main() {
   /// Lo que responde «/cuenta/negocios» (entrega 22) y de qué negocio se
   /// pidió cada bajada.
   List<Map<String, Object?>>? negocios;
+  List<Map<String, Object?>> invitaciones = const [];
   final bajadasPedidas = <String?>[];
 
   /// Lo que responde «/datos/cambios» (entrega 18) y desde qué cambio se
@@ -87,6 +88,14 @@ void main() {
       }(),
       '/cuenta/negocios' => http.Response(
         jsonEncode({'negocios': negocios}),
+        200,
+      ),
+      '/cuenta/invitaciones' => http.Response(
+        jsonEncode({'invitaciones': invitaciones}),
+        200,
+      ),
+      '/cuenta/aceptar' => http.Response(
+        jsonEncode({'empresa_id': (paraBajar!['empresa']! as Map)['id']}),
         200,
       ),
       '/datos/subir' => () {
@@ -160,6 +169,7 @@ void main() {
     subidas = [];
     cambios = null;
     negocios = null;
+    invitaciones = const [];
     bajadasPedidas.clear();
     codigoCambios = 200;
     pedidosDeCambios.clear();
@@ -905,5 +915,64 @@ void main() {
     cambios = {'empresa_id': rosa, 'rol': 'contador', 'hasta': 70};
     await servicio.traerCambios();
     expect(pedidosDeCambios.last, '70');
+  });
+
+  test('Entrega 22.1: a quien quitaron acepta otra invitación sin borrar '
+      'todo', () async {
+    await primerDia();
+    await servicio.verificar('987654321', '123456');
+    expect(await servicio.subirTodo(), isTrue);
+    final empresa = (await base.select(base.empresas).getSingle()).id;
+    final yo = await AccesoLocal(base, () => ahora).usuario();
+
+    // Un dueño lo quitó; lo que anote desde ahora no sube.
+    codigoCambios = 403;
+    await servicio.traerCambios();
+    expect(
+      (await servicio.observar().first).estado,
+      EstadoCuenta.fueraDelNegocio,
+    );
+    final venta = (await (base.select(
+      base.categorias,
+    )..where((c) => c.nombre.equals('Venta del día'))).getSingle()).id;
+    await RepositorioMovimientosLocal(base, ahora: () => ahora).registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 900,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: venta,
+      ),
+    );
+
+    // Lo vuelven a invitar, ahora como ayudante.
+    invitaciones = [
+      {
+        'id': 'inv',
+        'negocio': 'Bodega Don Lucho',
+        'rol': 'ayudante',
+        'vence_en': ahora.add(const Duration(days: 7)).toIso8601String(),
+      },
+    ];
+    negocios = const [];
+    expect(await servicio.misNegocios(), isEmpty);
+    final recibidas = (await servicio.buscarInvitaciones())!;
+    expect(recibidas.single.rol, Rol.ayudante);
+
+    paraBajar = {
+      ...todoLoSubido(),
+      'usuario': {'id': yo.id, 'celular': '+51987654321'},
+      'membresia': {
+        'id': '0f0e0d0c-0000-4000-8000-0000000000ee',
+        'empresa_id': empresa,
+        'rol': 'ayudante',
+      },
+    };
+    final antes = subidas.length;
+    expect(await servicio.aceptar('inv'), ResultadoEquipo.listo);
+    // Lo anotado mientras estaba fuera no sube: el servidor lo rechazaría.
+    expect(subidas, hasLength(antes));
+    expect(bajadasPedidas.last, empresa);
+    expect((await servicio.observar().first).estado, EstadoCuenta.guardada);
+    expect(await AccesoLocal(base, () => ahora).miRol(), Rol.ayudante);
   });
 }

@@ -143,4 +143,13 @@ void main() {
     expect(find.text('Bodega Don Lucho'), findsOneWidget);
     expect(find.text(Textos.necesitasSenalParaNegocios), findsNothing);
   });
+
+  testWidgets('A quien quitaron sin invitaciones se le dice qué esperar', (
+    tester,
+  ) async {
+    equipo.negocios = const [];
+    await abrir(tester);
+    expect(find.text(Textos.sinNegocios), findsOneWidget);
+    expect(find.text(Textos.verEsteNegocio), findsNothing);
+  });
 }

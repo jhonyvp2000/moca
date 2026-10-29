@@ -75,6 +75,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
         ? ref.watch(resumenSemanaProvider).value
         : null;
     final avisos = ref.watch(avisosProvider).value;
+    final estadoCuenta = ref.watch(situacionCuentaProvider).value?.estado;
 
     return SafeArea(
       bottom: false,
@@ -173,16 +174,19 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
             ),
           ],
           // Con la cuenta guardada, el equipo del negocio (entrega 19).
-          if (ref.watch(situacionCuentaProvider).value?.estado ==
-              EstadoCuenta.guardada) ...[
+          if (estadoCuenta == EstadoCuenta.guardada) ...[
             const SizedBox(height: Medidas.separacionTarjetas),
             const _Enlace(
               titulo: Textos.miEquipo,
               detalle: Textos.miEquipoDetalle,
               ruta: Rutas.equipo,
             ),
-            // Para el contador de varios negocios, o si lo invitaron a otro
-            // (entrega 22).
+          ],
+          // Para el contador de varios negocios, o si lo invitaron a otro
+          // (entrega 22); también para quien quitaron, que así acepta otra
+          // invitación sin borrar todo (entrega 22.1).
+          if (estadoCuenta == EstadoCuenta.guardada ||
+              estadoCuenta == EstadoCuenta.fueraDelNegocio) ...[
             const SizedBox(height: Medidas.separacionTarjetas),
             const _Enlace(
               titulo: Textos.misNegocios,

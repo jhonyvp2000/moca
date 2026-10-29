@@ -413,8 +413,10 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     if (llave == null || celular == null) return ResultadoEquipo.error;
     if (!await _hayConexion()) return ResultadoEquipo.sinSenal;
     // Lo de este teléfono que falta subir, antes de reemplazarlo: un dueño
-    // que también es contador de otro negocio no pierde nada.
+    // que también es contador de otro negocio no pierde nada. A quien
+    // quitaron ya no le sube nada (entrega 22.1).
     if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) != null &&
+        await _a.leerAjuste(_claveFuera) == null &&
         await hayCambiosSinSubir() &&
         !await subirTodo()) {
       return ResultadoEquipo.sinSenal;
