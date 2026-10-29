@@ -54,7 +54,7 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
           TipoCuenta.plin: 5000,
         },
         horaCierreMinutos: 21 * 60,
-        billeteras: {TipoCuenta.plin: 'Plin'},
+        billeteras: {TipoCuenta.plin: 'Interbank Plin'},
       ),
     );
     await acceso.guardarAjuste(AccesoLocal.claveModo, AccesoLocal.modoDemo);

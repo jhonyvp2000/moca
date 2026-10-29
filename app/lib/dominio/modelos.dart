@@ -23,13 +23,18 @@ enum TipoCuenta {
   interbank,
   bbva,
   scotiabank,
-  otroBanco;
+  otroBanco,
+
+  /// Plin de BBVA y de Scotiabank, aparte del de Interbank (`plin`)
+  /// (entrega 14.10).
+  bbvaPlin,
+  scotiabankPlin;
 
   /// Las cuentas que tiene todo negocio desde la primera venta.
   static const basicas = [efectivo, yape, banco];
 
   /// Las billeteras que el dueño puede agregar.
-  static const billeteras = [plin, sip, otra];
+  static const billeteras = [plin, bbvaPlin, scotiabankPlin, sip, otra];
 
   /// Los bancos que el dueño puede agregar además del BCP.
   static const otrosBancos = [interbank, bbva, scotiabank, otroBanco];
@@ -42,6 +47,8 @@ enum TipoCuenta {
     efectivo,
     yape,
     plin,
+    bbvaPlin,
+    scotiabankPlin,
     sip,
     otra,
     banco,
@@ -52,6 +59,10 @@ enum TipoCuenta {
   ];
 
   bool get esBanco => this == banco || otrosBancos.contains(this);
+
+  /// Las billeteras Plin: si el dueño dice «por Plin» y tiene más de una,
+  /// Moca pregunta cuál (entrega 14.10).
+  bool get esPlin => this == plin || this == bbvaPlin || this == scotiabankPlin;
 
   /// La cuenta que lleva el nombre que escribe el dueño.
   bool get conNombrePropio => this == otra || this == otroBanco;

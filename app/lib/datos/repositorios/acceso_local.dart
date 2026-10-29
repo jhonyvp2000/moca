@@ -178,11 +178,13 @@ class AccesoLocal {
   /// le puso el dueño.
   static const nombresCuenta = {
     TipoCuenta.efectivo: 'Efectivo',
-    TipoCuenta.yape: 'Yape',
+    TipoCuenta.yape: 'BCP Yape',
     TipoCuenta.banco: 'BCP',
-    TipoCuenta.plin: 'Plin',
+    TipoCuenta.plin: 'Interbank Plin',
+    TipoCuenta.bbvaPlin: 'BBVA Plin',
+    TipoCuenta.scotiabankPlin: 'Scotiabank Plin',
     TipoCuenta.sip: 'Sip',
-    TipoCuenta.otra: 'Otra billetera',
+    TipoCuenta.otra: 'Otra',
     TipoCuenta.interbank: 'Interbank',
     TipoCuenta.bbva: 'BBVA',
     TipoCuenta.scotiabank: 'Scotiabank',

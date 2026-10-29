@@ -46,17 +46,20 @@ abstract final class Textos {
   static const ventaPorCuentaDetalle =
       'Escribe cuánto entró en cada sitio. Lo que no usaste, déjalo vacío.';
   static const efectivo = 'Efectivo';
-  static const yape = 'Yape';
+  // Las billeteras con su banco (entrega 14.10).
+  static const yape = 'BCP Yape';
   static const banco = 'BCP';
   static const interbank = 'Interbank';
   static const bbva = 'BBVA';
   static const scotiabank = 'Scotiabank';
   static const otroBanco = 'Otro banco o caja';
   static const agregarBanco = '+ Banco';
-  static const plin = 'Plin';
+  static const plin = 'Interbank Plin';
+  static const bbvaPlin = 'BBVA Plin';
+  static const scotiabankPlin = 'Scotiabank Plin';
   static const sip = 'Sip';
-  static const otraBilletera = 'Otra billetera';
-  static const usasOtraBilletera = '¿Usas otra billetera además de Yape?';
+  static const otraBilletera = 'Otra';
+  static const usasOtraBilletera = '¿Usas otra billetera además de BCP Yape?';
   static const puedesAgregarlaDespues =
       'Si no, déjalo así. Puedes agregarla después en Moca.';
   static const otra = 'Otra';
@@ -99,6 +102,8 @@ abstract final class Textos {
     TipoCuenta.bbva => bbva,
     TipoCuenta.scotiabank => scotiabank,
     TipoCuenta.otroBanco => nombreOtroBanco,
+    TipoCuenta.bbvaPlin => bbvaPlin,
+    TipoCuenta.scotiabankPlin => scotiabankPlin,
   };
   static const totalQueEntroHoy = 'Total que entró hoy';
   static const guardar = 'Guardar';

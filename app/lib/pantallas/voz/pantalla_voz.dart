@@ -144,7 +144,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         final lectura = interpretarVoz(
           alternativas,
           soloVenta: widget.modo == ModoVoz.primeraVenta,
-        );
+        ).conPlinDelNegocio({...ref.read(tiposDeCuentaProvider)});
         setState(() {
           _lectura = widget.modo == ModoVoz.ventaDelDia && lectura.tipo == null
               ? lectura.conTipo(TipoMovimiento.ingreso)

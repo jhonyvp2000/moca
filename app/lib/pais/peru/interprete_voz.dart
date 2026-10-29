@@ -204,10 +204,15 @@ class _Numero extends _Ficha {
 }
 
 class _Cuenta extends _Ficha {
-  _Cuenta(this.cuenta, {this.bancoSinNombre = false});
+  _Cuenta(
+    this.cuenta, {
+    this.bancoSinNombre = false,
+    this.plinSinBanco = false,
+  });
 
   final TipoCuenta cuenta;
   final bool bancoSinNombre;
+  final bool plinSinBanco;
 }
 
 class _Palabra extends _Ficha {}
@@ -251,6 +256,17 @@ const _bancoSinNombre = {
 
 const _antesDeSip = {'por', 'con', 'en', 'a', 'al', 'mi', 'de', 'del'};
 
+/// «Plin» con su banco al lado: «BBVA Plin», «Plin de Scotiabank»
+/// (entrega 14.10).
+const _palabrasPlin = {'plin', 'plineo', 'plinearon'};
+const _plinDelBanco = {
+  'interbank': TipoCuenta.plin,
+  'bbva': TipoCuenta.bbvaPlin,
+  'continental': TipoCuenta.bbvaPlin,
+  'scotiabank': TipoCuenta.scotiabankPlin,
+  'scotia': TipoCuenta.scotiabankPlin,
+};
+
 List<_Ficha> _fichas(String texto) {
   final palabras = texto
       // La coma entre cifras es de miles («1,200»); fuera de cifras, separa.
@@ -267,6 +283,31 @@ List<_Ficha> _fichas(String texto) {
       continue;
     }
     final palabra = palabras[i].replaceAll('.', '');
+    if (_palabrasPlin.contains(palabra)) {
+      // El banco justo antes («BBVA Plin»): reemplaza al banco ya leído.
+      final antes = i > 0 ? palabras[i - 1].replaceAll('.', '') : '';
+      if (_plinDelBanco[antes] case final plin? when fichas.last is _Cuenta) {
+        fichas.last = _Cuenta(plin);
+        i++;
+        continue;
+      }
+      // O justo después, con o sin «de» («Plin de Scotiabank»).
+      var j = i + 1;
+      if (j < palabras.length && const {'de', 'del'}.contains(palabras[j])) {
+        j++;
+      }
+      final despues = j < palabras.length
+          ? palabras[j].replaceAll('.', '')
+          : '';
+      if (_plinDelBanco[despues] case final plin?) {
+        fichas.add(_Cuenta(plin));
+        i = j + 1;
+        continue;
+      }
+      fichas.add(_Cuenta(TipoCuenta.plin, plinSinBanco: true));
+      i++;
+      continue;
+    }
     var cuenta = _palabrasCuenta[palabra];
     // «Sip» también es «sí»: solo es la billetera tras «por», «con», «en»…
     if (cuenta == TipoCuenta.sip &&
@@ -292,13 +333,13 @@ List<PartidaVoz> _partidas(List<_Ficha> fichas) {
   ];
   final cuentas = [
     for (final (i, f) in fichas.indexed)
-      if (f is _Cuenta) (i, f.cuenta, f.bancoSinNombre),
+      if (f is _Cuenta) (i, f.cuenta, f.bancoSinNombre, f.plinSinBanco),
   ];
   final usadas = <int>{};
   final resultado = <PartidaVoz>[];
   for (final (posicion, centimos) in numeros) {
     if (centimos <= 0) continue;
-    (int, TipoCuenta, bool)? cercana;
+    (int, TipoCuenta, bool, bool)? cercana;
     for (final (j, cuenta) in cuentas.indexed) {
       if (usadas.contains(j)) continue;
       final distancia = (cuenta.$1 - posicion).abs();
@@ -309,7 +350,14 @@ List<PartidaVoz> _partidas(List<_Ficha> fichas) {
     if (cercana != null) {
       usadas.add(cuentas.indexWhere((c) => c.$1 == cercana!.$1));
     }
-    resultado.add(PartidaVoz(centimos, cercana?.$2, cercana?.$3 ?? false));
+    resultado.add(
+      PartidaVoz(
+        centimos,
+        cercana?.$2,
+        cercana?.$3 ?? false,
+        cercana?.$4 ?? false,
+      ),
+    );
   }
   return resultado;
 }

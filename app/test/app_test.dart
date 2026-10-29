@@ -1957,9 +1957,9 @@ void main() {
         {for (final c in cuentas!) c.tipo: c.nombre},
         {
           TipoCuenta.efectivo: 'Efectivo',
-          TipoCuenta.yape: 'Yape',
+          TipoCuenta.yape: 'BCP Yape',
           TipoCuenta.banco: 'BCP',
-          TipoCuenta.plin: 'Plin',
+          TipoCuenta.plin: 'Interbank Plin',
           TipoCuenta.otra: 'Bim',
         },
       );

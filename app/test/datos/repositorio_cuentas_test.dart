@@ -61,8 +61,8 @@ void main() {
     ]);
     expect(cuentas.map((c) => c.nombre), [
       'Efectivo',
-      'Yape',
-      'Plin',
+      'BCP Yape',
+      'Interbank Plin',
       'Bim',
       'BCP',
     ]);
@@ -158,7 +158,7 @@ void main() {
       final cuentas = await repo.observar().first;
       expect(cuentas.map((c) => c.nombre), [
         'Efectivo',
-        'Yape',
+        'BCP Yape',
         'BCP',
         'Interbank',
         'Caja Maynas',

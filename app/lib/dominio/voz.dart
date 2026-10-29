@@ -11,7 +11,12 @@ class AlternativaVoz {
 
 /// Un monto dicho, con la cuenta si se dijo.
 class PartidaVoz {
-  const PartidaVoz(this.centimos, [this.cuenta, this.bancoSinNombre = false]);
+  const PartidaVoz(
+    this.centimos, [
+    this.cuenta,
+    this.bancoSinNombre = false,
+    this.plinSinBanco = false,
+  ]);
 
   final int centimos;
   final TipoCuenta? cuenta;
@@ -19,6 +24,10 @@ class PartidaVoz {
   /// Dijo «banco», «transferencia» o «tarjeta» sin decir cuál: va al BCP,
   /// salvo que el negocio tenga más de un banco (entonces se pregunta).
   final bool bancoSinNombre;
+
+  /// Dijo «Plin» sin decir de qué banco: va al único Plin del negocio; si
+  /// tiene más de uno, se pregunta (entrega 14.10).
+  final bool plinSinBanco;
 
   PartidaVoz conCuenta(TipoCuenta cuenta) => PartidaVoz(centimos, cuenta);
 }
@@ -140,9 +149,11 @@ PreguntaVoz? siguientePregunta(
   if (lectura.montoDudoso) return PreguntaMonto(lectura.montosPosibles);
   if (lectura.tipo == null) return const PreguntaTipo();
   final variosBancos = cuentasValidas.where((c) => c.esBanco).length > 1;
+  final variosPlin = cuentasValidas.where((c) => c.esPlin).length > 1;
   for (final (i, partida) in lectura.partidas.indexed) {
     if (!cuentasValidas.contains(partida.cuenta) ||
-        (partida.bancoSinNombre && variosBancos)) {
+        (partida.bancoSinNombre && variosBancos) ||
+        (partida.plinSinBanco && variosPlin)) {
       return PreguntaCuenta(i);
     }
   }
@@ -186,4 +197,15 @@ extension RespuestasVoz on LecturaVoz {
   );
 
   LecturaVoz conCategoria(String categoria) => _con(categoria: categoria);
+
+  /// «Por Plin» sin banco va al único Plin que tenga el negocio.
+  LecturaVoz conPlinDelNegocio(Set<TipoCuenta> cuentas) {
+    final plin = cuentas.where((c) => c.esPlin).toList();
+    if (plin.length != 1) return this;
+    return _con(
+      partidas: [
+        for (final p in partidas) p.plinSinBanco ? p.conCuenta(plin.single) : p,
+      ],
+    );
+  }
 }

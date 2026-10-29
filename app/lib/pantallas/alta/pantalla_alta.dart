@@ -41,6 +41,8 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
 
   static const _billeterasOpciones = {
     TipoCuenta.plin: Textos.plin,
+    TipoCuenta.bbvaPlin: Textos.bbvaPlin,
+    TipoCuenta.scotiabankPlin: Textos.scotiabankPlin,
     TipoCuenta.sip: Textos.sip,
     TipoCuenta.otra: Textos.otra,
   };

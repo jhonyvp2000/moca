@@ -109,8 +109,9 @@ describe('Reglas que la base hace cumplir', () => {
     ).rejects.toThrow(/duplicate key/);
   });
 
-  it('acepta los bancos de la entrega 14.1 y nada fuera de la app', async () => {
-    for (const [orden, tipo] of ['interbank', 'bbva', 'scotiabank', 'otroBanco'].entries()) {
+  it('acepta los bancos (14.1) y las billeteras Plin (14.10), y nada fuera de la app', async () => {
+    const tipos = ['interbank', 'bbva', 'scotiabank', 'otroBanco', 'bbvaPlin', 'scotiabankPlin'];
+    for (const [orden, tipo] of tipos.entries()) {
       await conEmpresa(base.pool, lucho, (c) =>
         c.query(
           `INSERT INTO cuentas (id, empresa_id, tipo, nombre, orden)

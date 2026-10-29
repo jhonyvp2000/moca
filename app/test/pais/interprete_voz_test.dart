@@ -212,4 +212,66 @@ void main() {
       );
     });
   });
+
+  group('Entrega 14.10: billeteras Plin', () {
+    test('Plin con su banco, antes o después', () {
+      expect(partidas(leer('vendí 200 por BBVA Plin')), [
+        (20000, TipoCuenta.bbvaPlin),
+      ]);
+      expect(partidas(leer('vendí 200 por Plin de Scotiabank')), [
+        (20000, TipoCuenta.scotiabankPlin),
+      ]);
+      expect(partidas(leer('vendí 200 por Interbank Plin')), [
+        (20000, TipoCuenta.plin),
+      ]);
+      expect(
+        leer('vendí 200 por BBVA Plin').partidas.single.plinSinBanco,
+        isFalse,
+      );
+      // El banco solo sigue siendo el banco.
+      expect(partidas(leer('vendí 200 por BBVA')), [(20000, TipoCuenta.bbva)]);
+    });
+
+    test('«Por Plin» va al único Plin del negocio; con varios, pregunta', () {
+      final l = leer('hoy vendí 200 por Plin');
+      expect(l.partidas.single.plinSinBanco, isTrue);
+      const conBbvaPlin = {
+        TipoCuenta.efectivo,
+        TipoCuenta.yape,
+        TipoCuenta.banco,
+        TipoCuenta.bbvaPlin,
+      };
+      final una = l.conPlinDelNegocio(conBbvaPlin);
+      expect(partidas(una), [(20000, TipoCuenta.bbvaPlin)]);
+      expect(
+        siguientePregunta(
+          una,
+          categoriasValidas: {una.categoria!},
+          cuentasValidas: conBbvaPlin,
+        ),
+        isNull,
+      );
+
+      const conDos = {...conBbvaPlin, TipoCuenta.plin};
+      final dos = l.conPlinDelNegocio(conDos);
+      expect(
+        siguientePregunta(
+          dos,
+          categoriasValidas: {dos.categoria!},
+          cuentasValidas: conDos,
+        ),
+        isA<PreguntaCuenta>(),
+      );
+      // Al elegir, ya no pregunta.
+      final elegida = dos.conCuenta(0, TipoCuenta.plin);
+      expect(
+        siguientePregunta(
+          elegida,
+          categoriasValidas: {elegida.categoria!},
+          cuentasValidas: conDos,
+        ),
+        isNull,
+      );
+    });
+  });
 }
