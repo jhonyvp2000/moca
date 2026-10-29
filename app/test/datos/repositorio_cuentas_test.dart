@@ -1,11 +1,13 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/repositorio_arqueo_local.dart';
 import 'package:moca/datos/repositorios/repositorio_aviso_cierre_local.dart';
 import 'package:moca/datos/repositorios/repositorio_cuentas_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
+import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
@@ -215,5 +217,81 @@ void main() {
       final listo = await aviso.responderVenta(TipoCuenta.interbank, null);
       expect(listo, isA<VentaLista>());
     });
+  });
+
+  group('Entrega 16.2: corregir el saldo con el que empezó', () {
+    test('Cambia el punto de partida sin crear ajustes y queda en la '
+        'bitácora', () async {
+      await alta(saldos: {TipoCuenta.efectivo: 100000, TipoCuenta.yape: 20000});
+      var efectivo = (await repo.observar().first).first;
+      expect(efectivo.inicialCentimos, 100000);
+      expect(efectivo.saldoCentimos, 135000);
+      expect(efectivo.seCorrigeElInicial, isTrue);
+      expect(efectivo.saldoConInicial(80000), 115000);
+      final antes = (await base.select(base.movimientos).get()).length;
+
+      expect(await repo.corregirSaldoInicial(efectivo.id, 80000), isTrue);
+      efectivo = (await repo.observar().first).first;
+      expect(efectivo.inicialCentimos, 80000);
+      expect(efectivo.saldoCentimos, 115000);
+      expect(await base.select(base.movimientos).get(), hasLength(antes));
+
+      final cambio =
+          (await (base.select(base.bitacora)..where(
+                    (b) =>
+                        b.entidadId.equals(efectivo.id) &
+                        b.accion.equalsValue(AccionBitacora.editar),
+                  ))
+                  .get())
+              .last;
+      expect(cambio.valorAnterior, contains('100000'));
+      expect(cambio.valorNuevo, contains('80000'));
+      expect(cambio.valorNuevo, contains('correccion'));
+    });
+
+    test('Después de un arqueo de esa cuenta ya no se corrige; otra sin '
+        'arqueo, sí', () async {
+      await alta(saldos: {TipoCuenta.efectivo: 100000});
+      final cuentas = await repo.observar().first;
+      final efectivo = cuentas.firstWhere((c) => c.tipo == TipoCuenta.efectivo);
+      final yape = cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape);
+      // El arqueo del encargado: solo su caja.
+      await RepositorioArqueoLocal(base, ahora: () => ahora).guardar(const [
+        ConteoCuenta(cuenta: TipoCuenta.efectivo, contadoCentimos: 135000),
+      ]);
+
+      final despues = await repo.observar().first;
+      expect(
+        despues
+            .firstWhere((c) => c.tipo == TipoCuenta.efectivo)
+            .seCorrigeElInicial,
+        isFalse,
+      );
+      expect(await repo.corregirSaldoInicial(efectivo.id, 1000), isFalse);
+      expect(
+        despues
+            .firstWhere((c) => c.tipo == TipoCuenta.efectivo)
+            .inicialCentimos,
+        100000,
+      );
+      expect(await repo.corregirSaldoInicial(yape.id, 5000), isTrue);
+      expect(
+        (await repo.observar().first)
+            .firstWhere((c) => c.tipo == TipoCuenta.yape)
+            .saldoCentimos,
+        5000,
+      );
+    });
+
+    test(
+      'Con el saldo pendiente no se corrige: se pone como siempre',
+      () async {
+        await alta(saldos: null);
+        final efectivo = (await repo.observar().first).first;
+        expect(efectivo.inicialCentimos, isNull);
+        expect(efectivo.seCorrigeElInicial, isFalse);
+        expect(await repo.corregirSaldoInicial(efectivo.id, 5000), isFalse);
+      },
+    );
   });
 }

@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart' show Value;
+
 import '../../dominio/cuentas.dart';
 import '../../dominio/modelos.dart';
 import '../calculos/saldos.dart';
@@ -19,6 +21,7 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
     if (empresa == null) return const [];
     final cuentas = await _a.cuentas(empresa.id);
     final saldos = await _a.saldos(empresa.id);
+    final arqueadas = await _arqueadas();
     return [
       for (final c in cuentas)
         CuentaVista(
@@ -29,6 +32,9 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
               ? c.nombre
               : AccesoLocal.nombresCuenta[c.tipo]!,
           saldoCentimos: c.saldoInicialCentimos == null ? null : saldos[c.tipo],
+          inicialCentimos: c.saldoInicialCentimos,
+          desde: c.fechaSaldoInicial,
+          arqueada: arqueadas.contains(c.id),
         ),
     ];
   }
@@ -55,6 +61,43 @@ class RepositorioCuentasLocal implements RepositorioCuentas {
         saldoInicialCentimos: pendiente ? null : 0,
         fechaSaldoInicial: pendiente ? null : inicioDelDia(_a.ahora()),
       );
+    });
+  }
+
+  /// Las cuentas que ya entraron en algún arqueo.
+  Future<Set<String>> _arqueadas() async => {
+    for (final a in await _a.base.select(_a.base.arqueoCuentas).get())
+      a.cuentaId,
+  };
+
+  @override
+  Future<bool> corregirSaldoInicial(String cuentaId, int centimos) async {
+    final empresa = (await _a.empresa())!;
+    final usuario = await _a.usuario();
+    return _a.base.transaction(() async {
+      final cuenta = await (_a.base.select(
+        _a.base.cuentas,
+      )..where((c) => c.id.equals(cuentaId))).getSingleOrNull();
+      if (cuenta == null ||
+          cuenta.empresaId != empresa.id ||
+          cuenta.saldoInicialCentimos == null ||
+          (await _arqueadas()).contains(cuentaId)) {
+        return false;
+      }
+      if (cuenta.saldoInicialCentimos == centimos) return true;
+      await (_a.base.update(_a.base.cuentas)
+            ..where((c) => c.id.equals(cuentaId)))
+          .write(CuentasCompanion(saldoInicialCentimos: Value(centimos)));
+      await _a.anotarEnBitacora(
+        empresaId: empresa.id,
+        autorId: usuario.id,
+        entidad: 'cuenta',
+        entidadId: cuentaId,
+        accion: AccionBitacora.editar,
+        anterior: {'saldoInicialCentimos': cuenta.saldoInicialCentimos},
+        nuevo: {'saldoInicialCentimos': centimos, 'origen': 'correccion'},
+      );
+      return true;
     });
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
 import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
@@ -9,6 +10,7 @@ import '../../dominio/cuentas.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
+import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
@@ -61,6 +63,20 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
     }
   }
 
+  /// Corregir el saldo con el que empezó, o por qué ya no (entrega 16.2).
+  Future<void> _abrirCuenta(CuentaVista cuenta) async {
+    final corregida = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _HojaSaldoInicial(cuenta: cuenta),
+    );
+    if (corregida == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(Textos.saldoInicialCorregido(cuenta.nombre))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cuentas = ref.watch(cuentasProvider).value ?? const <CuentaVista>[];
@@ -101,35 +117,41 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
           child: Column(
             children: [
               for (final (i, c) in cuentas.indexed)
-                Container(
-                  constraints: const BoxConstraints(
-                    minHeight: Medidas.objetivoTactilMinimo,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: i < cuentas.length - 1
-                      ? const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Colores.separador),
-                          ),
-                        )
-                      : null,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(c.nombre, style: Tipografia.textoFuerte),
-                      ),
-                      Text(
-                        c.saldoCentimos == null
-                            ? Textos.saldoPorPoner
-                            : formatearSoles(c.saldoCentimos!),
-                        style: c.saldoCentimos == null
-                            ? Tipografia.secundario
-                            : Tipografia.cifra(Tipografia.textoFuerte),
-                      ),
-                    ],
+                InkWell(
+                  // El saldo pendiente se pone como siempre, en el Inicio.
+                  onTap: c.inicialCentimos == null
+                      ? null
+                      : () => _abrirCuenta(c),
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: Medidas.objetivoTactilMinimo,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: i < cuentas.length - 1
+                        ? const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colores.separador),
+                            ),
+                          )
+                        : null,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(c.nombre, style: Tipografia.textoFuerte),
+                        ),
+                        Text(
+                          c.saldoCentimos == null
+                              ? Textos.saldoPorPoner
+                              : formatearSoles(c.saldoCentimos!),
+                          style: c.saldoCentimos == null
+                              ? Tipografia.secundario
+                              : Tipografia.cifra(Tipografia.textoFuerte),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -191,6 +213,112 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             child: const Text(Textos.agregar),
           ),
       ],
+    );
+  }
+}
+
+class _HojaSaldoInicial extends ConsumerStatefulWidget {
+  const _HojaSaldoInicial({required this.cuenta});
+
+  final CuentaVista cuenta;
+
+  @override
+  ConsumerState<_HojaSaldoInicial> createState() => _EstadoHojaSaldo();
+}
+
+class _EstadoHojaSaldo extends ConsumerState<_HojaSaldoInicial> {
+  late final _monto = TextEditingController(
+    text: separarMiles((widget.cuenta.inicialCentimos ?? 0) ~/ 100),
+  );
+  bool _guardando = false;
+
+  @override
+  void dispose() {
+    _monto.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar(int centimos) async {
+    setState(() => _guardando = true);
+    final listo = await ref
+        .read(repositorioCuentasProvider)
+        .corregirSaldoInicial(widget.cuenta.id, centimos);
+    if (mounted) Navigator.of(context).pop(listo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cuenta = widget.cuenta;
+    // Vacío no es cero: se guarda solo un monto escrito.
+    final escrito = leerSolesEnCentimos(_monto.text);
+    final nuevo = escrito ?? 0;
+    final cambio = escrito != null && escrito != cuenta.inicialCentimos;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          Medidas.margenLateral,
+          Medidas.margenLateral,
+          Medidas.margenLateral,
+          Medidas.margenLateral + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(cuenta.nombre, style: Tipografia.tituloPantalla),
+            const SizedBox(height: 12),
+            if (cuenta.seCorrigeElInicial) ...[
+              const Text(
+                Textos.corregirSaldoInicial,
+                style: Tipografia.textoFuerte,
+              ),
+              const SizedBox(height: 8),
+              GrupoMontos(
+                filas: [
+                  FilaMonto(
+                    etiqueta: Textos.conCuantoEmpezaste(cuenta.nombre),
+                    detalle: cuenta.desde == null
+                        ? null
+                        : Textos.saldoInicialDesde(
+                            formatearDiaYMes(cuenta.desde!),
+                          ),
+                    controlador: _monto,
+                    autofocus: true,
+                    accionTeclado: TextInputAction.done,
+                    alCambiar: (_) => setState(() {}),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                Textos.conEsteCambioTienes(
+                  formatearSoles(cuenta.saldoConInicial(nuevo)),
+                  cuenta.nombre,
+                ),
+                style: Tipografia.secundario,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: cambio && !_guardando ? () => _guardar(nuevo) : null,
+                child: const Text(Textos.guardar),
+              ),
+            ] else ...[
+              const Text(
+                Textos.yaHuboArqueoDeLaCuenta,
+                style: Tipografia.secundario,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.push(Rutas.arqueo);
+                },
+                child: const Text(Textos.hacerArqueo),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

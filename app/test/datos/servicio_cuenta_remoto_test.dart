@@ -13,6 +13,7 @@ import 'package:moca/datos/repositorios/medicion_local.dart';
 import 'package:moca/datos/repositorios/repositorio_tutoria_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
+import 'package:moca/datos/repositorios/repositorio_cuentas_local.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
 import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
@@ -814,6 +815,19 @@ void main() {
       expect(anulado.estado, EstadoRegistro.anulado);
       expect(await servicio.hayCambiosSinSubir(), isFalse);
     });
+
+    test(
+      'El saldo inicial corregido (entrega 16.2) sube con su cuenta',
+      () async {
+        final repo = RepositorioCuentasLocal(base, ahora: () => ahora);
+        expect(await repo.corregirSaldoInicial(efectivo, 80000), isTrue);
+        expect(await servicio.hayCambiosSinSubir(), isTrue);
+        expect(await servicio.subirTodo(), isTrue);
+        final cuenta = (subidas.last['cuentas']! as List).single as Map;
+        expect(cuenta['id'], efectivo);
+        expect(cuenta['saldo_inicial_centimos'], 80000);
+      },
+    );
 
     test('La venta simulada de Pepe (entrega 20.1) no se sube', () async {
       await RepositorioOperadorLocal(

@@ -66,6 +66,20 @@ abstract final class Textos {
   static const otra = 'Otra';
   static const nombreDeLaBilletera = 'Escribe el nombre de la billetera';
   static const misCuentas = 'Mis cuentas';
+
+  // Corregir el saldo con el que empezó (entrega 16.2).
+  static const corregirSaldoInicial = 'Corregir el saldo con el que empecé';
+  static String conCuantoEmpezaste(String cuenta) =>
+      '¿Con cuánto empezaste en $cuenta?';
+  static String saldoInicialDesde(String dia) =>
+      'El $dia, antes de lo que anotaste';
+  static String conEsteCambioTienes(String monto, String cuenta) =>
+      'Con este cambio, hoy tienes $monto en $cuenta.';
+  static String saldoInicialCorregido(String cuenta) =>
+      'Listo. Corregiste el saldo de $cuenta.';
+  static const yaHuboArqueoDeLaCuenta =
+      'Ya hiciste un arqueo de esta cuenta. Si el saldo no cuadra, haz otro '
+      'arqueo.';
   static const misCuentasDetalle = 'Saldo por cuenta, billeteras y bancos';
   static const saldoPorPoner = 'Saldo por poner';
   static const agregarBilletera = 'Agregar una billetera';

@@ -100,7 +100,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Otras billeteras (aprobado el 13-10-2026, entrega 9.2)
 
 - Efectivo, Yape y Banco existen siempre. Plin, Sip y otra billetera (con el nombre que escriba el dueño) solo si el dueño las usa; cada una es una cuenta con su saldo, y solo se muestran las que usa.
-- Se eligen en el alta o después en «Mis cuentas», desde la pestaña Moca: la lista de cuentas con su saldo y «Agregar una billetera». Una billetera agregada después empieza en S/ 0 desde ese día (si el saldo inicial sigue pendiente, también queda pendiente). Ninguna cuenta se borra.
+- Se eligen en el alta o después en «Mis cuentas», desde la pestaña Moca: la lista de cuentas con su saldo y «Agregar una billetera». Una billetera agregada después empieza en S/ 0 desde ese día (si el saldo inicial sigue pendiente, también queda pendiente). Ninguna cuenta se borra. Desde la entrega 16.2, al tocar una cuenta el dueño corrige el saldo con el que empezó, mientras esa cuenta no haya entrado en ningún arqueo (ver `decisiones.md`, 29-10-2026).
 - Las billeteras aparecen como opción en la venta del día, «Escribirlo», la voz, la foto o el QR (S08), «Ya lo pagué» y el arqueo. Se muestran junto a Yape, con el banco al final; en el Inicio, las cuentas van en filas de tres.
 - Por voz, «por Plin» o «por Sip» va a esa cuenta si el negocio la tiene; si no, Moca pregunta la cuenta. «Sip» suelto se toma como «sí», no como la billetera.
 

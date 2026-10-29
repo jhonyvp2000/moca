@@ -65,6 +65,7 @@ Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22 
 | 4.4 | B | Anota «pasé 10 de la caja a Yape» | Una fila «Pasé plata · Caja delivery → Yape», sin signo |
 | 4.5 | A | Sale y vuelve | El pase aparece; «Caja delivery» bajó S/ 10 y Yape subió S/ 10; «Entró» y «Salió» no cambian |
 | 4.6 | A | Anota un pase de la caja principal a «Caja delivery» | En B, tras volver, el saldo de su caja sube |
+| 4.7 | A | «Mis cuentas» → toca «Caja delivery» → «Corregir el saldo con el que empecé»; súmale S/ 20 y guarda | «Listo. Corregiste el saldo de Caja delivery.» En B, tras volver, el saldo de su caja sube S/ 20, sin ninguna fila nueva en el Historial |
 
 ## 5. Quitar y volver a invitar (B pasa a ayudante)
 

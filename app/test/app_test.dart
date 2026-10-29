@@ -2104,6 +2104,32 @@ void main() {
       expect(find.text(Textos.plin), findsNothing);
     });
 
+    testWidgets('Entrega 16.2: corregir el saldo con el que empezó', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text('Efectivo'));
+      expect(find.text(Textos.corregirSaldoInicial), findsOneWidget);
+      final guardar = find.widgetWithText(FilledButton, Textos.guardar);
+      // Sin cambiar nada no hay qué guardar.
+      expect(tester.widget<FilledButton>(guardar).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), '800');
+      await tester.pump();
+      expect(
+        find.text(Textos.conEsteCambioTienes('S/\u00A01,150', 'Efectivo')),
+        findsOneWidget,
+      );
+      await tocar(tester, guardar);
+      expect(
+        find.text(Textos.saldoInicialCorregido('Efectivo')),
+        findsOneWidget,
+      );
+      expect(find.text('S/\u00A01,150'), findsOneWidget);
+    });
+
     testWidgets('Entrega 14.1: «Mis cuentas» agrega un banco con su nombre '
         'y aparece al anotar', (tester) async {
       await abrirApp(tester, listo: true);
