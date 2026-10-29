@@ -209,6 +209,8 @@ La app se diseña para registrar en segundos y entender de un vistazo; el panel,
 
 ## Modelo comercial
 
+> **Cambio del 29-10-2026** (ver `decisiones.md`): ya no hay plan Gratis. La versión base se paga después de 7 días de prueba y Moca Plus es un adicional. La tabla y la lista de abajo se mantienen como historia; donde dicen «Gratis», hoy es la prueba de 7 días.
+
 Hay tres planes. El dueño entra con una prueba completa de 14 días y luego elige; el contador usa el panel sin costo y vende el plan Formal a cambio de comisión.
 
 | Plan | Para quién | Incluye | Precio |

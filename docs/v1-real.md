@@ -4,7 +4,7 @@ Plan aprobado por Jhony el 14 de octubre de 2026 (ver `decisiones.md`). Sigue al
 
 ## Objetivo
 
-La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin cobro), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
+La misma V1 de `alcance-v1.md` (modo Simple, un solo usuario por empresa, sin cobro: el cobro tampoco entra en la versión siguiente, ver `decisiones.md` del 29-10-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
 
 ## Cómo se trabaja
 

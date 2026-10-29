@@ -40,6 +40,8 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven más adelante
 
+- Cómo se cobra la suscripción: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).
+
 - Criterios precisos para avanzar entre fases.
 - Reglas tributarias del borrador de declaración y del riesgo tributario, validadas con contadores.
 - Alcance del segundo país.
