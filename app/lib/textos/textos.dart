@@ -347,6 +347,9 @@ abstract final class Textos {
   static const yaLoPagaste = '¿Ya lo pagaste?';
   static const siPagado = 'Sí, pagado';
   static const todaviaLoDebo = 'Todavía lo debo';
+  static const cuentaAlPagar =
+      'No baja tu plata todavía. Cuando lo pagues, márcalo en el Historial '
+      'con «Ya lo pagué» y elige de dónde salió.';
   static const total = 'Total';
   static const fecha = 'Fecha';
   static const leidoDelQr =

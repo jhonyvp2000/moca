@@ -62,10 +62,12 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
 
   int get _totalCentimos => leerSolesConCentimos(_total.text) ?? 0;
 
+  // Lo que se debe no sale de ninguna cuenta todavía: la cuenta se elige
+  // al marcar «Ya lo pagué» (entrega 14.10.1).
   bool get _completo =>
       _totalCentimos > 0 &&
-      _cuenta != null &&
       _pagado != null &&
+      (_pagado == false || _cuenta != null) &&
       _categoriaId != null;
 
   Future<void> _guardar() async {
@@ -74,7 +76,8 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
     final compra = CompraConfirmada(
       lectura: l,
       totalCentimos: _totalCentimos,
-      cuenta: _cuenta!,
+      // Una deuda guarda el efectivo solo como sugerencia para el pago.
+      cuenta: _pagado! ? _cuenta! : TipoCuenta.efectivo,
       pagado: _pagado!,
       categoriaId: _categoriaId!,
       emisorNombre: _aQuien.text.trim().isEmpty ? null : _aQuien.text.trim(),
@@ -362,17 +365,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
           ),
         ),
         const SizedBox(height: 14),
-        const Text(Textos.deDondeSalio, style: etiqueta),
-        const SizedBox(height: 8),
-        OpcionesRejilla<TipoCuenta>(
-          opciones: {
-            for (final c in ref.watch(tiposDeCuentaProvider))
-              c: Textos.nombreCuenta(c),
-          },
-          elegida: _cuenta,
-          alElegir: (c) => setState(() => _cuenta = c),
-        ),
-        const SizedBox(height: 14),
+        // Primero si ya se pagó; de dónde salió, solo si se pagó.
         const Text(Textos.yaLoPagaste, style: etiqueta),
         const SizedBox(height: 8),
         OpcionesRejilla<bool>(
@@ -381,6 +374,23 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
           alElegir: (p) => setState(() => _pagado = p),
         ),
         const SizedBox(height: 14),
+        if (_pagado == true) ...[
+          const Text(Textos.deDondeSalio, style: etiqueta),
+          const SizedBox(height: 8),
+          OpcionesRejilla<TipoCuenta>(
+            opciones: {
+              for (final c in ref.watch(tiposDeCuentaProvider))
+                c: Textos.nombreCuenta(c),
+            },
+            elegida: _cuenta,
+            alElegir: (c) => setState(() => _cuenta = c),
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (_pagado == false) ...[
+          const Text(Textos.cuentaAlPagar, style: Tipografia.secundario),
+          const SizedBox(height: 14),
+        ],
         _Nota(
           texto: !l.legible
               ? Textos.completadoAMano

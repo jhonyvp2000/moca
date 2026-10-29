@@ -1102,9 +1102,11 @@ void main() {
       expect(find.text('Mercadería'), findsOneWidget);
       expect(guardar(tester).onPressed, isNull);
 
-      await tocar(tester, find.text(Textos.efectivo));
-      expect(guardar(tester).onPressed, isNull);
+      // Primero si ya se pagó; la cuenta aparece después (entrega 14.10.1).
+      expect(find.text(Textos.deDondeSalio), findsNothing);
       await tocar(tester, find.text(Textos.siPagado));
+      expect(guardar(tester).onPressed, isNull);
+      await tocar(tester, find.text(Textos.efectivo));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       expect(
         find.text(Textos.guardadoAhoraTienes('S/\u00A0370')),
@@ -1116,8 +1118,10 @@ void main() {
         'negativo', (tester) async {
       final base = await abrirApp(tester, listo: true);
       await tomarFoto(tester);
-      await tocar(tester, find.text(Textos.yape));
+      // Lo que se debe no pregunta de dónde salió: eso se elige al pagarlo.
       await tocar(tester, find.text(Textos.todaviaLoDebo));
+      expect(find.text(Textos.deDondeSalio), findsNothing);
+      expect(find.text(Textos.cuentaAlPagar), findsOneWidget);
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       expect(
         find.text(Textos.guardadoAhoraTienes('S/\u00A01,350')),
@@ -1136,8 +1140,8 @@ void main() {
     ) async {
       await abrirApp(tester, listo: true);
       await tomarFoto(tester);
-      await tocar(tester, find.text(Textos.yape));
       await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.text(Textos.yape));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       expect(find.text(Textos.quedariaNegativoTitulo), findsOneWidget);
     });
@@ -1163,8 +1167,8 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), 'Bodega Mayorista');
       await tocar(tester, find.text(Textos.eligeTipoDeGasto));
       await tocar(tester, find.text('Otros'));
-      await tocar(tester, find.text(Textos.efectivo));
       await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.text(Textos.efectivo));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       expect(
         find.text(Textos.guardadoAhoraTienes('S/\u00A0370')),
@@ -1307,8 +1311,8 @@ void main() {
       expect(find.text('Factura · jueves 8 de octubre'), findsOneWidget);
       expect(find.text(Textos.rucDe('20100070970')), findsOneWidget);
       expect(find.text(Textos.leidoDelQr), findsOneWidget);
-      await tocar(tester, find.text(Textos.efectivo));
       await tocar(tester, find.text(Textos.siPagado));
+      await tocar(tester, find.text(Textos.efectivo));
       expect(guardar(tester).onPressed, isNull);
       await tocar(tester, find.text(Textos.eligeTipoDeGasto));
       await tocar(
