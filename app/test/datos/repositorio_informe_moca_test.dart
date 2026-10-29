@@ -10,6 +10,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/comprobantes.dart';
+import 'package:moca/dominio/informe.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/moca.dart';
 import 'package:moca/dominio/movimientos.dart';
@@ -239,6 +240,88 @@ void main() {
       expect(i.sinRegistros, isTrue);
       expect(i.cambio, isNull);
     });
+  });
+
+  group('Flujo para la caja (entrega 14.15)', () {
+    test(
+      'Seis meses completos, filas por categoría y cuotas por entidad',
+      () async {
+        Future<void> en(
+          DateTime dia,
+          TipoMovimiento tipo,
+          int soles, {
+          String? categoria,
+          String? nota,
+        }) async {
+          ahora = dia;
+          await movimientos.registrar(
+            NuevoMovimiento(
+              tipo: tipo,
+              montoCentimos: soles * 100,
+              cuenta: TipoCuenta.efectivo,
+              categoriaId: categoria == null ? null : categorias[categoria],
+              nota: nota,
+            ),
+          );
+        }
+
+        final nov = DateTime(2026, 11, 5, 10);
+        await en(nov, TipoMovimiento.ingreso, 1000, categoria: 'Venta del día');
+        await en(nov, TipoMovimiento.ingreso, 50, categoria: 'Cobro de fiado');
+        await en(nov, TipoMovimiento.aporte, 300);
+        await en(nov, TipoMovimiento.retiro, 100);
+        await en(nov, TipoMovimiento.egreso, 40, categoria: 'Flete');
+        await en(nov, TipoMovimiento.egreso, 10, categoria: 'Otros');
+        for (final (entidad, soles) in [
+          ('Caja Piura', 450),
+          ('Mibanco', 200),
+          ('Caja Cusco', 100),
+          ('Financiera Confianza', 50),
+        ]) {
+          await en(
+            nov,
+            TipoMovimiento.egreso,
+            soles,
+            categoria: 'Cuota de préstamo',
+            nota: entidad,
+          );
+        }
+        ahora = DateTime(2027, 1, 10, 12);
+
+        final f = await informe.flujoParaCredito();
+        expect(f.meses.map((m) => m.mes), [
+          for (var m = 7; m <= 12; m++) DateTime(2026, m),
+        ]);
+        expect(f.meses.map((m) => m.estado), [
+          ...List.filled(3, EstadoMesFlujo.antesDeMoca),
+          EstadoMesFlujo.incompleto,
+          EstadoMesFlujo.completo,
+          EstadoMesFlujo.completo,
+        ]);
+        // Octubre: la primera venta del 12, en «Ventas al contado».
+        expect(f.meses[3].centimos[FilaFlujo.ventasContado], 35000);
+
+        final noviembre = f.meses[4];
+        expect(noviembre.centimos, {
+          FilaFlujo.ventasContado: 100000,
+          FilaFlujo.ventasCreditoCobradas: 5000,
+          FilaFlujo.fletes: 4000,
+          FilaFlujo.otrosGastosFijos: 1000,
+        });
+        expect(noviembre.retirosCentimos, 10000);
+        // Más de tres entidades: la tercera fila junta a las demás.
+        expect(f.entidades, ['Caja Piura', 'Mibanco', 'Otras 2 entidades']);
+        expect(noviembre.cuotas, [45000, 20000, 15000]);
+        expect(f.meses[5].cuotas, [0, 0, 0]);
+        expect(f.retirosPromedioCentimos, 5000);
+        expect(f.categoriasPorFila[FilaFlujo.otrosGastosFijos], [
+          'Movilidad del negocio',
+          'Impuestos y trámites',
+          'Otros',
+        ]);
+        expect(f.inicioMoca!.day, 12);
+      },
+    );
   });
 
   group('Avisos', () {

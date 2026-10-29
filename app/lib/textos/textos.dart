@@ -676,7 +676,14 @@ abstract final class Textos {
       'Con lo que debes y los comprobantes del mes.';
   static const pdfParaCredito = 'Para pedir un crédito';
   static const pdfParaCreditoDetalle =
-      'Tus últimos meses, para una caja o un banco.';
+      'Tus últimos meses y el flujo en el formato de la caja.';
+  static const mocaPlus = 'Moca Plus';
+  static const flujoParaCajaTitulo = 'Para pedir un crédito';
+  static String flujoParaCaja(int meses) =>
+      'Se comparten dos archivos: el resumen en PDF y el flujo de caja en el '
+      'formato que usan las cajas y financieras. '
+      '${meses == 0 ? 'Moca todavía no tiene un mes cerrado: los 6 meses que piden los completas tú con tu asesor, igual que los gastos de tu hogar.' : 'Moca llenó los 17 datos de tu negocio en $meses de los 6 meses que piden. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.'}';
+  static const compartir = 'Compartir';
   static const etiquetaParaContador = 'Para el contador';
   static const etiquetaParaCredito = 'Para evaluar un crédito';
   static String periodoDelAl(DateTime desde, DateTime hasta) =>

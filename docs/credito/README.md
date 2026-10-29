@@ -15,3 +15,7 @@ Referencia de Jhony (29-10-2026) sobre lo que piden las cajas municipales, cajas
 - RESUMEN_CREDITO B17 y B21 usan B10, B13 y B14 en vez de B11 (cuota), B15 (tasa) y B16 (plazo).
 - La cuota máxima se calcula sobre el excedente sin descontar las cuotas actuales, aunque la guía dice que la suma de todas las cuotas no debe pasar del 40–50 %.
 - La guía dice 40 % en un lugar y 50 % en otro, y pide el promedio de 3 meses mientras la plantilla usa 6.
+
+## En Moca
+
+Desde la entrega 14.15, «Para pedir un crédito» genera estas 4 hojas con las cifras del negocio y estas fórmulas corregidas (ver `decisiones.md`). El archivo de esta carpeta queda como lo entregó Jhony.

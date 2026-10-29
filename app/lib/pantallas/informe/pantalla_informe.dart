@@ -71,6 +71,14 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
             ListTile(
               minTileHeight: Medidas.objetivoTactilMinimo + 12,
               title: Text(titulo, style: Tipografia.textoFuerte),
+              // El flujo para la caja es de Moca Plus (decisiones.md,
+              // 29-10-2026); sin cobro todavía, funciona igual.
+              trailing: destino == DestinoInforme.credito
+                  ? Text(
+                      Textos.mocaPlus,
+                      style: Tipografia.etiquetaMoca.copyWith(fontSize: 14),
+                    )
+                  : null,
               subtitle: Text(detalle, style: Tipografia.secundario),
               onTap: () => Navigator.of(context).pop(destino),
             ),
@@ -79,31 +87,70 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     ),
   );
 
+  /// Antes de compartir lo de la caja, dice qué llenó Moca y qué falta
+  /// (entrega 14.15).
+  Future<bool> _confirmarFlujo(FlujoParaCredito flujo) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text(Textos.flujoParaCajaTitulo),
+          content: Text(
+            Textos.flujoParaCaja(flujo.conMoca.length),
+            style: Tipografia.texto,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(Textos.cancelar),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(Textos.compartir),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
   Future<void> _compartir(InformeMes informe) async {
     final mensajes = ScaffoldMessenger.of(context);
     final destino = await _elegirDestino();
     if (destino == null || !mounted) return;
+    final repositorio = ref.read(repositorioInformeProvider);
+    final flujo = destino == DestinoInforme.credito
+        ? await repositorio.flujoParaCredito()
+        : null;
+    if (flujo != null && !(mounted && await _confirmarFlujo(flujo))) return;
     setState(() => _armandoPdf = true);
     try {
       final nombre = ref.read(resumenInicioProvider).value?.nombreNegocio ?? '';
-      final detalle = await ref
-          .read(repositorioInformeProvider)
-          .detalleParaPdf(informe);
+      final hoy = ref.read(relojProvider)();
+      final detalle = await repositorio.detalleParaPdf(informe);
       final ruta = await guardarPdfDelInforme(
         informe,
         detalle,
         destino: destino,
         nombreNegocio: nombre,
-        hoy: ref.read(relojProvider)(),
+        hoy: hoy,
       );
-      await ref
-          .read(compartidorProvider)
-          .compartirArchivo(
-            ruta,
-            asunto: destino == DestinoInforme.credito
-                ? Textos.resumenDeMeses(detalle.meses.length)
-                : Textos.informeDe(nombreDelMes(informe.mes), informe.mes.year),
-          );
+      final compartidor = ref.read(compartidorProvider);
+      if (flujo != null) {
+        // El resumen en PDF y el flujo en el formato de la caja, juntos.
+        final rutaFlujo = await guardarFlujoParaCredito(
+          flujo,
+          nombreNegocio: nombre,
+          hoy: hoy,
+        );
+        await compartidor.compartirArchivos([
+          (ruta, 'application/pdf'),
+          (rutaFlujo, tipoExcel),
+        ], asunto: Textos.resumenDeMeses(detalle.meses.length));
+      } else {
+        await compartidor.compartirArchivo(
+          ruta,
+          asunto: Textos.informeDe(nombreDelMes(informe.mes), informe.mes.year),
+        );
+      }
       await ref.read(medicionProvider).anotar(EventoMedicion.pdfCompartido, {
         'para': destino.name,
       });

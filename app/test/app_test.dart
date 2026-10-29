@@ -81,6 +81,12 @@ class _CompartidorFalso implements Compartidor {
     required String asunto,
     String tipo = 'application/pdf',
   }) async {}
+
+  @override
+  Future<void> compartirArchivos(
+    List<(String, String)> archivos, {
+    required String asunto,
+  }) async {}
 }
 
 /// Lo último que se programó y si el dueño da el permiso de avisos.
@@ -1795,7 +1801,12 @@ void main() {
       expect(find.text(Textos.pdfParaMi), findsOneWidget);
       expect(find.text(Textos.pdfParaContador), findsOneWidget);
       expect(find.text(Textos.pdfParaCredito), findsOneWidget);
-      await tester.tapAt(const Offset(10, 10));
+      expect(find.text(Textos.mocaPlus), findsOneWidget);
+      // Para la caja, primero dice qué llenó Moca (entrega 14.15).
+      await tocar(tester, find.text(Textos.pdfParaCredito));
+      expect(find.text(Textos.flujoParaCaja(0)), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(find.text(Textos.flujoParaCaja(0)), findsNothing);
       await esperar(tester);
       // Y al lado, el Excel de las operaciones (entrega 14.13).
       expect(find.text(Textos.compartirExcel), findsOneWidget);

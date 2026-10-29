@@ -8,6 +8,7 @@ import '../../dominio/modelos.dart';
 import '../../pais/peru/formato.dart';
 import '../../textos/textos.dart';
 import '../../comun/xlsx.dart';
+import '../../pais/peru/flujo_credito.dart';
 
 const tipoExcel =
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -217,5 +218,23 @@ Future<String> guardarExcelDelInforme(
     '${carpeta.path}/${nombreDelExcel(nombreNegocio, informe.mes)}',
   );
   await archivo.writeAsBytes(bytes, flush: true);
+  return archivo.path;
+}
+
+/// Arma el flujo en el formato de la caja (entrega 14.15) y lo guarda en la
+/// carpeta temporal del teléfono.
+Future<String> guardarFlujoParaCredito(
+  FlujoParaCredito flujo, {
+  required String nombreNegocio,
+  required DateTime hoy,
+}) async {
+  final carpeta = await getTemporaryDirectory();
+  final archivo = File(
+    '${carpeta.path}/${nombreDelFlujoParaCredito(nombreNegocio, hoy)}',
+  );
+  await archivo.writeAsBytes(
+    armarFlujoParaCredito(flujo, nombreNegocio: nombreNegocio, hoy: hoy),
+    flush: true,
+  );
   return archivo.path;
 }

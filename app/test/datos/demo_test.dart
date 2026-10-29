@@ -17,6 +17,7 @@ import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 import 'package:moca/pantallas/informe/excel_informe.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
+import 'package:moca/pais/peru/flujo_credito.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -201,6 +202,74 @@ void main() {
     expect(
       nombreDelExcel('Bodega Don Lucho', DateTime(2026, 9)),
       'Moca-Bodega-Don-Lucho-operaciones-setiembre-2026.xlsx',
+    );
+  });
+
+  test('El flujo para la caja, con la Demo (entrega 14.15)', () async {
+    await RepositorioOperadorLocal(base, ahora: () => ahora).cargarDemo();
+    final repositorio = RepositorioInformeLocal(base, ahora: () => ahora);
+    final f = await repositorio.flujoParaCredito();
+    expect(f.meses.last.mes, DateTime(2026, 9));
+    expect(f.meses.last.estado, EstadoMesFlujo.completo);
+    expect(f.conMoca.length, 2);
+
+    // Setiembre cuadra con el informe: todo lo que entró y salió.
+    final setiembre = await repositorio.observarMes(DateTime(2026, 9)).first;
+    final m = f.meses.last;
+    int suma(Iterable<FilaFlujo> filas) =>
+        filas.fold(0, (s, x) => s + (m.centimos[x] ?? 0));
+    const entradas = [
+      FilaFlujo.ventasContado,
+      FilaFlujo.ventasCreditoCobradas,
+      FilaFlujo.otrosIngresos,
+      FilaFlujo.ingresosExtraordinarios,
+    ];
+    expect(suma(entradas), setiembre.entroCentimos);
+    expect(
+      suma(FilaFlujo.values.where((x) => !entradas.contains(x))) +
+          m.cuotas.fold(0, (s, c) => s + c),
+      setiembre.salioCentimos,
+    );
+    expect(m.retirosCentimos, setiembre.retirosCentimos);
+
+    final zip = ZipDecoder().decodeBytes(
+      armarFlujoParaCredito(f, nombreNegocio: 'Bodega Don Lucho', hoy: ahora),
+    );
+    String xml(String nombre) =>
+        utf8.decode(zip.findFile(nombre)!.readBytes()!);
+    expect(
+      xml('xl/workbook.xml'),
+      allOf(
+        contains('name="INSTRUCCIONES"'),
+        contains('name="FLUJO_MENSUAL"'),
+        contains('name="EXCEDENTE_FAMILIAR"'),
+        contains('name="RESUMEN_CREDITO"'),
+        contains('fullCalcOnLoad="1"'),
+      ),
+    );
+    final flujo = xml('xl/worksheets/sheet2.xml');
+    // Las otras hojas leen las filas 31 y 34: tienen que seguir ahí.
+    expect(flujo, contains('<c r="A31" t="inlineStr"'));
+    expect(flujo, contains('TOTAL DEUDAS ACTUALES</t></is></c><c r="B31"'));
+    expect(
+      flujo,
+      contains('EXCEDENTE BRUTO DEL NEGOCIO</t></is></c><c r="B34"'),
+    );
+    // El promedio deja fuera agosto (incompleto, columna F).
+    expect(
+      flujo,
+      contains('<f>IFERROR(AVERAGE(B34,C34,D34,E34,G34),&quot;&quot;)</f>'),
+    );
+    // El excedente es antes de las cuotas.
+    expect(flujo, isNot(contains('B28:B30)</f></c><c r="C34"')));
+    final hogar = xml('xl/worksheets/sheet3.xml');
+    expect(hogar, contains('<f>N(FLUJO_MENSUAL!H34)</f>'));
+    expect(hogar, contains('<f>MAX(0,B18*0.4-B21)</f>'));
+    final resumen = xml('xl/worksheets/sheet4.xml');
+    expect(resumen, contains('<f>MAX(0,B6*0.4-B7)</f>'));
+    expect(
+      nombreDelFlujoParaCredito('Bodega Don Lucho', ahora),
+      'Moca-Bodega-Don-Lucho-flujo-credito-octubre-2026.xlsx',
     );
   });
 }
