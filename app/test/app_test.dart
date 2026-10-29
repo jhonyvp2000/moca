@@ -612,7 +612,8 @@ void main() {
       await tocar(tester, find.text(Textos.noSeCuantoTengo));
 
       expect(find.text(Textos.notaSaldoPendiente), findsOneWidget);
-      expect(find.text('S/ 350'), findsOneWidget);
+      // El total y el desglose de Efectivo (entrega 14.9).
+      expect(find.text('S/ 350'), findsNWidgets(2));
 
       await tocar(tester, find.text(Textos.pasoDecirPlata));
       expect(find.text(Textos.cuantoTeniasAlEmpezar), findsOneWidget);
@@ -622,7 +623,8 @@ void main() {
         find.widgetWithText(FilledButton, Textos.guardarSaldo),
       );
       expect(find.text(Textos.notaSaldoMasVenta), findsOneWidget);
-      expect(find.text('S/ 850'), findsOneWidget);
+      // El total y el desglose de Efectivo (entrega 14.9).
+      expect(find.text('S/ 850'), findsNWidgets(2));
     });
 
     testWidgets('Al volver a abrir la app, sigue en el paso pendiente', (
@@ -703,7 +705,8 @@ void main() {
           findsOneWidget,
         );
       }
-      expect(find.text('S/ 1,350'), findsOneWidget);
+      // El total y el desglose de Efectivo (entrega 14.9).
+      expect(find.text('S/ 1,350'), findsNWidgets(2));
       expect(find.bySemanticsLabel(Textos.registrar), findsOneWidget);
     });
 
@@ -760,14 +763,16 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
 
       expect(find.text(Textos.guardadoAhoraTienes('S/ 1,270')), findsOneWidget);
-      expect(find.text('S/ 1,270'), findsOneWidget);
+      // El total y el desglose de Efectivo (entrega 14.9).
+      expect(find.text('S/ 1,270'), findsNWidgets(2));
 
       // «Tienes hoy» ya no es solo saldo más venta.
       expect(find.text(Textos.notaConMovimientos), findsOneWidget);
 
       await tocar(tester, find.text(Textos.deshacer));
       expect(find.text(Textos.seDeshizo), findsOneWidget);
-      expect(find.text('S/ 1,350'), findsOneWidget);
+      // El total y el desglose de Efectivo (entrega 14.9).
+      expect(find.text('S/ 1,350'), findsNWidgets(2));
       final anulados = await tester.runAsync(
         () => (base.select(
           base.movimientos,
@@ -2579,5 +2584,18 @@ void main() {
       expect(_servidor.borrados, isEmpty);
       expect(await movimientos(tester, base), antes);
     });
+  });
+
+  testWidgets('La primera semana muestra cuánto hay en cada cuenta '
+      '(entrega 14.9)', (tester) async {
+    await abrirApp(tester, listo: true);
+    expect(find.text(Textos.tusPrimerosPasos), findsOneWidget);
+    // S/ 1,000 de saldo más la venta de S/ 350, todo en efectivo.
+    expect(find.text(Textos.tienesHoy), findsOneWidget);
+    expect(find.text(Textos.efectivo), findsOneWidget);
+    expect(find.text(Textos.yape), findsOneWidget);
+    expect(find.text(Textos.banco), findsOneWidget);
+    expect(find.text(formatearSoles(135000)), findsNWidgets(2));
+    expect(find.text(formatearSoles(0)), findsNWidgets(2));
   });
 }

@@ -49,10 +49,14 @@ class ResumenPrimerDia {
     this.conOtrosMovimientos = false,
     this.gastoConComprobante = false,
     this.arqueoHecho = false,
+    this.saldosPorCuenta = const {},
   });
 
   final String nombreNegocio;
   final int tienesHoyCentimos;
+
+  /// Lo que hay en cada cuenta, en su orden: el desglose de «Tienes hoy».
+  final Map<TipoCuenta, int> saldosPorCuenta;
   final bool saldoPendiente;
 
   /// Cero si hoy no se anotó venta.

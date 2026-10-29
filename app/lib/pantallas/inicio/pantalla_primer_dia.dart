@@ -11,6 +11,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'desglose_cuentas.dart';
 
 /// S03 · Primer día. Es el Inicio durante la primera semana, hasta el primer
 /// arqueo (prototipo-v1.md, «Comportamiento acordado»).
@@ -125,6 +126,14 @@ class PantallaPrimerDia extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Qué hay en cada cuenta, como en el Inicio.
+                  if (resumen.saldosPorCuenta.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    DesgloseDeCuentas(
+                      saldos: resumen.saldosPorCuenta,
+                      formato: formatearSoles,
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   Text(nota, style: Tipografia.secundario),
                 ],

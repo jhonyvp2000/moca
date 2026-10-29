@@ -363,11 +363,12 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
             ))
             .getSingleOrNull();
 
-    final tienesHoy = AccesoLocal.saldosPorCuenta(
+    final saldos = AccesoLocal.saldosPorCuenta(
       cuentas,
       movimientos,
       ajustes: await _a.ajustes(empresa.id),
-    ).values.fold(0, (suma, saldo) => suma + saldo);
+    );
+    final tienesHoy = saldos.values.fold(0, (suma, saldo) => suma + saldo);
 
     final hoy = inicioDelDia(_ahora());
     final ventas = movimientos.where(
@@ -385,6 +386,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
     return ResumenPrimerDia(
       nombreNegocio: empresa.nombre,
       tienesHoyCentimos: tienesHoy,
+      saldosPorCuenta: saldos,
       saldoPendiente: cuentas.any((c) => c.saldoInicialCentimos == null),
       ventaDeHoyCentimos: ventaDeHoy,
       diasConVenta: dias.length,
