@@ -59,6 +59,7 @@ class Cifras {
         semanaEntroCentimos: inicio['semanaEntroCentimos']! as int,
         semanaSalioCentimos: inicio['semanaSalioCentimos']! as int,
         semanaRetirosCentimos: inicio['semanaRetirosCentimos']! as int,
+        semanaAportesCentimos: inicio['semanaAportesCentimos']! as int,
         semanaConMovimientos: inicio['semanaConMovimientos']! as bool,
         diferenciaConSemanaAnteriorCentimos:
             inicio['diferenciaConSemanaAnteriorCentimos'] as int?,
@@ -105,6 +106,7 @@ class Cifras {
               mesAnterior: _mesONulo(i['mesAnterior']),
               inicioCentimos: i['inicioCentimos']! as int,
               ajustesCentimos: i['ajustesCentimos']! as int,
+              aportesCentimos: i['aportesCentimos']! as int,
               diferenciaConAnteriorCentimos:
                   i['diferenciaConAnteriorCentimos'] as int?,
               entroCentimos: i['entroCentimos']! as int,
@@ -151,6 +153,7 @@ class Cifras {
       'semanaEntroCentimos': inicio.semanaEntroCentimos,
       'semanaSalioCentimos': inicio.semanaSalioCentimos,
       'semanaRetirosCentimos': inicio.semanaRetirosCentimos,
+      'semanaAportesCentimos': inicio.semanaAportesCentimos,
       'semanaConMovimientos': inicio.semanaConMovimientos,
       'diferenciaConSemanaAnteriorCentimos':
           inicio.diferenciaConSemanaAnteriorCentimos,
@@ -195,6 +198,7 @@ class Cifras {
           'retirosCentimos': i.retirosCentimos,
           'inicioCentimos': i.inicioCentimos,
           'ajustesCentimos': i.ajustesCentimos,
+          'aportesCentimos': i.aportesCentimos,
           'gastos': [
             for (final g in i.gastos)
               {'nombre': g.nombre, 'centimos': g.centimos},
@@ -226,6 +230,7 @@ class CifrasInicio {
     required this.semanaEntroCentimos,
     required this.semanaSalioCentimos,
     required this.semanaRetirosCentimos,
+    this.semanaAportesCentimos = 0,
     required this.semanaConMovimientos,
     required this.diferenciaConSemanaAnteriorCentimos,
     required this.ventaDeHoyCentimos,
@@ -237,6 +242,9 @@ class CifrasInicio {
 
   /// Lo que el dueño retiró para sí esta semana (entrega 14.9).
   final int semanaRetirosCentimos;
+
+  /// Lo que el dueño puso de su bolsillo esta semana (entrega 14.11).
+  final int semanaAportesCentimos;
   final bool semanaConMovimientos;
   final int? diferenciaConSemanaAnteriorCentimos;
   final int ventaDeHoyCentimos;

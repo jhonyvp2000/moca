@@ -44,8 +44,8 @@ class FilaHistorial {
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,
-    FiltroHistorial.entro => !ajusteArqueo && tipo == TipoMovimiento.ingreso,
-    FiltroHistorial.salio => !ajusteArqueo && tipo != TipoMovimiento.ingreso,
+    FiltroHistorial.entro => !ajusteArqueo && tipo.entraPlata,
+    FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata,
     FiltroHistorial.porSubir => porSubir,
   };
 }

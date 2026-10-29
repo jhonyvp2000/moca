@@ -123,7 +123,8 @@ class RepositorioInformeLocal implements RepositorioInforme {
     // Cuánto creció la plata en el periodo.
     int crecio(DateTime desde, DateTime hasta) {
       final ms = periodo(desde, hasta);
-      return suma(ms, TipoMovimiento.ingreso) -
+      return suma(ms, TipoMovimiento.ingreso) +
+          suma(ms, TipoMovimiento.aporte) -
           suma(ms, TipoMovimiento.egreso) -
           suma(ms, TipoMovimiento.retiro) +
           ajustado(desde, hasta);
@@ -139,9 +140,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
         if (desde != null && !desde.isBefore(momento)) continue;
         for (final m in pagados) {
           if (m.cuentaId != c.id || !_fecha(m).isBefore(momento)) continue;
-          total += m.tipo == TipoMovimiento.ingreso
-              ? m.montoCentimos
-              : -m.montoCentimos;
+          total += m.tipo.entraPlata ? m.montoCentimos : -m.montoCentimos;
         }
         for (final a in ajustes) {
           if (a.cuentaId == c.id && a.fecha.isBefore(momento)) {
@@ -270,6 +269,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
       entroCentimos: suma(delMes, TipoMovimiento.ingreso),
       salioCentimos: suma(delMes, TipoMovimiento.egreso),
       retirosCentimos: suma(delMes, TipoMovimiento.retiro),
+      aportesCentimos: suma(delMes, TipoMovimiento.aporte),
       ajustesCentimos: ajustado(mes, hasta),
       gastos: gastos,
       cambio: cambio,

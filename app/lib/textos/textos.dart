@@ -276,6 +276,7 @@ abstract final class Textos {
   static String semanaEntro(String entro) => 'Entró $entro';
   static const semanaSalio = ' · Salió ';
   static const semanaRetiraste = ' · Retiraste ';
+  static const semanaPusiste = ' · Pusiste ';
   static const semanaSinMovimientos = 'Esta semana todavía no anotas nada.';
   static const mocaFaltaVentaDeHoy = 'Aún no anotas la venta de hoy.';
   static const mocaYaAnotasteHoy = 'Ya anotaste la venta de hoy.';
@@ -422,8 +423,13 @@ abstract final class Textos {
   static const entro = 'Entró';
   static const salio = 'Salió';
   static const retiroParaMi = 'Retiro para mí';
+  // Plata que el dueño pone en el negocio (entrega 14.11).
+  static const puseDeMiBolsillo = 'Puse de mi bolsillo';
   static const retiroDetalle =
       'Baja la plata de la cuenta, pero no cuenta como gasto del negocio.';
+  static const aporteDetalle =
+      'Plata que pones de tu bolsillo en el negocio: sube tu plata, pero no '
+      'cuenta como venta. Si te la prestaron, no es esto.';
   static const cuanto = '¿Cuánto?';
   static const deDondeSalio = '¿De dónde salió la plata?';
   static const aDondeEntro = '¿A dónde entró la plata?';
@@ -449,6 +455,7 @@ abstract final class Textos {
   static const marcaPorSubir = 'por subir';
   static const loDebes = 'Lo debes';
   static const retiroNoCuenta = 'No cuenta como gasto del negocio';
+  static const aporteNoCuenta = 'No cuenta como venta';
   static const historialVacio =
       'Todavía no hay registros. Lo que anotes aparece aquí.';
   static const sinEntradas = 'Todavía no hay registros de plata que entró.';
@@ -471,6 +478,7 @@ abstract final class Textos {
     TipoMovimiento.ingreso => entro,
     TipoMovimiento.egreso => salio,
     TipoMovimiento.retiro => retiroParaMi,
+    TipoMovimiento.aporte => puseDeMiBolsillo,
   };
   static String comoSeAnoto(Fuente fuente) => switch (fuente) {
     Fuente.voz => 'Lo dijiste por voz',
@@ -566,6 +574,7 @@ abstract final class Textos {
       'Sobran $monto en ${cuenta.toLowerCase()}. ¿De dónde salió esa plata?';
   static String motivoArqueo(MotivoArqueo motivo) => switch (motivo) {
     MotivoArqueo.retiroParaMi => 'La retiré para mí',
+    MotivoArqueo.puseYo => 'La puse yo',
     MotivoArqueo.gastoOlvidado => 'Un gasto que olvidé',
     MotivoArqueo.ventaNoAnotada => 'Una venta que no anoté',
     MotivoArqueo.errorDeVuelto => 'Di mal un vuelto',
@@ -575,6 +584,8 @@ abstract final class Textos {
       switch (motivo) {
         MotivoArqueo.retiroParaMi =>
           'Un retiro para ti baja tu plata, pero no es un gasto del negocio.',
+        MotivoArqueo.puseYo =>
+          'Se anota como plata que pusiste de tu bolsillo. No es una venta.',
         MotivoArqueo.gastoOlvidado => 'Se anota como un gasto de hoy.',
         MotivoArqueo.ventaNoAnotada => 'Se anota como una venta de hoy.',
         MotivoArqueo.errorDeVuelto =>
@@ -624,6 +635,7 @@ abstract final class Textos {
   static const empezasteElMesCon = 'Empezaste el mes con';
   static const empezasteCon = 'Empezaste con';
   static const masEntro = '+ Entró';
+  static const masPusisteDeTuBolsillo = '+ Pusiste de tu bolsillo';
   static const menosSalioDelNegocio = '− Salió del negocio';
   static const menosRetirasteParaTi = '− Retiraste para ti';
   static const masSobroEnElArqueo = '+ Sobró en el arqueo';

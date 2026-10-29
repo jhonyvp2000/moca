@@ -148,6 +148,11 @@ Future<Uint8List> armarPdfDelInforme(
             formatearSoles(i.inicioCentimos),
           ),
           fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
+          if (i.aportesCentimos > 0)
+            fila(
+              Textos.masPusisteDeTuBolsillo,
+              formatearSoles(i.aportesCentimos),
+            ),
           fila(
             Textos.menosSalioDelNegocio,
             formatearSoles(i.salioCentimos),

@@ -87,6 +87,11 @@ String normalizar(String texto) {
 
 // --- Tipo ----------------------------------------------------------------------
 
+/// Plata que el dueño pone de su bolsillo (entrega 14.11).
+final _aporte = RegExp(
+  r'\bde mi bolsillo\b|\bmeti (plata|dinero|\d)|\bmeti al negocio\b|'
+  r'\bmeti .* al negocio\b|\bpuse (plata|dinero) de mi\b|\baporte\b',
+);
 final _retiro = RegExp(
   r'\bpara mi\b|\bpara la casa\b|\bpara mis gastos\b|\bretir(e|o|amos)\b',
 );
@@ -103,6 +108,7 @@ final _ingreso = RegExp(
 );
 
 TipoMovimiento? _tipo(String t) {
+  if (_aporte.hasMatch(t)) return TipoMovimiento.aporte;
   if (_retiro.hasMatch(t)) return TipoMovimiento.retiro;
   if (_ingresoConPago.hasMatch(t)) return TipoMovimiento.ingreso;
   if (_egreso.hasMatch(t)) return TipoMovimiento.egreso;
@@ -188,7 +194,7 @@ String? _categoria(String t, TipoMovimiento? tipo) {
       return null;
     case TipoMovimiento.ingreso:
       return _palabraVenta.hasMatch(t) ? categoriaVentaDelDia : null;
-    case TipoMovimiento.retiro || null:
+    case TipoMovimiento.retiro || TipoMovimiento.aporte || null:
       return null;
   }
 }

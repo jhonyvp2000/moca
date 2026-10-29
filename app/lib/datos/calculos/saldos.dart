@@ -33,7 +33,7 @@ int saldoDeCuenta({
       continue;
     }
     saldo += switch (m.tipo) {
-      TipoMovimiento.ingreso => m.montoCentimos,
+      TipoMovimiento.ingreso || TipoMovimiento.aporte => m.montoCentimos,
       TipoMovimiento.egreso || TipoMovimiento.retiro => -m.montoCentimos,
     };
   }

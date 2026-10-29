@@ -239,6 +239,20 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
         fuente: hace.isEven ? Fuente.voz : Fuente.texto,
       );
 
+      // Hace tres semanas el dueño puso plata de su bolsillo para comprar
+      // mercadería (entrega 14.11). Sin azar, para no cambiar lo demás.
+      if (hace == 20) {
+        reloj = alas(8, 30);
+        await movimientos.registrar(
+          const NuevoMovimiento(
+            tipo: TipoMovimiento.aporte,
+            montoCentimos: 50000,
+            cuenta: TipoCuenta.efectivo,
+            nota: 'Para la mercadería de fin de mes',
+          ),
+        );
+      }
+
       // El domingo: retiro para el dueño y arqueo.
       if (dia.weekday == DateTime.sunday) {
         reloj = alas(21, 20);

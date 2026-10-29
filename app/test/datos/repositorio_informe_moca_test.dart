@@ -182,6 +182,20 @@ void main() {
       expect(noviembre.finCentimos, inicio.tienesHoyCentimos);
     });
 
+    test('Lo que puse de mi bolsillo sube la plata pero no es venta '
+        '(entrega 14.11)', () async {
+      await anotar(TipoMovimiento.aporte, 300);
+      final i = await informe.observarMes(null).first;
+      expect(i.entroCentimos, 35000);
+      expect(i.aportesCentimos, 30000);
+      expect(i.crecioCentimos, 35000 + 30000);
+      final inicio = await movimientos.observarInicio().first;
+      expect(i.finCentimos, inicio.tienesHoyCentimos);
+      // En la semana tampoco cuenta como «Entró».
+      expect(inicio.semanaEntroCentimos, 35000);
+      expect(inicio.semanaAportesCentimos, 30000);
+    });
+
     test('Más de cinco categorías se juntan en «Lo demás»', () async {
       for (final (i, c) in [
         'Alquiler',

@@ -319,7 +319,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   @override
   Widget build(BuildContext context) {
     final tipo = _lectura.tipo;
-    final categorias = tipo == null || tipo == TipoMovimiento.retiro
+    final categorias = tipo == null || tipo.delDueno
         ? const <CategoriaVista>[]
         : ref.watch(categoriasProvider(tipo)).value ?? const <CategoriaVista>[];
     final validas = {for (final c in categorias) c.nombre};
@@ -469,6 +469,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               TipoMovimiento.ingreso: Textos.entro,
               TipoMovimiento.egreso: Textos.salio,
               TipoMovimiento.retiro: Textos.retiroParaMi,
+              TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
             },
             elegida: null,
             alElegir: (t) => setState(() {
@@ -484,7 +485,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           _lectura.partidas[indicePartida].centimos,
         );
         return _TarjetaPregunta(
-          texto: _lectura.tipo == TipoMovimiento.ingreso
+          texto: _lectura.tipo?.entraPlata ?? false
               ? Textos.dondeEntro(monto)
               : Textos.deDondeSalioMonto(monto),
           hijo: Opciones<TipoCuenta>(
@@ -516,6 +517,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     final tipo = _lectura.tipo!;
     final titulo = switch (tipo) {
       TipoMovimiento.retiro => Textos.retiroParaMi,
+      TipoMovimiento.aporte => Textos.puseDeMiBolsillo,
       _ => _lectura.categoria ?? '',
     };
     final total = _lectura.partidas.fold<int>(0, (s, p) => s + p.centimos);
@@ -533,7 +535,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       const SizedBox(height: 8),
       for (final p in _lectura.partidas) ...[
         _TarjetaPartida(
-          icono: tipo == TipoMovimiento.ingreso ? Icono.entro : Icono.salio,
+          icono: tipo.entraPlata ? Icono.entro : Icono.salio,
           titulo: titulo,
           detalle: '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
           monto: formatearSolesComprobante(p.centimos),
@@ -547,7 +549,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             children: [
               Expanded(
                 child: Text(
-                  tipo == TipoMovimiento.ingreso
+                  tipo.entraPlata
                       ? Textos.totalQueEntroHoy
                       : Textos.totalQueSale,
                   style: Tipografia.secundario.copyWith(fontSize: 15),

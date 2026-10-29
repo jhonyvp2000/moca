@@ -122,6 +122,7 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
               }
               final tipo = switch (motivo) {
                 MotivoArqueo.retiroParaMi => TipoMovimiento.retiro,
+                MotivoArqueo.puseYo => TipoMovimiento.aporte,
                 MotivoArqueo.gastoOlvidado => TipoMovimiento.egreso,
                 MotivoArqueo.ventaNoAnotada => TipoMovimiento.ingreso,
                 MotivoArqueo.errorDeVuelto || MotivoArqueo.noLoSe => null,

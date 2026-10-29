@@ -157,7 +157,7 @@ PreguntaVoz? siguientePregunta(
       return PreguntaCuenta(i);
     }
   }
-  if (lectura.tipo != TipoMovimiento.retiro &&
+  if (!(lectura.tipo?.delDueno ?? false) &&
       !categoriasValidas.contains(lectura.categoria)) {
     return const PreguntaCategoria();
   }

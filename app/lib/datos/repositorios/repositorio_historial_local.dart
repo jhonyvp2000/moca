@@ -256,7 +256,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
           : m.montoPagadoCentimos,
       cuentaId: d.idDeCuenta(c.cuenta),
       // Un retiro para el dueño no lleva categoría.
-      categoriaId: Value(tipo == TipoMovimiento.retiro ? null : c.categoriaId),
+      categoriaId: Value(tipo.delDueno ? null : c.categoriaId),
       nota: Value(nota == null || nota.isEmpty ? null : nota),
     );
   }
@@ -299,8 +299,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       final d = (await _leer())!;
       final m = await _vigente(d, id);
       final corregido = _corregido(d, m, correccion);
-      if (corregido.tipo != TipoMovimiento.retiro &&
-          corregido.categoriaId == null) {
+      if (!corregido.tipo.delDueno && corregido.categoriaId == null) {
         throw ArgumentError('Entró y salió llevan categoría.');
       }
       final usuario = await _a.usuario();

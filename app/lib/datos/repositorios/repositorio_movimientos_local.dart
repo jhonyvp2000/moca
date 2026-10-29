@@ -55,6 +55,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         semanaEntroCentimos: i.semanaEntroCentimos,
         semanaSalioCentimos: i.semanaSalioCentimos,
         semanaRetirosCentimos: i.semanaRetirosCentimos,
+        semanaAportesCentimos: i.semanaAportesCentimos,
         semanaConMovimientos: i.semanaConMovimientos,
         diferenciaConSemanaAnteriorCentimos:
             i.diferenciaConSemanaAnteriorCentimos,
@@ -93,6 +94,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       semanaEntroCentimos: semana.entroCentimos,
       semanaSalioCentimos: semana.salioCentimos,
       semanaRetirosCentimos: semana.retirosCentimos,
+      semanaAportesCentimos: semana.aportesCentimos,
       semanaConMovimientos: semana.cantidad > 0,
       diferenciaConSemanaAnteriorCentimos: semanaPasadaCompleta.cantidad > 0
           ? semana.quedoCentimos - semanaPasadaHastaHoy.quedoCentimos
@@ -137,7 +139,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
   @override
   Future<List<CategoriaVista>> categorias(TipoMovimiento tipo) async {
     final empresa = await _a.empresa();
-    if (empresa == null || tipo == TipoMovimiento.retiro) return const [];
+    if (empresa == null || tipo.delDueno) return const [];
     final filas =
         await (_base.select(_base.categorias)
               ..where(
@@ -167,7 +169,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     final saldos = await _a.saldos(empresa.id);
     final actual = saldos[m.cuenta] ?? 0;
     return switch (m.tipo) {
-      TipoMovimiento.ingreso => actual + m.montoCentimos,
+      TipoMovimiento.ingreso ||
+      TipoMovimiento.aporte => actual + m.montoCentimos,
       TipoMovimiento.egreso ||
       TipoMovimiento.retiro => actual - m.montoCentimos,
     };
@@ -178,7 +181,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     if (m.montoCentimos <= 0) {
       throw ArgumentError('El monto tiene que ser mayor que cero.');
     }
-    if (m.tipo != TipoMovimiento.retiro && m.categoriaId == null) {
+    if (!m.tipo.delDueno && m.categoriaId == null) {
       throw ArgumentError('Entró y salió llevan categoría.');
     }
     return _base.transaction(() async {
@@ -186,8 +189,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         tipo: m.tipo,
         cuenta: m.cuenta,
         montoCentimos: m.montoCentimos,
-        // Un retiro para el dueño no lleva categoría.
-        categoriaId: m.tipo == TipoMovimiento.retiro ? null : m.categoriaId,
+        // La plata entre el dueño y el negocio no lleva categoría.
+        categoriaId: m.tipo.delDueno ? null : m.categoriaId,
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
         fuente: m.fuente,
       );

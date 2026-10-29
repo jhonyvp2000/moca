@@ -265,6 +265,11 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               formatearSoles(i.inicioCentimos),
             ),
             _Fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
+            if (i.aportesCentimos > 0)
+              _Fila(
+                Textos.masPusisteDeTuBolsillo,
+                formatearSoles(i.aportesCentimos),
+              ),
             _Fila(
               Textos.menosSalioDelNegocio,
               formatearSoles(i.salioCentimos),

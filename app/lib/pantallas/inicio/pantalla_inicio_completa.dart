@@ -254,6 +254,10 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
               text: _soles(r.semanaSalioCentimos),
               style: const TextStyle(color: Colores.salida),
             ),
+            if (r.semanaAportesCentimos > 0) ...[
+              const TextSpan(text: Textos.semanaPusiste),
+              TextSpan(text: _soles(r.semanaAportesCentimos)),
+            ],
             if (r.semanaRetirosCentimos > 0) ...[
               const TextSpan(text: Textos.semanaRetiraste),
               TextSpan(

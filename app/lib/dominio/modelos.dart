@@ -71,7 +71,22 @@ enum TipoCuenta {
 enum TipoContraparte { cliente, proveedor }
 
 /// Ingreso, egreso o retiro del dueño. El retiro baja la caja pero no es gasto.
-enum TipoMovimiento { ingreso, egreso, retiro }
+enum TipoMovimiento {
+  ingreso,
+  egreso,
+  retiro,
+
+  /// Plata que el dueño puso de su bolsillo (entrega 14.11): sube la plata
+  /// del negocio, pero no es venta. Lo contrario del retiro.
+  aporte;
+
+  /// Lo que sube la plata: lo que entró y lo que puso el dueño.
+  bool get entraPlata => this == ingreso || this == aporte;
+
+  /// Plata entre el dueño y el negocio: no lleva categoría ni es venta ni
+  /// gasto.
+  bool get delDueno => this == retiro || this == aporte;
+}
 
 enum EstadoPago { pagado, pendiente, parcial }
 
@@ -95,6 +110,9 @@ enum OrigenLectura { qr, foto, sire }
 /// ajustan el saldo sin contar como gasto ni ingreso.
 enum MotivoArqueo {
   retiroParaMi,
+
+  /// Sobra plata porque el dueño la puso (entrega 14.11).
+  puseYo,
   gastoOlvidado,
   ventaNoAnotada,
   errorDeVuelto,

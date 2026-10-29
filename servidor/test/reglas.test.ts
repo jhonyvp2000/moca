@@ -109,6 +109,18 @@ describe('Reglas que la base hace cumplir', () => {
     ).rejects.toThrow(/duplicate key/);
   });
 
+  it('acepta «Puse de mi bolsillo» (aporte) y «La puse yo» (14.11)', async () => {
+    const id = randomUUID();
+    const { texto, valores } = insertar(id, { fuente: 'texto' });
+    await conEmpresa(base.pool, lucho, (c) =>
+      c.query(texto.replace("'ingreso'", "'aporte'"), valores),
+    );
+    const { rows } = await conEmpresa(base.pool, lucho, (c) =>
+      c.query('SELECT tipo FROM movimientos WHERE id = $1', [id]),
+    );
+    expect(rows).toEqual([{ tipo: 'aporte' }]);
+  });
+
   it('acepta los bancos (14.1) y las billeteras Plin (14.10), y nada fuera de la app', async () => {
     const tipos = ['interbank', 'bbva', 'scotiabank', 'otroBanco', 'bbvaPlin', 'scotiabankPlin'];
     for (const [orden, tipo] of tipos.entries()) {

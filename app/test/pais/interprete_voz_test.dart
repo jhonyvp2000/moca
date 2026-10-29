@@ -274,4 +274,30 @@ void main() {
       );
     });
   });
+
+  group('Entrega 14.11: puse de mi bolsillo', () {
+    test('Se reconoce y no pide categoría', () {
+      for (final frase in [
+        'puse 300 de mi bolsillo',
+        'metí 200 al negocio',
+        'aporté 150 en efectivo',
+      ]) {
+        final l = leer(frase);
+        expect(l.tipo, TipoMovimiento.aporte, reason: frase);
+        expect(l.categoria, isNull, reason: frase);
+      }
+      final l = leer('puse 300 de mi bolsillo en efectivo');
+      expect(partidas(l), [(30000, TipoCuenta.efectivo)]);
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: const {},
+          cuentasValidas: {TipoCuenta.efectivo},
+        ),
+        isNull,
+      );
+      // Un retiro sigue siendo retiro.
+      expect(leer('retiré 100 para mí').tipo, TipoMovimiento.retiro);
+    });
+  });
 }

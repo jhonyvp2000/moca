@@ -46,6 +46,7 @@ class InformeMes {
     required this.retirosCentimos,
     required this.ajustesCentimos,
     required this.gastos,
+    this.aportesCentimos = 0,
     required this.loQueDebesCentimos,
     required this.advertenciaMercaderia,
     this.desdeDia,
@@ -80,6 +81,9 @@ class InformeMes {
   final int salioCentimos;
   final int retirosCentimos;
 
+  /// Lo que el dueño puso de su bolsillo (entrega 14.11): no es venta.
+  final int aportesCentimos;
+
   /// Las diferencias del arqueo que cambiaron el saldo sin ser venta ni
   /// gasto: positivo si sobró plata.
   final int ajustesCentimos;
@@ -104,7 +108,11 @@ class InformeMes {
 
   /// Cuánto creció la plata en el mes; negativo si bajó.
   int get crecioCentimos =>
-      entroCentimos - salioCentimos - retirosCentimos + ajustesCentimos;
+      entroCentimos +
+      aportesCentimos -
+      salioCentimos -
+      retirosCentimos +
+      ajustesCentimos;
 
   /// La plata al terminar el mes; en el mes en curso, la de hoy.
   int get finCentimos => inicioCentimos + crecioCentimos;

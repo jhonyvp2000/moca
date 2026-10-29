@@ -58,6 +58,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     TipoMovimiento.ingreso: Textos.entro,
     TipoMovimiento.egreso: Textos.salio,
     TipoMovimiento.retiro: Textos.retiroParaMi,
+    TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
   };
 
   /// En una compra con comprobante, el monto y el tipo no se corrigen.
@@ -100,7 +101,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   bool get _completo =>
       _tipo != null &&
       _montoCentimos > 0 &&
-      (_tipo == TipoMovimiento.retiro || _categoriaId != null);
+      ((_tipo?.delDueno ?? false) || _categoriaId != null);
 
   /// Al corregir, si no cambió nada no se guarda nada.
   bool get _sinCambios {
@@ -109,7 +110,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     return _tipo == d.fila.tipo &&
         _montoCentimos == d.fila.montoCentimos &&
         _cuenta == d.fila.cuenta &&
-        (_tipo == TipoMovimiento.retiro || _categoriaId == d.categoriaId) &&
+        ((_tipo?.delDueno ?? false) || _categoriaId == d.categoriaId) &&
         (nota.isEmpty ? null : nota) == d.fila.nota;
   }
 
@@ -207,7 +208,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   @override
   Widget build(BuildContext context) {
     final tipo = _tipo;
-    final categorias = tipo == null || tipo == TipoMovimiento.retiro
+    final categorias = tipo == null || tipo.delDueno
         ? null
         : ref.watch(categoriasProvider(tipo)).value;
 
@@ -267,6 +268,10 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             const SizedBox(height: 8),
             const Text(Textos.retiroDetalle, style: Tipografia.secundario),
           ],
+          if (tipo == TipoMovimiento.aporte) ...[
+            const SizedBox(height: 8),
+            const Text(Textos.aporteDetalle, style: Tipografia.secundario),
+          ],
           const SizedBox(height: 18),
           GrupoMontos(
             filas: [
@@ -282,9 +287,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         ],
         const SizedBox(height: 18),
         Text(
-          tipo == TipoMovimiento.ingreso
-              ? Textos.aDondeEntro
-              : Textos.deDondeSalio,
+          tipo?.entraPlata ?? false ? Textos.aDondeEntro : Textos.deDondeSalio,
           style: etiqueta,
         ),
         const SizedBox(height: 8),
