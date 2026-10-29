@@ -199,7 +199,7 @@ Hasta que la Fase 0 defina las reales. «Retiro para mí» no es categoría: es 
 
 | Tipo | Entró | Salió |
 |---|---|---|
-| Todos | Venta del día, Otro ingreso | Alquiler; Servicios (luz, agua, internet, teléfono); Personal; Transporte; Mantenimiento y reparaciones; Impuestos y trámites; Otros |
+| Todos | Venta del día, Otro ingreso, Cobro de fiado, Ingreso ocasional | Alquiler; Servicios (luz, agua, internet, teléfono); Sueldos del personal; Movilidad del negocio; Flete; Publicidad; Contador o gestoría; Mantenimiento y reparaciones; Impuestos y trámites; Cuota de préstamo; Otros |
 | Bodega | — | Mercadería; Bolsas y envases |
 | Restaurante | — | Insumos de cocina; Bebidas; Gas; Descartables |
 | Servicios | — | Materiales; Herramientas y repuestos |
