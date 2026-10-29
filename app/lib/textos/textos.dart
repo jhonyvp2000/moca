@@ -662,6 +662,81 @@ abstract final class Textos {
       'mercadería sigue en tu tienda.';
   static const mesSinRegistros = 'En este mes no hay registros.';
   static const armandoPdf = 'Armando el PDF…';
+
+  // El PDF en tres versiones (entrega 14.12)
+  static const paraQuienEsPdf = '¿Para quién es el informe?';
+  static const pdfParaMi = 'Para mí';
+  static const pdfParaMiDetalle = 'Una hoja: cómo se movió tu plata.';
+  static const pdfParaContador = 'Para mi contador';
+  static const pdfParaContadorDetalle =
+      'Con lo que debes y los comprobantes del mes.';
+  static const pdfParaCredito = 'Para pedir un crédito';
+  static const pdfParaCreditoDetalle =
+      'Tus últimos meses, para una caja o un banco.';
+  static const etiquetaParaContador = 'Para el contador';
+  static const etiquetaParaCredito = 'Para evaluar un crédito';
+  static String periodoDelAl(DateTime desde, DateTime hasta) =>
+      desde.day == hasta.day && desde.month == hasta.month
+      ? 'El ${desde.day} de ${_mes(desde)} de ${desde.year}'
+      : 'Del ${desde.day} al ${hasta.day} de ${_mes(hasta)} de ${hasta.year}';
+  static String periodoDeMeses(DateTime desde, DateTime hasta) =>
+      desde.year == hasta.year
+      ? 'De ${_mes(desde)} a ${_mes(hasta)} de ${hasta.year}'
+      : 'De ${_mes(desde)} de ${desde.year} a ${_mes(hasta)} de ${hasta.year}';
+  static String _mes(DateTime d) => const [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'setiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ][d.month - 1];
+  static const aclaracionPdf =
+      'Flujo de caja: cómo se movió la plata. No es un estado financiero ni '
+      'reemplaza la contabilidad.';
+  static String paginaDe(int pagina, int total) => 'Página $pagina de $total';
+  static const cuantoHayHoyEnCadaCuenta = 'Cuánto hay hoy en cada cuenta';
+  static const cuantoHabiaAlCierre = 'Cuánto había en cada cuenta al cierre';
+  static const deDondeVino = 'De dónde vino la plata';
+  static const sinIngresos = 'En este periodo no entró plata.';
+  static const noDebesNada = 'No debes nada.';
+  static const columnaFecha = 'Fecha';
+  static const columnaProveedor = 'Proveedor';
+  static const columnaDetalle = 'Detalle';
+  static const columnaMonto = 'Monto';
+  static const columnaComprobante = 'Comprobante';
+  static const columnaRuc = 'RUC';
+  static const columnaIgv = 'IGV';
+  static const columnaTotal = 'Total';
+  static const columnaMes = 'Mes';
+  static const columnaEntro = 'Entró';
+  static const columnaPusiste = 'Pusiste';
+  static const columnaSalio = 'Salió';
+  static const columnaRetiraste = 'Retiraste';
+  static const columnaCrecio = 'Creció';
+  static const columnaAlCierre = 'Al cierre';
+  static const comprobantesDelMes = 'Comprobantes del mes';
+  static const sinComprobantes = 'En este mes no hay comprobantes.';
+  static const loDebesCorto = 'lo debes';
+  static String resumenDeMeses(int n) =>
+      n == 1 ? 'Resumen del mes' : 'Resumen de los últimos $n meses';
+  static const entroPorMes = 'Entró por mes, en promedio';
+  static const soloMesesCompletos =
+      'Solo con los meses completos (marcados sin *).';
+  static const mesIncompleto =
+      '* Mes incompleto: el primero con Moca o el que aún no termina.';
+  static const mesPorMes = 'Mes por mes';
+  static String confianzaEnUnaLinea(int a, int b, int c) =>
+      '$a% con comprobante · $b% con foto o captura · $c% sin papel';
+  static const notaCredito =
+      'Lo anotó el dueño en Moca, con su teléfono. No está verificado por '
+      'una entidad.';
   static const pdfNoSeArmo = 'No se pudo armar el PDF. Intenta otra vez.';
   static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
   static String hechoEl(String fecha) => 'Hecho el $fecha';

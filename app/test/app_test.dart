@@ -33,6 +33,7 @@ import 'package:moca/dominio/tutoria.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pais/peru/formato.dart';
+import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
 import 'package:moca/rutas.dart';
@@ -1737,28 +1738,42 @@ void main() {
       expect(find.text(Textos.sinPapel(100)), findsOneWidget);
     });
 
-    testWidgets('El PDF del informe se arma en el teléfono', (tester) async {
-      final base = await abrirApp(tester, listo: true);
+    testWidgets('El PDF del informe se arma en el teléfono, para quien '
+        'el dueño elija', (tester) async {
+      await abrirApp(tester, listo: true);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
       );
-      final informe = await tester.runAsync(
-        () =>
-            container.read(repositorioInformeProvider).observarMes(null).first,
-      );
-      final bytes = await tester.runAsync(
-        () => armarPdfDelInforme(
-          informe!,
-          nombreNegocio: 'Bodega Don Lucho',
-          hoy: _ahora,
-        ),
-      );
-      expect(String.fromCharCodes(bytes!.take(4)), '%PDF');
+      final repositorio = container.read(repositorioInformeProvider);
+      final bytes = await tester.runAsync(() async {
+        final informe = await repositorio.observarMes(null).first;
+        final detalle = await repositorio.detalleParaPdf(informe);
+        return [
+          for (final destino in DestinoInforme.values)
+            await armarPdfDelInforme(
+              informe,
+              detalle,
+              destino: destino,
+              nombreNegocio: 'Bodega Don Lucho',
+              hoy: _ahora,
+            ),
+        ];
+      });
+      for (final b in bytes!) {
+        expect(String.fromCharCodes(b.take(4)), '%PDF');
+      }
       expect(
         nombreDelPdf('Bodega Don Lucho', DateTime(2026, 10)),
         'Moca-Bodega-Don-Lucho-octubre-2026.pdf',
       );
-      expect(base, isNotNull);
+
+      // «Compartir PDF» pregunta para quién es.
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.compartirPdf));
+      expect(find.text(Textos.paraQuienEsPdf), findsOneWidget);
+      expect(find.text(Textos.pdfParaMi), findsOneWidget);
+      expect(find.text(Textos.pdfParaContador), findsOneWidget);
+      expect(find.text(Textos.pdfParaCredito), findsOneWidget);
     });
 
     testWidgets('Moca resume la semana y la lee en voz alta', (tester) async {

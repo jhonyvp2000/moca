@@ -1,3 +1,5 @@
+import 'modelos.dart';
+
 /// Una categoría en «En qué se fue la plata». Nulo en [nombre] es «Lo
 /// demás».
 class GastoPorCategoria {
@@ -118,7 +120,88 @@ class InformeMes {
   int get finCentimos => inicioCentimos + crecioCentimos;
 }
 
+/// Para quién es el PDF del informe (entrega 14.12): los mismos datos,
+/// distinto detalle.
+enum DestinoInforme { dueno, contador, credito }
+
+/// Una compra que todavía se debe.
+class DeudaPendiente {
+  const DeudaPendiente({
+    required this.fecha,
+    required this.centimos,
+    this.proveedor,
+    this.categoria,
+  });
+
+  final DateTime fecha;
+  final int centimos;
+  final String? proveedor;
+  final String? categoria;
+}
+
+/// Un comprobante del mes, por su fecha de emisión (para el contador).
+class ComprobanteDelMes {
+  const ComprobanteDelMes({
+    required this.fecha,
+    required this.totalCentimos,
+    required this.pagado,
+    this.tipo,
+    this.serie,
+    this.numero,
+    this.ruc,
+    this.proveedor,
+    this.igvCentimos,
+  });
+
+  final DateTime fecha;
+  final int totalCentimos;
+  final bool pagado;
+  final String? tipo;
+  final String? serie;
+  final String? numero;
+  final String? ruc;
+  final String? proveedor;
+  final int? igvCentimos;
+}
+
+/// Lo que el PDF muestra además del informe (entrega 14.12). Se calcula en
+/// el teléfono con lo anotado y las mismas reglas del informe.
+class DetalleParaPdf {
+  const DetalleParaPdf({
+    required this.desde,
+    required this.hasta,
+    required this.saldosAlCierre,
+    required this.ingresos,
+    required this.deudas,
+    required this.comprobantes,
+    required this.meses,
+  });
+
+  /// El primer y el último día que cubre el informe.
+  final DateTime desde;
+  final DateTime hasta;
+
+  /// Cuánto había en cada cuenta al terminar el periodo; suman
+  /// [InformeMes.finCentimos].
+  final Map<TipoCuenta, int> saldosAlCierre;
+
+  /// De dónde vino la plata que entró, por categoría.
+  final List<GastoPorCategoria> ingresos;
+
+  /// Todo lo que se debe hoy, de lo más antiguo a lo más nuevo.
+  final List<DeudaPendiente> deudas;
+
+  /// Los comprobantes emitidos en el mes.
+  final List<ComprobanteDelMes> comprobantes;
+
+  /// Hasta seis meses, del más antiguo al del informe (para un crédito).
+  final List<InformeMes> meses;
+}
+
 abstract interface class RepositorioInforme {
   /// El informe del mes que empieza en [mes]; nulo es el mes en curso.
   Stream<InformeMes> observarMes(DateTime? mes);
+
+  /// Lo que el PDF necesita además del informe.
+  Future<DetalleParaPdf> detalleParaPdf(InformeMes informe);
 }

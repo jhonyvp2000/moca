@@ -287,6 +287,153 @@ class RepositorioInformeLocal implements RepositorioInforme {
     );
   }
 
+  @override
+  Future<DetalleParaPdf> detalleParaPdf(InformeMes informe) async {
+    final ahora = _a.ahora();
+    final mes = informe.mes;
+    final finMes = DateTime(mes.year, mes.month + 1);
+    final desde = DateTime(mes.year, mes.month, informe.desdeDia ?? 1);
+    final hasta = informe.enCurso
+        ? inicioDelDia(ahora)
+        : finMes.subtract(const Duration(days: 1));
+
+    // Hasta seis meses, del más antiguo al del informe.
+    final meses = <InformeMes>[informe];
+    while (meses.length < 6 && meses.first.mesPrevio != null) {
+      meses.insert(0, await calcularMes(meses.first.mesPrevio));
+    }
+
+    final empresa = await _a.empresa();
+    if (empresa == null) {
+      return DetalleParaPdf(
+        desde: desde,
+        hasta: hasta,
+        saldosAlCierre: const {},
+        ingresos: const [],
+        deudas: const [],
+        comprobantes: const [],
+        meses: meses,
+      );
+    }
+    final cuentas = await _a.cuentas(empresa.id);
+    final vigentes = (await _a.movimientos(empresa.id))
+        .where((m) => m.estado == EstadoRegistro.vigente)
+        .toList();
+    final ajustes = await _a.ajustes(empresa.id);
+    final categorias = {
+      for (final c in await (_base.select(
+        _base.categorias,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+    final proveedores = {
+      for (final c in await (_base.select(
+        _base.contrapartes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+
+    // Cuánto había en cada cuenta al cerrar el periodo, con las reglas del
+    // saldo. En el mes en curso, lo de hoy.
+    final cierre = informe.enCurso ? null : finMes;
+    final saldos = <TipoCuenta, int>{};
+    for (final c in TipoCuenta.enOrden) {
+      for (final cuenta in cuentas.where((x) => x.tipo == c)) {
+        final inicio = cuenta.fechaSaldoInicial;
+        if (cierre != null && inicio != null && !inicio.isBefore(cierre)) {
+          continue;
+        }
+        saldos[c] = saldoDeCuenta(
+          saldoInicialCentimos: cuenta.saldoInicialCentimos,
+          fechaSaldoInicial: inicio,
+          movimientos: [
+            for (final m in vigentes)
+              if (m.cuentaId == cuenta.id &&
+                  (cierre == null || _fecha(m).isBefore(cierre)))
+                AccesoLocal.paraSaldo(m),
+            for (final a in ajustes)
+              if (a.cuentaId == cuenta.id &&
+                  (cierre == null || a.fecha.isBefore(cierre)))
+                a.paraSaldo,
+          ],
+        );
+      }
+    }
+
+    // De dónde vino la plata: lo que entró en el periodo, por categoría.
+    final ingresosPorCategoria = <String, int>{};
+    final hastaFlujo = informe.enCurso
+        ? hasta.add(const Duration(days: 1))
+        : finMes;
+    for (final m in vigentes) {
+      if (m.tipo != TipoMovimiento.ingreso ||
+          m.estadoPago != EstadoPago.pagado) {
+        continue;
+      }
+      final f = _fecha(m);
+      if (f.isBefore(mes) || !f.isBefore(hastaFlujo)) continue;
+      final nombre = categorias[m.categoriaId] ?? 'Otros';
+      ingresosPorCategoria[nombre] =
+          (ingresosPorCategoria[nombre] ?? 0) + m.montoCentimos;
+    }
+    final ingresos = [
+      for (final e in ingresosPorCategoria.entries)
+        GastoPorCategoria(nombre: e.key, centimos: e.value),
+    ]..sort((a, b) => b.centimos.compareTo(a.centimos));
+
+    // Lo que se debe hoy.
+    final deudas = [
+      for (final m in vigentes)
+        if (m.tipo == TipoMovimiento.egreso &&
+            m.estadoPago != EstadoPago.pagado)
+          DeudaPendiente(
+            fecha: m.fechaComprobante ?? m.fechaMovimiento,
+            centimos: m.montoCentimos - m.montoPagadoCentimos,
+            proveedor: proveedores[m.contraparteId],
+            categoria: categorias[m.categoriaId],
+          ),
+    ]..sort((a, b) => a.fecha.compareTo(b.fecha));
+
+    // Los comprobantes emitidos en el mes, con su movimiento vigente.
+    final porComprobante = {
+      for (final m in vigentes)
+        if (m.comprobanteId != null) m.comprobanteId!: m,
+    };
+    final comprobantes = <ComprobanteDelMes>[];
+    for (final c in await (_base.select(
+      _base.comprobantes,
+    )..where((c) => c.empresaId.equals(empresa.id))).get()) {
+      final m = porComprobante[c.id];
+      final fecha = c.fechaEmision ?? m?.fechaComprobante;
+      if (m == null || fecha == null) continue;
+      if (fecha.isBefore(mes) || !fecha.isBefore(finMes)) continue;
+      comprobantes.add(
+        ComprobanteDelMes(
+          fecha: fecha,
+          totalCentimos: m.montoCentimos,
+          pagado: m.estadoPago == EstadoPago.pagado,
+          tipo: c.tipo,
+          serie: c.serie,
+          numero: c.numero,
+          ruc: c.emisorIdentificacion,
+          proveedor: c.emisorNombre ?? proveedores[m.contraparteId],
+          igvCentimos: c.impuestoCentimos,
+        ),
+      );
+    }
+    comprobantes.sort((a, b) => a.fecha.compareTo(b.fecha));
+
+    return DetalleParaPdf(
+      desde: desde,
+      hasta: hasta,
+      saldosAlCierre: saldos,
+      ingresos: ingresos,
+      deudas: deudas,
+      comprobantes: comprobantes,
+      meses: meses,
+    );
+  }
+
   /// Porcentajes del monto por sustento, que suman 100 (resto mayor).
   static ConfianzaDelMes? _confianza(List<Movimiento> ms) {
     final montos = [0, 0, 0];

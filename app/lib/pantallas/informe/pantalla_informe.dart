@@ -32,13 +32,65 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
   DateTime? _mes;
   bool _armandoPdf = false;
 
+  /// Pregunta para quién es el PDF (entrega 14.12). Nulo si cierra la hoja.
+  Future<DestinoInforme?> _elegirDestino() => showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.only(bottom: 16),
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
+              Medidas.margenLateral,
+              0,
+              Medidas.margenLateral,
+              8,
+            ),
+            child: Text(
+              Textos.paraQuienEsPdf,
+              style: Tipografia.tituloPantalla,
+            ),
+          ),
+          for (final (destino, titulo, detalle) in const [
+            (DestinoInforme.dueno, Textos.pdfParaMi, Textos.pdfParaMiDetalle),
+            (
+              DestinoInforme.contador,
+              Textos.pdfParaContador,
+              Textos.pdfParaContadorDetalle,
+            ),
+            (
+              DestinoInforme.credito,
+              Textos.pdfParaCredito,
+              Textos.pdfParaCreditoDetalle,
+            ),
+          ])
+            ListTile(
+              minTileHeight: Medidas.objetivoTactilMinimo + 12,
+              title: Text(titulo, style: Tipografia.textoFuerte),
+              subtitle: Text(detalle, style: Tipografia.secundario),
+              onTap: () => Navigator.of(context).pop(destino),
+            ),
+        ],
+      ),
+    ),
+  );
+
   Future<void> _compartir(InformeMes informe) async {
     final mensajes = ScaffoldMessenger.of(context);
+    final destino = await _elegirDestino();
+    if (destino == null || !mounted) return;
     setState(() => _armandoPdf = true);
     try {
       final nombre = ref.read(resumenInicioProvider).value?.nombreNegocio ?? '';
+      final detalle = await ref
+          .read(repositorioInformeProvider)
+          .detalleParaPdf(informe);
       final ruta = await guardarPdfDelInforme(
         informe,
+        detalle,
+        destino: destino,
         nombreNegocio: nombre,
         hoy: ref.read(relojProvider)(),
       );
@@ -46,12 +98,13 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           .read(compartidorProvider)
           .compartirArchivo(
             ruta,
-            asunto: Textos.informeDe(
-              nombreDelMes(informe.mes),
-              informe.mes.year,
-            ),
+            asunto: destino == DestinoInforme.credito
+                ? Textos.resumenDeMeses(detalle.meses.length)
+                : Textos.informeDe(nombreDelMes(informe.mes), informe.mes.year),
           );
-      await ref.read(medicionProvider).anotar(EventoMedicion.pdfCompartido);
+      await ref.read(medicionProvider).anotar(EventoMedicion.pdfCompartido, {
+        'para': destino.name,
+      });
     } on Exception {
       mensajes.showSnackBar(const SnackBar(content: Text(Textos.pdfNoSeArmo)));
     } finally {
