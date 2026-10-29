@@ -29,6 +29,7 @@ import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
 import 'pantallas/equipo/pantalla_equipo.dart';
 import 'pantallas/equipo/pantalla_invitacion.dart';
 import 'pantallas/equipo/pantalla_invitar.dart';
+import 'pantallas/equipo/pantalla_negocios.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
 import 'tema/tipografia.dart';
@@ -72,6 +73,9 @@ abstract final class Rutas {
   static const corregir = '/movimiento/corregir';
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
+
+  /// «Mis negocios» (entrega 22).
+  static const negocios = '/negocios';
 
   /// «Mi equipo» (entrega 19).
   static const equipo = '/equipo';
@@ -130,6 +134,7 @@ final _rutasPorEtapa = {
     Rutas.cuentaCodigo,
     Rutas.equipo,
     Rutas.invitar,
+    Rutas.negocios,
   ],
 };
 
@@ -307,6 +312,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.cuentas,
       builder: (context, estado) => const PantallaMisCuentas(),
+    ),
+    GoRoute(
+      path: Rutas.negocios,
+      builder: (context, estado) => const PantallaNegocios(),
     ),
     GoRoute(
       path: Rutas.equipo,

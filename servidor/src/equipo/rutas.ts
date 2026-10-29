@@ -264,6 +264,14 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
     },
   );
 
+  // Los negocios de la persona, con su nombre y su rol (entrega 22): el
+  // contador puede estar en varios y elige cuál mirar.
+  app.get('/cuenta/negocios', async (peticion, respuesta) => {
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+    return { negocios: await negociosDe(pool, usuarioId) };
+  });
+
   // Las invitaciones que esperan a quien entró con su celular.
   app.get('/cuenta/invitaciones', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
@@ -401,3 +409,34 @@ async function aceptar(
   }
 }
 
+
+/** Los negocios activos del usuario, con su nombre y su rol. */
+export async function negociosDe(
+  pool: Pool,
+  usuarioId: string,
+): Promise<{ empresa_id: string; nombre: string; rol: Rol }[]> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+    const { rows } = await cliente.query<{ empresa_id: string; rol: Rol }>(
+      `SELECT empresa_id, rol FROM membresias
+        WHERE usuario_id = $1 AND quitada_en IS NULL
+        ORDER BY (rol = 'contador'), creado_en`,
+      [usuarioId],
+    );
+    const negocios = [];
+    for (const fila of rows) {
+      await cliente.query(`SELECT set_config('app.empresa_id', $1, true)`, [fila.empresa_id]);
+      const empresa = await cliente.query<{ nombre: string }>('SELECT nombre FROM empresas');
+      negocios.push({ ...fila, nombre: empresa.rows[0]?.nombre ?? '' });
+    }
+    await cliente.query('COMMIT');
+    return negocios;
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}

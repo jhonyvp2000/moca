@@ -263,14 +263,25 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     };
   }
 
+  /// La ruta con el negocio que se ve en el teléfono (`?empresa=`): quien
+  /// está en varios (el contador) habla siempre de ese (entrega 22).
+  Future<String> _delNegocio(String ruta) async {
+    final empresa = await _a.empresa();
+    if (empresa == null) return ruta;
+    return '$ruta${ruta.contains('?') ? '&' : '?'}empresa=${empresa.id}';
+  }
+
   /// Un pedido del equipo con la llave; nulo sin señal o sin llave.
   Future<http.Response?> _delEquipo(String ruta, [Object? cuerpo]) async {
     final llave = await _llavero.leer();
     if (llave == null || !await _hayConexion()) return null;
+    final conNegocio = ruta.startsWith('/equipo')
+        ? await _delNegocio(ruta)
+        : ruta;
     try {
       return cuerpo == null
-          ? await _pedir(ruta, llave)
-          : await _enviar(ruta, cuerpo, llave: llave);
+          ? await _pedir(conNegocio, llave)
+          : await _enviar(conNegocio, cuerpo, llave: llave);
     } on TimeoutException {
       return null;
     } on http.ClientException {
@@ -366,12 +377,74 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     if (r == null) return ResultadoEquipo.sinSenal;
     final resultado = _resultadoEquipo(r);
     if (resultado != ResultadoEquipo.listo) return resultado;
-    // Ya es parte del negocio: baja lo que su rol puede ver.
+    // Ya es parte del negocio: baja lo que su rol puede ver, de ese negocio.
+    final empresaId = _cuerpo(r)['empresa_id'];
+    if (empresaId is String) return cambiarDeNegocio(empresaId);
     return switch (await bajarTodo()) {
       ResultadoBajada.listo => ResultadoEquipo.listo,
       ResultadoBajada.sinSenal => ResultadoEquipo.sinSenal,
       _ => ResultadoEquipo.error,
     };
+  }
+
+  @override
+  Future<List<NegocioDelUsuario>?> misNegocios() async {
+    final r = await _delEquipo('/cuenta/negocios');
+    if (r == null || r.statusCode != 200) return null;
+    final actual = (await _a.empresa())?.id;
+    return [
+      for (final n in (_cuerpo(r)['negocios'] as List? ?? const []))
+        if (n case final Map<String, Object?> n)
+          NegocioDelUsuario(
+            empresaId: n['empresa_id']! as String,
+            nombre: n['nombre'] as String? ?? '',
+            rol: _rol(n['rol']),
+            actual: n['empresa_id'] == actual,
+          ),
+    ];
+  }
+
+  @override
+  Future<ResultadoEquipo> cambiarDeNegocio(String empresaId) async {
+    final llave = await _llavero.leer();
+    final celular =
+        _celularPorEntrar ??
+        await _a.leerAjuste(AccesoLocal.claveCuentaVerificada);
+    if (llave == null || celular == null) return ResultadoEquipo.error;
+    if (!await _hayConexion()) return ResultadoEquipo.sinSenal;
+    // Lo de este teléfono que falta subir, antes de reemplazarlo: un dueño
+    // que también es contador de otro negocio no pierde nada.
+    if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) != null &&
+        await hayCambiosSinSubir() &&
+        !await subirTodo()) {
+      return ResultadoEquipo.sinSenal;
+    }
+    final http.Response respuesta;
+    try {
+      respuesta = await _pedir('/datos/bajar?empresa=$empresaId', llave);
+    } on TimeoutException {
+      return ResultadoEquipo.sinSenal;
+    } on http.ClientException {
+      return ResultadoEquipo.sinSenal;
+    }
+    if (respuesta.statusCode != 200) return ResultadoEquipo.error;
+    final cuerpo = _cuerpo(respuesta);
+    final datos = cuerpo['datos'];
+    if (datos is! Map<String, Object?>) return ResultadoEquipo.sinPermiso;
+    await _guardarBajada(datos, celular);
+    await _guardarCifras(cuerpo, await _a.huella());
+    _celularPorEntrar = null;
+    return ResultadoEquipo.listo;
+  }
+
+  @override
+  Future<List<InvitacionRecibida>?> buscarInvitaciones() async {
+    final r = await _delEquipo('/cuenta/invitaciones');
+    if (r == null || r.statusCode != 200) return null;
+    return _invitaciones = [
+      for (final i in (_cuerpo(r)['invitaciones'] as List? ?? const []))
+        _invitacionRecibida(i as Map<String, Object?>),
+    ];
   }
 
   /// El celular con el que se entró, mientras se bajan los datos.
@@ -684,7 +757,7 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     _pidiendoCifras = true;
     try {
       final huella = await _a.huella();
-      final respuesta = await _pedir('/cifras', llave);
+      final respuesta = await _pedir(await _delNegocio('/cifras'), llave);
       if (respuesta.statusCode == 401) {
         await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
         return;
@@ -722,7 +795,10 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     _trayendo = true;
     try {
       final desde = int.tryParse(await _a.leerAjuste(_claveDesde) ?? '') ?? 0;
-      final respuesta = await _pedir('/datos/cambios?desde=$desde', llave);
+      final respuesta = await _pedir(
+        await _delNegocio('/datos/cambios?desde=$desde'),
+        llave,
+      );
       if (respuesta.statusCode == 401) {
         await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
         return false;

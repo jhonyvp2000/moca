@@ -181,6 +181,14 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               detalle: Textos.miEquipoDetalle,
               ruta: Rutas.equipo,
             ),
+            // Para el contador de varios negocios, o si lo invitaron a otro
+            // (entrega 22).
+            const SizedBox(height: Medidas.separacionTarjetas),
+            const _Enlace(
+              titulo: Textos.misNegocios,
+              detalle: Textos.misNegociosDetalle,
+              ruta: Rutas.negocios,
+            ),
           ],
         ],
       ),

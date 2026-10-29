@@ -98,6 +98,24 @@ class InvitacionRecibida {
   final DateTime venceEn;
 }
 
+/// Un negocio en el que está la persona (entrega 22): el contador puede
+/// estar en varios y elige cuál mirar.
+class NegocioDelUsuario {
+  const NegocioDelUsuario({
+    required this.empresaId,
+    required this.nombre,
+    required this.rol,
+    this.actual = false,
+  });
+
+  final String empresaId;
+  final String nombre;
+  final Rol rol;
+
+  /// El que se ve ahora en este teléfono.
+  final bool actual;
+}
+
 enum ResultadoEquipo {
   listo,
   sinSenal,
@@ -146,6 +164,17 @@ abstract interface class ServicioEquipo {
   /// Acepta, con el consentimiento de la Ley 29733, y baja lo del negocio
   /// que su rol puede ver.
   Future<ResultadoEquipo> aceptar(String invitacionId);
+
+  /// Los negocios de la persona (entrega 22). Nulo sin señal.
+  Future<List<NegocioDelUsuario>?> misNegocios();
+
+  /// Pasa a ver otro de sus negocios: lo baja y reemplaza lo del teléfono
+  /// (el contador solo mira, no hay nada propio que perder).
+  Future<ResultadoEquipo> cambiarDeNegocio(String empresaId);
+
+  /// Las invitaciones que esperan, para aceptarlas desde la app (entrega
+  /// 22). Nulo sin señal.
+  Future<List<InvitacionRecibida>?> buscarInvitaciones();
 }
 
 /// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega

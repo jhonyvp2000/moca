@@ -243,6 +243,19 @@ abstract final class Textos {
   static String pase(String de, String a) => '$de → $a';
   static const paseNoCuenta = 'Pase entre cuentas';
 
+  // Mis negocios (entrega 22)
+  static const misNegocios = 'Mis negocios';
+  static const misNegociosDetalle =
+      'Si eres contador de varios, o te invitaron a otro';
+  static const estasAqui = 'Estás aquí';
+  static const verEsteNegocio = 'Ver';
+  static String cambiandoA(String negocio) => 'Cambiando a $negocio…';
+  static String ahoraVes(String negocio) => 'Listo. Ahora ves $negocio.';
+  static const necesitasSenalParaNegocios =
+      'Necesitas señal para ver y cambiar de negocio.';
+  static const aceptar = 'Aceptar';
+  static const teInvitaronA = 'Te invitaron';
+
   // Cajas (entrega 21)
   static const agregarUnaCaja = '¿Tienes otra caja de efectivo?';
   static const otraCaja = 'Otra caja';

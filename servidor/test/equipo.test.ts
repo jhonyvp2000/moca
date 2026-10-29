@@ -515,6 +515,15 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect((await aceptarPrimera(carmen)).statusCode).toBe(200);
     expect((await bajar(carmen, otro.ids.empresa)).datos.empresa.nombre).toBe('Restaurante Marta');
     expect((await bajar(carmen, lucy.ids.empresa)).datos.empresa.nombre).toBe('Bodega Don Lucho');
+    // Sus negocios, para elegir cuál mirar (entrega 22).
+    const { negocios } = (await pedir(carmen, 'GET', '/cuenta/negocios')).json();
+    expect(negocios.map((n: { nombre: string; rol: string }) => [n.nombre, n.rol])).toEqual([
+      ['Bodega Don Lucho', 'contador'],
+      ['Restaurante Marta', 'contador'],
+    ]);
+    // Y lo nuevo de cada uno, aparte.
+    const deMarta = (await pedir(carmen, 'GET', `/datos/cambios?desde=0&empresa=${otro.ids.empresa}`)).json();
+    expect(deMarta.empresa_id).toBe(otro.ids.empresa);
 
     // Pepe, en cambio, ya tiene negocio.
     await pedir(marta, 'POST', '/equipo/invitar', { celular: '987000003', rol: 'ayudante' });

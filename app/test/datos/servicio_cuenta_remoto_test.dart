@@ -21,6 +21,7 @@ import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/demo.dart';
 import 'package:moca/dominio/cifras.dart';
 import 'package:moca/dominio/cuenta_real.dart';
+import 'package:moca/dominio/equipo.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
@@ -43,6 +44,11 @@ void main() {
   final ahora = DateTime(2026, 10, 12, 21, 5);
 
   Map<String, Object?>? paraBajar;
+
+  /// Lo que responde «/cuenta/negocios» (entrega 22) y de qué negocio se
+  /// pidió cada bajada.
+  List<Map<String, Object?>>? negocios;
+  final bajadasPedidas = <String?>[];
 
   /// Lo que responde «/datos/cambios» (entrega 18) y desde qué cambio se
   /// pidió cada vez.
@@ -72,8 +78,15 @@ void main() {
         }),
         200,
       ),
-      '/datos/bajar' => http.Response(
-        jsonEncode({'datos': paraBajar, 'cifras': cifrasDelServidor}),
+      '/datos/bajar' => () {
+        bajadasPedidas.add(pedido.url.queryParameters['empresa']);
+        return http.Response(
+          jsonEncode({'datos': paraBajar, 'cifras': cifrasDelServidor}),
+          200,
+        );
+      }(),
+      '/cuenta/negocios' => http.Response(
+        jsonEncode({'negocios': negocios}),
         200,
       ),
       '/datos/subir' => () {
@@ -124,13 +137,16 @@ void main() {
     return todo;
   }
 
-  Future<void> primerDia() async {
-    final repo = RepositorioPrimerDiaLocal(base, ahora: () => ahora);
+  Future<void> primerDia({
+    BaseLocal? en,
+    String nombre = 'Bodega Don Lucho',
+  }) async {
+    final repo = RepositorioPrimerDiaLocal(en ?? base, ahora: () => ahora);
     await repo.anotarPrimeraVenta({TipoCuenta.efectivo: 35000});
     await repo.seguirSinCuenta();
     await repo.completarAlta(
-      const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+      DatosAlta(
+        nombre: nombre,
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 100000},
         horaCierreMinutos: 21 * 60,
@@ -143,6 +159,8 @@ void main() {
     llavero = _Llavero();
     subidas = [];
     cambios = null;
+    negocios = null;
+    bajadasPedidas.clear();
     codigoCambios = 200;
     pedidosDeCambios.clear();
     cifrasDelServidor = null;
@@ -810,5 +828,82 @@ void main() {
       expect(await servicio.subirTodo(), isFalse);
       expect(subidas, hasLength(antes));
     });
+  });
+
+  test('Entrega 22: el contador pasa a ver otro de sus negocios, sin perder '
+      'lo que falta subir', () async {
+    await primerDia();
+    await servicio.verificar('987654321', '123456');
+    expect(await servicio.subirTodo(), isTrue);
+    final mio = (await base.select(base.empresas).getSingle()).id;
+
+    // El otro negocio, armado en otro teléfono y subido al mismo servidor.
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+    final otraBase = BaseLocal(NativeDatabase.memory());
+    addTearDown(otraBase.close);
+    await primerDia(en: otraBase, nombre: 'Pollería Rosa');
+    final otro = ServicioCuentaRemoto(
+      otraBase,
+      llavero: _Llavero(),
+      cliente: MockClient(servidor),
+      ahora: () => ahora,
+    );
+    await otro.verificar('912345678', '123456');
+    await otro.subirTodo();
+    final rosa = (await otraBase.select(otraBase.empresas).getSingle()).id;
+    final yo = await AccesoLocal(base, () => ahora).usuario();
+    paraBajar = {
+      ...subidas.last,
+      'usuario': {'id': yo.id, 'celular': '+51987654321'},
+      'membresia': {
+        'id': '0f0e0d0c-0000-4000-8000-0000000000dd',
+        'empresa_id': rosa,
+        'rol': 'contador',
+      },
+      'hasta': 70,
+    };
+    negocios = [
+      {'empresa_id': mio, 'nombre': 'Bodega Don Lucho', 'rol': 'dueno'},
+      {'empresa_id': rosa, 'nombre': 'Pollería Rosa', 'rol': 'contador'},
+    ];
+
+    final lista = (await servicio.misNegocios())!;
+    expect(lista.map((n) => (n.nombre, n.rol, n.actual)), [
+      ('Bodega Don Lucho', Rol.dueno, true),
+      ('Pollería Rosa', Rol.contador, false),
+    ]);
+
+    // Algo de este teléfono que falta subir...
+    final venta = (await (base.select(
+      base.categorias,
+    )..where((c) => c.nombre.equals('Venta del día'))).getSingle()).id;
+    await RepositorioMovimientosLocal(base, ahora: () => ahora).registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 4200,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: venta,
+      ),
+    );
+    final antes = subidas.length;
+    expect(await servicio.cambiarDeNegocio(rosa), ResultadoEquipo.listo);
+    // ...sube antes de que se reemplace.
+    expect(subidas.length, antes + 1);
+    expect(
+      (subidas[antes]['movimientos']! as List).map(
+        (m) => (m as Map)['monto_centimos'],
+      ),
+      contains(4200),
+    );
+    expect(bajadasPedidas.last, rosa);
+
+    final acceso = AccesoLocal(base, () => ahora);
+    expect((await acceso.empresa())!.nombre, 'Pollería Rosa');
+    expect(await acceso.miRol(), Rol.contador);
+    expect(await servicio.hayCambiosSinSubir(), isFalse);
+    // Lo que sigue se pide de ese negocio, desde donde quedó la bajada.
+    cambios = {'empresa_id': rosa, 'rol': 'contador', 'hasta': 70};
+    await servicio.traerCambios();
+    expect(pedidosDeCambios.last, '70');
   });
 }
