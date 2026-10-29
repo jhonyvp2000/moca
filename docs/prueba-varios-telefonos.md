@@ -1,6 +1,6 @@
 # Prueba con varios teléfonos (entrega 23)
 
-Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22, antes de los 10 pilotos. La parte que se hace con un solo teléfono («Ver como…» y «Simular una venta de Pepe» en el ajuste oculto) ya está en la entrega 20.1.
+Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22 y el borrado del negocio de la 16.1, antes de los 10 pilotos. La parte que se hace con un solo teléfono («Ver como…» y «Simular una venta de Pepe» en el ajuste oculto) ya está en la entrega 20.1.
 
 ## Qué hace falta
 
@@ -114,13 +114,27 @@ B deja de ser ayudante y abre su propio negocio; luego A lo invita como contador
 | 8.9 | B | Sin señal, abre «Mis negocios» | Dice que necesita señal y ofrece «Intentar otra vez» |
 | 8.10 | B | Con señal, vuelve al negocio de A | Ve lo último que anotó A |
 
-## 9. Al terminar
+## 9. Borrar un negocio (entrega 16.1)
+
+B sigue viendo el negocio de A como contador, después de la sección 8. Se borra «Prueba B», el negocio de B; el de A no se toca.
 
 | # | Teléfono | Qué hacer | Qué debe pasar |
 |---|---|---|---|
-| 9.1 | A | Quita a B del equipo | Solo queda A |
-| 9.2 | A | Revisa el Historial desde la hora del paso 0.3 | Están las ventas, gastos y pases de la prueba con su autor. Deshaz los que no quieras dejar en el negocio |
-| 9.3 | B | Si el teléfono no es tuyo: ajuste oculto → «Borrar todo y empezar de nuevo» y desinstalar | Moca sale del teléfono prestado |
+| 9.1 | B | Pestaña Moca, hasta el final | No aparece «Borrar mi negocio y mis datos»: en el negocio de A, B es contador |
+| 9.2 | A | Pestaña Moca, hasta el final | Aparece «Borrar mi negocio y mis datos», porque A es el titular. **No lo uses** |
+| 9.3 | B | «Mis negocios» → «Ver» en «Prueba B»; luego, pestaña Moca hasta el final | Ahora sí aparece «Borrar mi negocio y mis datos» |
+| 9.4 | B | Entra. Escribe «BORRA» y luego «BORRAR» | El botón «Borrar para siempre» se enciende solo con «BORRAR» |
+| 9.5 | B | Apaga datos y wifi; toca «Borrar para siempre» | «Necesitas señal para borrar en el servidor. No se borró nada.» |
+| 9.6 | B | Prende la señal y toca otra vez «Borrar para siempre» | «Se borró todo, también en el servidor.» y vuelve a la Bienvenida |
+| 9.7 | A | Sale y vuelve a la app; Historial y «Mi equipo» | Su negocio sigue igual. B sigue en el equipo como Contador: borrar «Prueba B» no lo saca del negocio de A |
+
+## 10. Al terminar
+
+| # | Teléfono | Qué hacer | Qué debe pasar |
+|---|---|---|---|
+| 10.1 | A | Quita a B del equipo | Solo queda A |
+| 10.2 | A | Revisa el Historial desde la hora del paso 0.3 | Están las ventas, gastos y pases de la prueba con su autor. Deshaz los que no quieras dejar en el negocio |
+| 10.3 | B | Si el teléfono no es tuyo, desinstala Moca | Moca sale del teléfono prestado; lo de B ya se borró en el 9.6 |
 
 ## Cómo anotar lo que salga mal
 
