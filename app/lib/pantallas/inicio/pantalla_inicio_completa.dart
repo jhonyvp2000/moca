@@ -23,6 +23,7 @@ class PantallaInicioCompleta extends StatefulWidget {
     required this.alHacerArqueo,
     this.aviso,
     this.tarjetaAvisos,
+    this.actualizado,
   });
 
   final ResumenInicio resumen;
@@ -34,6 +35,9 @@ class PantallaInicioCompleta extends StatefulWidget {
 
   /// El permiso de avisos, si falta pedirlo.
   final Widget? tarjetaAvisos;
+
+  /// «Actualizado hace 5 min», si hay varias personas (entrega 18).
+  final String? actualizado;
 
   @override
   State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
@@ -66,9 +70,16 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    r.nombreNegocio,
-                    style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        r.nombreNegocio,
+                        style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+                      ),
+                      if (widget.actualizado case final texto?)
+                        Text(texto, style: Tipografia.secundario),
+                    ],
                   ),
                 ),
                 _BotonOjo(

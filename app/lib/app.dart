@@ -61,10 +61,21 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     }, fireImmediately: true);
     // Con cuenta, lo anotado se sube solo unos segundos después de cada
     // cambio, al abrir la app y al volver a ella (entrega 11).
+    // Desde la entrega 18 también baja lo que anotaron los demás: al abrir,
+    // al volver a la app y cada pocos minutos.
     ref.listenManual(situacionCuentaProvider, (_, situacion) {
-      if (situacion.value?.estado != EstadoCuenta.guardada) return;
+      if (situacion.value?.estado != EstadoCuenta.guardada) {
+        _paraTraer?.cancel();
+        _paraTraer = null;
+        return;
+      }
+      _paraTraer ??= Timer.periodic(cadaCuantoTraer, (_) => _sincronizar());
       _subida?.cancel();
-      _subida = Timer(esperaParaSubir, _subirSiHaceFalta);
+      // La primera vez, tras la espera, también baja lo de los demás.
+      _subida = Timer(
+        esperaParaSubir,
+        () => _yaTrajo ? _subirSiHaceFalta() : _sincronizar(),
+      );
     }, fireImmediately: true);
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);
@@ -73,6 +84,21 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   /// Tiempo sin cambios antes de subir: junta varios registros seguidos.
   static const esperaParaSubir = Duration(seconds: 5);
   Timer? _subida;
+
+  /// Cada cuánto se baja lo de los demás con la app abierta (entrega 18).
+  static const cadaCuantoTraer = Duration(minutes: 5);
+  Timer? _paraTraer;
+
+  bool _yaTrajo = false;
+
+  /// Sube lo propio, baja lo de los demás y, si hace falta, pide las cifras.
+  Future<void> _sincronizar() async {
+    _yaTrajo = true;
+    final servicio = ref.read(servicioCuentaProvider);
+    if (await servicio.hayCambiosSinSubir()) await servicio.subirTodo();
+    await servicio.traerCambios();
+    await servicio.actualizarCifras();
+  }
 
   Future<void> _subirSiHaceFalta() async {
     final servicio = ref.read(servicioCuentaProvider);
@@ -91,6 +117,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     if (estado == AppLifecycleState.resumed) {
       final base = ref.read(baseLocalProvider);
       base.markTablesUpdated(base.allTables);
+      if (_paraTraer != null) _sincronizar();
     }
   }
 
@@ -151,6 +178,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _subida?.cancel();
+    _paraTraer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _rutas.dispose();
     _etapa.dispose();

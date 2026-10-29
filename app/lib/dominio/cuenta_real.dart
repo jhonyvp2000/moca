@@ -40,6 +40,10 @@ enum EstadoCuenta {
   /// La cuenta se abrió en otro teléfono: este ya no sube nada (un teléfono
   /// por cuenta, entrega 12).
   cerradaEnOtro,
+
+  /// Un dueño lo quitó del negocio: este teléfono ya no sube ni baja nada
+  /// de ese negocio (entrega 18). Lo que anotó se queda allá.
+  fueraDelNegocio,
 }
 
 class SituacionCuenta {
@@ -47,6 +51,8 @@ class SituacionCuenta {
     required this.estado,
     this.celular,
     this.mostrarTarjeta = false,
+    this.actualizadoEn,
+    this.variasPersonas = false,
   });
 
   final EstadoCuenta estado;
@@ -57,6 +63,13 @@ class SituacionCuenta {
   /// La tarjeta de la pestaña Moca: al confirmar el número, o a los tres
   /// días de seguir sin cuenta.
   final bool mostrarTarjeta;
+
+  /// La última vez que bajó lo de los demás (entrega 18).
+  final DateTime? actualizadoEn;
+
+  /// Si en el negocio hay más de una persona: entonces el Inicio dice
+  /// cuándo se actualizó.
+  final bool variasPersonas;
 }
 
 /// La cuenta real del dueño (docs/v1-real.md, entrega 11).
@@ -92,12 +105,18 @@ abstract interface class ServicioCuenta {
 
   Stream<SituacionCuenta> observar();
 
-  /// Sube todo lo anotado. Devuelve si se subió; si no, se reintenta
+  /// Sube lo anotado o cambiado que el servidor todavía no tiene (desde la
+  /// entrega 18, solo eso). Devuelve si se subió; si no, se reintenta
   /// después. Repetirlo no duplica nada.
   Future<bool> subirTodo();
 
   /// Si hay algo anotado o cambiado que el servidor todavía no tiene.
   Future<bool> hayCambiosSinSubir();
+
+  /// Baja lo nuevo que anotaron los demás desde la última vez (entrega 18).
+  /// Lo que este teléfono todavía no subió no se pisa. Devuelve si bajó
+  /// algo.
+  Future<bool> traerCambios();
 
   /// Pide al servidor las cifras de lo que ya tiene, si las del teléfono no
   /// valen (otro día o algo cambió). Con algo por subir no hace nada: las

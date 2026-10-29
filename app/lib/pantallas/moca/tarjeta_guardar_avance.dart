@@ -22,19 +22,29 @@ class TarjetaGuardarAvance extends ConsumerWidget {
     if (situacion == null || !situacion.mostrarTarjeta) {
       return const SizedBox.shrink();
     }
-    if (situacion.estado == EstadoCuenta.cerradaEnOtro) {
-      return const Padding(
-        padding: EdgeInsets.only(bottom: 18),
+    // La cuenta se abrió en otro teléfono, o un dueño lo quitó del negocio
+    // (entrega 18): este teléfono ya no sube nada.
+    if (switch (situacion.estado) {
+          EstadoCuenta.cerradaEnOtro => (
+            Textos.cuentaAbiertaEnOtro,
+            Textos.cuentaAbiertaEnOtroDetalle,
+          ),
+          EstadoCuenta.fueraDelNegocio => (
+            Textos.fueraDelNegocio,
+            Textos.fueraDelNegocioDetalle,
+          ),
+          _ => null,
+        }
+        case (final titulo, final detalle)) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 18),
         child: Tarjeta(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(Textos.cuentaAbiertaEnOtro, style: Tipografia.tituloTarjeta),
-              SizedBox(height: 4),
-              Text(
-                Textos.cuentaAbiertaEnOtroDetalle,
-                style: Tipografia.secundario,
-              ),
+              Text(titulo, style: Tipografia.tituloTarjeta),
+              const SizedBox(height: 4),
+              Text(detalle, style: Tipografia.secundario),
             ],
           ),
         ),

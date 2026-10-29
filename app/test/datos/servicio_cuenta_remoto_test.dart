@@ -43,6 +43,12 @@ void main() {
 
   Map<String, Object?>? paraBajar;
 
+  /// Lo que responde «/datos/cambios» (entrega 18) y desde qué cambio se
+  /// pidió cada vez.
+  Map<String, Object?>? cambios;
+  var codigoCambios = 200;
+  final pedidosDeCambios = <String?>[];
+
   /// Las cifras que responde el servidor (entrega 13), y cuántas veces se
   /// pidieron aparte.
   Map<String, Object?>? cifrasDelServidor;
@@ -79,12 +85,42 @@ void main() {
           200,
         );
       }(),
+      '/datos/cambios' => () {
+        pedidosDeCambios.add(pedido.url.queryParameters['desde']);
+        return http.Response(
+          jsonEncode(codigoCambios == 200 ? cambios : {'error': 'sin_negocio'}),
+          codigoCambios,
+        );
+      }(),
       '/cifras' => () {
         pedidosDeCifras++;
         return http.Response(jsonEncode({'cifras': cifrasDelServidor}), 200);
       }(),
       _ => http.Response('', 404),
     };
+  }
+
+  /// Todo lo que tiene el servidor falso: desde la entrega 18 cada subida
+  /// trae solo lo que cambió, y el servidor lo junta por id.
+  Map<String, Object?> todoLoSubido() {
+    final todo = <String, Object?>{};
+    final porTabla = <String, Map<Object?, Object?>>{};
+    for (final subida in subidas) {
+      for (final MapEntry(key: tabla, value: valor) in subida.entries) {
+        if (valor is List) {
+          final filas = porTabla.putIfAbsent(tabla, () => {});
+          for (final f in valor) {
+            filas[(f as Map)['id']] = f;
+          }
+        } else {
+          todo[tabla] = valor;
+        }
+      }
+    }
+    for (final MapEntry(key: tabla, value: filas) in porTabla.entries) {
+      todo[tabla] = filas.values.toList();
+    }
+    return todo;
   }
 
   Future<void> primerDia() async {
@@ -105,6 +141,9 @@ void main() {
     base = BaseLocal(NativeDatabase.memory());
     llavero = _Llavero();
     subidas = [];
+    cambios = null;
+    codigoCambios = 200;
+    pedidosDeCambios.clear();
     cifrasDelServidor = null;
     pedidosDeCifras = 0;
     servicio = ServicioCuentaRemoto(
@@ -505,17 +544,15 @@ void main() {
         final subida = alertas.single as Map;
         expect(subida['clave'], aviso.clave);
         expect(subida['estado'], 'vista');
-        // El mismo id cada vez: repetir la subida no duplica.
+        // Repetir la subida no lo manda otra vez: ya está en el servidor
+        // (entrega 18).
         await servicio.subirTodo();
-        expect(
-          ((subidas.last['alertas']! as List).single as Map)['id'],
-          subida['id'],
-        );
+        expect(subidas.last['alertas'], isEmpty);
 
         final original = AccesoLocal(base, () => ahora);
         final membresia = await base.select(base.membresias).getSingle();
         paraBajar = {
-          ...subidas.last,
+          ...todoLoSubido(),
           'usuario': {'id': (await original.usuario()).id},
           'membresia': {
             'id': membresia.id,
@@ -567,7 +604,7 @@ void main() {
 
     final membresia = await base.select(base.membresias).getSingle();
     paraBajar = {
-      ...subidas.last,
+      ...todoLoSubido(),
       'usuario': {'id': (await AccesoLocal(base, () => ahora).usuario()).id},
       'membresia': {
         'id': membresia.id,
@@ -588,11 +625,176 @@ void main() {
     expect(await otro.bajarTodo(), ResultadoBajada.listo);
     final estado = await RepositorioTutoriaLocal(otraBase).observar().first;
     expect(estado.vistos, {VideoTutoria.arqueo});
-    // Con el mismo id: volver a subir no lo repite en el servidor.
+    // Lo que bajó ya está en el servidor: volver a subir no lo repite.
     await otro.subirTodo();
-    expect(
-      ((subidas.last['videos_vistos']! as List).single as Map)['id'],
-      visto['id'],
+    expect(subidas.last['videos_vistos'], isEmpty);
+    expect(visto['id'], isNotNull);
+  });
+
+  group('Entrega 18: varias personas, cada una con su teléfono', () {
+    late String empresaId;
+    late String efectivo;
+    late String venta;
+
+    Map<String, Object?> movimiento(
+      String id, {
+      required String autor,
+      int monto = 5000,
+      String estado = 'vigente',
+    }) => {
+      'id': id,
+      'tipo': 'ingreso',
+      'cuenta_id': efectivo,
+      'monto_centimos': monto,
+      'fecha_movimiento': ahora.toUtc().toIso8601String(),
+      'fecha_comprobante': null,
+      'estado_pago': 'pagado',
+      'monto_pagado_centimos': monto,
+      'fecha_vencimiento': null,
+      'fecha_pago': ahora.toUtc().toIso8601String(),
+      'categoria_id': venta,
+      'contraparte_id': null,
+      'comprobante_id': null,
+      'nivel_confianza': 'd',
+      'fuente': 'voz',
+      'autor_id': autor,
+      'nota': null,
+      'estado': estado,
+      'reemplaza_a': null,
+      'creado_en': ahora.toUtc().toIso8601String(),
+    };
+
+    setUp(() async {
+      await primerDia();
+      await servicio.verificar('987654321', '123456');
+      expect(await servicio.subirTodo(), isTrue);
+      empresaId = (await base.select(base.empresas).getSingle()).id;
+      efectivo = (await (base.select(
+        base.cuentas,
+      )..where((c) => c.tipo.equalsValue(TipoCuenta.efectivo))).getSingle()).id;
+      venta = (await (base.select(
+        base.categorias,
+      )..where((c) => c.nombre.equals('Venta del día'))).getSingle()).id;
+    });
+
+    test(
+      'Después de la primera, cada subida lleva solo lo que cambió',
+      () async {
+        expect(subidas.single['movimientos'], hasLength(1));
+        await RepositorioMovimientosLocal(base, ahora: () => ahora).registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 2000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: venta,
+          ),
+        );
+        expect(await servicio.subirTodo(), isTrue);
+        final segunda = subidas.last;
+        expect(segunda['movimientos'], hasLength(1));
+        expect(
+          (segunda['movimientos']! as List).single,
+          containsPair('monto_centimos', 2000),
+        );
+        expect(segunda['cuentas'], isEmpty);
+        expect(segunda['categorias'], isEmpty);
+        // La empresa va siempre: el servidor la necesita.
+        expect((segunda['empresa']! as Map)['id'], empresaId);
+      },
     );
+
+    test('Baja lo de los demás, sin pisar lo que falta subir', () async {
+      const pepe = '0f0e0d0c-0000-4000-8000-0000000000aa';
+      const deMiTelefono = '0f0e0d0c-0000-4000-8000-0000000000bb';
+      // Este teléfono anotó algo que todavía no subió...
+      await base
+          .into(base.movimientos)
+          .insert(
+            MovimientosCompanion.insert(
+              id: deMiTelefono,
+              empresaId: empresaId,
+              tipo: TipoMovimiento.ingreso,
+              cuentaId: efectivo,
+              montoCentimos: 7000,
+              fechaMovimiento: ahora,
+              estadoPago: EstadoPago.pagado,
+              montoPagadoCentimos: 7000,
+              categoriaId: Value(venta),
+              nivelConfianza: NivelConfianza.d,
+              fuente: Fuente.texto,
+              autorId: (await base.select(base.usuarios).getSingle()).id,
+              estado: EstadoRegistro.vigente,
+              estadoSincronizacion: EstadoSincronizacion.porSubir,
+              creadoEn: ahora,
+            ),
+          );
+      // ...y del servidor llega la venta de Pepe y otra versión de la suya.
+      cambios = {
+        'empresa_id': empresaId,
+        'rol': 'dueno',
+        'titular': true,
+        'personas': 2,
+        'hasta': 50,
+        'movimientos': [
+          movimiento('0f0e0d0c-0000-4000-8000-0000000000cc', autor: pepe),
+          movimiento(deMiTelefono, autor: pepe, monto: 1),
+        ],
+      };
+      expect(await servicio.traerCambios(), isTrue);
+      expect(pedidosDeCambios, ['0']);
+
+      final movimientos = {
+        for (final m in await base.select(base.movimientos).get()) m.id: m,
+      };
+      expect(
+        movimientos['0f0e0d0c-0000-4000-8000-0000000000cc']!.autorId,
+        pepe,
+      );
+      expect(movimientos[deMiTelefono]!.montoCentimos, 7000);
+
+      final situacion = await servicio.observar().first;
+      expect(situacion.variasPersonas, isTrue);
+      expect(situacion.actualizadoEn, ahora);
+
+      // Lo de Pepe no se vuelve a subir; lo propio, sí.
+      await servicio.subirTodo();
+      final subidos = [
+        for (final m in subidas.last['movimientos']! as List) (m as Map)['id'],
+      ];
+      expect(subidos, [deMiTelefono]);
+
+      // La próxima vez pide desde el cambio 50, y un cambio de Pepe se ve.
+      cambios = {
+        ...cambios!,
+        'hasta': 60,
+        'movimientos': [
+          movimiento(
+            '0f0e0d0c-0000-4000-8000-0000000000cc',
+            autor: pepe,
+            estado: 'anulado',
+          ),
+        ],
+      };
+      await servicio.traerCambios();
+      expect(pedidosDeCambios.last, '50');
+      final anulado =
+          await (base.select(base.movimientos)..where(
+                (m) => m.id.equals('0f0e0d0c-0000-4000-8000-0000000000cc'),
+              ))
+              .getSingle();
+      expect(anulado.estado, EstadoRegistro.anulado);
+      expect(await servicio.hayCambiosSinSubir(), isFalse);
+    });
+
+    test('Si un dueño lo quita del negocio, deja de subir y lo dice', () async {
+      codigoCambios = 403;
+      expect(await servicio.traerCambios(), isFalse);
+      final situacion = await servicio.observar().first;
+      expect(situacion.estado, EstadoCuenta.fueraDelNegocio);
+      expect(situacion.mostrarTarjeta, isTrue);
+      final antes = subidas.length;
+      expect(await servicio.subirTodo(), isFalse);
+      expect(subidas, hasLength(antes));
+    });
   });
 }

@@ -142,8 +142,22 @@ class AccesoLocal {
   Future<Empresa?> empresa() =>
       (base.select(base.empresas)..limit(1)).getSingleOrNull();
 
-  Future<Usuario> usuario() =>
-      (base.select(base.usuarios)..limit(1)).getSingle();
+  /// Quien usa este teléfono: el de la membresía. Desde la entrega 18 el
+  /// teléfono guarda también a las otras personas del negocio (como autores
+  /// de lo que anotaron), sin membresía aquí.
+  Future<Usuario> usuario() async => (await usuarioONulo())!;
+
+  Future<Usuario?> usuarioONulo() async {
+    final propio = await (base.select(base.usuarios).join([
+      innerJoin(
+        base.membresias,
+        base.membresias.usuarioId.equalsExp(base.usuarios.id),
+      ),
+    ])..limit(1)).getSingleOrNull();
+    if (propio != null) return propio.readTable(base.usuarios);
+    // Antes del alta todavía no hay membresía: es el único usuario.
+    return (base.select(base.usuarios)..limit(1)).getSingleOrNull();
+  }
 
   Future<String?> leerAjuste(String clave) async {
     final fila = await (base.select(

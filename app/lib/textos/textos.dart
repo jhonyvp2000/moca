@@ -189,6 +189,21 @@ abstract final class Textos {
   static const cuentaAbiertaEnOtroDetalle =
       'Lo que anotes aquí desde ahora no se guarda en tu cuenta.';
   static const avanceGuardado = 'Listo. Tu avance está guardado.';
+  static const fueraDelNegocio = 'Ya no estás en este negocio';
+  static const fueraDelNegocioDetalle =
+      'Un dueño te quitó del equipo. Lo que anotaste se queda en el negocio; '
+      'lo que anotes aquí desde ahora no se guarda allá.';
+
+  /// «Actualizado hace 5 min» (entrega 18).
+  static String actualizadoHace(DateTime cuando, DateTime ahora) {
+    final minutos = ahora.difference(cuando).inMinutes;
+    if (minutos < 1) return 'Actualizado hace un momento';
+    if (minutos < 60) return 'Actualizado hace $minutos min';
+    final horas = minutos ~/ 60;
+    if (horas < 24) return 'Actualizado hace $horas h';
+    final dias = horas ~/ 24;
+    return dias == 1 ? 'Actualizado ayer' : 'Actualizado hace $dias días';
+  }
 
   // Tarjeta de la pestaña Moca (entrega 11)
   static const confirmaTuNumero = 'Confirma tu número para guardar tu avance';

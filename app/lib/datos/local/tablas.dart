@@ -193,3 +193,15 @@ class Ajustes extends Table {
   @override
   Set<Column<Object>> get primaryKey => {clave};
 }
+
+/// Lo que ya está en el servidor, fila por fila (entrega 18): la huella de
+/// cada fila tal como se subió o se bajó. Al subir, va solo lo que cambió;
+/// así un teléfono con una copia vieja no deshace lo que corrigió otro.
+class Subidas extends Table {
+  TextColumn get tabla => text()();
+  TextColumn get filaId => text()();
+  TextColumn get huella => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {tabla, filaId};
+}

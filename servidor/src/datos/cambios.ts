@@ -32,10 +32,17 @@ export async function cambiosDesde(
         [desde],
       )
     ).rows[0];
+    // Cuántas personas hay: con más de una, el Inicio dice cuándo se
+    // actualizó (entrega 18).
+    const personas = await cliente.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM membresias WHERE quitada_en IS NULL AND empresa_id = $1',
+      [miembro.empresaId],
+    );
     const cambios: Record<string, unknown> = {
       empresa_id: miembro.empresaId,
       rol: miembro.rol,
       titular: miembro.titular,
+      personas: personas.rows[0]?.n ?? 1,
       hasta,
       ...(empresa ? { empresa } : {}),
     };

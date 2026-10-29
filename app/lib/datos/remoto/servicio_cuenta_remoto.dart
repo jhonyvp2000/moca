@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show gzip;
 
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -55,6 +56,15 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   /// La cuenta se abrió en otro teléfono y el servidor ya no acepta la
   /// llave de este.
   static const _claveCerrada = 'cuenta_cerrada_en_otro';
+
+  /// Un dueño quitó a esta persona del negocio (entrega 18).
+  static const _claveFuera = 'fuera_del_negocio';
+
+  /// Desde qué número de cambio pedir lo nuevo, cuándo se pidió por última
+  /// vez y cuántas personas hay en el negocio (entrega 18).
+  static const _claveDesde = 'cambios_desde';
+  static const _claveActualizado = 'actualizado_en';
+  static const _clavePersonas = 'personas_en_el_negocio';
 
   /// Para que un aviso marcado «Entendido» suba siempre con el mismo id.
   static const _uuid = Uuid();
@@ -369,13 +379,24 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           mostrarTarjeta: true,
         );
       }
+      if (await _a.leerAjuste(_claveFuera) != null) {
+        return SituacionCuenta(
+          estado: EstadoCuenta.fueraDelNegocio,
+          celular: verificado,
+          mostrarTarjeta: true,
+        );
+      }
       return SituacionCuenta(
         estado: EstadoCuenta.guardada,
         celular: verificado,
+        actualizadoEn: DateTime.tryParse(
+          await _a.leerAjuste(_claveActualizado) ?? '',
+        ),
+        variasPersonas:
+            (int.tryParse(await _a.leerAjuste(_clavePersonas) ?? '') ?? 1) > 1,
       );
     }
-    final usuarios = await _base.select(_base.usuarios).get();
-    final celular = usuarios.firstOrNull?.celular;
+    final celular = (await _a.usuarioONulo())?.celular;
     final enDemo = await _a.enDemo();
     final etapaLista = await _a.leerAjuste('etapa') == 'listo';
     if (celular != null) {
@@ -409,14 +430,15 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       return false;
     }
     if (await _a.enDemo() || !await _hayConexion()) return false;
-    if (await _a.leerAjuste(_claveCerrada) != null) return false;
+    if (await _bloqueada()) return false;
     final llave = await _llavero.leer();
     if (llave == null) return false;
     _subiendo = true;
     try {
       final empresa = await _a.empresa();
       if (empresa == null) return false;
-      final datos = await _datosParaSubir(empresa);
+      // Solo lo que el servidor no tiene igual (entrega 18).
+      final datos = await _soloLoQueCambio(await _datosParaSubir(empresa));
       final huella = await _a.huella();
       final respuesta = await _enviar(
         '/datos/subir',
@@ -429,8 +451,13 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
         return false;
       }
-      if (respuesta.statusCode != 200) return false;
       final cuerpo = _cuerpo(respuesta);
+      if (respuesta.statusCode == 403 &&
+          cuerpo['error'] == 'no_es_tu_empresa') {
+        await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+        return false;
+      }
+      if (respuesta.statusCode != 200) return false;
       // Solo lo que existía al armar la subida queda marcado como subido.
       final subidos = [
         for (final m in datos['movimientos']! as List)
@@ -444,6 +471,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
             estadoSincronizacion: Value(EstadoSincronizacion.subido),
           ),
         );
+        await _recordarEnServidor(datos);
         await _a.guardarAjuste(_claveHuellaSubida, huella);
         // Las cifras con lo subido (entrega 13): valen mientras no cambie
         // nada en el teléfono.
@@ -473,7 +501,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
   Future<void> actualizarCifras() async {
     if (_pidiendoCifras || _subiendo) return;
     if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null) return;
-    if (await _a.enDemo() || await _a.leerAjuste(_claveCerrada) != null) return;
+    if (await _a.enDemo() || await _bloqueada()) return;
     if (await hayCambiosSinSubir()) return;
     if (await _a.cifrasDelServidor() != null) return;
     if (!await _hayConexion()) return;
@@ -496,6 +524,202 @@ class ServicioCuentaRemoto implements ServicioCuenta {
     } finally {
       _pidiendoCifras = false;
     }
+  }
+
+  /// La cuenta ya no sube ni baja: se abrió en otro teléfono o lo quitaron
+  /// del negocio.
+  Future<bool> _bloqueada() async =>
+      await _a.leerAjuste(_claveCerrada) != null ||
+      await _a.leerAjuste(_claveFuera) != null;
+
+  bool _trayendo = false;
+
+  @override
+  Future<bool> traerCambios() async {
+    if (_trayendo || _subiendo) return false;
+    if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null) {
+      return false;
+    }
+    if (await _a.enDemo() || await _bloqueada()) return false;
+    if (!await _hayConexion()) return false;
+    final llave = await _llavero.leer();
+    final empresa = await _a.empresa();
+    if (llave == null || empresa == null) return false;
+    _trayendo = true;
+    try {
+      final desde = int.tryParse(await _a.leerAjuste(_claveDesde) ?? '') ?? 0;
+      final respuesta = await _pedir('/datos/cambios?desde=$desde', llave);
+      if (respuesta.statusCode == 401) {
+        await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
+        return false;
+      }
+      final cuerpo = _cuerpo(respuesta);
+      if (respuesta.statusCode == 403 && cuerpo['error'] == 'sin_negocio') {
+        await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+        return false;
+      }
+      if (respuesta.statusCode != 200 || cuerpo['empresa_id'] != empresa.id) {
+        return false;
+      }
+      final hayAlgo = cuerpo.entries.any(
+        (e) => e.value is List && (e.value! as List).isNotEmpty,
+      );
+      final sinPendientes = !await hayCambiosSinSubir();
+      await _base.transaction(() async {
+        if (hayAlgo || cuerpo['empresa'] != null) {
+          // Lo anotado aquí que todavía no subió no se pisa: sube después.
+          final pendientes = {
+            for (final m
+                in await (_base.select(_base.movimientos)..where(
+                      (m) => m.estadoSincronizacion.equalsValue(
+                        EstadoSincronizacion.porSubir,
+                      ),
+                    ))
+                    .get())
+              m.id,
+          };
+          final datos = {
+            ...cuerpo,
+            'movimientos': [
+              for (final m in (cuerpo['movimientos'] as List? ?? const []))
+                if (!pendientes.contains((m as Map)['id'])) m,
+            ],
+          };
+          await _asegurarAutores(datos);
+          await _base.batch(
+            (lote) => _insertarFilas(lote, datos, empresa.id, actualizar: true),
+          );
+          if (cuerpo['empresa'] case final Map<String, Object?> e) {
+            await (_base.update(
+              _base.empresas,
+            )..where((x) => x.id.equals(empresa.id))).write(
+              EmpresasCompanion(
+                nombre: Value(e['nombre']! as String),
+                tipoNegocio: Value(
+                  _enum(TipoNegocio.values, e['tipo_negocio']),
+                ),
+                horaCierreMinutos: Value(e['hora_cierre_minutos']! as int),
+                identificacionFiscal: Value(
+                  e['identificacion_fiscal'] as String?,
+                ),
+              ),
+            );
+          }
+          await _recordarVideosVistos(datos);
+          // Lo que bajó ya está así en el servidor.
+          final actual = await _a.empresa();
+          await _recordarEnServidor(
+            await _datosParaSubir(actual!),
+            soloIds: _idsDe(datos),
+          );
+        }
+        if (cuerpo['hasta'] case final int hasta) {
+          await _a.guardarAjuste(_claveDesde, '$hasta');
+        }
+        if (cuerpo['personas'] case final int personas) {
+          await _a.guardarAjuste(_clavePersonas, '$personas');
+        }
+        await _a.guardarAjuste(_claveActualizado, _a.ahora().toIso8601String());
+        // Sin nada propio por subir, el teléfono sigue al día con el
+        // servidor.
+        if (sinPendientes) {
+          await _a.guardarAjuste(_claveHuellaSubida, await _a.huella());
+        }
+      });
+      return hayAlgo;
+    } on TimeoutException {
+      return false;
+    } on http.ClientException {
+      return false;
+    } finally {
+      _trayendo = false;
+    }
+  }
+
+  /// Quienes anotaron lo que bajó: en el teléfono cada registro apunta a su
+  /// autor, así que las otras personas del negocio también se guardan aquí,
+  /// sin celular (entrega 18).
+  Future<void> _asegurarAutores(Map<String, Object?> datos) async {
+    final autores = {
+      for (final tabla in ['movimientos', 'arqueos', 'bitacora'])
+        for (final f in (datos[tabla] as List? ?? const []))
+          if (f case {'autor_id': final String autor}) autor,
+    };
+    if (autores.isEmpty) return;
+    await _base.batch(
+      (lote) => lote.insertAll(_base.usuarios, [
+        for (final id in autores)
+          UsuariosCompanion.insert(id: id, creadoEn: _a.ahora()),
+      ], mode: InsertMode.insertOrIgnore),
+    );
+  }
+
+  /// La huella de una fila tal como se sube.
+  static String _huellaFila(Object? fila) =>
+      sha1.convert(utf8.encode(jsonEncode(fila))).toString();
+
+  /// «tabla/id» de cada fila de [datos], con la empresa.
+  static Set<String> _idsDe(Map<String, Object?> datos) => {
+    if (datos['empresa'] case {'id': final Object id}) 'empresa/$id',
+    for (final MapEntry(key: tabla, value: filas) in datos.entries)
+      if (filas is List)
+        for (final f in filas)
+          if (f case {'id': final Object id}) '$tabla/$id',
+  };
+
+  /// De todo lo del teléfono, solo lo que el servidor no tiene igual. La
+  /// empresa va siempre: el servidor la necesita para saber de quién es.
+  Future<Map<String, Object>> _soloLoQueCambio(
+    Map<String, Object> datos,
+  ) async {
+    final conocidas = {
+      for (final s in await _base.select(_base.subidas).get())
+        '${s.tabla}/${s.filaId}': s.huella,
+    };
+    return {
+      for (final MapEntry(key: tabla, value: filas) in datos.entries)
+        tabla: filas is List
+            ? [
+                for (final f in filas)
+                  if (conocidas['$tabla/${(f as Map)['id']}'] != _huellaFila(f))
+                    f,
+              ]
+            : filas,
+    };
+  }
+
+  /// Anota que estas filas ya están así en el servidor; con [soloIds], solo
+  /// esas («tabla/id»).
+  Future<void> _recordarEnServidor(
+    Map<String, Object?> datos, {
+    Set<String>? soloIds,
+  }) async {
+    final filas = <SubidasCompanion>[];
+    void anotar(String tabla, Object? fila) {
+      if (fila case {'id': final String id}) {
+        if (soloIds != null && !soloIds.contains('$tabla/$id')) return;
+        filas.add(
+          SubidasCompanion.insert(
+            tabla: tabla,
+            filaId: id,
+            huella: _huellaFila(fila),
+          ),
+        );
+      }
+    }
+
+    for (final MapEntry(key: tabla, value: valor) in datos.entries) {
+      if (valor is List) {
+        for (final f in valor) {
+          anotar(tabla, f);
+        }
+      } else {
+        anotar(tabla, valor);
+      }
+    }
+    await _base.batch(
+      (lote) => lote.insertAllOnConflictUpdate(_base.subidas, filas),
+    );
   }
 
   // --- Lo que se baja ------------------------------------------------------
@@ -549,6 +773,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         _base.membresias,
         _base.empresas,
         _base.usuarios,
+        _base.subidas,
       ]) {
         await _base.delete(tabla).go();
       }
@@ -590,9 +815,18 @@ class ServicioCuentaRemoto implements ServicioCuenta {
               rol: _enum(Rol.values, membresia['rol']),
             ),
           );
+      await _asegurarAutores(datos);
       await _base.batch((lote) => _insertarFilas(lote, datos, empresaId));
       await _recordarVideosVistos(datos);
-      // Lo que acaba de bajar ya está en el servidor.
+      // Lo que acaba de bajar ya está en el servidor, fila por fila, y lo
+      // nuevo se pide desde aquí (entrega 18).
+      await _recordarEnServidor(
+        await _datosParaSubir((await _a.empresa())!),
+        soloIds: _idsDe({...datos, 'empresa': empresa}),
+      );
+      if (datos['hasta'] case final int hasta) {
+        await _a.guardarAjuste(_claveDesde, '$hasta');
+      }
       await _a.guardarAjuste(_claveHuellaSubida, await _a.huella());
       // Lo anotado en este teléfono se suma a la cuenta y queda por subir
       // (entrega 14.4).
@@ -615,7 +849,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
       final conAlta = (empresa['nombre']! as String).isNotEmpty;
       await _a.guardarAjuste('etapa', conAlta ? 'listo' : 'alta');
       await _a.guardarAjuste(AccesoLocal.claveCuentaVerificada, celular);
-      for (final clave in [_claveSinCuentaDesde, _claveCerrada]) {
+      for (final clave in [_claveSinCuentaDesde, _claveCerrada, _claveFuera]) {
         await (_base.delete(
           _base.ajustes,
         )..where((a) => a.clave.equals(clave))).go();
@@ -655,17 +889,27 @@ class ServicioCuentaRemoto implements ServicioCuenta {
 
   /// Escribe las filas de [datos] (con los nombres del servidor) en la base
   /// del teléfono.
+  ///
+  /// Con [actualizar], lo que ya estaba se reemplaza por lo que bajó (lo
+  /// nuevo de los demás, entrega 18).
   void _insertarFilas(
     Batch lote,
     Map<String, Object?> datos,
     String empresaId, {
     EstadoSincronizacion estado = EstadoSincronizacion.subido,
+    bool actualizar = false,
   }) {
     List<Map<String, Object?>> filas(String tabla) => [
       for (final f in (datos[tabla] as List? ?? const []))
         f as Map<String, Object?>,
     ];
-    lote.insertAll(_base.cuentas, [
+    void poner<T extends Table, D>(
+      TableInfo<T, D> tabla,
+      Iterable<Insertable<D>> nuevas,
+    ) => actualizar
+        ? lote.insertAllOnConflictUpdate(tabla, nuevas)
+        : lote.insertAll(tabla, nuevas);
+    poner(_base.cuentas, [
       for (final c in filas('cuentas'))
         CuentasCompanion.insert(
           id: c['id']! as String,
@@ -677,7 +921,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           fechaSaldoInicial: Value(_desdeFechaONulo(c['fecha_saldo_inicial'])),
         ),
     ]);
-    lote.insertAll(_base.categorias, [
+    poner(_base.categorias, [
       for (final c in filas('categorias'))
         CategoriasCompanion.insert(
           id: c['id']! as String,
@@ -688,7 +932,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           activa: Value(c['activa']! as bool),
         ),
     ]);
-    lote.insertAll(_base.contrapartes, [
+    poner(_base.contrapartes, [
       for (final c in filas('contrapartes'))
         ContrapartesCompanion.insert(
           id: c['id']! as String,
@@ -698,7 +942,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           tipo: _enum(TipoContraparte.values, c['tipo']),
         ),
     ]);
-    lote.insertAll(_base.comprobantes, [
+    poner(_base.comprobantes, [
       for (final c in filas('comprobantes'))
         ComprobantesCompanion.insert(
           id: c['id']! as String,
@@ -716,7 +960,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           creadoEn: _desdeFecha(c['creado_en']),
         ),
     ]);
-    lote.insertAll(_base.itemsComprobante, [
+    poner(_base.itemsComprobante, [
       for (final i in filas('items_comprobante'))
         ItemsComprobanteCompanion.insert(
           id: i['id']! as String,
@@ -727,7 +971,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           importeCentimos: i['importe_centimos']! as int,
         ),
     ]);
-    lote.insertAll(_base.movimientos, [
+    poner(_base.movimientos, [
       for (final m in filas('movimientos'))
         MovimientosCompanion.insert(
           id: m['id']! as String,
@@ -754,7 +998,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           creadoEn: _desdeFecha(m['creado_en']),
         ),
     ]);
-    lote.insertAll(_base.arqueos, [
+    poner(_base.arqueos, [
       for (final a in filas('arqueos'))
         ArqueosCompanion.insert(
           id: a['id']! as String,
@@ -764,7 +1008,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           creadoEn: _desdeFecha(a['creado_en']),
         ),
     ]);
-    lote.insertAll(_base.arqueoCuentas, [
+    poner(_base.arqueoCuentas, [
       for (final a in filas('arqueo_cuentas'))
         ArqueoCuentasCompanion.insert(
           id: a['id']! as String,
@@ -781,7 +1025,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           movimientoId: Value(a['movimiento_id'] as String?),
         ),
     ]);
-    lote.insertAll(_base.diasCerrados, [
+    poner(_base.diasCerrados, [
       for (final d in filas('dias_cerrados'))
         DiasCerradosCompanion.insert(
           id: d['id']! as String,
@@ -790,7 +1034,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
         ),
     ]);
     // Los avisos marcados «Entendido»: en el teléfono, su id es la clave.
-    lote.insertAll(_base.alertas, [
+    poner(_base.alertas, [
       for (final a in filas('alertas'))
         AlertasCompanion.insert(
           id: a['clave']! as String,
@@ -803,7 +1047,7 @@ class ServicioCuentaRemoto implements ServicioCuenta {
           creadoEn: _desdeFecha(a['creado_en']),
         ),
     ]);
-    lote.insertAll(_base.bitacora, [
+    poner(_base.bitacora, [
       for (final b in filas('bitacora'))
         BitacoraCompanion.insert(
           id: b['id']! as String,

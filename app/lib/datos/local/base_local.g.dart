@@ -7973,6 +7973,264 @@ class AjustesCompanion extends UpdateCompanion<Ajuste> {
   }
 }
 
+class $SubidasTable extends Subidas with TableInfo<$SubidasTable, Subida> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubidasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tablaMeta = const VerificationMeta('tabla');
+  @override
+  late final GeneratedColumn<String> tabla = GeneratedColumn<String>(
+    'tabla',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filaIdMeta = const VerificationMeta('filaId');
+  @override
+  late final GeneratedColumn<String> filaId = GeneratedColumn<String>(
+    'fila_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _huellaMeta = const VerificationMeta('huella');
+  @override
+  late final GeneratedColumn<String> huella = GeneratedColumn<String>(
+    'huella',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [tabla, filaId, huella];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subidas';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Subida> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tabla')) {
+      context.handle(
+        _tablaMeta,
+        tabla.isAcceptableOrUnknown(data['tabla']!, _tablaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tablaMeta);
+    }
+    if (data.containsKey('fila_id')) {
+      context.handle(
+        _filaIdMeta,
+        filaId.isAcceptableOrUnknown(data['fila_id']!, _filaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filaIdMeta);
+    }
+    if (data.containsKey('huella')) {
+      context.handle(
+        _huellaMeta,
+        huella.isAcceptableOrUnknown(data['huella']!, _huellaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_huellaMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tabla, filaId};
+  @override
+  Subida map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Subida(
+      tabla: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tabla'],
+      )!,
+      filaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fila_id'],
+      )!,
+      huella: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}huella'],
+      )!,
+    );
+  }
+
+  @override
+  $SubidasTable createAlias(String alias) {
+    return $SubidasTable(attachedDatabase, alias);
+  }
+}
+
+class Subida extends DataClass implements Insertable<Subida> {
+  final String tabla;
+  final String filaId;
+  final String huella;
+  const Subida({
+    required this.tabla,
+    required this.filaId,
+    required this.huella,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tabla'] = Variable<String>(tabla);
+    map['fila_id'] = Variable<String>(filaId);
+    map['huella'] = Variable<String>(huella);
+    return map;
+  }
+
+  SubidasCompanion toCompanion(bool nullToAbsent) {
+    return SubidasCompanion(
+      tabla: Value(tabla),
+      filaId: Value(filaId),
+      huella: Value(huella),
+    );
+  }
+
+  factory Subida.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Subida(
+      tabla: serializer.fromJson<String>(json['tabla']),
+      filaId: serializer.fromJson<String>(json['filaId']),
+      huella: serializer.fromJson<String>(json['huella']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tabla': serializer.toJson<String>(tabla),
+      'filaId': serializer.toJson<String>(filaId),
+      'huella': serializer.toJson<String>(huella),
+    };
+  }
+
+  Subida copyWith({String? tabla, String? filaId, String? huella}) => Subida(
+    tabla: tabla ?? this.tabla,
+    filaId: filaId ?? this.filaId,
+    huella: huella ?? this.huella,
+  );
+  Subida copyWithCompanion(SubidasCompanion data) {
+    return Subida(
+      tabla: data.tabla.present ? data.tabla.value : this.tabla,
+      filaId: data.filaId.present ? data.filaId.value : this.filaId,
+      huella: data.huella.present ? data.huella.value : this.huella,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Subida(')
+          ..write('tabla: $tabla, ')
+          ..write('filaId: $filaId, ')
+          ..write('huella: $huella')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tabla, filaId, huella);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Subida &&
+          other.tabla == this.tabla &&
+          other.filaId == this.filaId &&
+          other.huella == this.huella);
+}
+
+class SubidasCompanion extends UpdateCompanion<Subida> {
+  final Value<String> tabla;
+  final Value<String> filaId;
+  final Value<String> huella;
+  final Value<int> rowid;
+  const SubidasCompanion({
+    this.tabla = const Value.absent(),
+    this.filaId = const Value.absent(),
+    this.huella = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubidasCompanion.insert({
+    required String tabla,
+    required String filaId,
+    required String huella,
+    this.rowid = const Value.absent(),
+  }) : tabla = Value(tabla),
+       filaId = Value(filaId),
+       huella = Value(huella);
+  static Insertable<Subida> custom({
+    Expression<String>? tabla,
+    Expression<String>? filaId,
+    Expression<String>? huella,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tabla != null) 'tabla': tabla,
+      if (filaId != null) 'fila_id': filaId,
+      if (huella != null) 'huella': huella,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubidasCompanion copyWith({
+    Value<String>? tabla,
+    Value<String>? filaId,
+    Value<String>? huella,
+    Value<int>? rowid,
+  }) {
+    return SubidasCompanion(
+      tabla: tabla ?? this.tabla,
+      filaId: filaId ?? this.filaId,
+      huella: huella ?? this.huella,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tabla.present) {
+      map['tabla'] = Variable<String>(tabla.value);
+    }
+    if (filaId.present) {
+      map['fila_id'] = Variable<String>(filaId.value);
+    }
+    if (huella.present) {
+      map['huella'] = Variable<String>(huella.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubidasCompanion(')
+          ..write('tabla: $tabla, ')
+          ..write('filaId: $filaId, ')
+          ..write('huella: $huella, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$BaseLocal extends GeneratedDatabase {
   _$BaseLocal(QueryExecutor e) : super(e);
   $BaseLocalManager get managers => $BaseLocalManager(this);
@@ -7996,6 +8254,7 @@ abstract class _$BaseLocal extends GeneratedDatabase {
     this,
   );
   late final $AjustesTable ajustes = $AjustesTable(this);
+  late final $SubidasTable subidas = $SubidasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8017,6 +8276,7 @@ abstract class _$BaseLocal extends GeneratedDatabase {
     diasCerrados,
     eventosMedicion,
     ajustes,
+    subidas,
   ];
 }
 
@@ -16401,6 +16661,169 @@ typedef $$AjustesTableProcessedTableManager =
       Ajuste,
       PrefetchHooks Function()
     >;
+typedef $$SubidasTableCreateCompanionBuilder = SubidasCompanion Function({
+  required String tabla,
+  required String filaId,
+  required String huella,
+  Value<int> rowid,
+});
+typedef $$SubidasTableUpdateCompanionBuilder = SubidasCompanion Function({
+  Value<String> tabla,
+  Value<String> filaId,
+  Value<String> huella,
+  Value<int> rowid,
+});
+
+class $$SubidasTableFilterComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tabla => $composableBuilder(
+    column: $table.tabla,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filaId => $composableBuilder(
+    column: $table.filaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get huella => $composableBuilder(
+    column: $table.huella,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SubidasTableOrderingComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tabla => $composableBuilder(
+    column: $table.tabla,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filaId => $composableBuilder(
+    column: $table.filaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get huella => $composableBuilder(
+    column: $table.huella,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SubidasTableAnnotationComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tabla =>
+      $composableBuilder(column: $table.tabla, builder: (column) => column);
+
+  GeneratedColumn<String> get filaId =>
+      $composableBuilder(column: $table.filaId, builder: (column) => column);
+
+  GeneratedColumn<String> get huella =>
+      $composableBuilder(column: $table.huella, builder: (column) => column);
+}
+
+class $$SubidasTableTableManager
+    extends
+        RootTableManager<
+          _$BaseLocal,
+          $SubidasTable,
+          Subida,
+          $$SubidasTableFilterComposer,
+          $$SubidasTableOrderingComposer,
+          $$SubidasTableAnnotationComposer,
+          $$SubidasTableCreateCompanionBuilder,
+          $$SubidasTableUpdateCompanionBuilder,
+          (Subida, BaseReferences<_$BaseLocal, $SubidasTable, Subida>),
+          Subida,
+          PrefetchHooks Function()
+        > {
+  $$SubidasTableTableManager(_$BaseLocal db, $SubidasTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubidasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubidasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubidasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> tabla = const Value.absent(),
+                Value<String> filaId = const Value.absent(),
+                Value<String> huella = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SubidasCompanion(
+                tabla: tabla,
+                filaId: filaId,
+                huella: huella,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tabla,
+                required String filaId,
+                required String huella,
+                Value<int> rowid = const Value.absent(),
+              }) => SubidasCompanion.insert(
+                tabla: tabla,
+                filaId: filaId,
+                huella: huella,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SubidasTable, Subida>(table),
+                  BaseReferences<_$BaseLocal, $SubidasTable, Subida>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SubidasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$BaseLocal,
+      $SubidasTable,
+      Subida,
+      $$SubidasTableFilterComposer,
+      $$SubidasTableOrderingComposer,
+      $$SubidasTableAnnotationComposer,
+      $$SubidasTableCreateCompanionBuilder,
+      $$SubidasTableUpdateCompanionBuilder,
+      (Subida, BaseReferences<_$BaseLocal, $SubidasTable, Subida>),
+      Subida,
+      PrefetchHooks Function()
+    >;
 
 class $BaseLocalManager {
   final _$BaseLocal _db;
@@ -16437,4 +16860,6 @@ class $BaseLocalManager {
       $$EventosMedicionTableTableManager(_db, _db.eventosMedicion);
   $$AjustesTableTableManager get ajustes =>
       $$AjustesTableTableManager(_db, _db.ajustes);
+  $$SubidasTableTableManager get subidas =>
+      $$SubidasTableTableManager(_db, _db.subidas);
 }

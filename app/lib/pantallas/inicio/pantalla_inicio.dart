@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../dominio/cuenta_real.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
+import '../../textos/textos.dart';
 import 'hoja_saldo.dart';
 import 'pantalla_inicio_completa.dart';
 import 'pantalla_primer_dia.dart';
@@ -22,9 +24,24 @@ class PantallaInicio extends ConsumerWidget {
 
     void anotarVenta() => context.push(Rutas.vozVenta);
 
+    // Con varias personas en el negocio, cuándo bajó lo de los demás
+    // (entrega 18).
+    final cuenta = ref.watch(situacionCuentaProvider).value;
+    final actualizado =
+        cuenta != null &&
+            cuenta.estado == EstadoCuenta.guardada &&
+            cuenta.variasPersonas &&
+            cuenta.actualizadoEn != null
+        ? Textos.actualizadoHace(
+            cuenta.actualizadoEn!,
+            ref.read(relojProvider)(),
+          )
+        : null;
+
     if (!inicio.mostrarPrimerDia) {
       return PantallaInicioCompleta(
         resumen: inicio,
+        actualizado: actualizado,
         alAnotarVenta: anotarVenta,
         alHacerArqueo: () => context.push(Rutas.arqueo),
         aviso: ref.watch(avisosProvider).value?.firstOrNull,

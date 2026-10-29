@@ -5,7 +5,8 @@ enum TipoNegocio { bodega, restaurante, servicios, otro }
 
 enum ModoEmpresa { simple, formal }
 
-enum Rol { dueno, contador, empleado }
+/// Quién es en el negocio (decisiones.md, 29-10-2026; entrega 17).
+enum Rol { dueno, encargado, ayudante, contador }
 
 /// Efectivo, Yape y el BCP (`banco`) existen siempre. Plin, Sip y otra
 /// billetera, y los otros bancos (Interbank, BBVA, Scotiabank y otro banco o

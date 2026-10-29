@@ -618,9 +618,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
       (porFila[fila] ??= []).add(c.nombre);
     }
 
-    final usuario = await (_base.select(
-      _base.usuarios,
-    )..limit(1)).getSingleOrNull();
+    final usuario = await _a.usuarioONulo();
     return FlujoParaCredito(
       categoriasPorFila: porFila,
       meses: resultado,

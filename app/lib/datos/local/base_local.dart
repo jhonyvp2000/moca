@@ -26,6 +26,7 @@ part 'base_local.g.dart';
     DiasCerrados,
     EventosMedicion,
     Ajustes,
+    Subidas,
   ],
 )
 class BaseLocal extends _$BaseLocal {
@@ -35,11 +36,15 @@ class BaseLocal extends _$BaseLocal {
   // Desde el APK de los pilotos (entrega 9) los datos de un teléfono no se
   // borran al actualizar: cada cambio de versión agrega aquí su migración.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, desde, hasta) async {},
+    onUpgrade: (m, desde, hasta) async {
+      // Entrega 18: lo que ya está en el servidor, fila por fila. Vacía al
+      // empezar: la primera subida manda todo, como antes.
+      if (desde < 2) await m.createTable(subidas);
+    },
     beforeOpen: (detalles) async {
       await customStatement('PRAGMA foreign_keys = ON');
       // El aviso de cierre puede escribir desde segundo plano mientras la

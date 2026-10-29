@@ -319,7 +319,7 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
 
     // Nada nuevo todavía.
     const nada = (await cambios(lucho, desdeLucho)).json();
-    expect(nada).toMatchObject({ rol: 'dueno', hasta: desdeLucho });
+    expect(nada).toMatchObject({ rol: 'dueno', hasta: desdeLucho, personas: 4 });
     expect(nada.movimientos).toBeUndefined();
 
     // Pepe anota una venta: Lucho la baja.
