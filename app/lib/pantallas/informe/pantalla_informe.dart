@@ -14,6 +14,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'excel_informe.dart';
 import 'pdf_informe.dart';
 import '../../dominio/medicion.dart';
 
@@ -31,6 +32,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
   /// Nulo: el mes en curso.
   DateTime? _mes;
   bool _armandoPdf = false;
+  bool _armandoExcel = false;
 
   /// Pregunta para quién es el PDF (entrega 14.12). Nulo si cierra la hoja.
   Future<DestinoInforme?> _elegirDestino() => showModalBottomSheet(
@@ -112,6 +114,40 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     }
   }
 
+  Future<void> _compartirExcel(InformeMes informe) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    setState(() => _armandoExcel = true);
+    try {
+      final nombre = ref.read(resumenInicioProvider).value?.nombreNegocio ?? '';
+      final detalle = await ref
+          .read(repositorioInformeProvider)
+          .detalleParaPdf(informe);
+      final ruta = await guardarExcelDelInforme(
+        informe,
+        detalle,
+        nombreNegocio: nombre,
+        hoy: ref.read(relojProvider)(),
+      );
+      await ref
+          .read(compartidorProvider)
+          .compartirArchivo(
+            ruta,
+            asunto: Textos.operacionesDe(
+              nombreDelMes(informe.mes),
+              informe.mes.year,
+            ),
+            tipo: tipoExcel,
+          );
+      await ref.read(medicionProvider).anotar(EventoMedicion.excelCompartido);
+    } on Exception {
+      mensajes.showSnackBar(
+        const SnackBar(content: Text(Textos.excelNoSeArmo)),
+      );
+    } finally {
+      if (mounted) setState(() => _armandoExcel = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final informe = ref.watch(informeProvider(_mes)).value;
@@ -128,53 +164,29 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           16,
         ),
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 8,
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _Flecha(
-                    icono: Icono.volver,
-                    etiqueta: Textos.mesAnterior,
-                    alTocar: i.mesPrevio == null
-                        ? null
-                        : () => setState(() => _mes = i.mesPrevio),
-                  ),
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      nombreDelMesConMayuscula(i.mes),
-                      style: Tipografia.tituloPantalla,
-                    ),
-                  ),
-                  _Flecha(
-                    icono: Icono.derecha,
-                    etiqueta: Textos.mesSiguiente,
-                    alTocar: i.mesSiguiente == null
-                        ? null
-                        : () => setState(() => _mes = i.mesSiguiente),
-                  ),
-                ],
-              ),
-              OutlinedButton.icon(
-                onPressed: i.sinRegistros || _armandoPdf
+              _Flecha(
+                icono: Icono.volver,
+                etiqueta: Textos.mesAnterior,
+                alTocar: i.mesPrevio == null
                     ? null
-                    : () => _compartir(i),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                    : () => setState(() => _mes = i.mesPrevio),
+              ),
+              Semantics(
+                header: true,
+                child: Text(
+                  nombreDelMesConMayuscula(i.mes),
+                  style: Tipografia.tituloPantalla,
                 ),
-                icon: const IconoTrazo(
-                  Icono.compartir,
-                  color: Colores.textoPrincipal,
-                  tamano: 20,
-                ),
-                label: Text(
-                  _armandoPdf ? Textos.armandoPdf : Textos.compartirPdf,
-                ),
+              ),
+              _Flecha(
+                icono: Icono.derecha,
+                etiqueta: Textos.mesSiguiente,
+                alTocar: i.mesSiguiente == null
+                    ? null
+                    : () => setState(() => _mes = i.mesSiguiente),
               ),
             ],
           ),
@@ -183,6 +195,31 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               padding: const EdgeInsets.only(left: 44, top: 2),
               child: Text(periodo, style: Tipografia.secundario),
             ),
+          // El PDF y el Excel de las operaciones (entrega 14.13).
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _BotonCompartir(
+                  texto: _armandoPdf ? Textos.armandoPdf : Textos.compartirPdf,
+                  alTocar: i.sinRegistros || _armandoPdf
+                      ? null
+                      : () => _compartir(i),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _BotonCompartir(
+                  texto: _armandoExcel
+                      ? Textos.armandoExcel
+                      : Textos.compartirExcel,
+                  alTocar: i.sinRegistros || _armandoExcel
+                      ? null
+                      : () => _compartirExcel(i),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           const TarjetaPrimeraVez(
             video: VideoTutoria.informe,
@@ -630,4 +667,26 @@ class _Confianza extends StatelessWidget {
       ],
     );
   }
+}
+
+class _BotonCompartir extends StatelessWidget {
+  const _BotonCompartir({required this.texto, required this.alTocar});
+
+  final String texto;
+  final VoidCallback? alTocar;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton.icon(
+    onPressed: alTocar,
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+    ),
+    icon: const IconoTrazo(
+      Icono.compartir,
+      color: Colores.textoPrincipal,
+      tamano: 20,
+    ),
+    label: Text(texto),
+  );
 }

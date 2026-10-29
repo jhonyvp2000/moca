@@ -13,7 +13,12 @@ enum EventoMedicion {
   fotoIlegible,
   arqueoAbierto,
   informeAbierto,
+
+  /// Lleva para quién era el PDF (entrega 14.12).
   pdfCompartido,
+
+  /// Se compartió el Excel de las operaciones (entrega 14.13).
+  excelCompartido,
   mocaAbierta,
   resumenEscuchado,
   avisoTocado,

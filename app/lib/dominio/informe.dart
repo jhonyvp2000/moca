@@ -175,6 +175,7 @@ class DetalleParaPdf {
     required this.deudas,
     required this.comprobantes,
     required this.meses,
+    this.operaciones = const [],
   });
 
   /// El primer y el último día que cubre el informe.
@@ -196,6 +197,49 @@ class DetalleParaPdf {
 
   /// Hasta seis meses, del más antiguo al del informe (para un crédito).
   final List<InformeMes> meses;
+
+  /// Lo anotado en el periodo, por fecha (para el Excel, entrega 14.13).
+  final List<OperacionDelMes> operaciones;
+}
+
+/// Un movimiento vigente anotado en el periodo, con lo que el contador
+/// necesita para revisarlo.
+class OperacionDelMes {
+  const OperacionDelMes({
+    required this.fecha,
+    required this.tipo,
+    required this.cuenta,
+    required this.centimos,
+    required this.estadoPago,
+    required this.fuente,
+    required this.confianza,
+    this.pagadoCentimos = 0,
+    this.fechaPago,
+    this.categoria,
+    this.nota,
+    this.proveedor,
+    this.ruc,
+    this.comprobante,
+    this.igvCentimos,
+  });
+
+  final DateTime fecha;
+  final TipoMovimiento tipo;
+  final TipoCuenta cuenta;
+  final int centimos;
+  final EstadoPago estadoPago;
+  final int pagadoCentimos;
+  final DateTime? fechaPago;
+  final Fuente fuente;
+  final NivelConfianza confianza;
+  final String? categoria;
+  final String? nota;
+  final String? proveedor;
+  final String? ruc;
+
+  /// Tipo, serie y número, como «Factura F001-3108».
+  final String? comprobante;
+  final int? igvCentimos;
 }
 
 abstract interface class RepositorioInforme {

@@ -1774,6 +1774,10 @@ void main() {
       expect(find.text(Textos.pdfParaMi), findsOneWidget);
       expect(find.text(Textos.pdfParaContador), findsOneWidget);
       expect(find.text(Textos.pdfParaCredito), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await esperar(tester);
+      // Y al lado, el Excel de las operaciones (entrega 14.13).
+      expect(find.text(Textos.compartirExcel), findsOneWidget);
     });
 
     testWidgets('Moca resume la semana y la lee en voz alta', (tester) async {

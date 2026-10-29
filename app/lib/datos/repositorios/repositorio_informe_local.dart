@@ -423,6 +423,34 @@ class RepositorioInformeLocal implements RepositorioInforme {
     }
     comprobantes.sort((a, b) => a.fecha.compareTo(b.fecha));
 
+    // Lo anotado en el periodo, con su comprobante si tiene.
+    final datosComprobante = {
+      for (final c in await (_base.select(
+        _base.comprobantes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c,
+    };
+    final rucs = {
+      for (final c in await (_base.select(
+        _base.contrapartes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.identificacionFiscal,
+    };
+    final tipoDeCuenta = {for (final c in cuentas) c.id: c.tipo};
+    final operaciones = [
+      for (final m in vigentes)
+        if (!m.fechaMovimiento.isBefore(desde) &&
+            m.fechaMovimiento.isBefore(finMes))
+          _operacion(
+            m,
+            tipoDeCuenta[m.cuentaId] ?? TipoCuenta.efectivo,
+            datosComprobante[m.comprobanteId],
+            categoria: categorias[m.categoriaId],
+            proveedor: proveedores[m.contraparteId],
+            ruc: rucs[m.contraparteId],
+          ),
+    ]..sort((a, b) => a.fecha.compareTo(b.fecha));
+
     return DetalleParaPdf(
       desde: desde,
       hasta: hasta,
@@ -431,6 +459,41 @@ class RepositorioInformeLocal implements RepositorioInforme {
       deudas: deudas,
       comprobantes: comprobantes,
       meses: meses,
+      operaciones: operaciones,
+    );
+  }
+
+  static OperacionDelMes _operacion(
+    Movimiento m,
+    TipoCuenta cuenta,
+    Comprobante? c, {
+    String? categoria,
+    String? proveedor,
+    String? ruc,
+  }) {
+    final numero = [
+      ?c?.tipo,
+      if (c != null && (c.serie != null || c.numero != null))
+        '${c.serie ?? ''}-${c.numero ?? ''}',
+    ].join(' ');
+    return OperacionDelMes(
+      fecha: m.fechaMovimiento,
+      tipo: m.tipo,
+      cuenta: cuenta,
+      centimos: m.montoCentimos,
+      estadoPago: m.estadoPago,
+      pagadoCentimos: m.montoPagadoCentimos,
+      fechaPago: m.estadoPago == EstadoPago.pagado
+          ? m.fechaPago ?? m.fechaMovimiento
+          : m.fechaPago,
+      fuente: m.fuente,
+      confianza: m.nivelConfianza,
+      categoria: categoria,
+      nota: m.nota,
+      proveedor: c?.emisorNombre ?? proveedor,
+      ruc: c?.emisorIdentificacion ?? ruc,
+      comprobante: numero.isEmpty ? null : numero,
+      igvCentimos: c?.impuestoCentimos,
     );
   }
 

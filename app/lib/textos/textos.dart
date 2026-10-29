@@ -738,6 +738,41 @@ abstract final class Textos {
       'Lo anotó el dueño en Moca, con su teléfono. No está verificado por '
       'una entidad.';
   static const pdfNoSeArmo = 'No se pudo armar el PDF. Intenta otra vez.';
+
+  // Excel de las operaciones (entrega 14.13)
+  static const compartirExcel = 'Compartir Excel';
+  static const armandoExcel = 'Armando el Excel…';
+  static const excelNoSeArmo = 'No se pudo armar el Excel. Intenta otra vez.';
+  static String operacionesDe(String mes, int anio) =>
+      'Operaciones de $mes $anio';
+  static const hojaOperaciones = 'Operaciones';
+  static const hojaResumen = 'Resumen';
+  static const hojaSaldos = 'Saldos por cuenta';
+  static const hojaLoQueDebes = 'Lo que debes';
+  static const columnaTipo = 'Tipo';
+  static const columnaCategoria = 'Categoría';
+  static const columnaNota = 'Nota';
+  static const columnaCuenta = 'Cuenta';
+  static const columnaPagado = 'Pagado';
+  static const columnaFechaPago = 'Fecha de pago';
+  static const columnaConfianza = 'Confianza';
+  static const columnaDesde = 'Desde';
+  static const columnaSaldo = 'Saldo';
+  static const si = 'Sí';
+  static String pagadoEnParte(String monto) => 'En parte: $monto';
+  static String nivelConfianza(NivelConfianza n) => switch (n) {
+    NivelConfianza.a => 'A: verificado con SUNAT',
+    NivelConfianza.b => 'B: con comprobante',
+    NivelConfianza.c => 'C: con foto o captura',
+    NivelConfianza.d => 'D: sin papel',
+  };
+  static const negocio = 'Negocio';
+  static const periodo = 'Periodo';
+  static const hechoElCorto = 'Hecho el';
+  static const notaCajaExcel =
+      'Las cifras son de caja: lo que debes cuenta cuando lo pagas y el '
+      'arqueo ajusta el saldo. Por eso la hoja Operaciones puede no sumar lo '
+      'mismo.';
   static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
   static String hechoEl(String fecha) => 'Hecho el $fecha';
   static const pieDelPdf = 'Hecho con Moca con lo que anotaste en tu teléfono.';

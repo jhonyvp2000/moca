@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:archive/archive.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
@@ -10,7 +13,9 @@ import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/dominio/moca.dart';
+import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
+import 'package:moca/pantallas/informe/excel_informe.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 
 void main() {
@@ -138,6 +143,64 @@ void main() {
         destino: DestinoInforme.contador,
       ),
       'Moca-Bodega-Don-Lucho-contador-octubre-2026.pdf',
+    );
+  });
+
+  test('El Excel de las operaciones, con la Demo (entrega 14.13)', () async {
+    await RepositorioOperadorLocal(base, ahora: () => ahora).cargarDemo();
+    final repositorio = RepositorioInformeLocal(base, ahora: () => ahora);
+    final informe = await repositorio.observarMes(DateTime(2026, 9)).first;
+    final d = await repositorio.detalleParaPdf(informe);
+
+    // Las operaciones del mes, en orden; en la Demo todo lo de setiembre se
+    // pagó en setiembre, así que suman lo mismo que el informe.
+    expect(d.operaciones, isNotEmpty);
+    for (final (n, o) in d.operaciones.indexed) {
+      expect(o.fecha.month, 9);
+      if (n > 0) {
+        expect(o.fecha.isBefore(d.operaciones[n - 1].fecha), isFalse);
+      }
+    }
+    int suma(TipoMovimiento tipo) => d.operaciones
+        .where((o) => o.tipo == tipo)
+        .fold(0, (s, o) => s + o.centimos);
+    expect(suma(TipoMovimiento.ingreso), informe.entroCentimos);
+    expect(suma(TipoMovimiento.egreso), informe.salioCentimos);
+    expect(suma(TipoMovimiento.retiro), informe.retirosCentimos);
+    expect(suma(TipoMovimiento.aporte), informe.aportesCentimos);
+    expect(
+      d.operaciones.where((o) => o.comprobante != null && o.ruc != null),
+      isNotEmpty,
+    );
+
+    final bytes = armarExcelDelInforme(
+      informe,
+      d,
+      nombreNegocio: 'Bodega Don Lucho',
+      hoy: ahora,
+    );
+    final zip = ZipDecoder().decodeBytes(bytes);
+    String xml(String nombre) =>
+        utf8.decode(zip.findFile(nombre)!.readBytes()!);
+    expect(
+      xml('xl/workbook.xml'),
+      allOf(
+        contains('name="Operaciones"'),
+        contains('name="Resumen"'),
+        contains('name="Saldos por cuenta"'),
+        contains('name="Lo que debes"'),
+      ),
+    );
+    final operaciones = xml('xl/worksheets/sheet1.xml');
+    // Encabezado más una fila por operación, con filtro y fijo al bajar.
+    expect('<row '.allMatches(operaciones).length, d.operaciones.length + 1);
+    expect(operaciones, contains('state="frozen"'));
+    expect(operaciones, contains('<autoFilter'));
+    // La primera operación: el 1 de setiembre es el día 46266 de Excel.
+    expect(operaciones, contains('<c r="A2" s="2"><v>46266</v></c>'));
+    expect(
+      nombreDelExcel('Bodega Don Lucho', DateTime(2026, 9)),
+      'Moca-Bodega-Don-Lucho-operaciones-setiembre-2026.xlsx',
     );
   });
 }
