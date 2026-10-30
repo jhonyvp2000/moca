@@ -67,6 +67,7 @@ class PantallaPrimerDia extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 16),
         children: [
           Padding(

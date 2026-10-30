@@ -1,3 +1,5 @@
+import '../../comun/actualizar.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -61,133 +63,140 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
           .add(f);
     }
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Medidas.margenLateral,
-              16,
-              Medidas.margenLateral,
-              8,
-            ),
-            child: Semantics(
-              header: true,
-              child: const Text(
-                Textos.tituloHistorial,
-                style: Tipografia.tituloPantalla,
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: Medidas.margenLateral,
-            ),
-            child: Row(
-              children: [
-                for (final (i, filtro) in FiltroHistorial.values.indexed) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  _Filtro(
-                    texto: switch (filtro) {
-                      FiltroHistorial.todo => Textos.filtroTodo,
-                      FiltroHistorial.entro => Textos.entro,
-                      FiltroHistorial.salio => Textos.salio,
-                      FiltroHistorial.porSubir => Textos.filtroPorSubir(
-                        resumen?.porSubir ?? 0,
-                      ),
-                    },
-                    elegido: filtro == _filtro,
-                    alTocar: () => setState(() => _filtro = filtro),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (soloHoy)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(
-                Medidas.margenLateral,
-                0,
-                Medidas.margenLateral,
-                12,
-              ),
-              child: Text(
-                Textos.soloLoDeHoyAyudante,
-                style: Tipografia.secundario,
-              ),
-            ),
-          if (resumen != null && filas.isEmpty)
+    // Deslizar hacia abajo trae lo nuevo de los demás (entrega 18.1).
+    return ConActualizar(
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 Medidas.margenLateral,
-                8,
+                16,
                 Medidas.margenLateral,
-                0,
+                8,
               ),
-              child: Tarjeta(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(_vacio(_filtro), style: Tipografia.texto),
-                    if (_filtro == FiltroHistorial.todo) ...[
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.push(Rutas.registrar),
-                        child: const Text(Textos.registrar),
-                      ),
-                    ],
-                  ],
+              child: Semantics(
+                header: true,
+                child: const Text(
+                  Textos.tituloHistorial,
+                  style: Tipografia.tituloPantalla,
                 ),
               ),
             ),
-          for (final MapEntry(key: dia, value: delDia) in dias.entries)
-            Padding(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
                 horizontal: Medidas.margenLateral,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
-                    child: Semantics(
-                      header: true,
-                      child: Text(
-                        formatearDiaHistorial(dia, hoy),
-                        style: Tipografia.secundario.copyWith(
-                          fontWeight: FontWeight.w700,
+                  for (final (i, filtro) in FiltroHistorial.values.indexed) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    _Filtro(
+                      texto: switch (filtro) {
+                        FiltroHistorial.todo => Textos.filtroTodo,
+                        FiltroHistorial.entro => Textos.entro,
+                        FiltroHistorial.salio => Textos.salio,
+                        FiltroHistorial.porSubir => Textos.filtroPorSubir(
+                          resumen?.porSubir ?? 0,
                         ),
-                      ),
+                      },
+                      elegido: filtro == _filtro,
+                      alTocar: () => setState(() => _filtro = filtro),
                     ),
-                  ),
-                  Tarjeta(
-                    relleno: EdgeInsets.zero,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                      child: Material(
-                        color: Colores.superficie,
-                        child: Column(
-                          children: [
-                            for (final (i, f) in delDia.indexed)
-                              FilaMovimiento(
-                                fila: f,
-                                conSeparador: i < delDia.length - 1,
-                                alTocar: () =>
-                                    context.push(Rutas.detalleMovimiento(f.id)),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
-        ],
+            const SizedBox(height: 8),
+            if (soloHoy)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  0,
+                  Medidas.margenLateral,
+                  12,
+                ),
+                child: Text(
+                  Textos.soloLoDeHoyAyudante,
+                  style: Tipografia.secundario,
+                ),
+              ),
+            if (resumen != null && filas.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  8,
+                  Medidas.margenLateral,
+                  0,
+                ),
+                child: Tarjeta(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(_vacio(_filtro), style: Tipografia.texto),
+                      if (_filtro == FiltroHistorial.todo) ...[
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: () => context.push(Rutas.registrar),
+                          child: const Text(Textos.registrar),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            for (final MapEntry(key: dia, value: delDia) in dias.entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Medidas.margenLateral,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          formatearDiaHistorial(dia, hoy),
+                          style: Tipografia.secundario.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Tarjeta(
+                      relleno: EdgeInsets.zero,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          Medidas.radioTarjeta,
+                        ),
+                        child: Material(
+                          color: Colores.superficie,
+                          child: Column(
+                            children: [
+                              for (final (i, f) in delDia.indexed)
+                                FilaMovimiento(
+                                  fila: f,
+                                  conSeparador: i < delDia.length - 1,
+                                  alTocar: () => context.push(
+                                    Rutas.detalleMovimiento(f.id),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

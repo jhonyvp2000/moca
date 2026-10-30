@@ -1,3 +1,5 @@
+import 'comun/actualizar.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -69,7 +71,13 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         _paraTraer = null;
         return;
       }
-      _paraTraer ??= Timer.periodic(cadaCuantoTraer, (_) => _sincronizar());
+      _paraTraer ??= Timer.periodic(cadaCuantoTraer, (_) {
+        // Solo con la app a la vista: en segundo plano no gasta datos.
+        final estado = WidgetsBinding.instance.lifecycleState;
+        if (estado == null || estado == AppLifecycleState.resumed) {
+          _sincronizar();
+        }
+      });
       _subida?.cancel();
       // La primera vez, tras la espera, también baja lo de los demás.
       _subida = Timer(
@@ -85,8 +93,9 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   static const esperaParaSubir = Duration(seconds: 5);
   Timer? _subida;
 
-  /// Cada cuánto se baja lo de los demás con la app abierta (entrega 18).
-  static const cadaCuantoTraer = Duration(minutes: 5);
+  /// Cada cuánto se baja lo de los demás con la app abierta (entrega 18;
+  /// de 5 minutos a 30 segundos en la 18.1).
+  static const cadaCuantoTraer = Duration(seconds: 30);
   Timer? _paraTraer;
 
   bool _yaTrajo = false;
@@ -94,10 +103,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   /// Sube lo propio, baja lo de los demás y, si hace falta, pide las cifras.
   Future<void> _sincronizar() async {
     _yaTrajo = true;
-    final servicio = ref.read(servicioCuentaProvider);
-    if (await servicio.hayCambiosSinSubir()) await servicio.subirTodo();
-    await servicio.traerCambios();
-    await servicio.actualizarCifras();
+    await actualizarAhora(ref);
   }
 
   Future<void> _subirSiHaceFalta() async {

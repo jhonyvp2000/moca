@@ -20,7 +20,7 @@ Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22 
 | 0.2 | En A y en B, revisa la versión en el ajuste oculto | Las dos terminan en el mismo código del commit |
 | 0.3 | En A, anota la hora; es la del inicio de la prueba | Sirve para encontrar después en el Historial lo anotado durante la prueba |
 
-**Cuándo se pasa lo de un teléfono al otro:** a los 5 segundos de abrir la app, al volver a ella y cada 5 minutos. Para no esperar, sal de la app y vuelve a entrar.
+**Cuándo se pasa lo de un teléfono al otro:** quien anota lo sube a los 5 segundos; el otro teléfono lo trae a los 5 segundos de abrir la app, al volver a ella y cada 30 segundos con la app a la vista (entrega 18.1). Para no esperar, desliza hacia abajo en el Inicio o el Historial.
 
 ## 1. Invitar y aceptar (B entra como encargado)
 

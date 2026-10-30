@@ -1,3 +1,5 @@
+import '../../comun/actualizar.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,35 +45,40 @@ class PantallaInicio extends ConsumerWidget {
     // Inicio según lo que les toca (entrega 20).
     final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
     if (!inicio.mostrarPrimerDia || !permisos.tienePrimerDia) {
-      return PantallaInicioCompleta(
-        resumen: inicio,
-        actualizado: actualizado,
-        permisos: permisos,
-        alAnotarVenta: anotarVenta,
-        alHacerArqueo: () => context.push(Rutas.arqueo),
-        aviso: permisos.veAvisos
-            ? ref.watch(avisosProvider).value?.firstOrNull
-            : null,
-        tarjetaAvisos: permisos.recibeAvisos
-            ? const TarjetaPermisoAvisos()
-            : null,
+      // Deslizar hacia abajo trae lo nuevo de los demás (entrega 18.1).
+      return ConActualizar(
+        child: PantallaInicioCompleta(
+          resumen: inicio,
+          actualizado: actualizado,
+          permisos: permisos,
+          alAnotarVenta: anotarVenta,
+          alHacerArqueo: () => context.push(Rutas.arqueo),
+          aviso: permisos.veAvisos
+              ? ref.watch(avisosProvider).value?.firstOrNull
+              : null,
+          tarjetaAvisos: permisos.recibeAvisos
+              ? const TarjetaPermisoAvisos()
+              : null,
+        ),
       );
     }
 
     final primerDia = ref.watch(resumenPrimerDiaProvider).value;
     if (primerDia == null) return const SizedBox.shrink();
-    return PantallaPrimerDia(
-      resumen: primerDia,
-      alAnotarVenta: anotarVenta,
-      alAnotarGasto: () => context.push(
-        Uri(
-          path: Rutas.escribir,
-          queryParameters: {'tipo': TipoMovimiento.egreso.name},
-        ).toString(),
+    return ConActualizar(
+      child: PantallaPrimerDia(
+        resumen: primerDia,
+        alAnotarVenta: anotarVenta,
+        alAnotarGasto: () => context.push(
+          Uri(
+            path: Rutas.escribir,
+            queryParameters: {'tipo': TipoMovimiento.egreso.name},
+          ).toString(),
+        ),
+        alDeclararSaldo: () => mostrarHojaSaldo(context),
+        alHacerArqueo: () => context.push(Rutas.arqueo),
+        tarjetaAvisos: const TarjetaPermisoAvisos(),
       ),
-      alDeclararSaldo: () => mostrarHojaSaldo(context),
-      alHacerArqueo: () => context.push(Rutas.arqueo),
-      tarjetaAvisos: const TarjetaPermisoAvisos(),
     );
   }
 }

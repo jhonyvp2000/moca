@@ -144,6 +144,9 @@ class _ServidorFalso {
   /// Lo que pidió borrar en el servidor (entrega 14.8).
   final borrados = <Object?>[];
 
+  /// Cuántas veces se pidió lo nuevo de los demás (entrega 18.1).
+  var pedidosDeCambios = 0;
+
   /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
   /// para «Me invitaron» y lo que se invitó, quitó o aceptó.
   Map<String, Object?>? equipo;
@@ -249,6 +252,9 @@ class _ServidorFalso {
         }
         subidas.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+      case '/datos/cambios':
+        pedidosDeCambios++;
+        return http.Response(jsonEncode({'hasta': 0}), 200);
       case '/datos/bajar':
         if (cortarBajada) {
           cortarBajada = false;
@@ -3142,6 +3148,25 @@ void main() {
       expect(_servidor.borrados, isEmpty);
       expect(await movimientos(tester, base), antes);
     });
+  });
+
+  testWidgets('Entrega 18.1: deslizar hacia abajo en el Historial trae lo '
+      'de los demás', (tester) async {
+    final base = await abrirApp(tester, listo: true);
+    await tester.runAsync(() async {
+      await _llavero.guardar('llave-de-prueba');
+      await AccesoLocal(
+        base,
+        () => _ahora,
+      ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+    });
+    await esperar(tester);
+    await tocar(tester, find.text(Textos.pestanaHistorial));
+    final antes = _servidor.pedidosDeCambios;
+    await tester.fling(find.byType(ListView).first, const Offset(0, 400), 1000);
+    await esperar(tester);
+    expect(_servidor.pedidosDeCambios, greaterThan(antes));
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
 
   group('Entrega 16.1: «Borrar mi negocio» a la vista del titular', () {
