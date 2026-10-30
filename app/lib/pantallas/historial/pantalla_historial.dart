@@ -36,7 +36,8 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
   Widget build(BuildContext context) {
     final resumen = ref.watch(historialProvider).value;
     final hoy = ref.watch(relojProvider)();
-    // El ayudante ve solo lo que anotó hoy (entrega 20).
+    // El ayudante ve solo lo de hoy: lo que anotó y lo que otros anotaron
+    // en su caja, que es lo único que baja a su teléfono (entrega 20.2).
     final soloHoy =
         (ref.watch(permisosProvider).value ?? Permisos.delDueno).soloLoDeHoy;
     bool deHoy(FilaHistorial f) =>

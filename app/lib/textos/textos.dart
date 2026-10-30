@@ -227,7 +227,8 @@ abstract final class Textos {
           _ => 'Lo anotó otra persona',
         };
   static const soloLoDeHoyAyudante =
-      'Aquí ves lo que anotaste hoy. Lo de otros días lo ve el dueño.';
+      'Aquí ves lo de hoy en tu caja y lo que anotaste. Lo de otros días lo '
+      've el dueño.';
 
   // Simular otra persona (entrega 20.1)
   static const verComoRol = 'Ver como…';

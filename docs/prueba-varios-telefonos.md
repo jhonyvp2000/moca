@@ -82,7 +82,7 @@ Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22 
 | # | Teléfono | Qué hacer | Qué debe pasar |
 |---|---|---|---|
 | 6.1 | B | Inicio | «Ventas que anotaste hoy» y el saldo de su caja; no ve el saldo del negocio |
-| 6.2 | B | Historial | Solo lo que anotó hoy |
+| 6.2 | B | Historial | Solo lo de hoy: lo que anotó y lo que otros anotaron hoy en su caja (con «Lo anotó el dueño»). Nada de días anteriores ni lo que otros anotaron en Yape o banco |
 | 6.3 | B | «Escribirlo» | No ofrece «Retiro para mí» ni «Puse de mi bolsillo» |
 | 6.4 | B | Dice por voz «saqué 20 para mí» | Moca pregunta qué tipo es; no lo guarda como retiro |
 | 6.5 | B | Anota una venta y la corrige | Se puede: es suya y de hoy |

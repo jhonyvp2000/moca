@@ -19,6 +19,7 @@ import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
+import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
@@ -2861,6 +2862,23 @@ void main() {
       expect(find.text(Textos.entro), findsOneWidget);
       expect(find.text(Textos.retiroParaMi), findsNothing);
       expect(find.text(Textos.puseDeMiBolsillo), findsNothing);
+    });
+
+    testWidgets('Entrega 20.2: el ayudante ve lo de hoy en su caja, aunque '
+        'lo anote otro', (tester) async {
+      final base = await comoRol(tester, Rol.ayudante);
+      await tester.runAsync(
+        () => RepositorioOperadorLocal(
+          base,
+          ahora: () => _ahora,
+        ).simularVentaDeOtro(),
+      );
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      expect(
+        find.textContaining(Textos.loAnoto(AccesoLocal.nombreSimulado, null)),
+        findsWidgets,
+      );
     });
 
     testWidgets('El contador solo mira', (tester) async {
