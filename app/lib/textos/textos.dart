@@ -210,6 +210,9 @@ abstract final class Textos {
   static const bajandoTusDatos = 'Bajando tus datos…';
   static const seCortoLaSenal =
       'Se cortó la señal. Intenta otra vez: no se perdió nada.';
+  static const noPudimosTraerTuCuenta =
+      'No pudimos traer tu cuenta. Intenta otra vez en unos minutos: no se '
+      'perdió nada.';
   static const yaTienesTodo = 'Listo. Ya tienes aquí todo lo que anotaste.';
   static const cuentaAbiertaEnOtro = 'Tu cuenta se abrió en otro teléfono';
   static const cuentaAbiertaEnOtroDetalle =

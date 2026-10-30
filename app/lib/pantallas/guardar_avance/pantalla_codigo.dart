@@ -65,6 +65,10 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
   _Fase _fase = _Fase.escribiendo;
   String? _error;
   String? _nota;
+
+  /// Si la última bajada falló por la señal o por otra cosa: solo lo
+  /// primero es «Se cortó la señal» (entrega 14.4.1).
+  bool _sinSenal = true;
   int _faltan = PantallaCodigo.esperaParaReenviar;
   Timer? _reloj;
 
@@ -243,7 +247,10 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       case ResultadoBajada.vencido:
         _volverAPedir();
       case ResultadoBajada.sinSenal || ResultadoBajada.error:
-        setState(() => _fase = _Fase.juntadaFallida);
+        setState(() {
+          _fase = _Fase.juntadaFallida;
+          _sinSenal = resultado == ResultadoBajada.sinSenal;
+        });
     }
   }
 
@@ -307,7 +314,12 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
       mensajes.showSnackBar(const SnackBar(content: Text(Textos.yaTienesTodo)));
       return;
     }
-    if (mounted) setState(() => _fase = _Fase.bajadaFallida);
+    if (mounted) {
+      setState(() {
+        _fase = _Fase.bajadaFallida;
+        _sinSenal = resultado == ResultadoBajada.sinSenal;
+      });
+    }
   }
 
   @override
@@ -392,13 +404,13 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
           const SizedBox(height: 16),
           const TarjetaMoca(texto: Textos.numeroConCuentaDetalle),
         ],
-        if (_fase == _Fase.juntadaFallida) ...[
+        if (_fase == _Fase.juntadaFallida || _fase == _Fase.bajadaFallida) ...[
           const SizedBox(height: 12),
-          const Aviso(texto: Textos.seCortoLaSenal),
-        ],
-        if (_fase == _Fase.bajadaFallida) ...[
-          const SizedBox(height: 12),
-          const Aviso(texto: Textos.seCortoLaSenal),
+          Aviso(
+            texto: _sinSenal
+                ? Textos.seCortoLaSenal
+                : Textos.noPudimosTraerTuCuenta,
+          ),
         ],
         if (_nota case final nota?) ...[
           const SizedBox(height: 12),

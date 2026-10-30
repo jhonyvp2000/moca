@@ -126,6 +126,9 @@ class _ServidorFalso {
   int estadoAlPedir = 200;
   bool cuentaExistente = false;
 
+  /// La cuenta del número ya no tiene ningún negocio (entrega 14.4.1).
+  bool cuentaSinNegocio = false;
+
   /// Lo que se eligió con el pase (entrega 14.4).
   final conPase = <String>[];
 
@@ -209,7 +212,10 @@ class _ServidorFalso {
             jsonEncode({
               if (!cuentaExistente || entrar) 'llave': 'llave-de-prueba',
               'usuarioId': cuerpo['usuarioId'],
-              'empresas': <String>[],
+              'empresas': [
+                if (cuentaExistente && !cuentaSinNegocio)
+                  '0f0e0d0c-0000-4000-8000-0000000000e1',
+              ],
               'cuentaExistente': cuentaExistente && !entrar,
               if (cuentaExistente && !entrar) 'pase': 'pase-de-prueba',
             }),
@@ -2296,6 +2302,37 @@ void main() {
       expect(await _llavero.leer(), 'llave-de-prueba');
       // Del primer día pasa al alta, como cualquier cuenta nueva.
       expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14.4.1: si la cuenta del número ya no tiene '
+        'negocio, guarda lo de este teléfono sin preguntar', (tester) async {
+      await abrirApp(tester);
+      await hastaElCodigo(tester);
+      await tocar(tester, enviar());
+      _servidor
+        ..cuentaExistente = true
+        ..cuentaSinNegocio = true;
+      await tester.enterText(find.byType(TextField), '123456');
+      await esperar(tester);
+      expect(find.text(Textos.numeroConCuenta), findsNothing);
+      expect(_servidor.conPase, ['empezar_de_cero']);
+      expect(await _llavero.leer(), 'llave-de-prueba');
+      expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
+    });
+
+    testWidgets('Entrega 14.4.1: un error del servidor no se muestra como '
+        'falta de señal', (tester) async {
+      await hastaLaCuentaExistente(tester);
+      // El servidor responde sin datos.
+      _servidor.cuentaParaEntrar = null;
+      await tocar(tester, find.text(Textos.entrarAMiCuenta));
+      expect(find.text(Textos.noPudimosTraerTuCuenta), findsOneWidget);
+      expect(find.text(Textos.seCortoLaSenal), findsNothing);
+
+      // Si de verdad se corta, sí lo dice.
+      _servidor.cortarBajada = true;
+      await tocar(tester, find.text(Textos.intentarOtraVez));
+      expect(find.text(Textos.seCortoLaSenal), findsOneWidget);
     });
 
     testWidgets('Número con cuenta: «Seguir sin cuenta» no guarda nada', (

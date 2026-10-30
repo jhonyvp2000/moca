@@ -204,6 +204,16 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
           // El dueño elige qué hacer con el pase (entrega 14.4).
           _pase = cuerpo['pase'] as String?;
           _celularPorEntrar = celular;
+          // Una cuenta sin ningún negocio (lo borró, o lo quitaron del
+          // equipo) no tiene nada que juntar: lo de este teléfono se guarda
+          // con el número, sin preguntar (entrega 14.4.1).
+          final empresas = cuerpo['empresas'];
+          if (!entrar &&
+              _pase != null &&
+              empresas is List &&
+              empresas.isEmpty) {
+            return empezarDeCero();
+          }
           return ResultadoVerificacion.otraCuenta;
         }
         await _llavero.guardar(cuerpo['llave']! as String);
