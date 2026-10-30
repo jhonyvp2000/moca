@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../dominio/modelos.dart';
 import '../../pais/peru/categorias.dart';
@@ -8,10 +9,7 @@ import 'base_local.dart';
 /// 14.14): renombra las que cambiaron de nombre y agrega las nuevas al
 /// final. Se puede llamar las veces que sea: si ya está al día, no cambia
 /// nada.
-Future<void> ponerAlDiaCategorias(
-  BaseLocal base,
-  String Function() nuevoId,
-) async {
+Future<void> ponerAlDiaCategorias(BaseLocal base) async {
   for (final empresa in await base.select(base.empresas).get()) {
     final categorias = await (base.select(
       base.categorias,
@@ -67,7 +65,7 @@ Future<void> ponerAlDiaCategorias(
             .into(base.categorias)
             .insert(
               CategoriasCompanion.insert(
-                id: nuevoId(),
+                id: idDeCategoriaNueva(empresa.id, tipo, nombre),
                 empresaId: empresa.id,
                 nombre: nombre,
                 tipoMovimiento: tipo,
@@ -78,3 +76,15 @@ Future<void> ponerAlDiaCategorias(
     }
   }
 }
+
+/// El mismo id en todos los teléfonos del negocio (entrega 14.14.1): si dos
+/// teléfonos agregan la misma categoría nueva antes de sincronizar, al
+/// juntarse es una sola y no aparece dos veces.
+String idDeCategoriaNueva(
+  String empresaId,
+  TipoMovimiento tipo,
+  String nombre,
+) => const Uuid().v5(
+  Namespace.url.value,
+  'moca:$empresaId:${tipo.name}:$nombre',
+);

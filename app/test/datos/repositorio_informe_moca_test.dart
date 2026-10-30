@@ -316,6 +316,7 @@ void main() {
         expect(f.retirosPromedioCentimos, 5000);
         expect(f.categoriasPorFila[FilaFlujo.otrosGastosFijos], [
           'Movilidad del negocio',
+          'Combustible',
           'Impuestos y trámites',
           'Otros',
         ]);

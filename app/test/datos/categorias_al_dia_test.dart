@@ -9,7 +9,6 @@ import 'package:moca/pais/peru/categorias.dart';
 void main() {
   late BaseLocal base;
   var n = 0;
-  String id() => 'id-${n++}';
 
   setUp(() async {
     base = BaseLocal(NativeDatabase.memory());
@@ -55,7 +54,7 @@ void main() {
   test(
     'Renombra las que cambiaron y agrega las nuevas, una sola vez',
     () async {
-      await ponerAlDiaCategorias(base, id);
+      await ponerAlDiaCategorias(base);
       final despues = await categorias();
       // Los ids no cambian: lo anotado sigue en su categoría.
       expect(despues['personal'], ('Sueldos del personal', true));
@@ -66,7 +65,7 @@ void main() {
       expect(nombres, containsAll(categoriasComunesEgreso));
       expect(nombres, isNot(contains('Personal')));
 
-      await ponerAlDiaCategorias(base, id);
+      await ponerAlDiaCategorias(base);
       expect(await categorias(), despues);
     },
   );
@@ -113,11 +112,32 @@ void main() {
           ),
         );
 
-    await ponerAlDiaCategorias(base, id);
+    await ponerAlDiaCategorias(base);
     final despues = await categorias();
     expect(despues['personal'], ('Personal', false));
     expect(despues['sueldos'], ('Sueldos del personal', true));
     final m = await base.select(base.movimientos).getSingle();
     expect(m.categoriaId, 'sueldos');
+  });
+
+  test('Entrega 14.14.1: «Combustible» llega con el mismo id a cada '
+      'teléfono', () async {
+    await ponerAlDiaCategorias(base);
+    final combustible = (await base.select(base.categorias).get()).singleWhere(
+      (c) => c.nombre == categoriaCombustible,
+    );
+    expect(
+      combustible.id,
+      idDeCategoriaNueva('e', TipoMovimiento.egreso, categoriaCombustible),
+    );
+    // Otro teléfono del mismo negocio la agrega igual: al juntarse, es una.
+    expect(
+      idDeCategoriaNueva('e', TipoMovimiento.egreso, categoriaCombustible),
+      combustible.id,
+    );
+    expect(
+      idDeCategoriaNueva('otra', TipoMovimiento.egreso, categoriaCombustible),
+      isNot(combustible.id),
+    );
   });
 }

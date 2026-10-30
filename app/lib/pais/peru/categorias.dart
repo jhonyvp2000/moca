@@ -9,6 +9,9 @@ const categoriaVentaDelDia = 'Venta del día';
 const categoriaCobroDeFiado = 'Cobro de fiado';
 const categoriaCuotaDePrestamo = 'Cuota de préstamo';
 
+/// Antes iba en «Movilidad del negocio» (entrega 14.14.1).
+const categoriaCombustible = 'Combustible';
+
 /// Las del flujo que piden las entidades de crédito (docs/credito/,
 /// entrega 14.14): cada fila del flujo sale de una categoría.
 const categoriasComunesIngreso = [
@@ -23,6 +26,7 @@ const categoriasComunesEgreso = [
   'Servicios (luz, agua, internet, teléfono)',
   'Sueldos del personal',
   'Movilidad del negocio',
+  categoriaCombustible,
   'Flete',
   'Publicidad',
   'Contador o gestoría',
@@ -81,6 +85,8 @@ const filaDelFlujo = {
   'Herramientas y repuestos': FilaFlujo.mantenimiento,
   'Contador o gestoría': FilaFlujo.contabilidad,
   'Movilidad del negocio': FilaFlujo.otrosGastosFijos,
+  // La plantilla de la caja no tiene fila de combustible.
+  categoriaCombustible: FilaFlujo.otrosGastosFijos,
   'Impuestos y trámites': FilaFlujo.otrosGastosFijos,
   'Otros': FilaFlujo.otrosGastosFijos,
 };

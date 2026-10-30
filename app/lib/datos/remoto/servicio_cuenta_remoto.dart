@@ -1135,7 +1135,7 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
 
       // Si la cuenta trae categorías con nombres viejos, se ponen al día y
       // quedan por subir (entrega 14.14).
-      await ponerAlDiaCategorias(_base, _a.nuevoId);
+      await ponerAlDiaCategorias(_base);
 
       // Una cuenta que se guardó antes del alta sigue en el alta.
       final conAlta = (empresa['nombre']! as String).isNotEmpty;

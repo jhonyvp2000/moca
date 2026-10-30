@@ -307,6 +307,11 @@ void main() {
       expect(categoria('pagué 300 al ayudante'), 'Sueldos del personal');
       expect(categoria('pagué 900 al personal'), 'Sueldos del personal');
       expect(categoria('gasté 15 en mototaxi'), 'Movilidad del negocio');
+      // Entrega 14.14.1: el combustible tiene su categoría.
+      expect(categoria('gasté 50 en gasolina'), 'Combustible');
+      expect(categoria('pagué 80 de petróleo'), 'Combustible');
+      expect(categoria('gasté 60 en el grifo'), 'Combustible');
+      expect(categoria('gasté 40 en diesel'), 'Combustible');
       expect(categoria('pagué 40 de flete'), 'Flete');
       expect(categoria('pagué 50 de volantes'), 'Publicidad');
       expect(categoria('pagué 200 al contador'), 'Contador o gestoría');
