@@ -194,6 +194,9 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               ruta: Rutas.negocios,
             ),
           ],
+          // Para todos los roles, en cada teléfono (entrega 16.3).
+          const SizedBox(height: Medidas.separacionTarjetas),
+          const _InterruptorHuella(),
           // El derecho a borrar sus datos (Ley 29733), solo del titular
           // (entrega 16.1).
           if (estadoCuenta == EstadoCuenta.guardada &&
@@ -405,6 +408,71 @@ class _Enlace extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Pedir huella al abrir Moca» (entrega 16.3). Al encenderla la pide una
+/// vez, para saber que funciona en este teléfono.
+class _InterruptorHuella extends ConsumerStatefulWidget {
+  const _InterruptorHuella();
+
+  @override
+  ConsumerState<_InterruptorHuella> createState() => _EstadoInterruptor();
+}
+
+class _EstadoInterruptor extends ConsumerState<_InterruptorHuella> {
+  bool _cambiando = false;
+
+  Future<void> _cambiar(bool encender) async {
+    setState(() => _cambiando = true);
+    final mensajes = ScaffoldMessenger.of(context);
+    try {
+      final guardar = ref.read(guardarPedirHuellaProvider);
+      if (!encender) {
+        await guardar(false);
+        mensajes.showSnackBar(
+          const SnackBar(content: Text(Textos.huellaDesactivada)),
+        );
+        return;
+      }
+      final cerradura = ref.read(cerraduraProvider);
+      if (!await cerradura.puedeUsarse()) {
+        mensajes.showSnackBar(
+          const SnackBar(content: Text(Textos.sinBloqueoEnElTelefono)),
+        );
+        return;
+      }
+      if (!await cerradura.verificar(Textos.confirmaQueEresTu)) return;
+      await guardar(true);
+      mensajes.showSnackBar(
+        const SnackBar(content: Text(Textos.huellaActivada)),
+      );
+    } finally {
+      if (mounted) setState(() => _cambiando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pide = ref.watch(pedirHuellaProvider).value ?? false;
+    return Tarjeta(
+      relleno: EdgeInsets.zero,
+      child: Material(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        clipBehavior: Clip.antiAlias,
+        child: SwitchListTile(
+          value: pide,
+          onChanged: _cambiando ? null : _cambiar,
+          contentPadding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+          title: const Text(Textos.pedirHuella, style: Tipografia.textoFuerte),
+          subtitle: const Text(
+            Textos.pedirHuellaDetalle,
+            style: Tipografia.secundario,
           ),
         ),
       ),

@@ -11,17 +11,19 @@ import android.util.Base64
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.security.MessageDigest
 
 /**
+ * Es una FlutterFragmentActivity porque la huella lo pide (entrega 16.3).
+ *
  * Lee solo el SMS del código con SMS Retriever, sin permiso para leer los
  * mensajes (entrega 14.7). Android entrega a Moca el SMS que termina con la
  * marca de la app, y solo si lo envía Google Play Services.
  */
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private var canal: MethodChannel? = null
     private var receptor: BroadcastReceiver? = null
 

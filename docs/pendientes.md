@@ -42,6 +42,8 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven más adelante
 
+- El tiempo fuera de Moca antes de pedir la huella: 30 segundos para las pruebas (entrega 16.3); la recomendación es 5 minutos.
+- Para la versión final: ocultar la pantalla de Moca en las apps recientes, que también bloquea las capturas de pantalla (por eso no va durante la prueba).
 - Al diseñar los días de prueba, revisar también los números archivados (`celular_archivado`): «Empezar de cero» y la entrega 14.4.1 archivan la cuenta vieja y crean otra con el mismo número, y el número no debe volver a tener 7 días de prueba (decisiones.md, 29-10-2026 y 30-10-2026).
 - Cómo se cobra la suscripción: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).
 

@@ -1148,6 +1148,18 @@ abstract final class Textos {
   static const continuar = 'Continuar';
   static const escribeBorrar = 'Para confirmar, escribe BORRAR';
 
+  // La huella al abrir Moca (entrega 16.3).
+  static const pedirHuella = 'Pedir huella al abrir Moca';
+  static const pedirHuellaDetalle =
+      'Usa el bloqueo de tu teléfono: huella, rostro, patrón o PIN.';
+  static const sinBloqueoEnElTelefono =
+      'Primero pon un bloqueo en tu teléfono (huella, patrón o PIN).';
+  static const huellaActivada = 'Listo. Moca pedirá tu huella al abrir.';
+  static const huellaDesactivada = 'Listo. Moca ya no pedirá tu huella.';
+  static const confirmaQueEresTu = 'Confirma que eres tú para abrir Moca';
+  static const mocaProtegida = 'Moca está protegida';
+  static const usarHuella = 'Usar huella';
+
   // «Borrar mi negocio» (entrega 16.1).
   static const borrarMiNegocio = 'Borrar mi negocio y mis datos';
   static const borrarMiNegocioDetalle =

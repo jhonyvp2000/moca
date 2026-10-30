@@ -1,5 +1,3 @@
-import 'comun/actualizar.dart';
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,12 +5,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'comun/actualizar.dart';
 import 'dominio/aviso_cierre.dart';
 import 'dominio/cuenta_real.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/medicion.dart';
 import 'dominio/primer_dia.dart';
 import 'inyeccion.dart';
+import 'pantallas/cerradura/con_cerradura.dart';
 import 'rutas.dart';
 import 'tema/colores.dart';
 import 'tema/medidas.dart';
@@ -201,8 +201,10 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
       locale: const Locale('es', 'PE'),
       supportedLocales: const [Locale('es', 'PE'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      builder: (context, hijo) =>
-          _ConFranjaDemo(alSalir: _salirDeLaDemo, child: hijo!),
+      // La huella tapa todo, también los diálogos (entrega 16.3).
+      builder: (context, hijo) => ConCerradura(
+        child: _ConFranjaDemo(alSalir: _salirDeLaDemo, child: hijo!),
+      ),
     );
   }
 }

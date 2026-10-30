@@ -52,6 +52,9 @@ class AccesoLocal {
   /// Las cajas a cargo de quien usa el teléfono (ids), tal como bajaron del
   /// servidor; sin el ajuste, todas (entrega 21).
   static const claveMisCajas = 'mis_cajas';
+
+  /// «Pedir huella al abrir Moca» (entrega 16.3): «si» o nada.
+  static const clavePedirHuella = 'pedir_huella';
   static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';
   static const nombreSimulado = 'Pepe';
 

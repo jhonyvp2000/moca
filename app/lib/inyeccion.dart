@@ -19,6 +19,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/cerradura.dart';
 import 'dominio/ajustes.dart';
 import 'dominio/arqueo.dart';
 import 'dominio/aviso_cierre.dart';
@@ -38,6 +39,7 @@ import 'dominio/repositorio_operador.dart';
 import 'dominio/servicios.dart';
 import 'dominio/tutoria.dart';
 import 'dominio/voz.dart';
+import 'servicios/cerradura_android.dart';
 import 'servicios/abridor_android.dart';
 import 'servicios/buscador_qr_android.dart';
 import 'servicios/camara_android.dart';
@@ -242,6 +244,30 @@ final planNotificacionesProvider = StreamProvider<List<NotificacionProgramada>>(
 
 final permisoAvisosPreguntadoProvider = FutureProvider<bool>(
   (ref) => ref.watch(repositorioAvisoCierreProvider).permisoPreguntado(),
+);
+
+/// La huella o el bloqueo del teléfono (entrega 16.3).
+final cerraduraProvider = Provider<Cerradura>((ref) => CerraduraAndroid());
+
+/// Si este teléfono pide la huella al abrir Moca (entrega 16.3). No se sube:
+/// cada teléfono decide.
+final pedirHuellaProvider = StreamProvider<bool>((ref) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  return acceso.cambios().asyncMap(
+    (_) async => await acceso.leerAjuste(AccesoLocal.clavePedirHuella) == 'si',
+  );
+});
+
+/// Enciende o apaga «Pedir huella al abrir Moca» en este teléfono.
+final guardarPedirHuellaProvider = Provider<Future<void> Function(bool)>(
+  (ref) =>
+      (pedir) => AccesoLocal(
+        ref.read(baseLocalProvider),
+        ref.read(relojProvider),
+      ).guardarAjuste(AccesoLocal.clavePedirHuella, pedir ? 'si' : 'no'),
 );
 
 final notificadorProvider = Provider<Notificador>(

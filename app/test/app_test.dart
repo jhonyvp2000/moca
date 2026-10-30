@@ -22,6 +22,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/cerradura.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/comprobantes.dart';
 import 'package:moca/dominio/conexion.dart';
@@ -427,6 +428,22 @@ class _LectorFalso implements LectorFoto {
       _lecturas.isEmpty ? _deEjemplo.leer(rutaImagen) : _lecturas.removeAt(0);
 }
 
+/// La huella del teléfono (entrega 16.3).
+var _hayBloqueo = true;
+var _pasaLaHuella = true;
+var _huellasPedidas = 0;
+
+class _CerraduraFalsa implements Cerradura {
+  @override
+  Future<bool> puedeUsarse() async => _hayBloqueo;
+
+  @override
+  Future<bool> verificar(String motivo) async {
+    _huellasPedidas++;
+    return _pasaLaHuella;
+  }
+}
+
 class _CamaraFalsa implements Camara {
   @override
   Future<ResultadoCamara> tomarFoto() async => _camara;
@@ -452,8 +469,13 @@ Future<BaseLocal> abrirApp(
   WidgetTester tester, {
   bool listo = false,
   bool permisoPreguntado = true,
+  bool conHuella = false,
+  bool pasaLaHuella = true,
 }) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  _hayBloqueo = true;
+  _pasaLaHuella = pasaLaHuella;
+  _huellasPedidas = 0;
   _loQueDice = [const AlternativaVoz('hola')];
   _vozDisponible = DisponibilidadVoz.disponible;
   _camara = const FotoTomada('/no/existe.jpg');
@@ -512,6 +534,14 @@ Future<BaseLocal> abrirApp(
     });
   }
 
+  if (conHuella) {
+    await tester.runAsync(
+      () => AccesoLocal(
+        base,
+        () => _ahora,
+      ).guardarAjuste(AccesoLocal.clavePedirHuella, 'si'),
+    );
+  }
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -536,6 +566,7 @@ Future<BaseLocal> abrirApp(
         ),
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
+        cerraduraProvider.overrideWithValue(_CerraduraFalsa()),
         lectorFotoProvider.overrideWith(
           (ref) => _LectorFalso(
             LectorFotoSimulado(
@@ -2370,6 +2401,10 @@ void main() {
 
       // Vuelve a Moca, sin la tarjeta, y lo anotado ya está en el servidor.
       expect(find.text(Textos.avanceGuardado), findsOneWidget);
+      // La pestaña quedó más abajo, donde estaba la tarjeta: sube hasta el
+      // título.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+      await esperar(tester);
       expect(find.text(Textos.subtituloMoca), findsOneWidget);
       expect(find.text(Textos.guardarMiAvance), findsNothing);
       expect(_servidor.subidas, hasLength(1));
@@ -3167,6 +3202,108 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  group('Entrega 16.3: pedir huella al abrir Moca', () {
+    Future<void> salirYVolver(WidgetTester tester, Duration fuera) async {
+      for (final estado in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(estado);
+      }
+      _ahora = _ahora.add(fuera);
+      for (final estado in [
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(estado);
+      }
+      await esperar(tester);
+    }
+
+    Future<void> alInterruptor(WidgetTester tester) async {
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.pedirHuella),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+    }
+
+    testWidgets('Apagada no pide nada', (tester) async {
+      await abrirApp(tester, listo: true);
+      expect(find.text(Textos.mocaProtegida), findsNothing);
+      await salirYVolver(tester, const Duration(minutes: 10));
+      expect(find.text(Textos.mocaProtegida), findsNothing);
+      expect(_huellasPedidas, 0);
+    });
+
+    testWidgets('Se enciende en la pestaña Moca, pidiéndola una vez', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await alInterruptor(tester);
+      await tocar(tester, find.text(Textos.pedirHuella));
+      expect(_huellasPedidas, 1);
+      expect(find.text(Textos.huellaActivada), findsOneWidget);
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        isTrue,
+      );
+      // Ya encendida, al volver a los 31 segundos la pide.
+      _pasaLaHuella = false;
+      await salirYVolver(tester, const Duration(seconds: 31));
+      expect(_huellasPedidas, 2);
+      expect(find.text(Textos.mocaProtegida), findsOneWidget);
+    });
+
+    testWidgets('Sin bloqueo en el teléfono no se enciende', (tester) async {
+      await abrirApp(tester, listo: true);
+      _hayBloqueo = false;
+      await alInterruptor(tester);
+      await tocar(tester, find.text(Textos.pedirHuella));
+      expect(find.text(Textos.sinBloqueoEnElTelefono), findsOneWidget);
+      expect(_huellasPedidas, 0);
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        isFalse,
+      );
+    });
+
+    testWidgets('Encendida, la pide al abrir; si falla, no se ve nada', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true, conHuella: true, pasaLaHuella: false);
+      expect(_huellasPedidas, 1);
+      expect(find.text(Textos.mocaProtegida), findsOneWidget);
+      // La pantalla de abajo no se puede tocar.
+      expect(find.text(Textos.tienesHoy).hitTestable(), findsNothing);
+
+      _pasaLaHuella = true;
+      await tocar(tester, find.text(Textos.usarHuella));
+      expect(find.text(Textos.mocaProtegida), findsNothing);
+      expect(find.text(Textos.tienesHoy).hitTestable(), findsOneWidget);
+    });
+
+    testWidgets('Al volver en menos de 30 segundos no la pide; después, sí', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true, conHuella: true);
+      expect(find.text(Textos.mocaProtegida), findsNothing);
+      expect(_huellasPedidas, 1);
+
+      await salirYVolver(tester, const Duration(seconds: 20));
+      expect(find.text(Textos.mocaProtegida), findsNothing);
+      expect(_huellasPedidas, 1);
+
+      _pasaLaHuella = false;
+      await salirYVolver(tester, const Duration(seconds: 31));
+      expect(_huellasPedidas, 2);
+      expect(find.text(Textos.mocaProtegida), findsOneWidget);
+    });
   });
 
   group('Entrega 16.1: «Borrar mi negocio» a la vista del titular', () {
