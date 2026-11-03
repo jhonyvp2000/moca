@@ -36,6 +36,8 @@ class PantallaOperador extends ConsumerWidget {
     // Solo con la cuenta guardada hay algo que borrar en el servidor.
     final cuenta = ref.watch(situacionCuentaProvider).value;
     final conCuenta = cuenta?.estado == EstadoCuenta.guardada;
+    // Solo en el teléfono de quien registra los pagos (entrega 26).
+    final admin = ref.watch(cobroProvider).value?.admin ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -67,6 +69,17 @@ class PantallaOperador extends ConsumerWidget {
               null => Textos.contandoRegistros,
             }, style: Tipografia.texto),
           ),
+          if (admin) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            Tarjeta(
+              relleno: EdgeInsets.zero,
+              child: _Opcion(
+                titulo: Textos.cobros,
+                detalle: Textos.cobrosDetalle,
+                alTocar: () => context.push(Rutas.cobros),
+              ),
+            ),
+          ],
           const SizedBox(height: Medidas.separacionTarjetas),
           Tarjeta(
             relleno: EdgeInsets.zero,

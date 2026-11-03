@@ -27,7 +27,7 @@ const direccionServidor = String.fromEnvironment(
 /// La cuenta real contra el servidor de Moca (servidor/README.md).
 /// También lleva el equipo del negocio (entrega 19): usa la misma llave.
 class ServicioCuentaRemoto
-    implements ServicioCuenta, ServicioEquipo, ServicioCobro {
+    implements ServicioCuenta, ServicioEquipo, ServicioCobro, ServicioPagos {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -403,6 +403,99 @@ class ServicioCuentaRemoto
       );
     }
     return resultado;
+  }
+
+  // --- La pantalla de cobros (entrega 26) ---------------------------------
+
+  static DateTime? _leerDia(Object? valor) =>
+      valor is String ? DateTime.tryParse(valor) : null;
+
+  static FichaDeCobro _ficha(Map<String, Object?> f) => FichaDeCobro(
+    empresaId: f['empresa_id']! as String,
+    nombre: f['nombre'] as String? ?? '',
+    celular: f['celular'] as String?,
+    cobro: Cobro.desdeServidor(f['cobro'] as Map<String, Object?>? ?? const {}),
+    pagos: [
+      for (final p in (f['pagos'] as List? ?? const []))
+        if (p case final Map<String, Object?> p)
+          PagoRegistrado(
+            plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
+            montoCentimos: p['monto_centimos'] as int? ?? 0,
+            desde: _leerDia(p['desde']) ?? DateTime(2000),
+            hasta: _leerDia(p['hasta']) ?? DateTime(2000),
+            nota: p['nota'] as String?,
+          ),
+    ],
+    respuestas: [
+      for (final r in (f['respuestas'] as List? ?? const []))
+        if (r case final Map<String, Object?> r)
+          RespuestaRegistrada(
+            respuesta: switch (r['respuesta']) {
+              'si' => RespuestaPrecio.si,
+              'no' => RespuestaPrecio.no,
+              _ => RespuestaPrecio.noSe,
+            },
+            motivo: r['motivo'] as String?,
+            precioCentimos: r['precio_centimos'] as int? ?? 0,
+          ),
+    ],
+  );
+
+  static ResultadoCobro _resultadoCobro(http.Response r) =>
+      switch (r.statusCode) {
+        200 => ResultadoCobro.listo,
+        403 => ResultadoCobro.sinPermiso,
+        404 => ResultadoCobro.noEncontrado,
+        409 when _cuerpo(r)['error'] == 'perdio_fundador' =>
+          ResultadoCobro.perdioFundador,
+        409 => ResultadoCobro.sinCupoFundador,
+        _ => ResultadoCobro.error,
+      };
+
+  @override
+  Future<ResumenDeCobros?> resumen() async {
+    final r = await _delEquipo('/cobro/resumen');
+    if (r == null || r.statusCode != 200) return null;
+    final cuerpo = _cuerpo(r);
+    final fundadores = cuerpo['fundadores'] as Map<String, Object?>? ?? {};
+    return ResumenDeCobros(
+      fundadores: fundadores['usados'] as int? ?? 0,
+      maximoFundadores: fundadores['maximo'] as int? ?? 50,
+      negocios: [
+        for (final n in (cuerpo['negocios'] as List? ?? const []))
+          _ficha(n as Map<String, Object?>),
+      ],
+    );
+  }
+
+  @override
+  Future<(FichaDeCobro?, ResultadoCobro)> buscar(String celular) async {
+    final r = await _delEquipo(
+      '/cobro/negocio?celular=${Uri.encodeQueryComponent(celular)}',
+    );
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    return resultado == ResultadoCobro.listo
+        ? (_ficha(_cuerpo(r)), resultado)
+        : (null, resultado);
+  }
+
+  @override
+  Future<(FichaDeCobro?, ResultadoCobro)> registrarPago(
+    String empresaId,
+    PlanCobro plan, {
+    String? nota,
+  }) async {
+    final r = await _delEquipo('/cobro/pago', {
+      'empresa': empresaId,
+      'plan': plan.name,
+      if (nota != null && nota.trim().isNotEmpty) 'nota': nota.trim(),
+    });
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    return resultado == ResultadoCobro.listo
+        ? (_ficha(_cuerpo(r)), resultado)
+        : (null, resultado);
   }
 
   @override

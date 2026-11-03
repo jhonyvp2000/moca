@@ -483,6 +483,11 @@ final cobroProvider = StreamProvider<Cobro>((ref) {
   });
 });
 
+/// La pantalla de cobros de Jhony (entrega 26), con la misma llave.
+final servicioPagosProvider = Provider<ServicioPagos>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioPagos,
+);
+
 /// La pregunta del día 10: la lleva el mismo servicio de la cuenta.
 final servicioCobroProvider = Provider<ServicioCobro>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioCobro,

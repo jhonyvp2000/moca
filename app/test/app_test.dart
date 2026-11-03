@@ -22,6 +22,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/cobro.dart';
 import 'package:moca/dominio/cerradura.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
 import 'package:moca/dominio/comprobantes.dart';
@@ -154,6 +155,31 @@ class _ServidorFalso {
   /// La pregunta del día 10 (entrega 25).
   final respuestasDePrecio = <Map<String, Object?>>[];
 
+  /// La pantalla de cobros (entrega 26): los pagos que se registraron.
+  final pagos = <Map<String, Object?>>[];
+
+  Map<String, Object?> fichaDeLucho({String? hasta}) => {
+    'empresa_id': 'empresa-lucho',
+    'nombre': 'Bodega Don Lucho',
+    'celular': '987654321',
+    'cobro': hasta == null
+        ? {'estado': 'prueba', 'hasta': '2026-10-14', 'dias': 2, 'precio': 1490}
+        : {'estado': 'pagado', 'hasta': hasta, 'dias': 30, 'plan': 'fundador'},
+    'pagos': [
+      if (hasta != null)
+        {
+          'plan': 'fundador',
+          'monto_centimos': 1490,
+          'desde': '2026-10-15',
+          'hasta': hasta,
+          'nota': 'op 123',
+        },
+    ],
+    'respuestas': [
+      {'respuesta': 'si', 'motivo': null, 'precio_centimos': 1490},
+    ],
+  };
+
   /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
   /// para «Me invitaron» y lo que se invitó, quitó o aceptó.
   Map<String, Object?>? equipo;
@@ -259,6 +285,29 @@ class _ServidorFalso {
         }
         subidas.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+      case '/cobro/resumen':
+        return http.Response(
+          jsonEncode({
+            'fundadores': {'usados': pagos.length, 'maximo': 50},
+            'negocios': [fichaDeLucho()],
+          }),
+          200,
+        );
+      case '/cobro/negocio':
+        return pedido.url.queryParameters['celular'] == '987654321'
+            ? http.Response(
+                jsonEncode(
+                  fichaDeLucho(hasta: pagos.isEmpty ? null : '2026-11-14'),
+                ),
+                200,
+              )
+            : http.Response(jsonEncode({'error': 'sin_negocio'}), 404);
+      case '/cobro/pago':
+        pagos.add(cuerpo);
+        return http.Response(
+          jsonEncode(fichaDeLucho(hasta: '2026-11-14')),
+          200,
+        );
       case '/cobro/respuesta':
         respuestasDePrecio.add(cuerpo);
         return http.Response(jsonEncode({'recibida': true}), 200);
@@ -3214,6 +3263,94 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  group('Entrega 26: la pantalla de cobros de Jhony', () {
+    Future<void> comoAdmin(WidgetTester tester, {required bool admin}) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveCobro,
+          jsonEncode({'estado': 'sin_cobro', 'admin': admin}),
+        ),
+      );
+      await esperar(tester);
+      await abrirAjusteOculto(tester);
+    }
+
+    testWidgets('Solo aparece en el teléfono de quien registra los pagos', (
+      tester,
+    ) async {
+      await comoAdmin(tester, admin: false);
+      expect(find.text(Textos.cobros), findsNothing);
+    });
+
+    testWidgets('Buscar por celular, registrar un pago y ver lo que vence', (
+      tester,
+    ) async {
+      await comoAdmin(tester, admin: true);
+      await tocar(tester, find.text(Textos.cobros));
+      expect(find.text(Textos.fundadoresUsados(0, 50)), findsOneWidget);
+      expect(find.text(Textos.vencenPronto), findsOneWidget);
+      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '999888777');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.buscar));
+      expect(find.text(Textos.sinNegocioConEseNumero), findsOneWidget);
+
+      // Tocar el negocio de la lista lo abre.
+      await tocar(tester, find.text('Bodega Don Lucho').last);
+      expect(find.text(Textos.registrarPago), findsOneWidget);
+      expect(
+        find.text(Textos.respondio(Textos.respuestaSi, 'S/\u00A014.90')),
+        findsOneWidget,
+      );
+
+      await tocar(tester, find.text(Textos.registrarPago));
+      // Con precio de fundador, viene elegido el plan de fundador.
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.notaDelPago),
+        'op 123',
+      );
+      await tester.pump();
+      // El de la hoja, encima del de la ficha.
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.registrarPago).last,
+      );
+      expect(
+        find.text(
+          Textos.confirmarPago(
+            Textos.nombrePlan(PlanCobro.fundador),
+            'Bodega Don Lucho',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tocar(
+        tester,
+        find.widgetWithText(TextButton, Textos.registrarPago),
+      );
+      expect(_servidor.pagos.single, {
+        'empresa': 'empresa-lucho',
+        'plan': 'fundador',
+        'nota': 'op 123',
+      });
+      expect(
+        find.text(Textos.pagoRegistrado('14 de noviembre')),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.fundadoresUsados(1, 50)), findsOneWidget);
+    });
   });
 
   group('Entrega 25: el cobro en la app', () {

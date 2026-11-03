@@ -107,3 +107,99 @@ class Cobro {
 }
 
 enum RespuestaPrecio { si, noSe, no }
+
+/// Lo que Jhony registra (entrega 26).
+enum PlanCobro { normal, fundador, anual }
+
+/// Un pago registrado.
+class PagoRegistrado {
+  const PagoRegistrado({
+    required this.plan,
+    required this.montoCentimos,
+    required this.desde,
+    required this.hasta,
+    this.nota,
+  });
+
+  final PlanCobro plan;
+  final int montoCentimos;
+  final DateTime desde;
+  final DateTime hasta;
+  final String? nota;
+}
+
+/// Lo que contestó el negocio a la pregunta del día 10.
+class RespuestaRegistrada {
+  const RespuestaRegistrada({
+    required this.respuesta,
+    required this.precioCentimos,
+    this.motivo,
+  });
+
+  final RespuestaPrecio respuesta;
+  final int precioCentimos;
+  final String? motivo;
+}
+
+/// Un negocio como lo ve quien registra los pagos.
+class FichaDeCobro {
+  const FichaDeCobro({
+    required this.empresaId,
+    required this.nombre,
+    required this.cobro,
+    this.celular,
+    this.pagos = const [],
+    this.respuestas = const [],
+  });
+
+  final String empresaId;
+  final String nombre;
+
+  /// Los 9 dígitos del titular.
+  final String? celular;
+  final Cobro cobro;
+  final List<PagoRegistrado> pagos;
+  final List<RespuestaRegistrada> respuestas;
+}
+
+class ResumenDeCobros {
+  const ResumenDeCobros({
+    required this.fundadores,
+    required this.maximoFundadores,
+    required this.negocios,
+  });
+
+  final int fundadores;
+  final int maximoFundadores;
+
+  /// Lo que vence en 3 días o menos y lo ya vencido.
+  final List<FichaDeCobro> negocios;
+}
+
+enum ResultadoCobro {
+  listo,
+  sinSenal,
+  sinPermiso,
+  noEncontrado,
+
+  /// Renovó más de 30 días tarde: paga S/ 19.90.
+  perdioFundador,
+
+  /// Ya hay 50 fundadores.
+  sinCupoFundador,
+  error,
+}
+
+/// La pantalla de cobros de Jhony (entrega 26). Solo funciona con los
+/// números que el servidor reconoce.
+abstract interface class ServicioPagos {
+  Future<ResumenDeCobros?> resumen();
+
+  Future<(FichaDeCobro?, ResultadoCobro)> buscar(String celular);
+
+  Future<(FichaDeCobro?, ResultadoCobro)> registrarPago(
+    String empresaId,
+    PlanCobro plan, {
+    String? nota,
+  });
+}

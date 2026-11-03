@@ -1,3 +1,4 @@
+import '../dominio/cobro.dart';
 import '../dominio/aviso_cierre.dart';
 import '../dominio/modelos.dart';
 import '../dominio/tutoria.dart';
@@ -1207,6 +1208,53 @@ abstract final class Textos {
   static const graciasPorResponder = 'Gracias. Tu respuesta nos ayuda mucho.';
   static const necesitasSenalParaResponder =
       'Necesitas señal para enviar tu respuesta.';
+  // La pantalla de cobros de Jhony (entrega 26).
+  static const cobros = 'Cobros';
+  static const cobrosDetalle =
+      'Buscar un negocio, registrar un pago por Yape y ver lo que vence.';
+  static String fundadoresUsados(int usados, int maximo) =>
+      'Fundadores: $usados de $maximo.';
+  static const celularDelDueno = 'Celular del dueño';
+  static const buscar = 'Buscar';
+  static const sinNegocioConEseNumero = 'No hay un negocio con ese número.';
+  static const sinPermisoCobros = 'Este número no registra pagos.';
+  static const necesitasSenalParaCobros = 'Necesitas señal para los cobros.';
+  static const registrarPago = 'Registrar pago';
+  static String nombrePlan(PlanCobro plan) => switch (plan) {
+    PlanCobro.normal => 'Mes, S/ 19.90',
+    PlanCobro.fundador => 'Mes de fundador, S/ 14.90',
+    PlanCobro.anual => 'Año, S/ 199',
+  };
+  static const notaDelPago = 'Nota (número de operación de Yape)';
+  static String confirmarPago(String plan, String negocio) =>
+      '¿Registrar «$plan» para $negocio?';
+  static String pagoRegistrado(String hasta) =>
+      'Listo. Pagado hasta el $hasta.';
+  static const perdioFundador =
+      'Renovó más de 30 días tarde: ya no es fundador. Registra el mes de '
+      'S/ 19.90.';
+  static const sinCupoFundador = 'Ya están los 50 fundadores.';
+  static const pagosRegistrados = 'Pagos';
+  static String pagoDe(String monto, String desde, String hasta) =>
+      '$monto · del $desde al $hasta';
+  static const respuestaDelDia10 = 'Respuesta del día 10';
+  static String respondio(String respuesta, String precio) =>
+      '$respuesta, con $precio';
+  static const vencenPronto = 'Vencen pronto o ya vencieron';
+  static const nadaPorVencer = 'Nada vence en los próximos 3 días.';
+  static String estadoCorto(Cobro cobro) {
+    final hasta = cobro.hasta == null
+        ? ''
+        : '${cobro.hasta!.day}/${cobro.hasta!.month}';
+    return switch (cobro.estado) {
+      EstadoDelCobro.sinCobro => 'Sin cobro',
+      EstadoDelCobro.prueba when cobro.hasta == null => 'Prueba sin empezar',
+      EstadoDelCobro.prueba => 'Prueba hasta el $hasta',
+      EstadoDelCobro.pagado => 'Pagado hasta el $hasta',
+      EstadoDelCobro.vencido => 'Venció el $hasta',
+    };
+  }
+
   static const notificacionCobro =
       'Tu prueba gratis de Moca termina en 3 días. Toca para ver cómo pagar.';
 
