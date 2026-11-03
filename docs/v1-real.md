@@ -36,6 +36,9 @@ La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde l
 | 21 | Equipo E · Varias cajas de efectivo con responsables, arqueo por caja y «Pasé plata de una caja a otra» | 20 |
 | 22 | Equipo F · El contador en varios negocios: elige cuál mirar, solo lectura | 20 |
 | 23 | Equipo G · Prueba con dos o tres teléfonos de verdad (guion en `prueba-varios-telefonos.md`) y simulación de otra persona desde el ajuste oculto (hecha en la 20.1), antes de los 10 pilotos | 20 (y 21, 22) |
+| 24 | Cobro A · Servidor: estado de cada negocio (prueba de 14 días, pagado, vencido), pagos por Yape que solo registra Jhony, fundadores (máximo 50) | — |
+| 25 | Cobro B · La app: estado en la pestaña Moca, aviso 3 días antes, cómo yapear y mandar la captura por WhatsApp, «solo anotar» al vencer, pregunta del día 10 | 24 |
+| 26 | Cobro C · La pantalla de cobros de Jhony: buscar por celular, registrar pago, lo que vence pronto, fundadores | 24 |
 
 ## Cuándo está terminada
 

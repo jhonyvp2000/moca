@@ -1,3 +1,4 @@
+import { type ConfigCobro, recordarPrueba } from '../cobro/rutas.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
 import { cifrasDe, enviarJson } from '../cifras/rutas.js';
@@ -287,7 +288,12 @@ export async function autenticar(pool: Pool, peticion: FastifyRequest): Promise<
 
 const listaDeFilas = { type: 'array', items: { type: 'object' } } as const;
 
-export function rutasDatos(app: FastifyInstance, pool: Pool, ahora: () => Date): void {
+export function rutasDatos(
+  app: FastifyInstance,
+  pool: Pool,
+  ahora: () => Date,
+  cobro: ConfigCobro,
+): void {
   app.post<{ Body: Subida }>(
     '/datos/subir',
     {
@@ -312,6 +318,11 @@ export function rutasDatos(app: FastifyInstance, pool: Pool, ahora: () => Date):
       if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
       try {
         const recibidos = await subir(pool, usuarioId, peticion.body, ahora());
+        // El día en que empezó la prueba de su número queda guardado.
+        const empresaId = (peticion.body.empresa as { id?: unknown } | undefined)?.id;
+        if (typeof empresaId === 'string') {
+          await recordarPrueba(pool, cobro, usuarioId, empresaId);
+        }
         // Las cifras con lo recién subido (entrega 13).
         return enviarJson(peticion, respuesta, {
           recibidos,

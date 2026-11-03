@@ -33,6 +33,17 @@ services:
       # Lectura de fotos con Claude (entrega 14). Jhony la pega en Render.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # El cobro manual por Yape (entrega 24). Jhony los pega en Render; no
+      # van en el repositorio. Sin MOCA_COBRO_DESDE («2026-11-10») no se
+      # cobra: se pone el día en que sale la entrega 25.
+      - key: MOCA_COBRO_DESDE
+        sync: false
+      - key: MOCA_ADMIN_CELULARES
+        sync: false
+      - key: MOCA_YAPE_NUMERO
+        sync: false
+      - key: MOCA_YAPE_NOMBRE
+        sync: false
 
 databases:
   - name: moca-base

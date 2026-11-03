@@ -1,0 +1,435 @@
+import { randomUUID } from 'node:crypto';
+import type { FastifyInstance } from 'fastify';
+import type { Cliente, Pool } from '../base/conexion.js';
+import { autenticar } from '../datos/subir.js';
+import {
+  diaEnLima,
+  estadoDelCobro,
+  type EstadoCobro,
+  maximoDeFundadores,
+  periodoDelPago,
+  type Plan,
+  precios,
+  puedeSerFundador,
+} from './estado.js';
+
+/** Lo que el cobro toma del entorno (Render). Nada de esto va al repositorio. */
+export interface ConfigCobro {
+  /** MOCA_COBRO_DESDE («2026-11-10»): desde ese día cuenta la prueba. Sin él, no se cobra. */
+  desde: string | null;
+  /** MOCA_ADMIN_CELULARES: los números que registran pagos, separados por comas. */
+  admins: string[];
+  /** MOCA_YAPE_NUMERO y MOCA_YAPE_NOMBRE: a dónde yapear. */
+  yape: { numero: string; nombre: string } | null;
+}
+
+export const sinCobro: ConfigCobro = { desde: null, admins: [], yape: null };
+
+const nueveDigitos = (celular: string) => celular.replace(/\D/g, '').slice(-9);
+
+export function leerConfigCobro(entorno: NodeJS.ProcessEnv = process.env): ConfigCobro {
+  const desde = entorno.MOCA_COBRO_DESDE?.trim();
+  const numero = entorno.MOCA_YAPE_NUMERO?.trim();
+  const nombre = entorno.MOCA_YAPE_NOMBRE?.trim();
+  return {
+    desde: desde && /^\d{4}-\d{2}-\d{2}$/.test(desde) ? desde : null,
+    admins: (entorno.MOCA_ADMIN_CELULARES ?? '')
+      .split(',')
+      .map(nueveDigitos)
+      .filter((c) => c.length === 9),
+    yape: numero && nombre ? { numero: nueveDigitos(numero), nombre } : null,
+  };
+}
+
+type Suscripcion = { plan: Plan; pagadoHasta: string; fueFundador: boolean };
+
+/** Lo que hace falta para el estado de un negocio, con el filtro explícito. */
+async function datosDelCobro(
+  cliente: Cliente,
+  empresaId: string,
+): Promise<{
+  suscripcion: Suscripcion | null;
+  inicioPrueba: string | null;
+  fundadores: number;
+}> {
+  const suscripcion = (
+    await cliente.query<{
+      plan: Plan;
+      pagado_hasta: string;
+      fue_fundador: boolean;
+    }>('SELECT plan, pagado_hasta, fue_fundador FROM suscripciones WHERE empresa_id = $1', [
+      empresaId,
+    ])
+  ).rows[0];
+  const titular = (
+    await cliente.query<{ celular: string | null }>(
+      `SELECT u.celular FROM membresias m JOIN usuarios u ON u.id = m.usuario_id
+        WHERE m.empresa_id = $1 AND m.titular AND m.quitada_en IS NULL`,
+      [empresaId],
+    )
+  ).rows[0];
+  const guardada = titular?.celular
+    ? (
+        await cliente.query<{ inicio: string }>(
+          'SELECT inicio FROM pruebas_por_celular WHERE celular = $1',
+          [titular.celular],
+        )
+      ).rows[0]?.inicio
+    : undefined;
+  const primero = (
+    await cliente.query<{ primero: Date | null }>(
+      'SELECT min(creado_en) AS primero FROM movimientos WHERE empresa_id = $1',
+      [empresaId],
+    )
+  ).rows[0]?.primero;
+  const fundadores = (
+    await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
+  ).rows[0]?.usados;
+  return {
+    suscripcion: suscripcion
+      ? {
+          plan: suscripcion.plan,
+          pagadoHasta: suscripcion.pagado_hasta,
+          fueFundador: suscripcion.fue_fundador,
+        }
+      : null,
+    inicioPrueba: guardada ?? (primero ? diaEnLima(primero) : null),
+    fundadores: fundadores ?? 0,
+  };
+}
+
+async function celularDe(pool: Pool, usuarioId: string): Promise<string | null> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+    const { rows } = await cliente.query<{ celular: string | null }>(
+      'SELECT celular FROM usuarios WHERE id = $1',
+      [usuarioId],
+    );
+    await cliente.query('COMMIT');
+    return rows[0]?.celular ?? null;
+  } finally {
+    cliente.release();
+  }
+}
+
+export async function esAdmin(pool: Pool, config: ConfigCobro, usuarioId: string) {
+  if (!config.admins.length) return false;
+  const celular = await celularDe(pool, usuarioId);
+  return celular !== null && config.admins.includes(nueveDigitos(celular));
+}
+
+/** El estado para el teléfono, con a dónde yapear y si quien pide es admin. */
+export type CobroParaElTelefono = EstadoCobro & {
+  pago?: { yape: string; nombre: string };
+  admin?: true;
+};
+
+export async function cobroParaElTelefono(
+  pool: Pool,
+  config: ConfigCobro,
+  usuarioId: string,
+  empresaId: string,
+  ahora: Date,
+): Promise<CobroParaElTelefono> {
+  const cliente = await pool.connect();
+  let datos: Awaited<ReturnType<typeof datosDelCobro>>;
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(
+      `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
+      [empresaId, usuarioId],
+    );
+    datos = await datosDelCobro(cliente, empresaId);
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+  const estado = estadoDelCobro({
+    hoy: diaEnLima(ahora),
+    cobroDesde: config.desde,
+    ...datos,
+  });
+  return {
+    ...estado,
+    ...(config.yape && estado.estado !== 'sin_cobro'
+      ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
+      : {}),
+    ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
+  };
+}
+
+/**
+ * Deja guardado el día en que empezó la prueba del número del titular, para
+ * que no vuelva a empezar si borra el negocio y abre otro. Se llama después
+ * de cada subida, con el cobro ya empezado.
+ */
+export async function recordarPrueba(
+  pool: Pool,
+  config: ConfigCobro,
+  usuarioId: string,
+  empresaId: string,
+): Promise<void> {
+  if (!config.desde) return;
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(
+      `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
+      [empresaId, usuarioId],
+    );
+    await cliente.query(
+      `INSERT INTO pruebas_por_celular (celular, inicio)
+       SELECT u.celular,
+              greatest((min(mv.creado_en) AT TIME ZONE 'America/Lima')::date, $2::date)
+         FROM membresias m
+         JOIN usuarios u ON u.id = m.usuario_id
+         JOIN movimientos mv ON mv.empresa_id = m.empresa_id
+        WHERE m.empresa_id = $1 AND m.titular AND m.quitada_en IS NULL
+          AND u.celular IS NOT NULL
+        GROUP BY u.celular
+       ON CONFLICT (celular) DO NOTHING`,
+      [empresaId, config.desde],
+    );
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}
+
+class ErrorDeCobro extends Error {
+  constructor(
+    readonly codigo: number,
+    readonly clave: string,
+  ) {
+    super(clave);
+  }
+}
+
+/** Una transacción que ve todos los negocios: solo para quien registra pagos. */
+async function comoAdmin<T>(
+  pool: Pool,
+  usuarioId: string,
+  trabajo: (cliente: Cliente) => Promise<T>,
+): Promise<T> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(
+      `SELECT set_config('app.admin', 'si', true), set_config('app.usuario_id', $1, true)`,
+      [usuarioId],
+    );
+    const resultado = await trabajo(cliente);
+    await cliente.query('COMMIT');
+    return resultado;
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}
+
+interface FichaDelNegocio {
+  empresa_id: string;
+  nombre: string;
+  celular: string | null;
+  cobro: EstadoCobro;
+}
+
+async function ficha(
+  cliente: Cliente,
+  config: ConfigCobro,
+  empresa: { id: string; nombre: string; celular: string | null },
+  hoy: string,
+): Promise<FichaDelNegocio> {
+  const datos = await datosDelCobro(cliente, empresa.id);
+  return {
+    empresa_id: empresa.id,
+    nombre: empresa.nombre,
+    celular: empresa.celular ? nueveDigitos(empresa.celular) : null,
+    cobro: estadoDelCobro({ hoy, cobroDesde: config.desde, ...datos }),
+  };
+}
+
+/** Los negocios activos con el número de su titular. */
+const empresasConTitular = `
+  SELECT e.id, e.nombre, u.celular
+    FROM empresas e
+    JOIN membresias m ON m.empresa_id = e.id AND m.titular AND m.quitada_en IS NULL
+    JOIN usuarios u ON u.id = m.usuario_id`;
+
+export function rutasCobro(
+  app: FastifyInstance,
+  pool: Pool,
+  config: ConfigCobro,
+  ahora: () => Date,
+): void {
+  /** Solo los números de MOCA_ADMIN_CELULARES pasan. */
+  async function admin(peticion: Parameters<typeof autenticar>[1]) {
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) throw new ErrorDeCobro(401, 'sin_sesion');
+    if (!(await esAdmin(pool, config, usuarioId))) throw new ErrorDeCobro(403, 'sin_permiso');
+    return usuarioId;
+  }
+
+  function responder(
+    error: unknown,
+    respuesta: { code: (n: number) => { send: (c: object) => unknown } },
+  ) {
+    if (error instanceof ErrorDeCobro)
+      return respuesta.code(error.codigo).send({ error: error.clave });
+    throw error;
+  }
+
+  // Un negocio por el número de su dueño, con sus pagos.
+  app.get('/cobro/negocio', async (peticion, respuesta) => {
+    try {
+      const usuarioId = await admin(peticion);
+      const celular = nueveDigitos(String((peticion.query as { celular?: unknown }).celular ?? ''));
+      if (celular.length !== 9) throw new ErrorDeCobro(400, 'datos_invalidos');
+      return await comoAdmin(pool, usuarioId, async (cliente) => {
+        const empresa = (
+          await cliente.query<{ id: string; nombre: string; celular: string }>(
+            `${empresasConTitular} WHERE right(u.celular, 9) = $1`,
+            [celular],
+          )
+        ).rows[0];
+        if (!empresa) throw new ErrorDeCobro(404, 'sin_negocio');
+        const pagos = (
+          await cliente.query(
+            `SELECT plan, monto_centimos, desde, hasta, nota, creado_en
+               FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
+            [empresa.id],
+          )
+        ).rows;
+        return {
+          ...(await ficha(cliente, config, empresa, diaEnLima(ahora()))),
+          pagos,
+        };
+      });
+    } catch (error) {
+      return responder(error, respuesta);
+    }
+  });
+
+  // Registra un pago por Yape: el periodo sigue al anterior si no venció.
+  app.post<{ Body: { empresa?: unknown; plan?: unknown; nota?: unknown } }>(
+    '/cobro/pago',
+    async (peticion, respuesta) => {
+      try {
+        const usuarioId = await admin(peticion);
+        const { empresa, plan, nota } = peticion.body ?? {};
+        if (
+          typeof empresa !== 'string' ||
+          (plan !== 'normal' && plan !== 'fundador' && plan !== 'anual') ||
+          (nota !== undefined && nota !== null && typeof nota !== 'string')
+        ) {
+          throw new ErrorDeCobro(400, 'datos_invalidos');
+        }
+        const hoy = diaEnLima(ahora());
+        return await comoAdmin(pool, usuarioId, async (cliente) => {
+          const negocio = (
+            await cliente.query<{
+              id: string;
+              nombre: string;
+              celular: string;
+            }>(`${empresasConTitular} WHERE e.id::text = $1`, [empresa])
+          ).rows[0];
+          if (!negocio) throw new ErrorDeCobro(404, 'sin_negocio');
+          // Un pago a la vez: el cupo de fundadores no se pasa de 50.
+          const cupo = (
+            await cliente.query<{ usados: number }>(
+              'SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE',
+            )
+          ).rows[0]!.usados;
+          const datos = await datosDelCobro(cliente, negocio.id);
+          const actual = datos.suscripcion;
+          const ahoraMismo = estadoDelCobro({
+            hoy,
+            cobroDesde: config.desde,
+            ...datos,
+          });
+          if (
+            plan === 'fundador' &&
+            !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })
+          ) {
+            throw new ErrorDeCobro(
+              409,
+              actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador',
+            );
+          }
+          // Quien paga en la prueba no pierde los días que le quedan.
+          const periodo = periodoDelPago({
+            hoy,
+            pagadoHasta:
+              actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
+            plan,
+          });
+          await cliente.query(
+            `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              randomUUID(),
+              negocio.id,
+              plan,
+              precios[plan],
+              periodo.desde,
+              periodo.hasta,
+              typeof nota === 'string' && nota.trim() ? nota.trim().slice(0, 200) : null,
+              usuarioId,
+            ],
+          );
+          await cliente.query(
+            `INSERT INTO suscripciones (empresa_id, plan, pagado_hasta, fue_fundador)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (empresa_id) DO UPDATE
+               SET plan = $2, pagado_hasta = $3,
+                   fue_fundador = suscripciones.fue_fundador OR $4,
+                   actualizado_en = now()`,
+            [negocio.id, plan, periodo.hasta, plan === 'fundador'],
+          );
+          if (plan === 'fundador' && !actual?.fueFundador) {
+            await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
+          }
+          return await ficha(cliente, config, negocio, hoy);
+        });
+      } catch (error) {
+        return responder(error, respuesta);
+      }
+    },
+  );
+
+  // Lo que vence pronto o ya venció (30 días), y cuántos fundadores van.
+  app.get('/cobro/resumen', async (peticion, respuesta) => {
+    try {
+      const usuarioId = await admin(peticion);
+      const hoy = diaEnLima(ahora());
+      return await comoAdmin(pool, usuarioId, async (cliente) => {
+        const negocios = (
+          await cliente.query<{ id: string; nombre: string; celular: string }>(
+            `${empresasConTitular} ORDER BY e.nombre`,
+          )
+        ).rows;
+        const fichas: FichaDelNegocio[] = [];
+        for (const negocio of negocios) fichas.push(await ficha(cliente, config, negocio, hoy));
+        const fundadores = (
+          await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
+        ).rows[0]!.usados;
+        return {
+          fundadores: { usados: fundadores, maximo: maximoDeFundadores },
+          negocios: fichas.filter((f) => f.cobro.porVencer || f.cobro.estado === 'vencido'),
+        };
+      });
+    } catch (error) {
+      return responder(error, respuesta);
+    }
+  });
+}

@@ -4,6 +4,7 @@ import { aislamientoActivo, crearPool } from './base/conexion.js';
 import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
 import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
+import { leerConfigCobro } from './cobro/rutas.js';
 
 // Arranque en Render: migra la base, revisa el aislamiento y abre el puerto.
 const config = leerConfig();
@@ -25,12 +26,16 @@ if (!twilio) console.warn('Twilio no está configurado: no se pueden crear cuent
 // La lectura de fotos con IA (entrega 14).
 const llaveAnthropic = process.env.ANTHROPIC_API_KEY;
 if (!llaveAnthropic) console.warn('Falta ANTHROPIC_API_KEY: no se pueden leer fotos.');
+// El cobro manual por Yape (entrega 24): sin MOCA_COBRO_DESDE no se cobra.
+const cobro = leerConfigCobro();
+if (!cobro.desde) console.warn('Sin MOCA_COBRO_DESDE: el cobro no ha empezado.');
 const app = crearApp({
   pool,
   version: config.version,
   verificador: twilio ? verificadorTwilio(twilio) : null,
   lector: llaveAnthropic ? lectorAnthropic(llaveAnthropic) : null,
   registrar: true,
+  cobro,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

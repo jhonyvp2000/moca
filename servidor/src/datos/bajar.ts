@@ -1,3 +1,4 @@
+import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import type { FastifyInstance } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
 import { calcularCifras, type DatosEmpresa } from '../cifras/calcular.js';
@@ -137,13 +138,26 @@ export function empresaPedida(consulta: unknown): string | undefined {
   return typeof valor === 'string' && esUuid(valor) ? valor : undefined;
 }
 
-export function rutasBajada(app: FastifyInstance, pool: Pool, ahora: () => Date): void {
+export function rutasBajada(
+  app: FastifyInstance,
+  pool: Pool,
+  ahora: () => Date,
+  cobro: ConfigCobro,
+): void {
   app.get('/datos/bajar', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
     const datos = await bajar(pool, usuarioId, empresaPedida(peticion.query));
     // Con las cifras ya calculadas (entrega 13). Comprimido: un año de
     // registros pesa menos que una foto.
-    return enviarJson(peticion, respuesta, { datos, cifras: cifrasPara(datos, ahora()) });
+    // El estado del cobro del negocio (entrega 24).
+    const empresaId = (datos?.empresa as { id?: string } | undefined)?.id;
+    return enviarJson(peticion, respuesta, {
+      datos,
+      cifras: cifrasPara(datos, ahora()),
+      ...(empresaId
+        ? { cobro: await cobroParaElTelefono(pool, cobro, usuarioId, empresaId, ahora()) }
+        : {}),
+    });
   });
 }

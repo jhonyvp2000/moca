@@ -11,6 +11,7 @@ import { rutasBajada } from './datos/bajar.js';
 import { rutasCambios } from './datos/cambios.js';
 import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
+import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 
 export interface Dependencias {
   pool: Pool;
@@ -23,6 +24,8 @@ export interface Dependencias {
   ahora?: () => Date;
   /** Quien lee las fotos con IA; nulo si no hay llave de Anthropic. */
   lector?: Lector | null;
+  /** El cobro manual por Yape (entrega 24); sin él, no se cobra. */
+  cobro?: ConfigCobro;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -33,6 +36,7 @@ export function crearApp({
   registrar = false,
   ahora = () => new Date(),
   lector = null,
+  cobro = sinCobro,
 }: Dependencias): FastifyInstance {
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
@@ -73,9 +77,10 @@ export function crearApp({
 
   rutasCuenta(app, pool, verificador);
   rutasBorrar(app, pool);
-  rutasDatos(app, pool, ahora);
-  rutasBajada(app, pool, ahora);
-  rutasCambios(app, pool);
+  rutasDatos(app, pool, ahora, cobro);
+  rutasBajada(app, pool, ahora, cobro);
+  rutasCambios(app, pool, ahora, cobro);
+  rutasCobro(app, pool, cobro, ahora);
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);

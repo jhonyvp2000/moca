@@ -1,3 +1,4 @@
+import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from '../base/conexion.js';
 import { enviarJson } from '../cifras/rutas.js';
@@ -62,7 +63,12 @@ export async function cambiosDesde(
   }
 }
 
-export function rutasCambios(app: FastifyInstance, pool: Pool): void {
+export function rutasCambios(
+  app: FastifyInstance,
+  pool: Pool,
+  ahora: () => Date,
+  cobro: ConfigCobro,
+): void {
   app.get('/datos/cambios', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
@@ -73,6 +79,11 @@ export function rutasCambios(app: FastifyInstance, pool: Pool): void {
     const cambios = await cambiosDesde(pool, usuarioId, desde, empresaPedida(peticion.query));
     // Sin negocio activo: lo quitaron del equipo o nunca entró.
     if (!cambios) return respuesta.code(403).send({ error: 'sin_negocio' });
-    return enviarJson(peticion, respuesta, cambios);
+    // El estado del cobro va siempre: cambia con los días (entrega 24).
+    const empresaId = String(cambios.empresa_id);
+    return enviarJson(peticion, respuesta, {
+      ...cambios,
+      cobro: await cobroParaElTelefono(pool, cobro, usuarioId, empresaId, ahora()),
+    });
   });
 }
