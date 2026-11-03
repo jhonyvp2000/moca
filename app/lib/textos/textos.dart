@@ -1235,6 +1235,14 @@ abstract final class Textos {
       'S/ 19.90.';
   static const sinCupoFundador = 'Ya están los 50 fundadores.';
   static const pagosRegistrados = 'Pagos';
+  static const anularPago = 'Anular';
+  static const anularPagoPregunta = '¿Anular este pago?';
+  static const anularPagoDetalle =
+      'Úsalo para un pago de prueba o registrado por error. El negocio vuelve '
+      'a como estaba antes de este pago; el pago queda en la lista, anulado.';
+  static const pagoAnulado = 'Listo. El pago quedó anulado.';
+  static const anulado = 'anulado';
+  static const noEsElUltimoPago = 'Solo se puede anular el último pago.';
   static String pagoDe(String monto, String desde, String hasta) =>
       '$monto · del $desde al $hasta';
   static const respuestaDelDia10 = 'Respuesta del día 10';

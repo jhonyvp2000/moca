@@ -451,6 +451,44 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     ]);
   });
 
+  it('Entrega 26.1: anular el último pago lo deja como antes, con su cupo', async () => {
+    elDia('2026-11-20');
+    const carmen = await verificar('987000003');
+    const datos = negocio('Bodega Carmen', carmen.usuarioId, '2026-11-20T14:00:00.000Z');
+    await pedir(carmen, 'POST', '/datos/subir', datos);
+    const empresa = datos.empresa.id;
+    const cupo = async () =>
+      (await pedir(jhony, 'GET', '/cobro/resumen')).json().fundadores.usados as number;
+    const antes = await cupo();
+
+    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
+    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
+    expect(await cupo()).toBe(antes + 1);
+    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000003')).json();
+    const [ultimo, primero] = ficha.pagos as { id: string }[];
+    // Solo el último.
+    expect(
+      (await pedir(jhony, 'POST', '/cobro/anular', { pago: primero!.id })).json(),
+    ).toEqual({ error: 'no_es_el_ultimo' });
+
+    const r = await pedir(jhony, 'POST', '/cobro/anular', { pago: ultimo!.id });
+    expect(r.json().cobro).toMatchObject({ estado: 'pagado', hasta: '2027-01-03' });
+    const r2 = await pedir(jhony, 'POST', '/cobro/anular', { pago: primero!.id });
+    // Sin pagos, vuelve a su prueba y el cupo de fundador vuelve.
+    expect(r2.json().cobro).toMatchObject({ estado: 'prueba', hasta: '2026-12-03' });
+    expect(await cupo()).toBe(antes);
+    expect((await cobroDe(carmen)).estado).toBe('prueba');
+    // Quedan marcados, no borrados.
+    const despues = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000003')).json();
+    expect(despues.pagos.every((p: { anulado_en: string | null }) => p.anulado_en)).toBe(true);
+    expect((await pedir(jhony, 'POST', '/cobro/anular', { pago: ultimo!.id })).statusCode).toBe(
+      404,
+    );
+    expect(
+      (await pedir(carmen, 'POST', '/cobro/anular', { pago: ultimo!.id })).statusCode,
+    ).toBe(403);
+  });
+
   it('Sin cobro configurado, todo sigue abierto', async () => {
     const sin = crearApp({
       pool: base.pool,

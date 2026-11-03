@@ -155,8 +155,10 @@ class _ServidorFalso {
   /// La pregunta del día 10 (entrega 25).
   final respuestasDePrecio = <Map<String, Object?>>[];
 
-  /// La pantalla de cobros (entrega 26): los pagos que se registraron.
+  /// La pantalla de cobros (entrega 26): los pagos que se registraron y
+  /// los que se anularon (26.1).
   final pagos = <Map<String, Object?>>[];
+  final anulados = <Object?>[];
 
   Map<String, Object?> fichaDeLucho({String? hasta}) => {
     'empresa_id': 'empresa-lucho',
@@ -168,11 +170,13 @@ class _ServidorFalso {
     'pagos': [
       if (hasta != null)
         {
+          'id': 'pago-1',
           'plan': 'fundador',
           'monto_centimos': 1490,
           'desde': '2026-10-15',
           'hasta': hasta,
           'nota': 'op 123',
+          'anulado_en': anulados.isEmpty ? null : '2026-10-12T21:00:00Z',
         },
     ],
     'respuestas': [
@@ -302,6 +306,9 @@ class _ServidorFalso {
                 200,
               )
             : http.Response(jsonEncode({'error': 'sin_negocio'}), 404);
+      case '/cobro/anular':
+        anulados.add(cuerpo['pago']);
+        return http.Response(jsonEncode(fichaDeLucho()), 200);
       case '/cobro/pago':
         pagos.add(cuerpo);
         return http.Response(
@@ -3351,6 +3358,45 @@ void main() {
       );
       expect(find.text(Textos.fundadoresUsados(1, 50)), findsOneWidget);
     });
+  });
+
+  testWidgets('Entrega 26.1: anular el último pago, después de confirmar', (
+    tester,
+  ) async {
+    final base = await abrirApp(tester, listo: true);
+    await tester.runAsync(() async {
+      await _llavero.guardar('llave-de-prueba');
+      await AccesoLocal(
+        base,
+        () => _ahora,
+      ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+    });
+    await esperar(tester);
+    await tester.runAsync(
+      () => AccesoLocal(base, () => _ahora).guardarAjuste(
+        AccesoLocal.claveCobro,
+        jsonEncode({'estado': 'sin_cobro', 'admin': true}),
+      ),
+    );
+    await esperar(tester);
+    _servidor.pagos.add({'plan': 'fundador'});
+    await abrirAjusteOculto(tester);
+    await tocar(tester, find.text(Textos.cobros));
+    await tester.enterText(find.byType(TextField), '987654321');
+    await tester.pump();
+    await tocar(tester, find.text(Textos.buscar));
+
+    await tocar(tester, find.text(Textos.anularPago));
+    expect(find.text(Textos.anularPagoPregunta), findsOneWidget);
+    await tocar(
+      tester,
+      find.widgetWithText(TextButton, Textos.anularPago).last,
+    );
+    expect(_servidor.anulados, ['pago-1']);
+    expect(find.text(Textos.pagoAnulado), findsOneWidget);
+    // Queda en la lista, anulado, y ya no se puede volver a anular.
+    expect(find.textContaining('op 123 · ${Textos.anulado}'), findsOneWidget);
+    expect(find.text(Textos.anularPago), findsNothing);
   });
 
   group('Entrega 25: el cobro en la app', () {

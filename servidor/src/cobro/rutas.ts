@@ -372,7 +372,7 @@ export function rutasCobro(
         if (!empresa) throw new ErrorDeCobro(404, 'sin_negocio');
         const pagos = (
           await cliente.query(
-            `SELECT plan, monto_centimos, desde, hasta, nota, creado_en
+            `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en
                FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
             [empresa.id],
           )
@@ -481,6 +481,66 @@ export function rutasCobro(
       }
     },
   );
+
+  // Anula el último pago de un negocio (entrega 26.1): queda como antes de
+  // ese pago y, si era su único pago de fundador, el cupo vuelve.
+  app.post<{ Body: { pago?: unknown } }>('/cobro/anular', async (peticion, respuesta) => {
+    try {
+      const usuarioId = await admin(peticion);
+      const pagoId = peticion.body?.pago;
+      if (typeof pagoId !== 'string') throw new ErrorDeCobro(400, 'datos_invalidos');
+      const hoy = diaEnLima(ahora());
+      return await comoAdmin(pool, usuarioId, async (cliente) => {
+        await cliente.query('SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE');
+        const pago = (
+          await cliente.query<{ empresa_id: string }>(
+            'SELECT empresa_id FROM pagos WHERE id::text = $1 AND anulado_en IS NULL',
+            [pagoId],
+          )
+        ).rows[0];
+        if (!pago) throw new ErrorDeCobro(404, 'sin_pago');
+        const vigentes = `SELECT id, plan, hasta FROM pagos
+            WHERE empresa_id = $1 AND anulado_en IS NULL ORDER BY creado_en DESC`;
+        const ultimo = (await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])).rows[0];
+        // Solo el último: los demás siguen a este y sus fechas se cruzarían.
+        if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, 'no_es_el_ultimo');
+        const antes = (await datosDelCobro(cliente, pago.empresa_id)).suscripcion;
+        await cliente.query('UPDATE pagos SET anulado_en = now() WHERE id = $1', [pagoId]);
+
+        const quedan = (
+          await cliente.query<{ plan: Plan; hasta: string }>(vigentes, [pago.empresa_id])
+        ).rows;
+        const sigueFundador = quedan.some((p) => p.plan === 'fundador');
+        const anterior = quedan[0];
+        if (anterior) {
+          await cliente.query(
+            `UPDATE suscripciones SET plan = $2, pagado_hasta = $3, fue_fundador = $4,
+                    actualizado_en = now()
+              WHERE empresa_id = $1`,
+            [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador],
+          );
+        } else {
+          await cliente.query('DELETE FROM suscripciones WHERE empresa_id = $1', [
+            pago.empresa_id,
+          ]);
+        }
+        if (antes?.fueFundador && !sigueFundador) {
+          await cliente.query(
+            'UPDATE cupo_fundadores SET usados = greatest(usados - 1, 0) WHERE id = 1',
+          );
+        }
+        const negocio = (
+          await cliente.query<{ id: string; nombre: string; celular: string }>(
+            `${empresasConTitular} WHERE e.id = $1`,
+            [pago.empresa_id],
+          )
+        ).rows[0]!;
+        return await ficha(cliente, config, negocio, hoy);
+      });
+    } catch (error) {
+      return responder(error, respuesta);
+    }
+  });
 
   // Lo que vence pronto o ya venció (30 días), y cuántos fundadores van.
   app.get('/cobro/resumen', async (peticion, respuesta) => {

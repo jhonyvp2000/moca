@@ -60,6 +60,7 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
     ResultadoCobro.noEncontrado => Textos.sinNegocioConEseNumero,
     ResultadoCobro.perdioFundador => Textos.perdioFundador,
     ResultadoCobro.sinCupoFundador => Textos.sinCupoFundador,
+    ResultadoCobro.noEsElUltimo => Textos.noEsElUltimoPago,
     ResultadoCobro.error => Textos.noPudimosComprobar,
   };
 
@@ -131,6 +132,42 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
     setState(() => _error = _mensaje(resultado));
   }
 
+  Future<void> _anular(PagoRegistrado pago) async {
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text(Textos.anularPagoPregunta),
+        content: Text(
+          '${Textos.pagoDe(formatearSolesComprobante(pago.montoCentimos), formatearDiaYMes(pago.desde), formatearDiaYMes(pago.hasta))}\n\n'
+          '${Textos.anularPagoDetalle}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text(Textos.anularPago),
+          ),
+        ],
+      ),
+    );
+    if (si != true || !mounted) return;
+    final mensajes = ScaffoldMessenger.of(context);
+    final (nueva, resultado) = await ref
+        .read(servicioPagosProvider)
+        .anularPago(pago.id);
+    if (!mounted) return;
+    if (nueva == null) {
+      setState(() => _error = _mensaje(resultado));
+      return;
+    }
+    mensajes.showSnackBar(const SnackBar(content: Text(Textos.pagoAnulado)));
+    if (nueva.celular case final celular?) await _buscar(celular);
+    await _cargarResumen();
+  }
+
   @override
   Widget build(BuildContext context) {
     final resumen = _resumen;
@@ -179,7 +216,11 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
         ],
         if (ficha != null) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
-          _Ficha(ficha: ficha, alRegistrar: () => _registrar(ficha)),
+          _Ficha(
+            ficha: ficha,
+            alRegistrar: () => _registrar(ficha),
+            alAnular: _anular,
+          ),
         ],
         if (resumen != null) ...[
           const SizedBox(height: 24),
@@ -226,10 +267,15 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
 
 /// Un negocio: su estado, sus pagos y su respuesta del día 10.
 class _Ficha extends StatelessWidget {
-  const _Ficha({required this.ficha, required this.alRegistrar});
+  const _Ficha({
+    required this.ficha,
+    required this.alRegistrar,
+    required this.alAnular,
+  });
 
   final FichaDeCobro ficha;
   final VoidCallback alRegistrar;
+  final ValueChanged<PagoRegistrado> alAnular;
 
   @override
   Widget build(BuildContext context) {
@@ -254,19 +300,34 @@ class _Ficha extends StatelessWidget {
             const SizedBox(height: 16),
             const Text(Textos.pagosRegistrados, style: Tipografia.textoFuerte),
             for (final p in ficha.pagos)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  [
-                    Textos.pagoDe(
-                      formatearSolesComprobante(p.montoCentimos),
-                      formatearDiaYMes(p.desde),
-                      formatearDiaYMes(p.hasta),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      [
+                        Textos.pagoDe(
+                          formatearSolesComprobante(p.montoCentimos),
+                          formatearDiaYMes(p.desde),
+                          formatearDiaYMes(p.hasta),
+                        ),
+                        if (p.nota != null) p.nota!,
+                        if (p.anulado) Textos.anulado,
+                      ].join(' · '),
+                      style: Tipografia.secundario.copyWith(
+                        decoration: p.anulado
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
                     ),
-                    if (p.nota != null) p.nota!,
-                  ].join(' · '),
-                  style: Tipografia.secundario,
-                ),
+                  ),
+                  // Solo el último pago vigente (vienen del más nuevo al
+                  // más viejo).
+                  if (p == ficha.pagos.where((x) => !x.anulado).firstOrNull)
+                    TextButton(
+                      onPressed: () => alAnular(p),
+                      child: const Text(Textos.anularPago),
+                    ),
+                ],
               ),
           ],
           if (ficha.respuestas.isNotEmpty) ...[

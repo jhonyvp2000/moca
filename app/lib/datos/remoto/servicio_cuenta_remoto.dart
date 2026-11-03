@@ -419,6 +419,8 @@ class ServicioCuentaRemoto
       for (final p in (f['pagos'] as List? ?? const []))
         if (p case final Map<String, Object?> p)
           PagoRegistrado(
+            id: p['id'] as String? ?? '',
+            anulado: p['anulado_en'] != null,
             plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
             montoCentimos: p['monto_centimos'] as int? ?? 0,
             desde: _leerDia(p['desde']) ?? DateTime(2000),
@@ -448,6 +450,8 @@ class ServicioCuentaRemoto
         404 => ResultadoCobro.noEncontrado,
         409 when _cuerpo(r)['error'] == 'perdio_fundador' =>
           ResultadoCobro.perdioFundador,
+        409 when _cuerpo(r)['error'] == 'no_es_el_ultimo' =>
+          ResultadoCobro.noEsElUltimo,
         409 => ResultadoCobro.sinCupoFundador,
         _ => ResultadoCobro.error,
       };
@@ -473,6 +477,16 @@ class ServicioCuentaRemoto
     final r = await _delEquipo(
       '/cobro/negocio?celular=${Uri.encodeQueryComponent(celular)}',
     );
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    return resultado == ResultadoCobro.listo
+        ? (_ficha(_cuerpo(r)), resultado)
+        : (null, resultado);
+  }
+
+  @override
+  Future<(FichaDeCobro?, ResultadoCobro)> anularPago(String pagoId) async {
+    final r = await _delEquipo('/cobro/anular', {'pago': pagoId});
     if (r == null) return (null, ResultadoCobro.sinSenal);
     final resultado = _resultadoCobro(r);
     return resultado == ResultadoCobro.listo

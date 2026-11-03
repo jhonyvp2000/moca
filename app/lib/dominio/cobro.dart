@@ -114,6 +114,8 @@ enum PlanCobro { normal, fundador, anual }
 /// Un pago registrado.
 class PagoRegistrado {
   const PagoRegistrado({
+    this.id = '',
+    this.anulado = false,
     required this.plan,
     required this.montoCentimos,
     required this.desde,
@@ -121,6 +123,10 @@ class PagoRegistrado {
     this.nota,
   });
 
+  final String id;
+
+  /// Anulado por error o de prueba (entrega 26.1): queda en la lista.
+  final bool anulado;
   final PlanCobro plan;
   final int montoCentimos;
   final DateTime desde;
@@ -187,6 +193,9 @@ enum ResultadoCobro {
 
   /// Ya hay 50 fundadores.
   sinCupoFundador,
+
+  /// Solo se anula el último pago de un negocio.
+  noEsElUltimo,
   error,
 }
 
@@ -196,6 +205,9 @@ abstract interface class ServicioPagos {
   Future<ResumenDeCobros?> resumen();
 
   Future<(FichaDeCobro?, ResultadoCobro)> buscar(String celular);
+
+  /// Anula el último pago del negocio (entrega 26.1).
+  Future<(FichaDeCobro?, ResultadoCobro)> anularPago(String pagoId);
 
   Future<(FichaDeCobro?, ResultadoCobro)> registrarPago(
     String empresaId,
