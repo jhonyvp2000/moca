@@ -151,6 +151,9 @@ class _ServidorFalso {
   /// Cuántas veces alguien salió del negocio (entrega 22.2).
   var salidas = 0;
 
+  /// La pregunta del día 10 (entrega 25).
+  final respuestasDePrecio = <Map<String, Object?>>[];
+
   /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
   /// para «Me invitaron» y lo que se invitó, quitó o aceptó.
   Map<String, Object?>? equipo;
@@ -256,6 +259,9 @@ class _ServidorFalso {
         }
         subidas.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+      case '/cobro/respuesta':
+        respuestasDePrecio.add(cuerpo);
+        return http.Response(jsonEncode({'recibida': true}), 200);
       case '/equipo/salir':
         salidas++;
         return http.Response(jsonEncode({'salio': true}), 200);
@@ -3208,6 +3214,134 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  group('Entrega 25: el cobro en la app', () {
+    /// El estado que mandaría el servidor, con la cuenta guardada.
+    Future<BaseLocal> conCobro(
+      WidgetTester tester,
+      Map<String, Object?> cobro,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveCobro,
+          jsonEncode({
+            'precio': 1490,
+            'pago': {'yape': '911111111', 'nombre': 'Moca'},
+            ...cobro,
+          }),
+        ),
+      );
+      await esperar(tester);
+      return base;
+    }
+
+    String dia(int dias) {
+      final d = _ahora.add(Duration(days: dias));
+      return '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+          '${d.day.toString().padLeft(2, '0')}';
+    }
+
+    testWidgets('En prueba: la pestaña Moca dice cuántos días quedan y cómo '
+        'pagar', (tester) async {
+      await conCobro(tester, {'estado': 'prueba', 'hasta': dia(9), 'dias': 9});
+      // Sin aviso en el Inicio: todavía no está por vencer.
+      expect(find.text(Textos.comoPagar), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(
+        find.text(
+          Textos.pruebaTeQuedan(
+            9,
+            formatearDiaYMes(_ahora.add(const Duration(days: 9))),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.comoPagar));
+      expect(
+        find.text(Textos.yapeaA('S/\u00A014.90', '911 111 111', 'Moca')),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.precioDeFundador), findsOneWidget);
+      await tocar(tester, find.text(Textos.mandarLaCaptura));
+      expect(_abiertos.single, startsWith('https://wa.me/51911111111?text='));
+      expect(_abiertos.single, isNot(contains('+')));
+      expect(
+        Uri.parse(_abiertos.single).queryParameters['text'],
+        contains('Bodega Don Lucho'),
+      );
+    });
+
+    testWidgets('Por vencer: el aviso sale en el Inicio', (tester) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(2),
+        'dias': 2,
+        'porVencer': true,
+      });
+      expect(find.text(Textos.avisoPorVencer(true, 2)), findsOneWidget);
+      expect(find.text(Textos.comoPagar), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+    });
+
+    testWidgets('Al vencer: solo anotar, sin saldos ni Informes', (
+      tester,
+    ) async {
+      await conCobro(tester, {'estado': 'vencido', 'hasta': dia(-1)});
+      expect(find.text(Textos.pruebaTermino), findsOneWidget);
+      expect(find.text(Textos.soloAnotarDetalle), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsNothing);
+      expect(find.text(Textos.pestanaInformes), findsNothing);
+      expect(find.text(Textos.bajarMisOperaciones), findsOneWidget);
+      // Se sigue anotando.
+      await tocar(tester, find.text(Textos.anotarVentaDeHoy));
+      expect(find.text(Textos.pruebaTermino), findsNothing);
+    });
+
+    testWidgets('Sin señal, vence igual al pasar el último día', (
+      tester,
+    ) async {
+      await conCobro(tester, {'estado': 'prueba', 'hasta': dia(-2), 'dias': 0});
+      expect(find.text(Textos.pruebaTermino), findsOneWidget);
+    });
+
+    testWidgets('La pregunta del día 10 se contesta una vez', (tester) async {
+      await conCobro(tester, {'estado': 'prueba', 'hasta': dia(4), 'dias': 4});
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      final pregunta = Textos.preguntaPrecio('S/\u00A014.90');
+      expect(find.text(pregunta), findsOneWidget);
+      await tocar(tester, find.text(Textos.respuestaNoSe));
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.porQueOpcional),
+        'Depende de las ventas',
+      );
+      await tester.pump();
+      await tocar(tester, find.text(Textos.enviarRespuesta));
+      expect(_servidor.respuestasDePrecio.single, {
+        'respuesta': 'no_se',
+        'motivo': 'Depende de las ventas',
+      });
+      expect(find.text(Textos.graciasPorResponder), findsOneWidget);
+      expect(find.text(pregunta), findsNothing);
+    });
+
+    testWidgets('Sin cobro (sin cuenta o antes de empezar), nada cambia', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.comoPagar), findsNothing);
+      expect(find.textContaining('Prueba gratis'), findsNothing);
+    });
   });
 
   group('Entrega 22.2: «Salir de este negocio» en «Seguridad»', () {

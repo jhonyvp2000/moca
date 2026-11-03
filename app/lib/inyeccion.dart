@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
@@ -19,6 +21,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/cobro.dart';
 import 'dominio/cerradura.dart';
 import 'dominio/ajustes.dart';
 import 'dominio/arqueo.dart';
@@ -238,9 +241,36 @@ final planNotificacionesProvider = StreamProvider<List<NotificacionProgramada>>(
     if (permisos != null && !permisos.recibeAvisos) {
       return Stream.value(const <NotificacionProgramada>[]);
     }
-    return ref.watch(repositorioAvisoCierreProvider).observarPlan();
+    // Tres días antes de que termine la prueba, a las 9 (entrega 25).
+    final cobro = ref.watch(cobroProvider).value;
+    final hasta = cobro?.hasta;
+    final aviso =
+        cobro != null &&
+            cobro.estado == EstadoDelCobro.prueba &&
+            hasta != null &&
+            !(permisos?.soloAnotar ?? false)
+        ? DateTime(hasta.year, hasta.month, hasta.day - 3, 9)
+        : null;
+    final ahora = ref.watch(relojProvider)();
+    return ref
+        .watch(repositorioAvisoCierreProvider)
+        .observarPlan()
+        .map(
+          (plan) => [
+            ...plan,
+            if (aviso != null && aviso.isAfter(ahora))
+              NotificacionProgramada(
+                id: idAvisoDelCobro,
+                cuando: aviso,
+                tipo: TipoNotificacion.cobroPorVencer,
+              ),
+          ],
+        );
   },
 );
+
+/// El id del aviso de la prueba: no choca con los de cierre ni del día.
+const idAvisoDelCobro = 700001;
 
 final permisoAvisosPreguntadoProvider = FutureProvider<bool>(
   (ref) => ref.watch(repositorioAvisoCierreProvider).permisoPreguntado(),
@@ -436,19 +466,51 @@ final servicioEquipoProvider = Provider<ServicioEquipo>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioEquipo,
 );
 
+/// El estado del cobro del negocio (entrega 25): el último que mandó el
+/// servidor, puesto al día con la fecha. Sin cuenta, no se cobra.
+final cobroProvider = StreamProvider<Cobro>((ref) {
+  final reloj = ref.watch(relojProvider);
+  final acceso = AccesoLocal(ref.watch(baseLocalProvider), reloj);
+  return acceso.cambios().asyncMap((_) async {
+    final guardado = await acceso.leerAjuste(AccesoLocal.claveCobro);
+    if (guardado == null) return Cobro.sinCobro;
+    try {
+      return Cobro.desdeServidor(jsonDecode(guardado) as Map<String, Object?>)
+          .alDia(reloj());
+    } on FormatException {
+      return Cobro.sinCobro;
+    }
+  });
+});
+
+/// La pregunta del día 10: la lleva el mismo servicio de la cuenta.
+final servicioCobroProvider = Provider<ServicioCobro>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioCobro,
+);
+
 /// Lo que el rol de quien usa el teléfono le deja ver y hacer (entrega 20).
 final permisosProvider = StreamProvider<Permisos>((ref) {
-  final acceso = AccesoLocal(
-    ref.watch(baseLocalProvider),
-    ref.watch(relojProvider),
-  );
-  return acceso.cambios().asyncMap(
-    (_) async => Permisos(
+  final reloj = ref.watch(relojProvider);
+  final acceso = AccesoLocal(ref.watch(baseLocalProvider), reloj);
+  return acceso.cambios().asyncMap((_) async {
+    final cobro = await acceso.leerAjuste(AccesoLocal.claveCobro);
+    var soloAnotar = false;
+    if (cobro != null) {
+      try {
+        soloAnotar = Cobro.desdeServidor(
+          jsonDecode(cobro) as Map<String, Object?>,
+        ).alDia(reloj()).soloAnotar;
+      } on FormatException {
+        soloAnotar = false;
+      }
+    }
+    return Permisos(
       await acceso.miRol(),
       misCajas: await acceso.misCajas(),
       titular: await acceso.soyTitular(),
-    ),
-  );
+      soloAnotar: soloAnotar,
+    );
+  });
 });
 
 final situacionCuentaProvider = StreamProvider<SituacionCuenta>(

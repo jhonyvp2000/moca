@@ -829,6 +829,21 @@ void main() {
       },
     );
 
+    test('El estado del cobro que llega se guarda (entrega 25)', () async {
+      cambios = {
+        'empresa_id': empresaId,
+        'rol': 'dueno',
+        'hasta': 5,
+        'cobro': {'estado': 'prueba', 'hasta': '2026-10-20', 'dias': 8},
+      };
+      expect(await servicio.traerCambios(), isFalse);
+      final guardado = await AccesoLocal(
+        base,
+        () => ahora,
+      ).leerAjuste(AccesoLocal.claveCobro);
+      expect(jsonDecode(guardado!), containsPair('estado', 'prueba'));
+    });
+
     test('La venta simulada de Pepe (entrega 20.1) no se sube', () async {
       await RepositorioOperadorLocal(
         base,

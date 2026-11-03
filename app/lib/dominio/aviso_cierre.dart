@@ -1,6 +1,14 @@
 import 'modelos.dart';
 
-enum TipoNotificacion { cierre, faltaArqueo, diasSinAnotar, resumenSemanal }
+enum TipoNotificacion {
+  cierre,
+  faltaArqueo,
+  diasSinAnotar,
+  resumenSemanal,
+
+  /// Tres días antes de que termine la prueba gratis (entrega 25).
+  cobroPorVencer,
+}
 
 /// A dónde lleva tocar una notificación.
 enum DestinoNotificacion { ventaPorVoz, ventaEscrita, arqueo, registrar, moca }

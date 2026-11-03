@@ -45,7 +45,8 @@ Ver `fase-0.md`. En resumen:
 - ~~El tiempo fuera de Moca antes de pedir la huella~~: 5 minutos (entrega 16.3.1, 03-11-2026).
 - Para la versión final: ocultar la pantalla de Moca en las apps recientes, que también bloquea las capturas de pantalla (por eso no va durante la prueba).
 - Al diseñar los días de prueba, revisar también los números archivados (`celular_archivado`): «Empezar de cero» y la entrega 14.4.1 archivan la cuenta vieja y crean otra con el mismo número, y el número no debe volver a tener 7 días de prueba (decisiones.md, 29-10-2026 y 30-10-2026).
-- Planificar las entregas del cobro manual por Yape (S/ 19.90, 14 días de prueba, «pagado hasta…» desde el operador, pregunta del día 10), decididas el 03-11-2026.
+- Cobro manual por Yape: el servidor (24) y la app (25) están; falta la pantalla de cobros de Jhony (26). Al terminar la 26, poner `MOCA_COBRO_DESDE` en Render con el día en que se reparta el APK.
+- Sin cuenta guardada no hay cobro: quien nunca guarda su avance usa Moca sin límite, aunque sin respaldo ni varios teléfonos. Revisar con los pilotos si hace falta un tope (03-11-2026).
 - Cómo se cobra la suscripción dentro de Play Store: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).
 
 - Criterios precisos para avanzar entre fases.

@@ -1114,6 +1114,7 @@ abstract final class Textos {
     TipoNotificacion.faltaArqueo => 'Falta el arqueo',
     TipoNotificacion.diasSinAnotar => 'Días sin anotar',
     TipoNotificacion.resumenSemanal => 'Resumen de la semana',
+    TipoNotificacion.cobroPorVencer => 'Fin de la prueba gratis',
   };
   static const otroAviso = 'Otro aviso';
   static const simularSinSenal = 'Simular sin señal';
@@ -1149,6 +1150,65 @@ abstract final class Textos {
   static const escribeBorrar = 'Para confirmar, escribe BORRAR';
 
   static const seguridad = 'Seguridad';
+
+  // El cobro (entrega 25).
+  static String pruebaTeQuedan(int dias, String hasta) => switch (dias) {
+    0 => 'Hoy es el último día de tu prueba gratis.',
+    1 => 'Prueba gratis: te queda 1 día (hasta el $hasta).',
+    _ => 'Prueba gratis: te quedan $dias días (hasta el $hasta).',
+  };
+  static const pruebaSinEmpezar =
+      'Tu prueba gratis de 14 días empieza con tu primer registro.';
+  static String pagadoHasta(String hasta) =>
+      'Moca está pagada hasta el $hasta.';
+  static const pruebaTermino = 'Tu prueba gratis terminó';
+  static String pagoVencio(String hasta) => 'Tu mes de Moca venció el $hasta';
+  static String avisoPorVencer(bool enPrueba, int dias) {
+    final que = enPrueba ? 'Tu prueba gratis termina' : 'Tu mes de Moca vence';
+    return switch (dias) {
+      0 => '$que hoy.',
+      1 => '$que mañana.',
+      _ => '$que en $dias días.',
+    };
+  }
+
+  static const comoPagar = 'Cómo pagar';
+  static const pagaTuMes = 'Paga tu mes de Moca';
+  static String yapeaA(String monto, String numero, String nombre) =>
+      'Yapea $monto al $numero, a nombre de $nombre.';
+  static const precioDeFundador =
+      'Es tu precio de fundador: lo conservas mientras renueves a tiempo.';
+  static const luegoMandaLaCaptura =
+      'Luego manda la captura por WhatsApp. En cuanto la veamos, activamos tu '
+      'mes y aquí dirá hasta cuándo.';
+  static const copiarElNumero = 'Copiar el número';
+  static const numeroCopiado = 'Número copiado.';
+  static const mandarLaCaptura = 'Mandar la captura por WhatsApp';
+  static String mensajeDePago(String negocio, String celular) =>
+      'Hola, pagué Moca para $negocio. Mi celular es $celular. Te mando la '
+      'captura.';
+  static const pagoSinDatos =
+      'Muy pronto podrás pagar desde aquí. Te avisaremos.';
+  static const noSeAbrioWhatsApp = 'No se pudo abrir WhatsApp.';
+  static const soloAnotarDetalle =
+      'Sigues pudiendo anotar y bajar tus operaciones en Excel. Para ver tus '
+      'saldos, el arqueo y tus informes, paga tu mes.';
+  static const soloAnotarOtros =
+      'El negocio necesita renovar Moca. Sigues pudiendo anotar: avísale al '
+      'dueño.';
+  static const bajarMisOperaciones = 'Bajar mis operaciones del mes (Excel)';
+  static String preguntaPrecio(String monto) =>
+      '¿Seguirías usando Moca por $monto al mes?';
+  static const respuestaSi = 'Sí';
+  static const respuestaNoSe = 'No sé';
+  static const respuestaNo = 'No';
+  static const porQueOpcional = '¿Por qué? (opcional)';
+  static const enviarRespuesta = 'Enviar';
+  static const graciasPorResponder = 'Gracias. Tu respuesta nos ayuda mucho.';
+  static const necesitasSenalParaResponder =
+      'Necesitas señal para enviar tu respuesta.';
+  static const notificacionCobro =
+      'Tu prueba gratis de Moca termina en 3 días. Toca para ver cómo pagar.';
 
   // Salir de este negocio (entrega 22.2).
   static const salirDelNegocio = 'Salir de este negocio';

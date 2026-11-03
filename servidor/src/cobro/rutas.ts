@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
+import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
+import { miembroDe } from '../equipo/miembros.js';
 import {
   diaEnLima,
   estadoDelCobro,
@@ -51,6 +53,7 @@ async function datosDelCobro(
   suscripcion: Suscripcion | null;
   inicioPrueba: string | null;
   fundadores: number;
+  respondio: boolean;
 }> {
   const suscripcion = (
     await cliente.query<{
@@ -85,7 +88,13 @@ async function datosDelCobro(
   const fundadores = (
     await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
   ).rows[0]?.usados;
+  const respondio = (
+    await cliente.query('SELECT 1 FROM respuestas_precio WHERE empresa_id = $1 LIMIT 1', [
+      empresaId,
+    ])
+  ).rowCount;
   return {
+    respondio: Boolean(respondio),
     suscripcion: suscripcion
       ? {
           plan: suscripcion.plan,
@@ -124,6 +133,8 @@ export async function esAdmin(pool: Pool, config: ConfigCobro, usuarioId: string
 export type CobroParaElTelefono = EstadoCobro & {
   pago?: { yape: string; nombre: string };
   admin?: true;
+  /** Ya contestó la pregunta del día 10 (entrega 25). */
+  respondio: boolean;
 };
 
 export async function cobroParaElTelefono(
@@ -156,6 +167,7 @@ export async function cobroParaElTelefono(
   });
   return {
     ...estado,
+    respondio: datos.respondio,
     ...(config.yape && estado.estado !== 'sin_cobro'
       ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
       : {}),
@@ -289,6 +301,61 @@ export function rutasCobro(
     throw error;
   }
 
+  // La pregunta del día 10 (entrega 25): la contesta cualquiera del negocio.
+  app.post<{ Body: { respuesta?: unknown; motivo?: unknown } }>(
+    '/cobro/respuesta',
+    async (peticion, respuesta) => {
+      const usuarioId = await autenticar(pool, peticion);
+      if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+      const { respuesta: dijo, motivo } = peticion.body ?? {};
+      if (
+        (dijo !== 'si' && dijo !== 'no_se' && dijo !== 'no') ||
+        (motivo !== undefined && motivo !== null && typeof motivo !== 'string')
+      ) {
+        return respuesta.code(400).send({ error: 'datos_invalidos' });
+      }
+      const empresaId = empresaPedida(peticion.query);
+      const cliente = await pool.connect();
+      try {
+        await cliente.query('BEGIN');
+        const miembro = await miembroDe(cliente, usuarioId, empresaId);
+        if (!miembro) {
+          await cliente.query('ROLLBACK');
+          return respuesta.code(403).send({ error: 'sin_negocio' });
+        }
+        await cliente.query(
+          `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
+          [miembro.empresaId, usuarioId],
+        );
+        const datos = await datosDelCobro(cliente, miembro.empresaId);
+        const { precio } = estadoDelCobro({
+          hoy: diaEnLima(ahora()),
+          cobroDesde: config.desde,
+          ...datos,
+        });
+        await cliente.query(
+          `INSERT INTO respuestas_precio (id, empresa_id, usuario_id, respuesta, motivo, precio_centimos)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            randomUUID(),
+            miembro.empresaId,
+            usuarioId,
+            dijo,
+            typeof motivo === 'string' && motivo.trim() ? motivo.trim().slice(0, 300) : null,
+            precio,
+          ],
+        );
+        await cliente.query('COMMIT');
+        return { recibida: true };
+      } catch (error) {
+        await cliente.query('ROLLBACK');
+        throw error;
+      } finally {
+        cliente.release();
+      }
+    },
+  );
+
   // Un negocio por el número de su dueño, con sus pagos.
   app.get('/cobro/negocio', async (peticion, respuesta) => {
     try {
@@ -310,7 +377,15 @@ export function rutasCobro(
             [empresa.id],
           )
         ).rows;
+        const respuestas = (
+          await cliente.query(
+            `SELECT respuesta, motivo, precio_centimos, creado_en
+               FROM respuestas_precio WHERE empresa_id = $1 ORDER BY creado_en DESC`,
+            [empresa.id],
+          )
+        ).rows;
         return {
+          respuestas,
           ...(await ficha(cliente, config, empresa, diaEnLima(ahora()))),
           pagos,
         };

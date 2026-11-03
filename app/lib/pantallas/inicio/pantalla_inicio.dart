@@ -1,15 +1,15 @@
-import '../../comun/actualizar.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/actualizar.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
+import '../cobro/cobro.dart';
 import 'hoja_saldo.dart';
 import 'pantalla_inicio_completa.dart';
 import 'pantalla_primer_dia.dart';
@@ -44,6 +44,22 @@ class PantallaInicio extends ConsumerWidget {
     // El primer día es del dueño que empieza; los demás roles ven el
     // Inicio según lo que les toca (entrega 20).
     final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    // Al vencer la prueba o el pago, solo se anota (entrega 25).
+    if (permisos.soloAnotar) {
+      return InicioSoloAnotar(
+        alAnotarVenta: anotarVenta,
+        alBajarExcel: () => bajarExcelDelMes(context, ref),
+      );
+    }
+    // Lo de arriba del Inicio: el aviso del cobro y el permiso de avisos.
+    Widget arriba(bool conPermiso) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AvisoDelCobro(),
+        if (conPermiso) const TarjetaPermisoAvisos(),
+      ],
+    );
     if (!inicio.mostrarPrimerDia || !permisos.tienePrimerDia) {
       // Deslizar hacia abajo trae lo nuevo de los demás (entrega 18.1).
       return ConActualizar(
@@ -56,9 +72,7 @@ class PantallaInicio extends ConsumerWidget {
           aviso: permisos.veAvisos
               ? ref.watch(avisosProvider).value?.firstOrNull
               : null,
-          tarjetaAvisos: permisos.recibeAvisos
-              ? const TarjetaPermisoAvisos()
-              : null,
+          tarjetaAvisos: arriba(permisos.recibeAvisos),
         ),
       );
     }
@@ -77,7 +91,7 @@ class PantallaInicio extends ConsumerWidget {
         ),
         alDeclararSaldo: () => mostrarHojaSaldo(context),
         alHacerArqueo: () => context.push(Rutas.arqueo),
-        tarjetaAvisos: const TarjetaPermisoAvisos(),
+        tarjetaAvisos: arriba(true),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'cobro.dart';
 import 'modelos.dart';
 
 /// Varias personas en un mismo negocio (decisiones.md, 29-10-2026; entregas
@@ -184,7 +185,12 @@ abstract interface class ServicioEquipo {
 /// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
 /// 20). El servidor lo hace cumplir también: esto solo muestra lo que vale.
 class Permisos {
-  const Permisos(this.rol, {this._misCajas, this.titular = false});
+  const Permisos(
+    this.rol, {
+    this._misCajas,
+    this.titular = false,
+    this.soloAnotar = false,
+  });
 
   static const delDueno = Permisos(Rol.dueno);
 
@@ -193,6 +199,10 @@ class Permisos {
 
   /// Quien creó el negocio (entrega 17).
   final bool titular;
+
+  /// La prueba o el pago vencieron: se anota y se baja el Excel; los
+  /// saldos, el arqueo, los informes y los avisos se cierran (entrega 25).
+  final bool soloAnotar;
 
   /// Las cajas a su cargo (entrega 21); nulo para dueños y contador, que ven
   /// todas. Sin ninguna asignada, la principal.
@@ -212,14 +222,16 @@ class Permisos {
 
   /// «Tienes hoy» y el saldo de cada cuenta del negocio; el encargado y el
   /// ayudante ven el de sus cajas (entrega 21).
-  bool get veSaldos => misCajas == null;
+  bool get veSaldos => misCajas == null && !soloAnotar;
 
-  bool get veInformes => rol == Rol.dueno || rol == Rol.contador;
+  bool get veInformes =>
+      (rol == Rol.dueno || rol == Rol.contador) && !soloAnotar;
 
   /// Los avisos y el resumen de la semana de la pestaña Moca.
-  bool get veAvisos => rol == Rol.dueno || rol == Rol.contador;
-  bool get haceArqueo => rol == Rol.dueno || rol == Rol.encargado;
-  bool get cambiaCuentas => rol == Rol.dueno;
+  bool get veAvisos => (rol == Rol.dueno || rol == Rol.contador) && !soloAnotar;
+  bool get haceArqueo =>
+      (rol == Rol.dueno || rol == Rol.encargado) && !soloAnotar;
+  bool get cambiaCuentas => rol == Rol.dueno && !soloAnotar;
 
   /// «Retiro para mí» y «Puse de mi bolsillo» son de la plata del dueño.
   bool get anotaLoDelDueno => rol == Rol.dueno;
@@ -248,4 +260,13 @@ class Permisos {
         Rol.ayudante => !deOtro && delDia,
         Rol.contador => false,
       };
+}
+
+/// La pregunta del día 10 de la prueba (entrega 25).
+abstract interface class ServicioCobro {
+  /// Manda la respuesta al servidor. Sin señal, `sinSenal`: no se guarda.
+  Future<ResultadoEquipo> responderPrecio(
+    RespuestaPrecio respuesta, {
+    String? motivo,
+  });
 }

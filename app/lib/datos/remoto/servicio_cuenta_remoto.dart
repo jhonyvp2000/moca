@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../../dominio/cobro.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/medicion.dart';
@@ -25,7 +26,8 @@ const direccionServidor = String.fromEnvironment(
 
 /// La cuenta real contra el servidor de Moca (servidor/README.md).
 /// También lleva el equipo del negocio (entrega 19): usa la misma llave.
-class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
+class ServicioCuentaRemoto
+    implements ServicioCuenta, ServicioEquipo, ServicioCobro {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -107,6 +109,14 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
   ) async {
     if (cuerpo['cifras'] case final Map<String, Object?> cifras) {
       await _a.guardarCifras(cifras, huella);
+    }
+    await _guardarCobro(cuerpo);
+  }
+
+  /// El estado del cobro del negocio, si vino (entrega 25).
+  Future<void> _guardarCobro(Map<String, Object?> cuerpo) async {
+    if (cuerpo['cobro'] case final Map<String, Object?> cobro) {
+      await _a.guardarAjuste(AccesoLocal.claveCobro, jsonEncode(cobro));
     }
   }
 
@@ -367,6 +377,35 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
   }
 
   @override
+  Future<ResultadoEquipo> responderPrecio(
+    RespuestaPrecio respuesta, {
+    String? motivo,
+  }) async {
+    final r = await _delEquipo(await _delNegocio('/cobro/respuesta'), {
+      'respuesta': switch (respuesta) {
+        RespuestaPrecio.si => 'si',
+        RespuestaPrecio.noSe => 'no_se',
+        RespuestaPrecio.no => 'no',
+      },
+      if (motivo != null && motivo.trim().isNotEmpty) 'motivo': motivo.trim(),
+    });
+    if (r == null) return ResultadoEquipo.sinSenal;
+    final resultado = _resultadoEquipo(r);
+    // Ya no se vuelve a preguntar en este teléfono.
+    if (resultado == ResultadoEquipo.listo) {
+      final guardado = await _a.leerAjuste(AccesoLocal.claveCobro);
+      final cobro = guardado == null
+          ? <String, Object?>{}
+          : jsonDecode(guardado) as Map<String, Object?>;
+      await _a.guardarAjuste(
+        AccesoLocal.claveCobro,
+        jsonEncode({...cobro, 'respondio': true}),
+      );
+    }
+    return resultado;
+  }
+
+  @override
   Future<ResultadoEquipo> salir() async {
     // Lo que anotó y falta subir sube antes: después ya no podrá.
     if (await hayCambiosSinSubir() && !await subirTodo()) {
@@ -558,6 +597,7 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
     final datos = cuerpo['datos'];
     if (datos is! Map<String, Object?>) return ResultadoBajada.error;
     await _guardarBajada(datos, celular, sumar: local);
+    await _guardarCobro(cuerpo);
     await _llavero.guardar(llave);
     _celularPorEntrar = null;
     _llaveDeLaCuenta = null;
@@ -898,6 +938,7 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
           await _a.guardarAjuste(_clavePersonas, '$personas');
         }
         await _guardarEquipo(cuerpo);
+        await _guardarCobro(cuerpo);
         await _a.guardarAjuste(_claveActualizado, _a.ahora().toIso8601String());
         // Sin nada propio por subir, el teléfono sigue al día con el
         // servidor.

@@ -53,6 +53,9 @@ class AccesoLocal {
   /// servidor; sin el ajuste, todas (entrega 21).
   static const claveMisCajas = 'mis_cajas';
 
+  /// El último estado del cobro que mandó el servidor (entrega 25).
+  static const claveCobro = 'cobro';
+
   /// «Pedir huella al abrir Moca» (entrega 16.3): «si» o nada.
   static const clavePedirHuella = 'pedir_huella';
   static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';

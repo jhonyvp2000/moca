@@ -213,6 +213,11 @@ Future<void> responderEnSegundoPlano(NotificationResponse r) async {
     _cargaMoca,
     const <AndroidNotificationAction>[],
   ),
+  TipoNotificacion.cobroPorVencer => (
+    Textos.notificacionCobro,
+    _cargaMoca,
+    const <AndroidNotificationAction>[],
+  ),
 };
 
 Future<void> _programar(List<NotificacionProgramada> plan) async {

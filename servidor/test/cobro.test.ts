@@ -293,6 +293,7 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       plan: null,
       precio: 1490,
       pago: { yape: '911111111', nombre: 'Moca' },
+      respondio: false,
     });
     elDia('2026-11-21');
     const cambios = (await pedir(lucho, 'GET', '/datos/cambios?desde=0')).json();
@@ -427,6 +428,27 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       estado: 'vencido',
       hasta: '2026-11-25',
     });
+  });
+
+  it('Entrega 25: la pregunta del día 10 se contesta una vez y Jhony la ve', async () => {
+    elDia('2027-02-23');
+    expect((await cobroDe(lucho)).respondio).toBe(false);
+    expect(
+      (await pedir(lucho, 'POST', '/cobro/respuesta', { respuesta: 'quizas' })).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await pedir(lucho, 'POST', '/cobro/respuesta', {
+          respuesta: 'no_se',
+          motivo: 'Depende de las ventas',
+        })
+      ).json(),
+    ).toEqual({ recibida: true });
+    expect((await cobroDe(lucho)).respondio).toBe(true);
+    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
+    expect(ficha.respuestas).toMatchObject([
+      { respuesta: 'no_se', motivo: 'Depende de las ventas', precio_centimos: 1990 },
+    ]);
   });
 
   it('Sin cobro configurado, todo sigue abierto', async () => {

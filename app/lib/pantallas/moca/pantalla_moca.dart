@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../cobro/cobro.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
@@ -122,6 +123,9 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
           ),
           const SizedBox(height: 14),
           const TarjetaGuardarAvance(),
+          // La prueba o el pago, y la pregunta del día 10 (entrega 25).
+          const TarjetaCobro(),
+          const PreguntaDelPrecio(),
           if (resumen != null) _tarjetaSemana(resumenEnTexto(resumen)),
           if (permisos.veAvisos) ...[
             const SizedBox(height: 18),
