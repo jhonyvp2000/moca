@@ -367,6 +367,22 @@ class ServicioCuentaRemoto implements ServicioCuenta, ServicioEquipo {
   }
 
   @override
+  Future<ResultadoEquipo> salir() async {
+    // Lo que anotó y falta subir sube antes: después ya no podrá.
+    if (await hayCambiosSinSubir() && !await subirTodo()) {
+      return ResultadoEquipo.sinSenal;
+    }
+    final r = await _delEquipo('/equipo/salir', const <String, Object?>{});
+    if (r == null) return ResultadoEquipo.sinSenal;
+    final resultado = _resultadoEquipo(r);
+    if (resultado == ResultadoEquipo.listo) {
+      // Igual que cuando lo quita un dueño (entrega 18).
+      await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+    }
+    return resultado;
+  }
+
+  @override
   Future<ResultadoEquipo> asignarCajas(
     String membresiaId,
     List<String> cuentaIds,

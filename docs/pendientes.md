@@ -37,12 +37,12 @@ Ver `fase-0.md`. En resumen:
 - Cómo funcionan en la V1 real «Ver una demo», «Ya tengo cuenta» y «Ahora no, seguir probando» (en el prototipo ya están resueltos).
 - Textos legales: consentimiento de datos (Ley 29733) y aviso de que Moca no reemplaza la contabilidad oficial.
 - Estimación de duración de las fases 1 y 2.
-- «Salir de este negocio» para las personas invitadas (encargado, ayudante o contador): saldrían como si un dueño las quitara, y lo que anotaron se queda en el negocio. Por ahora un dueño las quita (29-10-2026, entrega 16.1).
+- ~~«Salir de este negocio» para las personas invitadas~~: entrega 22.2 (03-11-2026).
 - ~~Quien fue quitado de un equipo no ve «Mis negocios»~~: se le muestra, con sus invitaciones (entrega 22.1, 29-10-2026).
 
 ## Se resuelven más adelante
 
-- El tiempo fuera de Moca antes de pedir la huella: 30 segundos para las pruebas (entrega 16.3); la recomendación es 5 minutos.
+- ~~El tiempo fuera de Moca antes de pedir la huella~~: 5 minutos (entrega 16.3.1, 03-11-2026).
 - Para la versión final: ocultar la pantalla de Moca en las apps recientes, que también bloquea las capturas de pantalla (por eso no va durante la prueba).
 - Al diseñar los días de prueba, revisar también los números archivados (`celular_archivado`): «Empezar de cero» y la entrega 14.4.1 archivan la cuenta vieja y crean otra con el mismo número, y el número no debe volver a tener 7 días de prueba (decisiones.md, 29-10-2026 y 30-10-2026).
 - Cómo se cobra la suscripción: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).

@@ -1148,6 +1148,20 @@ abstract final class Textos {
   static const continuar = 'Continuar';
   static const escribeBorrar = 'Para confirmar, escribe BORRAR';
 
+  static const seguridad = 'Seguridad';
+
+  // Salir de este negocio (entrega 22.2).
+  static const salirDelNegocio = 'Salir de este negocio';
+  static const salirDelNegocioDetalle =
+      'Lo que anotaste se queda en el negocio';
+  static const salirDelNegocioPregunta = '¿Salir de este negocio?';
+  static const salirDelNegocioTexto =
+      'Ya no verás ni anotarás en este negocio. Lo que anotaste se queda. '
+      'Para volver, un dueño tiene que invitarte otra vez.';
+  static const salisteDelNegocio = 'Listo. Saliste del negocio.';
+  static const necesitasSenalParaSalir =
+      'Necesitas señal para salir del negocio. No cambió nada.';
+
   // La huella al abrir Moca (entrega 16.3).
   static const pedirHuella = 'Pedir huella al abrir Moca';
   static const pedirHuellaDetalle =

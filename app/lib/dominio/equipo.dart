@@ -175,6 +175,10 @@ abstract interface class ServicioEquipo {
   /// Las invitaciones que esperan, para aceptarlas desde la app (entrega
   /// 22). Nulo sin señal.
   Future<List<InvitacionRecibida>?> buscarInvitaciones();
+
+  /// Sale del negocio que se ve, como si un dueño lo quitara: lo que anotó
+  /// se queda (entrega 22.2). El titular no sale: borra.
+  Future<ResultadoEquipo> salir();
 }
 
 /// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
@@ -223,6 +227,9 @@ class Permisos {
 
   /// «Borrar mi negocio»: solo el titular (entrega 16.1).
   bool get borraElNegocio => rol == Rol.dueno && titular;
+
+  /// «Salir de este negocio»: todos menos el titular (entrega 22.2).
+  bool get saleDelNegocio => !titular;
 
   /// El camino del primer día es del dueño que empieza su negocio.
   bool get tienePrimerDia => rol == Rol.dueno;

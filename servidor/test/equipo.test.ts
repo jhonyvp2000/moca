@@ -575,4 +575,19 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     });
     expect(nueva.statusCode).toBe(200);
   });
+
+  it('Entrega 22.2: un invitado sale por su cuenta; el titular no puede', async () => {
+    expect((await pedir(lucho, 'POST', '/equipo/salir')).json()).toEqual({
+      error: 'es_titular',
+    });
+    // Rosa, dueña sin ser titular, sale.
+    expect((await pedir(rosa, 'POST', '/equipo/salir')).json()).toEqual({ salio: true });
+    expect((await cambios(rosa, 0)).json()).toEqual({ error: 'sin_negocio' });
+    const equipo = (await pedir(lucho, 'GET', '/equipo')).json();
+    expect(
+      equipo.personas.some((p: { usuario_id: string }) => p.usuario_id === rosa.usuarioId),
+    ).toBe(false);
+    // Fuera del negocio, ya no tiene de dónde salir.
+    expect((await pedir(rosa, 'POST', '/equipo/salir')).statusCode).toBe(403);
+  });
 });

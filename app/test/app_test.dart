@@ -148,6 +148,9 @@ class _ServidorFalso {
   /// Cuántas veces se pidió lo nuevo de los demás (entrega 18.1).
   var pedidosDeCambios = 0;
 
+  /// Cuántas veces alguien salió del negocio (entrega 22.2).
+  var salidas = 0;
+
   /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
   /// para «Me invitaron» y lo que se invitó, quitó o aceptó.
   Map<String, Object?>? equipo;
@@ -253,6 +256,9 @@ class _ServidorFalso {
         }
         subidas.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': <String, int>{}}), 200);
+      case '/equipo/salir':
+        salidas++;
+        return http.Response(jsonEncode({'salio': true}), 200);
       case '/datos/cambios':
         pedidosDeCambios++;
         return http.Response(jsonEncode({'hasta': 0}), 200);
@@ -2267,7 +2273,7 @@ void main() {
       expect(_servidor.codigosPedidos, hasLength(2));
 
       // A los 30 segundos se puede pedir otro.
-      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(minutes: 6));
       await tocar(tester, find.text(Textos.reenviarCodigo));
       expect(find.text(Textos.codigoReenviado), findsOneWidget);
       expect(_servidor.codigosPedidos, hasLength(3));
@@ -3204,6 +3210,72 @@ void main() {
     expect(find.byType(RefreshProgressIndicator), findsNothing);
   });
 
+  group('Entrega 22.2: «Salir de este negocio» en «Seguridad»', () {
+    Future<BaseLocal> conCuenta(
+      WidgetTester tester, {
+      required bool titular,
+    }) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      await tester.runAsync(() async {
+        final acceso = AccesoLocal(base, () => _ahora);
+        final yo = await acceso.usuario();
+        await acceso.guardarAjuste(
+          AccesoLocal.claveEquipo,
+          jsonEncode([
+            if (!titular)
+              {'usuario_id': 'otro', 'rol': 'dueno', 'titular': true},
+            {'usuario_id': yo.id, 'rol': 'dueno', 'titular': titular},
+          ]),
+        );
+      });
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.pedirHuella),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
+      await esperar(tester);
+      return base;
+    }
+
+    testWidgets('El titular borra; no sale', (tester) async {
+      await conCuenta(tester, titular: true);
+      expect(find.text(Textos.seguridad), findsOneWidget);
+      expect(find.text(Textos.borrarMiNegocio), findsOneWidget);
+      expect(find.text(Textos.salirDelNegocio), findsNothing);
+    });
+
+    testWidgets('Quien no es titular sale, después de confirmar', (
+      tester,
+    ) async {
+      await conCuenta(tester, titular: false);
+      expect(find.text(Textos.borrarMiNegocio), findsNothing);
+      await tocar(tester, find.text(Textos.salirDelNegocio));
+      expect(find.text(Textos.salirDelNegocioPregunta), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(_servidor.salidas, 0);
+
+      await tocar(tester, find.text(Textos.salirDelNegocio));
+      await tocar(tester, find.widgetWithText(TextButton, Textos.salir));
+      expect(_servidor.salidas, 1);
+      expect(find.text(Textos.salisteDelNegocio), findsOneWidget);
+      // Queda como si un dueño lo quitara.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+      await esperar(tester);
+      expect(find.text(Textos.fueraDelNegocio), findsOneWidget);
+    });
+  });
+
   group('Entrega 16.3: pedir huella al abrir Moca', () {
     Future<void> salirYVolver(WidgetTester tester, Duration fuera) async {
       for (final estado in [
@@ -3253,9 +3325,9 @@ void main() {
         tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
         isTrue,
       );
-      // Ya encendida, al volver a los 31 segundos la pide.
+      // Ya encendida, al volver a los 6 minutos la pide.
       _pasaLaHuella = false;
-      await salirYVolver(tester, const Duration(seconds: 31));
+      await salirYVolver(tester, const Duration(minutes: 6));
       expect(_huellasPedidas, 2);
       expect(find.text(Textos.mocaProtegida), findsOneWidget);
     });
@@ -3288,19 +3360,19 @@ void main() {
       expect(find.text(Textos.tienesHoy).hitTestable(), findsOneWidget);
     });
 
-    testWidgets('Al volver en menos de 30 segundos no la pide; después, sí', (
+    testWidgets('Al volver en menos de 5 minutos no la pide; después, sí', (
       tester,
     ) async {
       await abrirApp(tester, listo: true, conHuella: true);
       expect(find.text(Textos.mocaProtegida), findsNothing);
       expect(_huellasPedidas, 1);
 
-      await salirYVolver(tester, const Duration(seconds: 20));
+      await salirYVolver(tester, const Duration(minutes: 4));
       expect(find.text(Textos.mocaProtegida), findsNothing);
       expect(_huellasPedidas, 1);
 
       _pasaLaHuella = false;
-      await salirYVolver(tester, const Duration(seconds: 31));
+      await salirYVolver(tester, const Duration(minutes: 6));
       expect(_huellasPedidas, 2);
       expect(find.text(Textos.mocaProtegida), findsOneWidget);
     });

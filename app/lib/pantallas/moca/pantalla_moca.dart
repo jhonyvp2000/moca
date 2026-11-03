@@ -194,8 +194,11 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               ruta: Rutas.negocios,
             ),
           ],
+          // «Seguridad», al final (entrega 16.3.1).
+          const SizedBox(height: 24),
+          const Text(Textos.seguridad, style: Tipografia.tituloTarjeta),
+          const SizedBox(height: 8),
           // Para todos los roles, en cada teléfono (entrega 16.3).
-          const SizedBox(height: Medidas.separacionTarjetas),
           const _InterruptorHuella(),
           // El derecho a borrar sus datos (Ley 29733), solo del titular
           // (entrega 16.1).
@@ -207,6 +210,12 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               detalle: Textos.borrarMiNegocioDetalle,
               ruta: Rutas.borrarNegocio,
             ),
+          ],
+          // Los demás salen por su cuenta (entrega 22.2).
+          if (estadoCuenta == EstadoCuenta.guardada &&
+              permisos.saleDelNegocio) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            const _SalirDelNegocio(),
           ],
         ],
       ),
@@ -473,6 +482,81 @@ class _EstadoInterruptor extends ConsumerState<_InterruptorHuella> {
           subtitle: const Text(
             Textos.pedirHuellaDetalle,
             style: Tipografia.secundario,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Salir de este negocio» (entrega 22.2): pregunta antes y, al salir, la
+/// pestaña dice «Ya no estás en este negocio», como si un dueño lo quitara.
+class _SalirDelNegocio extends ConsumerWidget {
+  const _SalirDelNegocio();
+
+  Future<void> _salir(BuildContext context, WidgetRef ref) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text(Textos.salirDelNegocioPregunta),
+        content: const Text(Textos.salirDelNegocioTexto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text(Textos.salir),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    final resultado = await ref.read(servicioEquipoProvider).salir();
+    mensajes.showSnackBar(
+      SnackBar(
+        content: Text(switch (resultado) {
+          ResultadoEquipo.listo => Textos.salisteDelNegocio,
+          ResultadoEquipo.sinSenal => Textos.necesitasSenalParaSalir,
+          _ => Textos.noPudimosComprobar,
+        }),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Tarjeta(
+      relleno: EdgeInsets.zero,
+      child: Material(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          onTap: () => _salir(context, ref),
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Textos.salirDelNegocio,
+                        style: Tipografia.textoFuerte,
+                      ),
+                      Text(
+                        Textos.salirDelNegocioDetalle,
+                        style: Tipografia.secundario,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

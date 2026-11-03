@@ -14,9 +14,9 @@ import '../../textos/textos.dart';
 class ConCerradura extends ConsumerStatefulWidget {
   const ConCerradura({super.key, required this.child});
 
-  /// Cuánto puede estar fuera de Moca sin que pida la huella al volver.
-  /// 30 segundos para las pruebas; el tiempo final queda en pendientes.md.
-  static const esperaParaPedirla = Duration(seconds: 30);
+  /// Cuánto puede estar fuera de Moca sin que pida la huella al volver
+  /// (30 segundos en las pruebas; 5 minutos desde la entrega 16.3.1).
+  static const esperaParaPedirla = Duration(minutes: 5);
 
   final Widget child;
 

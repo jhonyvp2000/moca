@@ -223,6 +223,30 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
     }
   });
 
+  // Salir del negocio por cuenta propia (entrega 22.2): queda como si un
+  // dueño lo quitara; lo que anotó se queda. El titular no sale: borra.
+  app.post('/equipo/salir', async (peticion, respuesta) => {
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+    try {
+      return await comoMiembro(
+        pool,
+        usuarioId,
+        empresaPedida(peticion.query),
+        false,
+        async (cliente, miembro) => {
+          if (miembro.titular) throw new ErrorDeEquipo(403, 'es_titular');
+          await cliente.query('UPDATE membresias SET quitada_en = now() WHERE id = $1', [
+            miembro.membresiaId,
+          ]);
+          return { salio: true };
+        },
+      );
+    } catch (error) {
+      return responderError(error, respuesta);
+    }
+  });
+
   // Las cajas a cargo de una persona (entrega 21): solo cajas de efectivo
   // del negocio. Vacío: la principal.
   app.post<{ Body: { membresia?: unknown; cajas?: unknown } }>(
