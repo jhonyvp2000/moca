@@ -17,7 +17,7 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 
 **Para quién:** los negocios piloto (bodegas, restaurantes, servicios) en modo Simple. Desde las entregas 17 a 23, hasta 3 personas por negocio con su rol (dueño, encargado, ayudante, contador); ver `decisiones.md`, 29-10-2026.
 
-**Sin cobro.** La V1 no tiene planes, topes ni pago. Sirve para los pilotos.
+**Cobro (cambio del 03-11-2026).** La V1 cobra S/ 19.90 al mes por negocio después de 14 días de prueba, con cobro manual por Yape mientras se reparte como APK; los topes de fotos y voz siguen sin definir (ver `decisiones.md`).
 
 ### Pantallas
 

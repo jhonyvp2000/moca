@@ -30,7 +30,7 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven al planificar la V1
 
-- Criterio preciso para dar la V1 por terminada.
+- ~~Criterio preciso para dar la V1 por terminada~~: ver «Cuándo está terminada» en `v1-real.md` (03-11-2026).
 - Revisar el borrador de `modelo-datos.md`.
 - ~~Proveedor para enviar el código de acceso por SMS o WhatsApp~~: Twilio Verify, por SMS y WhatsApp cuando Meta apruebe (14-10-2026).
 - ~~Dónde se aloja el backend y el almacén de imágenes~~: plataforma gestionada y simple, con almacén de imágenes aparte; el proveedor se propone en la entrega 10 (14-10-2026, ver `v1-real.md`).
@@ -45,7 +45,8 @@ Ver `fase-0.md`. En resumen:
 - ~~El tiempo fuera de Moca antes de pedir la huella~~: 5 minutos (entrega 16.3.1, 03-11-2026).
 - Para la versión final: ocultar la pantalla de Moca en las apps recientes, que también bloquea las capturas de pantalla (por eso no va durante la prueba).
 - Al diseñar los días de prueba, revisar también los números archivados (`celular_archivado`): «Empezar de cero» y la entrega 14.4.1 archivan la cuenta vieja y crean otra con el mismo número, y el número no debe volver a tener 7 días de prueba (decisiones.md, 29-10-2026 y 30-10-2026).
-- Cómo se cobra la suscripción: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).
+- Planificar las entregas del cobro manual por Yape (S/ 19.90, 14 días de prueba, «pagado hasta…» desde el operador, pregunta del día 10), decididas el 03-11-2026.
+- Cómo se cobra la suscripción dentro de Play Store: revisar las reglas de pagos de Google Play para Perú (sistema de pagos de Google, comisión, programas de excepción) y la opción de una pasarela que acepte Yape o Plin, antes de diseñar el pago (29-10-2026).
 
 - Criterios precisos para avanzar entre fases.
 - Reglas tributarias del borrador de declaración y del riesgo tributario, validadas con contadores.

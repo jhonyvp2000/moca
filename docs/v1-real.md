@@ -4,7 +4,7 @@ Plan aprobado por Jhony el 14 de octubre de 2026 (ver `decisiones.md`). Sigue al
 
 ## Objetivo
 
-La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde las entregas 17 a 23, sin cobro: el cobro tampoco entra en la versión siguiente, ver `decisiones.md` del 29-10-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
+La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde las entregas 17 a 23, con cobro manual por Yape mientras se reparte como APK: S/ 19.90 al mes, 14 días de prueba, ver `decisiones.md` del 03-11-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
 
 ## Cómo se trabaja
 
@@ -37,11 +37,20 @@ La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde l
 | 22 | Equipo F · El contador en varios negocios: elige cuál mirar, solo lectura | 20 |
 | 23 | Equipo G · Prueba con dos o tres teléfonos de verdad (guion en `prueba-varios-telefonos.md`) y simulación de otra persona desde el ajuste oculto (hecha en la 20.1), antes de los 10 pilotos | 20 (y 21, 22) |
 
+## Cuándo está terminada
+
+Decidido el 03-11-2026 (`decisiones.md`). Se cumplen las cuatro partes:
+
+1. **Completa:** las 15 pantallas de `alcance-v1.md` y las entregas 17 a 23 hechas y aprobadas por Jhony; la prueba con dos teléfonos (`prueba-varios-telefonos.md`) sin errores graves abiertos.
+2. **Probada con pilotos:** al menos 8 de los 10 pilotos la usan 3 semanas seguidas; al menos 6 anotan 5 días o más por semana; cero datos perdidos y cero errores graves abiertos (perder registros, saldos que no cuadran sin explicación o que la app no abra); las 5 preguntas de `prototipo-v1.md` respondidas con lo observado.
+3. **Cobrable:** al menos 5 pilotos pagan el primer mes (o dicen que pagarían), y el cobro funciona, aunque sea manual por Yape.
+4. **Lista para publicar:** textos legales (Ley 29733) revisados por un abogado, marca «Moca» confirmada, Play Store en prueba cerrada y Moca en su propio espacio de Anthropic, con límite de gasto.
+
 ## Pendiente de decidir
 
 - ~~Twilio para los pilotos~~: la cuenta «Moca» es pagada desde el 14-10-2026 (USD 20 de saldo) y su perfil de cumplimiento («Primary Customer Profile») quedó aprobado el 14-10-2026; sin él, Twilio rechazaba los números no verificados (error 21608).
 - ~~Borrar de verdad una cuenta a pedido del dueño (Ley 29733)~~: desde la entrega 14.4, «Empezar de cero» solo la archiva; desde la 14.8 se borran para siempre los datos del negocio y las fotos leídas, y desde la 16.1 el titular lo hace desde la pestaña Moca («Borrar mi negocio y mis datos»). El número de celular se guarda, sin datos, para que no pueda volver a pedir los 7 días de prueba (29-10-2026). Desde la 22.2, las personas invitadas salen por su cuenta con «Salir de este negocio».
 - Textos legales (Ley 29733), revisados por un abogado, incluida la posible inscripción del banco de datos personales. Deben decir que las fotos de los comprobantes se envían a un proveedor de IA (Anthropic) para leerlas.
 - Antes del lanzamiento abierto, pasar Moca a su propio workspace de Anthropic, con su límite de gasto. Para el piloto usa una llave propia (`moca-render`) dentro del workspace «Default», compartido con TVSamGo (14-10-2026).
-- Criterio para dar la V1 por terminada.
+- ~~Criterio para dar la V1 por terminada~~: ver «Cuándo está terminada».
 - Revisión del borrador de `modelo-datos.md` (entrega 10).
