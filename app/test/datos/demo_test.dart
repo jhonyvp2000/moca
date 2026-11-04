@@ -10,6 +10,7 @@ import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
+import 'package:moca/datos/simulados/demo.dart';
 import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/dominio/moca.dart';
@@ -284,4 +285,52 @@ void main() {
       'Moca-Bodega-Don-Lucho-flujo-credito-octubre-2026.xlsx',
     );
   });
+
+  test(
+    'Entrega 28.1: la Demo usa todas las categorías y todos los tipos',
+    () async {
+      final base = BaseLocal(NativeDatabase.memory());
+      addTearDown(base.close);
+      await cargarDemo(base, DateTime(2026, 10, 13, 9));
+      final usadas = {
+        for (final m in await base.select(base.movimientos).get())
+          ?m.categoriaId,
+      };
+      final categorias = await base.select(base.categorias).get();
+      final sinUsar = [
+        for (final c in categorias)
+          if (c.activa && !usadas.contains(c.id)) c.nombre,
+      ];
+      // Las de bodega y las comunes, todas; «Mercadería» y «Bolsas» incluidas.
+      expect(sinUsar, isEmpty);
+      final tipos = {
+        for (final m in await base.select(base.movimientos).get()) m.tipo,
+      };
+      expect(tipos, TipoMovimiento.values.toSet());
+      // Una deuda pagada después y otra que todavía se debe.
+      final compras = await (base.select(
+        base.movimientos,
+      )..where((m) => m.tipo.equalsValue(TipoMovimiento.egreso))).get();
+      expect(
+        compras.where((m) => m.estadoPago == EstadoPago.pendiente),
+        isNotEmpty,
+      );
+      expect(
+        compras.where(
+          (m) =>
+              m.estadoPago == EstadoPago.pagado &&
+              m.fechaPago != null &&
+              m.fechaPago!.difference(m.fechaMovimiento).inDays >= 3,
+        ),
+        isNotEmpty,
+      );
+      // Ninguna fecha en el futuro.
+      expect(
+        (await base.select(base.movimientos).get()).where(
+          (m) => m.fechaMovimiento.isAfter(DateTime(2026, 10, 13, 9)),
+        ),
+        isEmpty,
+      );
+    },
+  );
 }
