@@ -85,6 +85,14 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         () => _yaTrajo ? _subirSiHaceFalta() : _sincronizar(),
       );
     }, fireImmediately: true);
+    // En un teléfono que ya no abre el ajuste oculto, ninguna simulación
+    // puede quedar puesta (entrega 26.2).
+    ref.listenManual(cobroProvider, (_, cobro) {
+      if (cobro.value case final c? when !c.admin && !_simulacionRevisada) {
+        _simulacionRevisada = true;
+        ref.read(repositorioOperadorProvider).quitarSimulacionSiHay();
+      }
+    }, fireImmediately: true);
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);
   }
@@ -99,6 +107,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   Timer? _paraTraer;
 
   bool _yaTrajo = false;
+  bool _simulacionRevisada = false;
 
   /// Sube lo propio, baja lo de los demás y, si hace falta, pide las cifras.
   Future<void> _sincronizar() async {

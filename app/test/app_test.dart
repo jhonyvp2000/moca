@@ -539,6 +539,10 @@ Future<BaseLocal> abrirApp(
   bool permisoPreguntado = true,
   bool conHuella = false,
   bool pasaLaHuella = true,
+  // Las pruebas abren la app como Jhony, que sí abre el ajuste oculto
+  // (entrega 26.2).
+  bool admin = true,
+  Rol? verComoAlAbrir,
 }) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   _hayBloqueo = true;
@@ -602,6 +606,18 @@ Future<BaseLocal> abrirApp(
     });
   }
 
+  await tester.runAsync(() async {
+    final acceso = AccesoLocal(base, () => _ahora);
+    if (admin) {
+      await acceso.guardarAjuste(
+        AccesoLocal.claveCobro,
+        jsonEncode({'estado': 'sin_cobro', 'admin': true}),
+      );
+    }
+    if (verComoAlAbrir != null) {
+      await acceso.guardarAjuste(AccesoLocal.claveVerComo, verComoAlAbrir.name);
+    }
+  });
   if (conHuella) {
     await tester.runAsync(
       () => AccesoLocal(
@@ -3270,6 +3286,48 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  group('Entrega 26.2: el ajuste oculto solo en el teléfono de Jhony', () {
+    testWidgets('En otro teléfono, mantener presionado el logo no lo abre', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true, admin: false);
+      await abrirAjusteOculto(tester);
+      expect(find.text(Textos.tituloOperador), findsNothing);
+      expect(find.text(Textos.subtituloMoca), findsOneWidget);
+    });
+
+    testWidgets('En el de Jhony, sí', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjusteOculto(tester);
+      expect(find.text(Textos.tituloOperador), findsOneWidget);
+    });
+
+    testWidgets('Una simulación que quedó puesta se quita al abrir', (
+      tester,
+    ) async {
+      final base = await abrirApp(
+        tester,
+        listo: true,
+        admin: false,
+        verComoAlAbrir: Rol.ayudante,
+      );
+      await esperar(tester);
+      final verComo = await tester.runAsync(
+        () => AccesoLocal(
+          base,
+          () => _ahora,
+        ).leerAjuste(AccesoLocal.claveVerComo),
+      );
+      expect(verComo, isNull);
+      // La base avisa del cambio fuera del reloj falso de la prueba.
+      await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
+      await esperar(tester);
+      // De vuelta a la vista del dueño: sin la franja de «Ver como».
+      expect(find.text(Textos.hoyAnotaste), findsNothing);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+    });
   });
 
   group('Entrega 26: la pantalla de cobros de Jhony', () {

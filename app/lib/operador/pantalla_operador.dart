@@ -38,6 +38,13 @@ class PantallaOperador extends ConsumerWidget {
     final conCuenta = cuenta?.estado == EstadoCuenta.guardada;
     // Solo en el teléfono de quien registra los pagos (entrega 26).
     final admin = ref.watch(cobroProvider).value?.admin ?? false;
+    // Si se llegó aquí por otro camino, no se muestra (entrega 26.2).
+    if (ref.watch(cobroProvider).hasValue && !admin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted && context.canPop()) context.pop();
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
 
     return Scaffold(
       appBar: AppBar(

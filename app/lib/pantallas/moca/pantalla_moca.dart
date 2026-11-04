@@ -99,9 +99,13 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                         () => LongPressGestureRecognizer(
                           duration: PantallaMoca.esperaAjusteOculto,
                         ),
-                        (reconocedor) =>
-                            reconocedor.onLongPress = () =>
-                                context.push(Rutas.operador),
+                        // Solo en el teléfono de quien registra los pagos
+                        // (entrega 26.2): para los demás no hace nada.
+                        (reconocedor) => reconocedor.onLongPress = () {
+                          if (ref.read(cobroProvider).value?.admin ?? false) {
+                            context.push(Rutas.operador);
+                          }
+                        },
                       ),
                 },
                 child: const Isotipo(

@@ -33,4 +33,8 @@ abstract interface class RepositorioOperador {
 
   /// Vuelve a lo real: quita la venta simulada y el «Ver como».
   Future<void> salirDeLaSimulacion();
+
+  /// Lo mismo, solo si había una simulación (entrega 26.2): en un teléfono
+  /// que ya no abre el ajuste oculto, nadie podría quitarla.
+  Future<void> quitarSimulacionSiHay();
 }

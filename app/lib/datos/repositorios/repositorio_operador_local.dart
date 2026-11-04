@@ -155,4 +155,14 @@ class RepositorioOperadorLocal implements RepositorioOperador {
       await verComo(null);
     });
   }
+
+  @override
+  Future<void> quitarSimulacionSiHay() async {
+    final verComo = await _a.leerAjuste(AccesoLocal.claveVerComo);
+    final dePepe =
+        await (_base.select(_base.usuarios)
+              ..where((u) => u.id.equals(AccesoLocal.usuarioSimulado)))
+            .getSingleOrNull();
+    if (verComo != null || dePepe != null) await salirDeLaSimulacion();
+  }
 }
