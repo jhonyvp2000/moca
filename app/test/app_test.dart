@@ -22,6 +22,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/version.dart';
 import 'package:moca/dominio/cobro.dart';
 import 'package:moca/dominio/cerradura.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
@@ -151,6 +152,10 @@ class _ServidorFalso {
 
   /// Cuántas veces alguien salió del negocio (entrega 22.2).
   var salidas = 0;
+
+  /// Lo que responde «/app/version» (entrega 26.3), y con qué canal se pidió.
+  Map<String, Object?> version = {'ultima': null, 'minima': null};
+  final canalesPedidos = <String?>[];
 
   /// La pregunta del día 10 (entrega 25).
   final respuestasDePrecio = <Map<String, Object?>>[];
@@ -318,6 +323,9 @@ class _ServidorFalso {
       case '/cobro/respuesta':
         respuestasDePrecio.add(cuerpo);
         return http.Response(jsonEncode({'recibida': true}), 200);
+      case '/app/version':
+        canalesPedidos.add(pedido.url.queryParameters['canal']);
+        return http.Response(jsonEncode(version), 200);
       case '/equipo/salir':
         salidas++;
         return http.Response(jsonEncode({'salio': true}), 200);
@@ -496,6 +504,14 @@ class _LectorFalso implements LectorFoto {
       _lecturas.isEmpty ? _deEjemplo.leer(rutaImagen) : _lecturas.removeAt(0);
 }
 
+/// La versión instalada (entrega 26.3): en las pruebas, desconocida.
+var _versionInstalada = const VersionInstalada(
+  entrega: '',
+  armado: 0,
+  commit: '',
+  esArm64: true,
+);
+
 /// La huella del teléfono (entrega 16.3).
 var _hayBloqueo = true;
 var _pasaLaHuella = true;
@@ -543,8 +559,16 @@ Future<BaseLocal> abrirApp(
   // (entrega 26.2).
   bool admin = true,
   Rol? verComoAlAbrir,
+  VersionInstalada versionInstalada = const VersionInstalada(
+    entrega: '',
+    armado: 0,
+    commit: '',
+    esArm64: true,
+  ),
+  Map<String, Object?>? versionDelServidor,
 }) async {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  _versionInstalada = versionInstalada;
   _hayBloqueo = true;
   _pasaLaHuella = pasaLaHuella;
   _huellasPedidas = 0;
@@ -560,6 +584,7 @@ Future<BaseLocal> abrirApp(
   _daPermiso = true;
   _abrirDesdeAviso = null;
   _servidor = _ServidorFalso();
+  if (versionDelServidor != null) _servidor.version = versionDelServidor;
   _marcaSms = null;
   _sms = StreamController<String>.broadcast();
   _esperandoSms = 0;
@@ -651,6 +676,7 @@ Future<BaseLocal> abrirApp(
         reconocedorVozProvider.overrideWith((ref) => _VozFalsa()),
         camaraProvider.overrideWithValue(_CamaraFalsa()),
         cerraduraProvider.overrideWithValue(_CerraduraFalsa()),
+        versionInstaladaProvider.overrideWith((ref) => _versionInstalada),
         lectorFotoProvider.overrideWith(
           (ref) => _LectorFalso(
             LectorFotoSimulado(
@@ -3286,6 +3312,82 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  group('Entrega 26.3: «Hay una versión nueva de Moca»', () {
+    const instalada = VersionInstalada(
+      entrega: 'piloto-1',
+      armado: 100,
+      commit: 'abc1234',
+      esArm64: true,
+    );
+    Map<String, Object?> publicada(int armado, {int? minima}) => {
+      'ultima': {
+        'nombre': 'piloto-2',
+        'armado': armado,
+        'arm64': 'https://x/arm64.apk',
+        'v7a': 'https://x/v7a.apk',
+      },
+      'minima': minima,
+    };
+
+    Future<void> abrirCon(
+      WidgetTester tester,
+      Map<String, Object?> version, {
+      bool admin = false,
+    }) async {
+      await abrirApp(
+        tester,
+        listo: true,
+        admin: admin,
+        versionInstalada: instalada,
+        versionDelServidor: version,
+      );
+      // La revisión sale después del primer cuadro.
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await esperar(tester);
+    }
+
+    testWidgets('Con una más nueva, el Inicio lo dice y descarga el APK', (
+      tester,
+    ) async {
+      await abrirCon(tester, publicada(110));
+      expect(find.text(Textos.hayVersionNueva), findsOneWidget);
+      // Un piloto solo pregunta por «piloto-N».
+      expect(_servidor.canalesPedidos, [null]);
+      await tocar(tester, find.text(Textos.descargar));
+      expect(_abiertos, ['https://x/arm64.apk']);
+    });
+
+    testWidgets('«Ahora no» la esconde hasta mañana', (tester) async {
+      await abrirCon(tester, publicada(110));
+      await tocar(tester, find.text(Textos.ahoraNoVersion));
+      expect(find.text(Textos.hayVersionNueva), findsNothing);
+    });
+
+    testWidgets('Si ya es la última, no dice nada; y se ve su versión', (
+      tester,
+    ) async {
+      await abrirCon(tester, publicada(100), admin: true);
+      expect(find.text(Textos.hayVersionNueva), findsNothing);
+      // Jhony pregunta también por las entregas.
+      expect(_servidor.canalesPedidos, ['todas']);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.versionDeMoca('piloto-1', 100)),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.versionDeMoca('piloto-1', 100)), findsOneWidget);
+    });
+
+    testWidgets('Con MOCA_APP_MINIMA, una versión vieja solo se actualiza', (
+      tester,
+    ) async {
+      await abrirCon(tester, publicada(110, minima: 105));
+      expect(find.text(Textos.actualizaMoca), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsNothing);
+    });
   });
 
   group('Entrega 26.2: el ajuste oculto solo en el teléfono de Jhony', () {

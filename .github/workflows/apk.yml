@@ -114,7 +114,14 @@ jobs:
           echo "FIRMA=moca" >> "$GITHUB_ENV"
 
       - name: Armar APK
-        run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }}
+        # La app sabe qué versión es (entrega 26.3): se ve en la pestaña Moca y
+        # se compara con la última de Releases.
+        run: >-
+          flutter build apk --release --split-per-abi
+          --build-number=${{ github.run_number }}
+          --dart-define=MOCA_ARMADO=${{ github.run_number }}
+          --dart-define=MOCA_ENTREGA=${ENTREGA}
+          --dart-define=MOCA_COMMIT=${GITHUB_SHA::7}
 
       - name: Comprobar la firma
         run: |

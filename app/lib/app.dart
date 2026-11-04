@@ -93,6 +93,10 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         ref.read(repositorioOperadorProvider).quitarSimulacionSiHay();
       }
     }, fireImmediately: true);
+    // La versión nueva, una vez al día (entrega 26.3).
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.read(revisarVersionProvider)(),
+    );
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);
   }
@@ -133,6 +137,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
       final base = ref.read(baseLocalProvider);
       base.markTablesUpdated(base.allTables);
       if (_paraTraer != null) _sincronizar();
+      ref.read(revisarVersionProvider)();
     }
   }
 

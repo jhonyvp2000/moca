@@ -12,6 +12,13 @@ import { rutasCambios } from './datos/cambios.js';
 import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
+import {
+  type BuscarReleases,
+  type ConfigVersion,
+  leerConfigVersion,
+  releasesDeGitHub,
+  rutasVersion,
+} from './version/rutas.js';
 
 export interface Dependencias {
   pool: Pool;
@@ -26,6 +33,10 @@ export interface Dependencias {
   lector?: Lector | null;
   /** El cobro manual por Yape (entrega 24); sin él, no se cobra. */
   cobro?: ConfigCobro;
+  /** «Hay una versión nueva» (entrega 26.3): de dónde y la mínima. */
+  versionApp?: ConfigVersion;
+  /** Quien lee los Releases de GitHub; las pruebas lo reemplazan. */
+  buscarReleases?: BuscarReleases;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -37,6 +48,8 @@ export function crearApp({
   ahora = () => new Date(),
   lector = null,
   cobro = sinCobro,
+  versionApp = leerConfigVersion({}),
+  buscarReleases = releasesDeGitHub,
 }: Dependencias): FastifyInstance {
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
@@ -81,6 +94,7 @@ export function crearApp({
   rutasBajada(app, pool, ahora, cobro);
   rutasCambios(app, pool, ahora, cobro);
   rutasCobro(app, pool, cobro, ahora);
+  rutasVersion(app, versionApp, buscarReleases, ahora);
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);

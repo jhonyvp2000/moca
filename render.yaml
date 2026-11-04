@@ -44,6 +44,10 @@ services:
         sync: false
       - key: MOCA_YAPE_NOMBRE
         sync: false
+      # «Actualiza Moca para seguir» (entrega 26.3): con un número de armado,
+      # las versiones más viejas solo pueden actualizarse. Vacía: nunca obliga.
+      - key: MOCA_APP_MINIMA
+        sync: false
 
 databases:
   - name: moca-base

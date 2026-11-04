@@ -21,6 +21,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/version.dart';
 import 'dominio/cobro.dart';
 import 'dominio/cerradura.dart';
 import 'dominio/ajustes.dart';
@@ -487,6 +488,90 @@ final cobroProvider = StreamProvider<Cobro>((ref) {
 final servicioPagosProvider = Provider<ServicioPagos>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioPagos,
 );
+
+/// La versión instalada (entrega 26.3); las pruebas la fijan.
+final versionInstaladaProvider = Provider<VersionInstalada>(
+  (ref) => VersionInstalada.delArmado(),
+);
+
+/// Pregunta al servidor por la última versión publicada.
+final servicioVersionProvider = Provider<ServicioVersion>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioVersion,
+);
+
+/// La última versión que se supo y si hoy se dijo «Ahora no».
+final versionPublicadaProvider =
+    StreamProvider<(EstadoDeVersion, bool ahoraNo)>((ref) {
+      final reloj = ref.watch(relojProvider);
+      final acceso = AccesoLocal(ref.watch(baseLocalProvider), reloj);
+      return acceso.cambios().asyncMap((_) async {
+        final hoy = reloj().toIso8601String().substring(0, 10);
+        final ahoraNo =
+            await acceso.leerAjuste(AccesoLocal.claveVersionAhoraNo) == hoy;
+        final guardada = await acceso.leerAjuste(AccesoLocal.claveVersion);
+        if (guardada == null) return (const EstadoDeVersion(), ahoraNo);
+        try {
+          final v = jsonDecode(guardada) as Map<String, Object?>;
+          return (
+            EstadoDeVersion(
+              minima: v['minima'] as int?,
+              ultima: v['armado'] == null
+                  ? null
+                  : VersionPublicada(
+                      nombre: v['nombre'] as String? ?? '',
+                      armado: v['armado']! as int,
+                      arm64: v['arm64'] as String?,
+                      v7a: v['v7a'] as String?,
+                    ),
+            ),
+            ahoraNo,
+          );
+        } on FormatException {
+          return (const EstadoDeVersion(), ahoraNo);
+        }
+      });
+    });
+
+/// «Ahora no»: el aviso se esconde hasta mañana.
+final guardarAhoraNoVersionProvider = Provider<Future<void> Function()>(
+  (ref) =>
+      () => AccesoLocal(ref.read(baseLocalProvider), ref.read(relojProvider))
+          .guardarAjuste(
+            AccesoLocal.claveVersionAhoraNo,
+            ref.read(relojProvider)().toIso8601String().substring(0, 10),
+          ),
+);
+
+/// Pregunta por la última versión una vez al día, con señal, y la guarda.
+final revisarVersionProvider = Provider<Future<void> Function()>((ref) {
+  return () async {
+    final reloj = ref.read(relojProvider);
+    final acceso = AccesoLocal(ref.read(baseLocalProvider), reloj);
+    final hoy = reloj().toIso8601String().substring(0, 10);
+    if (await acceso.leerAjuste(AccesoLocal.claveVersionRevisada) == hoy) {
+      return;
+    }
+    final estado = await ref
+        .read(servicioVersionProvider)
+        // Jhony ve también las entregas: se espera a saber si es su teléfono.
+        .buscarVersion(todas: (await ref.read(cobroProvider.future)).admin);
+    if (estado == null) return;
+    final u = estado.ultima;
+    await acceso.guardarAjuste(
+      AccesoLocal.claveVersion,
+      jsonEncode({
+        'minima': estado.minima,
+        if (u != null) ...{
+          'nombre': u.nombre,
+          'armado': u.armado,
+          'arm64': u.arm64,
+          'v7a': u.v7a,
+        },
+      }),
+    );
+    await acceso.guardarAjuste(AccesoLocal.claveVersionRevisada, hoy);
+  };
+});
 
 /// La pregunta del día 10: la lleva el mismo servicio de la cuenta.
 final servicioCobroProvider = Provider<ServicioCobro>(

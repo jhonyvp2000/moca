@@ -68,6 +68,10 @@ class PantallaOperador extends ConsumerWidget {
         ),
         children: [
           const Text(Textos.subtituloOperador, style: Tipografia.secundario),
+          const SizedBox(height: 4),
+          Text(switch (ref.watch(versionInstaladaProvider)) {
+            final v => Textos.versionConCommit(v.entrega, v.armado, v.commit),
+          }, style: Tipografia.secundario),
           const SizedBox(height: 16),
           Tarjeta(
             // Mientras se vuelve a contar, se mantiene la cifra anterior.

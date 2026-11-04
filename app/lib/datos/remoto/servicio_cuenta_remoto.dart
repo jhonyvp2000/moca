@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../../dominio/version.dart';
 import '../../dominio/cobro.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
@@ -27,7 +28,12 @@ const direccionServidor = String.fromEnvironment(
 /// La cuenta real contra el servidor de Moca (servidor/README.md).
 /// También lleva el equipo del negocio (entrega 19): usa la misma llave.
 class ServicioCuentaRemoto
-    implements ServicioCuenta, ServicioEquipo, ServicioCobro, ServicioPagos {
+    implements
+        ServicioCuenta,
+        ServicioEquipo,
+        ServicioCobro,
+        ServicioPagos,
+        ServicioVersion {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -403,6 +409,40 @@ class ServicioCuentaRemoto
       );
     }
     return resultado;
+  }
+
+  // --- La versión nueva (entrega 26.3) --------------------------------------
+
+  @override
+  Future<EstadoDeVersion?> buscarVersion({required bool todas}) async {
+    if (!await _hayConexion()) return null;
+    try {
+      final r = await _cliente
+          .get(
+            _servidor.resolve(
+              todas ? '/app/version?canal=todas' : '/app/version',
+            ),
+          )
+          .timeout(_espera);
+      if (r.statusCode != 200) return null;
+      final cuerpo = _cuerpo(r);
+      final ultima = cuerpo['ultima'];
+      return EstadoDeVersion(
+        minima: cuerpo['minima'] as int?,
+        ultima: ultima is Map<String, Object?>
+            ? VersionPublicada(
+                nombre: ultima['nombre'] as String? ?? '',
+                armado: ultima['armado'] as int? ?? 0,
+                arm64: ultima['arm64'] as String?,
+                v7a: ultima['v7a'] as String?,
+              )
+            : null,
+      );
+    } on TimeoutException {
+      return null;
+    } on http.ClientException {
+      return null;
+    }
   }
 
   // --- La pantalla de cobros (entrega 26) ---------------------------------

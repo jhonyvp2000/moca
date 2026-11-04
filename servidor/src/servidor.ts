@@ -5,6 +5,7 @@ import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
 import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
 import { leerConfigCobro } from './cobro/rutas.js';
+import { leerConfigVersion } from './version/rutas.js';
 
 // Arranque en Render: migra la base, revisa el aislamiento y abre el puerto.
 const config = leerConfig();
@@ -36,6 +37,7 @@ const app = crearApp({
   lector: llaveAnthropic ? lectorAnthropic(llaveAnthropic) : null,
   registrar: true,
   cobro,
+  versionApp: leerConfigVersion(),
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

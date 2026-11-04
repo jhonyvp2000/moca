@@ -1208,6 +1208,25 @@ abstract final class Textos {
   static const graciasPorResponder = 'Gracias. Tu respuesta nos ayuda mucho.';
   static const necesitasSenalParaResponder =
       'Necesitas señal para enviar tu respuesta.';
+  // La versión nueva (entrega 26.3).
+  static const hayVersionNueva = 'Hay una versión nueva de Moca';
+  static const hayVersionNuevaDetalle =
+      'Trae arreglos y mejoras. Se instala encima: no pierdes nada de lo que '
+      'anotaste.';
+  static const descargar = 'Descargar';
+  static const ahoraNoVersion = 'Ahora no';
+  static const actualizaMoca = 'Actualiza Moca para seguir';
+  static const actualizaMocaDetalle =
+      'Esta versión de Moca ya no funciona con el servidor. Lo que anotaste '
+      'está guardado en este teléfono y se sube cuando actualices.';
+  static const noSeAbrioLaDescarga = 'No se pudo abrir la descarga.';
+  static String versionDeMoca(String entrega, int armado) =>
+      entrega.isEmpty ? 'Moca, versión $armado' : 'Moca $entrega ($armado)';
+  static const versionDeDesarrollo = 'Moca, versión de desarrollo';
+  static String versionConCommit(String entrega, int armado, String commit) =>
+      'Versión: ${entrega.isEmpty ? '—' : entrega} · armado $armado · '
+      'commit ${commit.isEmpty ? '—' : commit}';
+
   // La pantalla de cobros de Jhony (entrega 26).
   static const cobros = 'Cobros';
   static const cobrosDetalle =

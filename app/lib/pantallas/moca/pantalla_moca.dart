@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../cobro/cobro.dart';
+import '../version/version.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
@@ -225,6 +226,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
             const SizedBox(height: Medidas.separacionTarjetas),
             const _SalirDelNegocio(),
           ],
+          // Qué versión es, para reportar un problema (entrega 26.3).
+          const VersionDeMoca(),
         ],
       ),
     );

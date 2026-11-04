@@ -53,6 +53,12 @@ class AccesoLocal {
   /// servidor; sin el ajuste, todas (entrega 21).
   static const claveMisCajas = 'mis_cajas';
 
+  /// La última versión publicada, el día en que se preguntó y el día en que
+  /// se dijo «Ahora no» (entrega 26.3).
+  static const claveVersion = 'version_publicada';
+  static const claveVersionRevisada = 'version_revisada';
+  static const claveVersionAhoraNo = 'version_ahora_no';
+
   /// El último estado del cobro que mandó el servidor (entrega 25).
   static const claveCobro = 'cobro';
 
