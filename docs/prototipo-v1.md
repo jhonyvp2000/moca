@@ -69,7 +69,7 @@ Los mockups muestran el estado ideal. El prototipo necesita además estados que 
 - Dos formas de arrancar: **«Primer día»** (vacía, para probar el alta) y **«Demo»** (con semanas de datos de ejemplo, para mostrar el Inicio, el arqueo y el informe llenos). Un ajuste oculto permite borrar todo y volver a empezar.
 - Los modelos siguen `modelo-datos.md`: montos en céntimos, cuenta en cada movimiento, nivel de confianza, fuente, estado de pago, retiro del dueño.
 - Los saldos, la semana y el informe se calculan en la capa de datos, no en las pantallas. Así, al llegar el backend, solo cambia de dónde salen las cifras.
-- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida. La bodega de la Demo también cobra por Plin.
+- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida. La bodega de la Demo también cobra por Plin. Desde la entrega 28.1 usa todas las categorías y todos los tipos de movimiento (préstamo y cuotas, deudas pagadas y por pagar, cobros de fiado, pases, arqueos con todos los motivos), para que el informe muestre de todo.
 
 ## Comportamiento acordado
 
