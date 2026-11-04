@@ -489,6 +489,51 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     ).toBe(403);
   });
 
+  it('Entrega 28: el uso del negocio llega y Jhony lo ve resumido', async () => {
+    const hace = (horas: number) => new Date(Date.now() - horas * 3_600_000).toISOString();
+    const evento = (nombre: string, horas: number, datos?: object) => ({
+      id: randomUUID(),
+      nombre,
+      fecha: hace(horas),
+      ...(datos ? { datos } : {}),
+    });
+    const eventos = [
+      evento('appAbierta', 1),
+      evento('appAbierta', 30),
+      evento('ventaGuardada', 1, { modo: 'voz', segundos: 6 }),
+      evento('ventaGuardada', 30, { modo: 'escrita', segundos: 12 }),
+      evento('ventaGuardada', 31, { modo: 'voz', segundos: 8 }),
+      evento('vozConDuda', 1),
+      evento('notificacionRespondida', 2, { accion: 'decir' }),
+      evento('informeAbierto', 2),
+      // De hace más de una semana: no cuenta.
+      evento('ventaGuardada', 24 * 10, { segundos: 90 }),
+    ];
+    expect((await pedir(lucho, 'POST', '/uso', { eventos })).json()).toEqual({ recibidos: 9 });
+    // Reenviar no duplica.
+    await pedir(lucho, 'POST', '/uso', { eventos });
+    expect(
+      (await pedir(lucho, 'POST', '/uso', { eventos: [{ id: 'x', nombre: 'a', fecha: hace(1) }] }))
+        .statusCode,
+    ).toBe(400);
+
+    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
+    expect(ficha.uso).toMatchObject({
+      dias_que_abrio: 2,
+      ventas_anotadas: 3,
+      segundos_para_anotar: 8,
+      voz_con_duda: 1,
+      avisos_respondidos: 1,
+      informes_abiertos: 1,
+    });
+    expect(ficha.uso.ultima_apertura).not.toBeNull();
+    // Abrió hace una hora: no está entre los que no abren.
+    const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
+    expect(resumen.sin_abrir.map((n: { nombre: string }) => n.nombre)).not.toContain(
+      'Bodega Don Lucho',
+    );
+  });
+
   it('Sin cobro configurado, todo sigue abierto', async () => {
     const sin = crearApp({
       pool: base.pool,

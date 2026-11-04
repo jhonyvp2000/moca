@@ -48,8 +48,9 @@ void main() {
 
   Map<String, Object?>? paraBajar;
 
-  /// Lo que llegó a «/errores» (entrega 27).
+  /// Lo que llegó a «/errores» (entrega 27) y a «/uso» (28).
   final erroresSubidos = <Map<String, Object?>>[];
+  final usoSubido = <Map<String, Object?>>[];
 
   /// Lo que responde «/cuenta/negocios» (entrega 22) y de qué negocio se
   /// pidió cada bajada.
@@ -121,6 +122,10 @@ void main() {
           codigoCambios,
         );
       }(),
+      '/uso' => () {
+        usoSubido.add(cuerpo);
+        return http.Response(jsonEncode({'recibidos': 1}), 200);
+      }(),
       '/errores' => () {
         erroresSubidos.add(cuerpo);
         return http.Response(jsonEncode({'recibidos': 1}), 200);
@@ -179,6 +184,7 @@ void main() {
     subidas = [];
     cambios = null;
     erroresSubidos.clear();
+    usoSubido.clear();
     negocios = null;
     invitaciones = const [];
     bajadasPedidas.clear();
@@ -855,6 +861,29 @@ void main() {
         expect(erroresSubidos, hasLength(1));
       },
     );
+
+    test('Lo que mide la app sube una vez, sin repetir (entrega 28)', () async {
+      final medicion = MedicionLocal(base, ahora: () => ahora);
+      await medicion.anotar(EventoMedicion.appAbierta);
+      await medicion.anotar(EventoMedicion.ventaAbierta, {'modo': 'voz'});
+      await medicion.anotar(EventoMedicion.ventaGuardada, {'modo': 'voz'});
+      expect(await servicio.subirUso(), isTrue);
+      final primera = usoSubido.single['eventos']! as List;
+      expect(primera.map((e) => (e as Map)['nombre']), [
+        'appAbierta',
+        'ventaAbierta',
+        'ventaGuardada',
+      ]);
+      // Sin nada nuevo, no se manda nada; lo nuevo del mismo segundo, sí.
+      expect(await servicio.subirUso(), isTrue);
+      expect(usoSubido, hasLength(1));
+      await medicion.anotar(EventoMedicion.informeAbierto);
+      await servicio.subirUso();
+      expect(
+        ((usoSubido.last['eventos']! as List).single as Map)['nombre'],
+        'informeAbierto',
+      );
+    });
 
     test('El estado del cobro que llega se guarda (entrega 25)', () async {
       cambios = {

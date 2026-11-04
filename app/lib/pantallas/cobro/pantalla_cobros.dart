@@ -224,6 +224,44 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
         ],
         if (resumen != null) ...[
           const SizedBox(height: 24),
+          const Text(Textos.sinAbrirMoca, style: Tipografia.tituloTarjeta),
+          const SizedBox(height: 8),
+          if (resumen.sinAbrir.isEmpty)
+            const Text(Textos.todosAbren, style: Tipografia.secundario)
+          else
+            for (final n in resumen.sinAbrir)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: InkWell(
+                  onTap: n.celular == null
+                      ? null
+                      : () {
+                          _celular.text = n.celular!;
+                          _buscar(n.celular!);
+                        },
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: Medidas.objetivoTactilMinimo,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        [
+                          n.nombre,
+                          if (n.celular != null) formatearCelular(n.celular!),
+                          n.ultimaApertura == null
+                              ? Textos.nuncaAbrio
+                              : formatearDiaYMes(n.ultimaApertura!),
+                        ].join(' · '),
+                        style: Tipografia.secundario,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+        ],
+        if (resumen != null) ...[
+          const SizedBox(height: 24),
           const Text(Textos.vencenPronto, style: Tipografia.tituloTarjeta),
           const SizedBox(height: 8),
           if (resumen.negocios.isEmpty)
@@ -296,6 +334,30 @@ class _Ficha extends StatelessWidget {
             onPressed: alRegistrar,
             child: const Text(Textos.registrarPago),
           ),
+          if (ficha.uso case final uso?) ...[
+            const SizedBox(height: 16),
+            const Text(Textos.usoDeLaSemana, style: Tipografia.textoFuerte),
+            for (final linea in [
+              Textos.usoDias(uso.diasQueAbrio, uso.diasQueAnoto),
+              Textos.usoVentas(uso.ventasAnotadas, uso.segundosParaAnotar),
+              Textos.usoVoz(
+                uso.vozConDuda,
+                uso.vozCorregida,
+                uso.fotosIlegibles,
+              ),
+              Textos.usoAvisos(uso.avisosRespondidos, uso.avisosAbiertos),
+              Textos.usoAbrio(uso.arqueosAbiertos, uso.informesAbiertos),
+              uso.ultimaApertura == null
+                  ? Textos.nuncaAbrio
+                  : Textos.ultimaVezQueAbrio(
+                      formatearDiaYMes(uso.ultimaApertura!),
+                    ),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(linea, style: Tipografia.secundario),
+              ),
+          ],
           if (ficha.pagos.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Text(Textos.pagosRegistrados, style: Tipografia.textoFuerte),

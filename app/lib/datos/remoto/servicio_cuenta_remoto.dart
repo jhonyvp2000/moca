@@ -420,6 +420,8 @@ class ServicioCuentaRemoto
 
   @override
   Future<bool> subirErrores() async {
+    // Con los errores sube también lo que mide la app (entrega 28).
+    await subirUso();
     final lista = await _errores.porSubir();
     if (lista.isEmpty) return true;
     final llave = await _llavero.leer();
@@ -432,6 +434,81 @@ class ServicioCuentaRemoto
       }, llave: llave);
       if (r.statusCode != 200) return false;
       await _errores.quitar({for (final e in lista.take(50)) e.id});
+      return true;
+    } on TimeoutException {
+      return false;
+    } on http.ClientException {
+      return false;
+    }
+  }
+
+  // --- Lo que mide la app (entrega 28) ---------------------------------------
+
+  static const _claveUsoHasta = 'uso_subido_hasta';
+
+  /// Sube lo que mide la app, de a 500, desde lo último que subió.
+  Future<bool> subirUso() async {
+    if (await _a.enDemo()) return true;
+    final llave = await _llavero.leer();
+    if (llave == null ||
+        await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) == null ||
+        await _bloqueada() ||
+        !await _hayConexion()) {
+      return false;
+    }
+    // Hasta dónde subió, y los de ese mismo segundo que ya subieron.
+    DateTime? desde;
+    var yaSubidos = <String>{};
+    try {
+      final guardado = jsonDecode(
+        await _a.leerAjuste(_claveUsoHasta) ?? '{}',
+      ) as Map<String, Object?>;
+      desde = DateTime.tryParse(guardado['fecha'] as String? ?? '');
+      yaSubidos = {
+        for (final id in guardado['ids'] as List? ?? const []) id as String,
+      };
+    } on FormatException {
+      desde = null;
+    }
+    final eventos = [
+      for (final e
+          in await (_base.select(_base.eventosMedicion)
+                ..where(
+                  (e) => desde == null
+                      ? const Constant(true)
+                      : e.fecha.isBiggerOrEqualValue(desde),
+                )
+                ..orderBy([(e) => OrderingTerm.asc(e.fecha)])
+                ..limit(500 + yaSubidos.length))
+              .get())
+        if (!yaSubidos.contains(e.id)) e,
+    ].take(500).toList();
+    if (eventos.isEmpty) return true;
+    try {
+      final r = await _enviar('/uso', {
+        'eventos': [
+          for (final e in eventos)
+            {
+              'id': e.id,
+              'nombre': e.nombre,
+              'fecha': _fecha(e.fecha),
+              'datos': ?_json(e.datos),
+            },
+        ],
+      }, llave: llave);
+      if (r.statusCode != 200) return false;
+      final ultima = eventos.last.fecha;
+      await _a.guardarAjuste(
+        _claveUsoHasta,
+        jsonEncode({
+          'fecha': ultima.toIso8601String(),
+          'ids': [
+            if (ultima == desde) ...yaSubidos,
+            for (final e in eventos)
+              if (e.fecha == ultima) e.id,
+          ],
+        }),
+      );
       return true;
     } on TimeoutException {
       return false;
@@ -502,7 +579,29 @@ class ServicioCuentaRemoto
   static DateTime? _leerDia(Object? valor) =>
       valor is String ? DateTime.tryParse(valor) : null;
 
+  static UsoDelNegocio? _uso(Object? u) => u is Map<String, Object?>
+      ? UsoDelNegocio(
+          diasQueAbrio: u['dias_que_abrio'] as int? ?? 0,
+          diasQueAnoto: u['dias_que_anoto'] as int? ?? 0,
+          ventasAnotadas: u['ventas_anotadas'] as int? ?? 0,
+          segundosParaAnotar: u['segundos_para_anotar'] as int?,
+          vozConDuda: u['voz_con_duda'] as int? ?? 0,
+          vozCorregida: u['voz_corregida'] as int? ?? 0,
+          fotosIlegibles: u['fotos_ilegibles'] as int? ?? 0,
+          avisosRespondidos: u['avisos_respondidos'] as int? ?? 0,
+          avisosAbiertos: u['avisos_abiertos'] as int? ?? 0,
+          arqueosAbiertos: u['arqueos_abiertos'] as int? ?? 0,
+          informesAbiertos: u['informes_abiertos'] as int? ?? 0,
+          ultimaApertura: DateTime.tryParse(
+            u['ultima_apertura'] as String? ?? '',
+          )?.toLocal(),
+        )
+      : null;
+
   static FichaDeCobro _ficha(Map<String, Object?> f) => FichaDeCobro(
+    uso: _uso(f['uso']),
+    ultimaApertura: DateTime.tryParse(f['ultima_apertura'] as String? ?? '')
+        ?.toLocal(),
     empresaId: f['empresa_id']! as String,
     nombre: f['nombre'] as String? ?? '',
     celular: f['celular'] as String?,
@@ -559,6 +658,10 @@ class ServicioCuentaRemoto
       maximoFundadores: fundadores['maximo'] as int? ?? 50,
       negocios: [
         for (final n in (cuerpo['negocios'] as List? ?? const []))
+          _ficha(n as Map<String, Object?>),
+      ],
+      sinAbrir: [
+        for (final n in (cuerpo['sin_abrir'] as List? ?? const []))
           _ficha(n as Map<String, Object?>),
       ],
     );

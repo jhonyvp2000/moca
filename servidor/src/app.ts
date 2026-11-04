@@ -13,6 +13,7 @@ import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
+import { rutasUso } from './uso/rutas.js';
 import {
   type BuscarReleases,
   type ConfigVersion,
@@ -97,6 +98,7 @@ export function crearApp({
   rutasCobro(app, pool, cobro, ahora);
   rutasVersion(app, versionApp, buscarReleases, ahora);
   rutasErrores(app, pool, cobro);
+  rutasUso(app, pool);
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);

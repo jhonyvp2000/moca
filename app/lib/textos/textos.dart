@@ -306,7 +306,8 @@ abstract final class Textos {
   static const consentimientoInvitado =
       'Al entrar, aceptas que Moca guarde tu número y lo que anotes en este '
       'negocio para llevar sus cuentas, y que los dueños del negocio lo vean. '
-      'Si la app falla, Moca recibe el error, sin lo que anotaste. '
+      'Si la app falla, Moca recibe el error, y también cómo la usas (qué '
+      'pantallas abres y cuánto tardas en anotar), sin lo que anotaste. '
       'Puedes salir cuando quieras (Ley 29733 de Protección de Datos '
       'Personales).';
   static const aceptarYEntrar = 'Aceptar y entrar';
@@ -1285,6 +1286,26 @@ abstract final class Textos {
   static String respondio(String respuesta, String precio) =>
       '$respuesta, con $precio';
   static const vencenPronto = 'Vencen pronto o ya vencieron';
+
+  // El uso de cada negocio (entrega 28).
+  static const usoDeLaSemana = 'Uso de los últimos 7 días';
+  static String usoDias(int abrio, int anoto) =>
+      'Abrió Moca $abrio de 7 días · anotó $anoto de 7 días';
+  static String usoVentas(int ventas, int? segundos) => ventas == 0
+      ? 'No anotó la venta del día'
+      : '${ventas == 1 ? '1 venta del día' : '$ventas ventas del día'}'
+            '${segundos == null ? '' : ' · tarda unos $segundos s en anotarla'}';
+  static String usoVoz(int dudas, int corregidas, int fotos) =>
+      'Voz: dudó $dudas, corregida $corregidas · fotos ilegibles: $fotos';
+  static String usoAvisos(int respondidos, int abiertos) =>
+      'Aviso de cierre: respondió $respondidos, lo abrió $abiertos';
+  static String usoAbrio(int arqueos, int informes) =>
+      'Arqueos abiertos: $arqueos · informes abiertos: $informes';
+  static String ultimaVezQueAbrio(String cuando) =>
+      'Abrió Moca por última vez: $cuando';
+  static const nuncaAbrio = 'Sin datos de uso todavía';
+  static const sinAbrirMoca = 'Sin abrir Moca hace 3 días o más';
+  static const todosAbren = 'Todos abrieron Moca en los últimos 3 días.';
   static const nadaPorVencer = 'Nada vence en los próximos 3 días.';
   static String estadoCorto(Cobro cobro) {
     final hasta = cobro.hasta == null

@@ -147,6 +147,40 @@ class RespuestaRegistrada {
   final String? motivo;
 }
 
+/// Cómo usó Moca un negocio en los últimos 7 días (entrega 28): lo que
+/// responde las preguntas del piloto.
+class UsoDelNegocio {
+  const UsoDelNegocio({
+    this.diasQueAbrio = 0,
+    this.diasQueAnoto = 0,
+    this.ventasAnotadas = 0,
+    this.segundosParaAnotar,
+    this.vozConDuda = 0,
+    this.vozCorregida = 0,
+    this.fotosIlegibles = 0,
+    this.avisosRespondidos = 0,
+    this.avisosAbiertos = 0,
+    this.arqueosAbiertos = 0,
+    this.informesAbiertos = 0,
+    this.ultimaApertura,
+  });
+
+  final int diasQueAbrio;
+  final int diasQueAnoto;
+  final int ventasAnotadas;
+
+  /// Lo típico (la mediana); nulo sin ventas.
+  final int? segundosParaAnotar;
+  final int vozConDuda;
+  final int vozCorregida;
+  final int fotosIlegibles;
+  final int avisosRespondidos;
+  final int avisosAbiertos;
+  final int arqueosAbiertos;
+  final int informesAbiertos;
+  final DateTime? ultimaApertura;
+}
+
 /// Un negocio como lo ve quien registra los pagos.
 class FichaDeCobro {
   const FichaDeCobro({
@@ -156,6 +190,8 @@ class FichaDeCobro {
     this.celular,
     this.pagos = const [],
     this.respuestas = const [],
+    this.uso,
+    this.ultimaApertura,
   });
 
   final String empresaId;
@@ -166,6 +202,10 @@ class FichaDeCobro {
   final Cobro cobro;
   final List<PagoRegistrado> pagos;
   final List<RespuestaRegistrada> respuestas;
+  final UsoDelNegocio? uso;
+
+  /// En «Sin abrir Moca»: la última vez que la abrió; nula si nunca.
+  final DateTime? ultimaApertura;
 }
 
 class ResumenDeCobros {
@@ -173,6 +213,7 @@ class ResumenDeCobros {
     required this.fundadores,
     required this.maximoFundadores,
     required this.negocios,
+    this.sinAbrir = const [],
   });
 
   final int fundadores;
@@ -180,6 +221,9 @@ class ResumenDeCobros {
 
   /// Lo que vence en 3 días o menos y lo ya vencido.
   final List<FichaDeCobro> negocios;
+
+  /// Los que no abren Moca hace 3 días o más (entrega 28).
+  final List<FichaDeCobro> sinAbrir;
 }
 
 enum ResultadoCobro {

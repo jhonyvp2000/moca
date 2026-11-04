@@ -4,6 +4,7 @@ import type { Cliente, Pool } from '../base/conexion.js';
 import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
 import { miembroDe } from '../equipo/miembros.js';
+import { limpiarUso, usoDe } from '../uso/rutas.js';
 import {
   diaEnLima,
   estadoDelCobro,
@@ -384,8 +385,11 @@ export function rutasCobro(
             [empresa.id],
           )
         ).rows;
+        await limpiarUso(cliente);
         return {
           respuestas,
+          // Lo que respondió el piloto con su uso (entrega 28).
+          uso: await usoDe(cliente, empresa.id),
           ...(await ficha(cliente, config, empresa, diaEnLima(ahora()))),
           pagos,
         };
@@ -558,7 +562,23 @@ export function rutasCobro(
         const fundadores = (
           await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
         ).rows[0]!.usados;
+        // Los que no abren Moca hace 3 días o más (entrega 28).
+        const sinAbrir = (
+          await cliente.query<{ empresa_id: string; ultima: Date | null }>(
+            `SELECT empresa_id, ultima FROM (
+               SELECT e.id AS empresa_id,
+                      (SELECT max(fecha) FROM eventos_uso u
+                        WHERE u.empresa_id = e.id AND u.nombre = 'appAbierta') AS ultima
+                 FROM empresas e) x
+              WHERE ultima IS NULL OR ultima < now() - interval '3 days'`,
+          )
+        ).rows;
+        const porId = new Map(fichas.map((f) => [f.empresa_id, f]));
         return {
+          sin_abrir: sinAbrir.flatMap((s) => {
+            const f = porId.get(s.empresa_id);
+            return f ? [{ ...f, ultima_apertura: s.ultima ? new Date(s.ultima).toISOString() : null }] : [];
+          }),
           fundadores: { usados: fundadores, maximo: maximoDeFundadores },
           negocios: fichas.filter((f) => f.cobro.porVencer || f.cobro.estado === 'vencido'),
         };

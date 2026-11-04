@@ -187,6 +187,20 @@ class _ServidorFalso {
     'respuestas': [
       {'respuesta': 'si', 'motivo': null, 'precio_centimos': 1490},
     ],
+    'uso': {
+      'dias_que_abrio': 5,
+      'dias_que_anoto': 4,
+      'ventas_anotadas': 6,
+      'segundos_para_anotar': 8,
+      'voz_con_duda': 1,
+      'voz_corregida': 0,
+      'fotos_ilegibles': 2,
+      'avisos_respondidos': 3,
+      'avisos_abiertos': 4,
+      'arqueos_abiertos': 1,
+      'informes_abiertos': 2,
+      'ultima_apertura': '2026-10-12T15:00:00Z',
+    },
   };
 
   /// El equipo (entrega 19): lo que responde «/equipo», las invitaciones
@@ -299,6 +313,14 @@ class _ServidorFalso {
           jsonEncode({
             'fundadores': {'usados': pagos.length, 'maximo': 50},
             'negocios': [fichaDeLucho()],
+            'sin_abrir': [
+              {
+                ...fichaDeLucho(),
+                'nombre': 'Pollería Rosa',
+                'celular': '911222333',
+                'ultima_apertura': null,
+              },
+            ],
           }),
           200,
         );
@@ -3511,6 +3533,8 @@ void main() {
       await tocar(tester, find.text(Textos.cobros));
       expect(find.text(Textos.fundadoresUsados(0, 50)), findsOneWidget);
       expect(find.text(Textos.vencenPronto), findsOneWidget);
+      expect(find.text(Textos.sinAbrirMoca), findsOneWidget);
+      expect(find.textContaining('Pollería Rosa'), findsOneWidget);
       expect(find.text('Bodega Don Lucho'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '999888777');
@@ -3525,6 +3549,10 @@ void main() {
         find.text(Textos.respondio(Textos.respuestaSi, 'S/\u00A014.90')),
         findsOneWidget,
       );
+      // El uso de la semana (entrega 28).
+      expect(find.text(Textos.usoDias(5, 4)), findsOneWidget);
+      expect(find.text(Textos.usoVentas(6, 8)), findsOneWidget);
+      expect(find.text(Textos.usoAvisos(3, 4)), findsOneWidget);
 
       await tocar(tester, find.text(Textos.registrarPago));
       // Con precio de fundador, viene elegido el plan de fundador.
