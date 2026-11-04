@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/cobro/pantalla_errores.dart';
 import 'pantallas/cobro/pantalla_cobros.dart';
 import 'pantallas/alta/pantalla_alta.dart';
 import 'pantallas/arqueo/pantalla_arqueo.dart';
@@ -103,6 +104,9 @@ abstract final class Rutas {
 
   /// La pantalla de cobros de Jhony, desde el ajuste oculto (entrega 26).
   static const cobros = '/operador/cobros';
+
+  /// Lo que falló en los teléfonos (entrega 27).
+  static const errores = '/operador/errores';
 }
 
 /// Qué rutas se pueden ver en cada etapa del primer día. Si la ruta actual
@@ -149,7 +153,9 @@ final _rutasPorEtapa = {
 
 String? redirigirSegunEtapa(EtapaInicio? etapa, String ruta) {
   // El ajuste oculto se puede abrir siempre.
-  if (ruta == Rutas.operador || ruta == Rutas.cobros) return null;
+  if (ruta == Rutas.operador || ruta == Rutas.cobros || ruta == Rutas.errores) {
+    return null;
+  }
   if (etapa == null) return ruta == Rutas.cargando ? null : Rutas.cargando;
   final permitidas = _rutasPorEtapa[etapa]!;
   return permitidas.contains(ruta) ? null : permitidas.first;
@@ -347,6 +353,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.cobros,
       builder: (context, estado) => const PantallaCobros(),
+    ),
+    GoRoute(
+      path: Rutas.errores,
+      builder: (context, estado) => const PantallaErrores(),
     ),
   ],
 );

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/remoto/lector_foto_remoto.dart';
+import 'datos/repositorios/repositorio_errores_local.dart';
 import 'datos/repositorios/acceso_local.dart';
 import 'datos/remoto/servicio_cuenta_remoto.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
@@ -21,6 +22,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/errores.dart';
 import 'dominio/version.dart';
 import 'dominio/cobro.dart';
 import 'dominio/cerradura.dart';
@@ -487,6 +489,19 @@ final cobroProvider = StreamProvider<Cobro>((ref) {
 /// La pantalla de cobros de Jhony (entrega 26), con la misma llave.
 final servicioPagosProvider = Provider<ServicioPagos>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioPagos,
+);
+
+/// Los errores de la app (entrega 27): se suben y Jhony los ve.
+final servicioErroresProvider = Provider<ServicioErrores>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioErrores,
+);
+
+/// Dónde se guardan los errores hasta subirlos.
+final repositorioErroresProvider = Provider<RepositorioErroresLocal>(
+  (ref) => RepositorioErroresLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
 );
 
 /// La versión instalada (entrega 26.3); las pruebas la fijan.

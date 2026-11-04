@@ -306,6 +306,7 @@ abstract final class Textos {
   static const consentimientoInvitado =
       'Al entrar, aceptas que Moca guarde tu número y lo que anotes en este '
       'negocio para llevar sus cuentas, y que los dueños del negocio lo vean. '
+      'Si la app falla, Moca recibe el error, sin lo que anotaste. '
       'Puedes salir cuando quieras (Ley 29733 de Protección de Datos '
       'Personales).';
   static const aceptarYEntrar = 'Aceptar y entrar';
@@ -1208,6 +1209,22 @@ abstract final class Textos {
   static const graciasPorResponder = 'Gracias. Tu respuesta nos ayuda mucho.';
   static const necesitasSenalParaResponder =
       'Necesitas señal para enviar tu respuesta.';
+  // Los errores de la app (entrega 27).
+  static const algoSalioMal = 'Algo salió mal en esta pantalla';
+  static const algoSalioMalDetalle =
+      'Ya nos llegó el aviso. Lo que anotaste está guardado.';
+  static const errores = 'Errores';
+  static const erroresDetalle =
+      'Lo que falló en los teléfonos, de los últimos 90 días.';
+  static const sinErrores = 'No hay errores en los últimos 90 días.';
+  static const necesitasSenalParaErrores =
+      'Necesitas señal para ver los errores.';
+  static String erroresVeces(int veces, int negocios) =>
+      '${veces == 1 ? '1 vez' : '$veces veces'} · '
+      '${negocios == 1 ? '1 negocio' : '$negocios negocios'}';
+  static const copiarDetalle = 'Copiar el detalle';
+  static const detalleCopiado = 'Detalle copiado.';
+
   // La versión nueva (entrega 26.3).
   static const hayVersionNueva = 'Hay una versión nueva de Moca';
   static const hayVersionNuevaDetalle =

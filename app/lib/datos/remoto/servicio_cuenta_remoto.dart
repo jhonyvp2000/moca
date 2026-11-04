@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../../dominio/errores.dart';
 import '../../dominio/version.dart';
 import '../../dominio/cobro.dart';
 import '../../dominio/cuenta_real.dart';
@@ -15,6 +16,7 @@ import '../../dominio/medicion.dart';
 import '../../dominio/modelos.dart';
 import '../local/base_local.dart';
 import '../local/categorias_al_dia.dart';
+import '../repositorios/repositorio_errores_local.dart';
 import '../repositorios/acceso_local.dart';
 import '../repositorios/repositorio_tutoria_local.dart';
 
@@ -33,7 +35,8 @@ class ServicioCuentaRemoto
         ServicioEquipo,
         ServicioCobro,
         ServicioPagos,
-        ServicioVersion {
+        ServicioVersion,
+        ServicioErrores {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -409,6 +412,55 @@ class ServicioCuentaRemoto
       );
     }
     return resultado;
+  }
+
+  // --- Los errores de la app (entrega 27) -----------------------------------
+
+  late final _errores = RepositorioErroresLocal(_base, ahora: _a.ahora);
+
+  @override
+  Future<bool> subirErrores() async {
+    final lista = await _errores.porSubir();
+    if (lista.isEmpty) return true;
+    final llave = await _llavero.leer();
+    if (llave == null || await _bloqueada() || !await _hayConexion()) {
+      return false;
+    }
+    try {
+      final r = await _enviar('/errores', {
+        'errores': [for (final e in lista.take(50)) e.json()],
+      }, llave: llave);
+      if (r.statusCode != 200) return false;
+      await _errores.quitar({for (final e in lista.take(50)) e.id});
+      return true;
+    } on TimeoutException {
+      return false;
+    } on http.ClientException {
+      return false;
+    }
+  }
+
+  @override
+  Future<List<ErrorAgrupado>?> errores() async {
+    final r = await _delEquipo('/errores');
+    if (r == null || r.statusCode != 200) return null;
+    return [
+      for (final e in (_cuerpo(r)['errores'] as List? ?? const []))
+        if (e case final Map<String, Object?> e)
+          ErrorAgrupado(
+            mensaje: e['mensaje'] as String? ?? '',
+            veces: e['veces'] as int? ?? 0,
+            negocios: e['negocios'] as int? ?? 0,
+            personas: e['personas'] as int? ?? 0,
+            ultima:
+                DateTime.tryParse(e['ultima'] as String? ?? '')?.toLocal() ??
+                DateTime(2000),
+            pila: e['pila'] as String?,
+            pantalla: e['pantalla'] as String?,
+            entrega: e['entrega'] as String?,
+            armado: e['armado'] as int?,
+          ),
+    ];
   }
 
   // --- La versión nueva (entrega 26.3) --------------------------------------

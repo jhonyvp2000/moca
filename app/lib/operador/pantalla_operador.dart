@@ -84,10 +84,19 @@ class PantallaOperador extends ConsumerWidget {
             const SizedBox(height: Medidas.separacionTarjetas),
             Tarjeta(
               relleno: EdgeInsets.zero,
-              child: _Opcion(
-                titulo: Textos.cobros,
-                detalle: Textos.cobrosDetalle,
-                alTocar: () => context.push(Rutas.cobros),
+              child: Column(
+                children: [
+                  _Opcion(
+                    titulo: Textos.cobros,
+                    detalle: Textos.cobrosDetalle,
+                    alTocar: () => context.push(Rutas.cobros),
+                  ),
+                  _Opcion(
+                    titulo: Textos.errores,
+                    detalle: Textos.erroresDetalle,
+                    alTocar: () => context.push(Rutas.errores),
+                  ),
+                ],
               ),
             ),
           ],

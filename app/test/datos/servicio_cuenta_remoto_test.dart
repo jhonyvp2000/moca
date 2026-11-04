@@ -14,6 +14,8 @@ import 'package:moca/datos/repositorios/repositorio_tutoria_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_cuentas_local.dart';
+import 'package:moca/datos/repositorios/repositorio_errores_local.dart';
+import 'package:moca/servicios/registro_de_errores.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
 import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
@@ -45,6 +47,9 @@ void main() {
   final ahora = DateTime(2026, 10, 12, 21, 5);
 
   Map<String, Object?>? paraBajar;
+
+  /// Lo que llegó a «/errores» (entrega 27).
+  final erroresSubidos = <Map<String, Object?>>[];
 
   /// Lo que responde «/cuenta/negocios» (entrega 22) y de qué negocio se
   /// pidió cada bajada.
@@ -116,6 +121,10 @@ void main() {
           codigoCambios,
         );
       }(),
+      '/errores' => () {
+        erroresSubidos.add(cuerpo);
+        return http.Response(jsonEncode({'recibidos': 1}), 200);
+      }(),
       '/cifras' => () {
         pedidosDeCifras++;
         return http.Response(jsonEncode({'cifras': cifrasDelServidor}), 200);
@@ -169,6 +178,7 @@ void main() {
     llavero = _Llavero();
     subidas = [];
     cambios = null;
+    erroresSubidos.clear();
     negocios = null;
     invitaciones = const [];
     bajadasPedidas.clear();
@@ -826,6 +836,23 @@ void main() {
         final cuenta = (subidas.last['cuentas']! as List).single as Map;
         expect(cuenta['id'], efectivo);
         expect(cuenta['saldo_inicial_centimos'], 80000);
+      },
+    );
+
+    test(
+      'Los errores suben con la cuenta y dejan de esperar (entrega 27)',
+      () async {
+        final repo = RepositorioErroresLocal(base, ahora: () => ahora);
+        final registro = RegistroDeErrores(ahora: () => ahora);
+        await repo.guardar(registro.describir(StateError('x'), null)!);
+        expect(await servicio.subirErrores(), isTrue);
+        final enviado =
+            (erroresSubidos.single['errores']! as List).single as Map;
+        expect(enviado['mensaje'], 'Bad state: x');
+        expect(await repo.porSubir(), isEmpty);
+        // Sin nada que subir, no pide nada.
+        expect(await servicio.subirErrores(), isTrue);
+        expect(erroresSubidos, hasLength(1));
       },
     );
 

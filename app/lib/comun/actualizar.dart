@@ -10,6 +10,8 @@ Future<void> actualizarAhora(WidgetRef ref) async {
   if (await servicio.hayCambiosSinSubir()) await servicio.subirTodo();
   await servicio.traerCambios();
   await servicio.actualizarCifras();
+  // Los errores que esperaban (entrega 27).
+  await ref.read(servicioErroresProvider).subirErrores();
 }
 
 /// Deslizar hacia abajo para actualizar (entrega 18.1). La lista de

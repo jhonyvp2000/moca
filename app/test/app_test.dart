@@ -323,6 +323,25 @@ class _ServidorFalso {
       case '/cobro/respuesta':
         respuestasDePrecio.add(cuerpo);
         return http.Response(jsonEncode({'recibida': true}), 200);
+      case '/errores' when pedido.method == 'GET':
+        return http.Response(
+          jsonEncode({
+            'errores': [
+              {
+                'mensaje': 'Bad state: se rompió',
+                'veces': 3,
+                'negocios': 2,
+                'personas': 2,
+                'ultima': '2026-10-12T20:00:00Z',
+                'pila': '#0 algo',
+                'pantalla': '/inicio',
+                'entrega': 'piloto-1',
+                'armado': 120,
+              },
+            ],
+          }),
+          200,
+        );
       case '/app/version':
         canalesPedidos.add(pedido.url.queryParameters['canal']);
         return http.Response(jsonEncode(version), 200);
@@ -726,6 +745,16 @@ Future<void> abrirAjusteOculto(WidgetTester tester) async {
   await esperar(tester);
 }
 
+/// Una opción del ajuste oculto: la lista es larga y se arma al verse.
+Future<void> tocarEnAjuste(WidgetTester tester, String opcion) async {
+  await tester.scrollUntilVisible(
+    find.text(opcion),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tocar(tester, find.text(opcion));
+}
+
 /// Desde la Bienvenida, la primera venta escrita en lugar de dicha.
 Future<void> abrirVentaEscrita(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.anotarPrimeraVenta));
@@ -1057,9 +1086,11 @@ void main() {
       expect(find.text(Textos.tituloOperador), findsOneWidget);
       expect(find.textContaining('registros guardados'), findsOneWidget);
 
-      await tocar(tester, find.text(Textos.borrarTodo));
+      await tocarEnAjuste(tester, Textos.borrarTodo);
       await tocar(tester, find.text(Textos.cancelar));
-      // La lista se desplazó: el conteo puede quedar fuera de la vista.
+      // La lista se desplazó: vuelve arriba, donde está el conteo.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+      await esperar(tester);
       expect(
         find.textContaining('registros guardados', skipOffstage: false),
         findsOneWidget,
@@ -1086,7 +1117,7 @@ void main() {
         'venta de hoy se suma', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       expect(find.text(Textos.primeraSemanaSaltada), findsOneWidget);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
@@ -1139,7 +1170,7 @@ void main() {
       await tocar(tester, find.byType(BotonVolver));
 
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
       expect(find.text(Textos.tienesHoy), findsOneWidget);
@@ -1373,7 +1404,7 @@ void main() {
         'a mano', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.forzarFotoIlegible));
+      await tocarEnAjuste(tester, Textos.forzarFotoIlegible);
       expect(find.text(Textos.fotoIlegibleForzada), findsOneWidget);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
@@ -1557,7 +1588,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'S08');
       await tocar(tester, find.byType(BotonVolver));
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.forzarFotoIlegible));
+      await tocarEnAjuste(tester, Textos.forzarFotoIlegible);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
       await tomarFoto(tester);
@@ -1902,7 +1933,7 @@ void main() {
     ) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.text(Textos.pedirArqueo));
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
@@ -2059,7 +2090,7 @@ void main() {
       final texto = Textos.avisoAtipico('S/ 300', 'Mercadería');
 
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
       expect(find.text('$texto.'), findsOneWidget);
@@ -2223,7 +2254,7 @@ void main() {
 
       // En el Inicio completo, cinco cuentas van en dos filas.
       await abrirAjusteOculto(tester);
-      await tocar(tester, find.text(Textos.saltarPrimeraSemana));
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
       final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
@@ -3312,6 +3343,19 @@ void main() {
     await esperar(tester);
     expect(_servidor.pedidosDeCambios, greaterThan(antes));
     expect(find.byType(RefreshProgressIndicator), findsNothing);
+  });
+
+  testWidgets('Entrega 27: Jhony ve los errores agrupados y copia el detalle', (
+    tester,
+  ) async {
+    await abrirApp(tester, listo: true);
+    await tester.runAsync(() => _llavero.guardar('llave-de-prueba'));
+    await abrirAjusteOculto(tester);
+    await tocar(tester, find.text(Textos.errores));
+    expect(find.text('Bad state: se rompió'), findsOneWidget);
+    expect(find.textContaining(Textos.erroresVeces(3, 2)), findsOneWidget);
+    await tocar(tester, find.text(Textos.copiarDetalle));
+    expect(find.text(Textos.detalleCopiado), findsOneWidget);
   });
 
   group('Entrega 26.3: «Hay una versión nueva de Moca»', () {

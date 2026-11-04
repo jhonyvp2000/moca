@@ -14,6 +14,7 @@ import 'dominio/primer_dia.dart';
 import 'inyeccion.dart';
 import 'pantallas/cerradura/con_cerradura.dart';
 import 'rutas.dart';
+import 'servicios/registro_de_errores.dart';
 import 'tema/colores.dart';
 import 'tema/medidas.dart';
 import 'tema/tipografia.dart';
@@ -93,6 +94,17 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         ref.read(repositorioOperadorProvider).quitarSimulacionSiHay();
       }
     }, fireImmediately: true);
+    // Los errores van a la base desde ya, con la versión y la pantalla
+    // (entrega 27).
+    final instalada = ref.read(versionInstaladaProvider);
+    RegistroDeErrores.instancia
+      ..entrega = instalada.entrega.isEmpty ? null : instalada.entrega
+      ..armado = instalada.conocida ? instalada.armado : null
+      ..conectar(ref.read(repositorioErroresProvider).guardar);
+    _rutas.routerDelegate.addListener(() {
+      RegistroDeErrores.instancia.pantalla =
+          _rutas.routerDelegate.currentConfiguration.uri.path;
+    });
     // La versión nueva, una vez al día (entrega 26.3).
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => ref.read(revisarVersionProvider)(),

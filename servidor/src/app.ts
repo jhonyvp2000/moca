@@ -12,6 +12,7 @@ import { rutasCambios } from './datos/cambios.js';
 import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
+import { rutasErrores } from './errores/rutas.js';
 import {
   type BuscarReleases,
   type ConfigVersion,
@@ -95,6 +96,7 @@ export function crearApp({
   rutasCambios(app, pool, ahora, cobro);
   rutasCobro(app, pool, cobro, ahora);
   rutasVersion(app, versionApp, buscarReleases, ahora);
+  rutasErrores(app, pool, cobro);
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
