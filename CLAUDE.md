@@ -4,9 +4,9 @@ Moca («Mi Organización Contable Asistida») es una app Android con panel web q
 
 El dueño del proyecto es Jhony Vela Paredes (Tarapoto, Perú). Toda la conversación, los textos de la app y la documentación van en español.
 
-## Etapa actual: prototipo V1
+## Etapa actual: V1 real, en prueba con pilotos
 
-Se construye la V1 en Flutter, instalada en Android, **sin servidor y con datos simulados en el teléfono**. Todo el detalle está en `docs/prototipo-v1.md`; léelo antes de proponer nada.
+La V1 ya tiene servidor. La app Flutter (`app/`) guarda en el teléfono, funciona sin señal y sincroniza con el servidor Node (`servidor/`), publicado en Render. Hay cuenta real por SMS, varias personas por negocio, cifras calculadas en el servidor, lectura de fotos con IA y cobro manual por Yape (S/ 19.90 al mes, 14 días de prueba). El plan y las entregas están en `docs/v1-real.md`; lo que se construyó en el prototipo, y cómo se comporta cada pantalla, sigue en `docs/prototipo-v1.md`. Léelos antes de proponer nada.
 
 En paralelo, Jhony reúne las muestras de la Fase 0 (`docs/fase-0.md`). Las pruebas de la Fase 0 se hacen cuando él lo pida.
 
@@ -14,7 +14,10 @@ En paralelo, Jhony reúne las muestras de la Fase 0 (`docs/fase-0.md`). Las prue
 
 - Antes de programar cualquier cosa, presenta un plan y espera la aprobación de Jhony.
 - Trabaja por entregas pequeñas que se puedan instalar y probar en su teléfono. Al terminar cada una, haz commit con un mensaje claro en español y súbelo a GitHub si Jhony lo pide.
-- No amplíes el alcance: lo que no está en `docs/prototipo-v1.md` no entra, aunque tenga pantalla diseñada.
+- No amplíes el alcance: lo que no está en `docs/v1-real.md` ni en `docs/prototipo-v1.md` no entra, aunque tenga pantalla diseñada.
+- El APK se genera solo cuando Jhony lo pide: se lanza el flujo `apk.yml` con `entrega=entrega-N` y queda en Releases.
+- Los secretos (Twilio, Anthropic, Yape, los números que registran pagos) van solo en el panel de Render, nunca en el repositorio ni en el chat: el repositorio es público.
+- Una migración que corre sobre datos empieza con `SET CONSTRAINTS ALL IMMEDIATE;` (ver la 011).
 - Si una decisión no está en los documentos, revisa `docs/pendientes.md` y `docs/decisiones.md`; si tampoco está ahí, pregunta en lugar de suponer.
 - Cuando se tome una decisión nueva, anótala en `docs/decisiones.md` y actualiza el documento que corresponda en el mismo commit.
 - Para comparar una pantalla con su diseño, usa `diseno/capturas/<código>.png` (y la versión `-completa.png` cuando exista).
@@ -41,7 +44,11 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | Archivo | Contenido |
 |---|---|
 | `docs/prototipo-v1.md` | La etapa actual: objetivo, pantallas, qué se simula, entregas |
-| `docs/v1-real.md` | Plan de la V1 real: servidor, entregas 10 a 16 y lo que falta decidir |
+| `docs/v1-real.md` | Plan de la V1 real: servidor, entregas 10 a 26, cuándo está terminada y lo que falta decidir |
+| `app/` | La app Flutter (Android) |
+| `servidor/` y `servidor/README.md` | El servidor Node: sus rutas, el cobro y las variables de Render |
+| `render.yaml` | La infraestructura en Render |
+| `docs/credito/` | El flujo de caja que piden las entidades de crédito |
 | `docs/decisiones.md` | Registro de decisiones con fecha |
 | `docs/producto.md` | Análisis completo: decisiones, modos, fuentes de datos, agente, arquitectura, modelo comercial, riesgos |
 | `docs/alcance-v1.md` | Corte de versiones y detalle de las 15 pantallas de la V1, con los ajustes respecto al mockup |
@@ -68,6 +75,8 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 - **Paquete de país:** todo lo específico de Perú (QR, SIRE, IGV, regímenes, calendario) va aislado para poder sumar otros países.
 - **Funciona sin señal:** la app guarda en el teléfono y sincroniza después.
 - **Fuera de esta etapa:** captura por WhatsApp y emisión de boletas y facturas electrónicas.
+- **Varias personas por negocio:** dueño (uno o más; el titular borra), encargado, ayudante y contador (solo mira y puede estar en varios negocios); hasta 3 personas sin contar al contador. Lo que un rol no puede ver no baja a su teléfono.
+- **Cobro por negocio:** 14 días de prueba desde el primer registro; al vencer, «solo anotar», sin perder lo anotado.
 
 ## Interfaz
 
