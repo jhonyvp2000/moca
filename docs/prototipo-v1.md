@@ -100,7 +100,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 ### Otras billeteras (aprobado el 13-10-2026, entrega 9.2)
 
 - Efectivo, Yape y Banco existen siempre. Plin, Sip y otra billetera (con el nombre que escriba el dueño) solo si el dueño las usa; cada una es una cuenta con su saldo, y solo se muestran las que usa.
-- Se eligen en el alta o después en «Mis cuentas», desde la pestaña Moca: la lista de cuentas con su saldo y «Agregar una billetera». Una billetera agregada después empieza en S/ 0 desde ese día (si el saldo inicial sigue pendiente, también queda pendiente). Ninguna cuenta se borra. Desde la entrega 16.2, al tocar una cuenta el dueño corrige el saldo con el que empezó, mientras esa cuenta no haya entrado en ningún arqueo (ver `decisiones.md`, 29-10-2026).
+- Se eligen en el alta o después en «Mis cuentas», desde la pestaña Moca → «Ajustes» (entrega 29): la lista de cuentas con su saldo y «Agregar una billetera». Una billetera agregada después empieza en S/ 0 desde ese día (si el saldo inicial sigue pendiente, también queda pendiente). Ninguna cuenta se borra. Desde la entrega 16.2, al tocar una cuenta el dueño corrige el saldo con el que empezó, mientras esa cuenta no haya entrado en ningún arqueo (ver `decisiones.md`, 29-10-2026).
 - Las billeteras aparecen como opción en la venta del día, «Escribirlo», la voz, la foto o el QR (S08), «Ya lo pagué» y el arqueo. Se muestran junto a Yape, con el banco al final; en el Inicio, las cuentas van en filas de tres.
 - Por voz, «por Plin» o «por Sip» va a esa cuenta si el negocio la tiene; si no, Moca pregunta la cuenta. «Sip» suelto se toma como «sí», no como la billetera.
 
@@ -186,6 +186,12 @@ Estados aprobados el 13-10-2026 (entrega 6):
 - **Ya lo pagué:** se elige la cuenta (viene la del comprobante) y el día: Hoy, Ayer u Otro día, nunca futuro ni antes del comprobante o del primer día con Moca. Se paga completo y avisa «Pagado. Ahora tienes S/ X en …».
 - **Sin señal:** lo guardado sin conexión queda «por subir» para siempre; un pago sin conexión también marca el registro. Registrar, «Escribirlo», la venta del día y la voz muestran «Sin señal. Se guarda en tu teléfono y sube cuando vuelva». El ajuste oculto tiene «Simular sin señal» para probarlo sin apagar el wifi.
 - La bitácora no sale en la exportación de la medición, porque tiene montos.
+
+### Ajustes y datos del negocio (entregas 29 y 29.1)
+
+- La pestaña Moca muestra lo del día: «Guarda tu avance», el cobro, la pregunta del precio, el resumen de la semana, los avisos y «Aprende en 3 minutos». Al final, «Ajustes» lleva a lo que se toca de vez en cuando.
+- «Ajustes» tiene tres secciones: **Tu negocio** («Datos del negocio» y «Mis cuentas», solo dueños), **Tu equipo** («Mi equipo» y «Mis negocios», con la cuenta guardada) y **Seguridad** («Pedir huella al abrir Moca», «Borrar mi negocio y mis datos» para el titular y «Salir de este negocio» para los demás). Al final, la versión de Moca.
+- «Datos del negocio» cambia el nombre (hasta 40 letras) y la hora de cierre. Al guardar dice «Listo. Guardado.», queda en la bitácora, se sube y el aviso de cierre pasa a la hora nueva. El tipo de negocio no se cambia.
 
 ### Textos legales (propuesta para revisar)
 

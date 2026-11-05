@@ -8,6 +8,8 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/ajustes/pantalla_ajustes.dart';
+import 'pantallas/ajustes/pantalla_datos_negocio.dart';
 import 'pantallas/cobro/pantalla_errores.dart';
 import 'pantallas/cobro/pantalla_cobros.dart';
 import 'pantallas/alta/pantalla_alta.dart';
@@ -76,6 +78,10 @@ abstract final class Rutas {
   static const corregir = '/movimiento/corregir';
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
+
+  /// «Ajustes» y «Datos del negocio» (entregas 29 y 29.1).
+  static const ajustes = '/ajustes';
+  static const datosDelNegocio = '/ajustes/negocio';
 
   /// «Mis negocios» (entrega 22).
   static const negocios = '/negocios';
@@ -148,6 +154,8 @@ final _rutasPorEtapa = {
     Rutas.invitar,
     Rutas.negocios,
     Rutas.borrarNegocio,
+    Rutas.ajustes,
+    Rutas.datosDelNegocio,
   ],
 };
 
@@ -331,6 +339,14 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.negocios,
       builder: (context, estado) => const PantallaNegocios(),
+    ),
+    GoRoute(
+      path: Rutas.ajustes,
+      builder: (context, estado) => const PantallaAjustes(),
+    ),
+    GoRoute(
+      path: Rutas.datosDelNegocio,
+      builder: (context, estado) => const PantallaDatosNegocio(),
     ),
     GoRoute(
       path: Rutas.borrarNegocio,

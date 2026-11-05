@@ -4,12 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../cobro/cobro.dart';
-import '../version/version.dart';
+import '../../comun/enlace.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
-import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
@@ -77,7 +76,6 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
         ? ref.watch(resumenSemanaProvider).value
         : null;
     final avisos = ref.watch(avisosProvider).value;
-    final estadoCuenta = ref.watch(situacionCuentaProvider).value?.estado;
 
     return SafeArea(
       bottom: false,
@@ -174,60 +172,13 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                     ),
           ],
           const SeccionAprende(),
-          if (permisos.cambiaCuentas) ...[
-            const SizedBox(height: 18),
-            const _Enlace(
-              titulo: Textos.misCuentas,
-              detalle: Textos.misCuentasDetalle,
-              ruta: Rutas.cuentas,
-            ),
-          ],
-          // Con la cuenta guardada, el equipo del negocio (entrega 19).
-          if (estadoCuenta == EstadoCuenta.guardada) ...[
-            const SizedBox(height: Medidas.separacionTarjetas),
-            const _Enlace(
-              titulo: Textos.miEquipo,
-              detalle: Textos.miEquipoDetalle,
-              ruta: Rutas.equipo,
-            ),
-          ],
-          // Para el contador de varios negocios, o si lo invitaron a otro
-          // (entrega 22); también para quien quitaron, que así acepta otra
-          // invitación sin borrar todo (entrega 22.1).
-          if (estadoCuenta == EstadoCuenta.guardada ||
-              estadoCuenta == EstadoCuenta.fueraDelNegocio) ...[
-            const SizedBox(height: Medidas.separacionTarjetas),
-            const _Enlace(
-              titulo: Textos.misNegocios,
-              detalle: Textos.misNegociosDetalle,
-              ruta: Rutas.negocios,
-            ),
-          ],
-          // «Seguridad», al final (entrega 16.3.1).
-          const SizedBox(height: 24),
-          const Text(Textos.seguridad, style: Tipografia.tituloTarjeta),
-          const SizedBox(height: 8),
-          // Para todos los roles, en cada teléfono (entrega 16.3).
-          const _InterruptorHuella(),
-          // El derecho a borrar sus datos (Ley 29733), solo del titular
-          // (entrega 16.1).
-          if (estadoCuenta == EstadoCuenta.guardada &&
-              permisos.borraElNegocio) ...[
-            const SizedBox(height: Medidas.separacionTarjetas),
-            const _Enlace(
-              titulo: Textos.borrarMiNegocio,
-              detalle: Textos.borrarMiNegocioDetalle,
-              ruta: Rutas.borrarNegocio,
-            ),
-          ],
-          // Los demás salen por su cuenta (entrega 22.2).
-          if (estadoCuenta == EstadoCuenta.guardada &&
-              permisos.saleDelNegocio) ...[
-            const SizedBox(height: Medidas.separacionTarjetas),
-            const _SalirDelNegocio(),
-          ],
-          // Qué versión es, para reportar un problema (entrega 26.3).
-          const VersionDeMoca(),
+          // Lo que se toca una vez va en «Ajustes» (entrega 29).
+          const SizedBox(height: 18),
+          const TarjetaEnlace(
+            titulo: Textos.ajustes,
+            detalle: Textos.ajustesDetalle,
+            ruta: Rutas.ajustes,
+          ),
         ],
       ),
     );
@@ -380,195 +331,6 @@ class _FilaAviso extends StatelessWidget {
             ),
             const IconoTrazo(Icono.derecha, color: Colores.textoPrincipal),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Una tarjeta que lleva a otra pantalla: «Mis cuentas», «Mi equipo».
-class _Enlace extends StatelessWidget {
-  const _Enlace({
-    required this.titulo,
-    required this.detalle,
-    required this.ruta,
-  });
-
-  final String titulo;
-  final String detalle;
-  final String ruta;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tarjeta(
-      relleno: EdgeInsets.zero,
-      child: Material(
-        color: Colores.superficie,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-          onTap: () => context.push(ruta),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(titulo, style: Tipografia.textoFuerte),
-                      Text(detalle, style: Tipografia.secundario),
-                    ],
-                  ),
-                ),
-                const IconoTrazo(
-                  Icono.derecha,
-                  color: Colores.textoSecundario,
-                  tamano: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// «Pedir huella al abrir Moca» (entrega 16.3). Al encenderla la pide una
-/// vez, para saber que funciona en este teléfono.
-class _InterruptorHuella extends ConsumerStatefulWidget {
-  const _InterruptorHuella();
-
-  @override
-  ConsumerState<_InterruptorHuella> createState() => _EstadoInterruptor();
-}
-
-class _EstadoInterruptor extends ConsumerState<_InterruptorHuella> {
-  bool _cambiando = false;
-
-  Future<void> _cambiar(bool encender) async {
-    setState(() => _cambiando = true);
-    final mensajes = ScaffoldMessenger.of(context);
-    try {
-      final guardar = ref.read(guardarPedirHuellaProvider);
-      if (!encender) {
-        await guardar(false);
-        mensajes.showSnackBar(
-          const SnackBar(content: Text(Textos.huellaDesactivada)),
-        );
-        return;
-      }
-      final cerradura = ref.read(cerraduraProvider);
-      if (!await cerradura.puedeUsarse()) {
-        mensajes.showSnackBar(
-          const SnackBar(content: Text(Textos.sinBloqueoEnElTelefono)),
-        );
-        return;
-      }
-      if (!await cerradura.verificar(Textos.confirmaQueEresTu)) return;
-      await guardar(true);
-      mensajes.showSnackBar(
-        const SnackBar(content: Text(Textos.huellaActivada)),
-      );
-    } finally {
-      if (mounted) setState(() => _cambiando = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pide = ref.watch(pedirHuellaProvider).value ?? false;
-    return Tarjeta(
-      relleno: EdgeInsets.zero,
-      child: Material(
-        color: Colores.superficie,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-        clipBehavior: Clip.antiAlias,
-        child: SwitchListTile(
-          value: pide,
-          onChanged: _cambiando ? null : _cambiar,
-          contentPadding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-          title: const Text(Textos.pedirHuella, style: Tipografia.textoFuerte),
-          subtitle: const Text(
-            Textos.pedirHuellaDetalle,
-            style: Tipografia.secundario,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// «Salir de este negocio» (entrega 22.2): pregunta antes y, al salir, la
-/// pestaña dice «Ya no estás en este negocio», como si un dueño lo quitara.
-class _SalirDelNegocio extends ConsumerWidget {
-  const _SalirDelNegocio();
-
-  Future<void> _salir(BuildContext context, WidgetRef ref) async {
-    final mensajes = ScaffoldMessenger.of(context);
-    final si = await showDialog<bool>(
-      context: context,
-      builder: (contexto) => AlertDialog(
-        title: const Text(Textos.salirDelNegocioPregunta),
-        content: const Text(Textos.salirDelNegocioTexto),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(contexto, false),
-            child: const Text(Textos.cancelar),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(contexto, true),
-            child: const Text(Textos.salir),
-          ),
-        ],
-      ),
-    );
-    if (si != true) return;
-    final resultado = await ref.read(servicioEquipoProvider).salir();
-    mensajes.showSnackBar(
-      SnackBar(
-        content: Text(switch (resultado) {
-          ResultadoEquipo.listo => Textos.salisteDelNegocio,
-          ResultadoEquipo.sinSenal => Textos.necesitasSenalParaSalir,
-          _ => Textos.noPudimosComprobar,
-        }),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Tarjeta(
-      relleno: EdgeInsets.zero,
-      child: Material(
-        color: Colores.superficie,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-          onTap: () => _salir(context, ref),
-          child: const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        Textos.salirDelNegocio,
-                        style: Tipografia.textoFuerte,
-                      ),
-                      Text(
-                        Textos.salirDelNegocioDetalle,
-                        style: Tipografia.secundario,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

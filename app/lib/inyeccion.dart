@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/remoto/lector_foto_remoto.dart';
+import 'datos/repositorios/repositorio_negocio_local.dart';
 import 'datos/repositorios/repositorio_errores_local.dart';
 import 'datos/repositorios/acceso_local.dart';
 import 'datos/remoto/servicio_cuenta_remoto.dart';
@@ -22,6 +23,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/negocio.dart';
 import 'dominio/errores.dart';
 import 'dominio/version.dart';
 import 'dominio/cobro.dart';
@@ -499,6 +501,14 @@ final servicioErroresProvider = Provider<ServicioErrores>(
 /// Dónde se guardan los errores hasta subirlos.
 final repositorioErroresProvider = Provider<RepositorioErroresLocal>(
   (ref) => RepositorioErroresLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+/// «Datos del negocio» (entrega 29.1).
+final repositorioNegocioProvider = Provider<RepositorioNegocio>(
+  (ref) => RepositorioNegocioLocal(
     ref.watch(baseLocalProvider),
     ahora: ref.watch(relojProvider),
   ),

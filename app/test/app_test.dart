@@ -777,6 +777,17 @@ Future<void> tocarEnAjuste(WidgetTester tester, String opcion) async {
   await tocar(tester, find.text(opcion));
 }
 
+/// La pestaña Moca y, al final, «Ajustes» (entrega 29).
+Future<void> abrirAjustes(WidgetTester tester) async {
+  await tocar(tester, find.text(Textos.pestanaMoca).last);
+  await tester.scrollUntilVisible(
+    find.text(Textos.ajustes),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tocar(tester, find.text(Textos.ajustes));
+}
+
 /// Desde la Bienvenida, la primera venta escrita en lugar de dicha.
 Future<void> abrirVentaEscrita(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.anotarPrimeraVenta));
@@ -2290,7 +2301,7 @@ void main() {
       tester,
     ) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.misCuentas));
       expect(find.text('Efectivo'), findsOneWidget);
       expect(find.text('S/\u00A01,350'), findsOneWidget);
@@ -2305,6 +2316,8 @@ void main() {
       expect(find.text('S/\u00A00'), findsWidgets);
 
       await tocar(tester, find.byType(BotonVolver));
+      // De «Ajustes» a la pestaña Moca.
+      await tocar(tester, find.byType(BotonVolver));
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.sip), findsOneWidget);
@@ -2315,7 +2328,7 @@ void main() {
       tester,
     ) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.misCuentas));
       await tocar(tester, find.text('Efectivo'));
       expect(find.text(Textos.corregirSaldoInicial), findsOneWidget);
@@ -2340,7 +2353,7 @@ void main() {
     testWidgets('Entrega 14.1: «Mis cuentas» agrega un banco con su nombre '
         'y aparece al anotar', (tester) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.misCuentas));
       expect(find.text(Textos.banco), findsOneWidget);
       expect(find.text(Textos.agregarUnBanco), findsOneWidget);
@@ -2362,6 +2375,8 @@ void main() {
       expect(find.text('Caja Maynas'), findsOneWidget);
 
       await tocar(tester, find.byType(BotonVolver));
+      // De «Ajustes» a la pestaña Moca.
+      await tocar(tester, find.byType(BotonVolver));
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text('Caja Maynas'), findsOneWidget);
@@ -2374,7 +2389,7 @@ void main() {
       await abrirApp(tester, listo: true);
       tester.platformDispatcher.textScaleFactorTestValue = 1.5;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tester.scrollUntilVisible(
         find.text(Textos.misCuentas),
         200,
@@ -3002,14 +3017,14 @@ void main() {
 
     testWidgets('Sin cuenta guardada, «Mi equipo» no aparece', (tester) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       expect(find.text(Textos.miEquipo), findsNothing);
     });
 
     testWidgets('El dueño ve su equipo, invita y quita', (tester) async {
       await conCuentaGuardada(tester);
       _servidor.equipo = equipoDeLucho();
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.miEquipo));
       expect(find.text('Rosa'), findsOneWidget);
       expect(find.text('Ayudante · 987 000 002'), findsOneWidget);
@@ -3051,7 +3066,7 @@ void main() {
         'titular': false,
         'invitaciones': <Object>[],
       };
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.miEquipo));
       expect(find.text('Rosa'), findsOneWidget);
       expect(find.text(Textos.quitar), findsNothing);
@@ -3060,7 +3075,7 @@ void main() {
 
     testWidgets('Sin señal, lo dice', (tester) async {
       await conCuentaGuardada(tester);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       _conSenal = false;
       await tocar(tester, find.text(Textos.miEquipo));
       expect(find.text(Textos.necesitasSenalParaEquipo), findsOneWidget);
@@ -3093,9 +3108,10 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.soloLoDeHoyAyudante), findsOneWidget);
 
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       expect(find.text(Textos.avisos), findsNothing);
       expect(find.text(Textos.misCuentas), findsNothing);
+      await tocar(tester, find.byType(BotonVolver));
 
       // Anota ventas y gastos, no retiros ni aportes.
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
@@ -3144,7 +3160,7 @@ void main() {
       expect(find.text(Textos.enTuCaja), findsOneWidget);
       expect(find.text(Textos.hacerArqueo), findsWidgets);
       expect(find.text(Textos.pestanaInformes), findsNothing);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       expect(find.text(Textos.misCuentas), findsNothing);
     });
   });
@@ -3154,7 +3170,7 @@ void main() {
       tester,
     ) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.misCuentas));
       await tocar(tester, find.text(Textos.otraCaja));
       await tester.enterText(
@@ -3169,7 +3185,7 @@ void main() {
     testWidgets('El ayudante a cargo de «Caja delivery» ve su caja y anota '
         'en ella, no en la principal', (tester) async {
       final base = await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.misCuentas));
       await tocar(tester, find.text(Textos.otraCaja));
       await tester.enterText(
@@ -3194,6 +3210,7 @@ void main() {
         }),
       );
       await esperar(tester);
+      await tocar(tester, find.byType(BotonVolver).first);
       await tocar(tester, find.byType(BotonVolver).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
       expect(find.text(Textos.enTuCaja), findsOneWidget);
@@ -3438,7 +3455,7 @@ void main() {
       expect(find.text(Textos.hayVersionNueva), findsNothing);
       // Jhony pregunta también por las entregas.
       expect(_servidor.canalesPedidos, ['todas']);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tester.scrollUntilVisible(
         find.text(Textos.versionDeMoca('piloto-1', 100)),
         300,
@@ -3786,7 +3803,7 @@ void main() {
         );
       });
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tester.scrollUntilVisible(
         find.text(Textos.pedirHuella),
         200,
@@ -3819,6 +3836,7 @@ void main() {
       expect(_servidor.salidas, 1);
       expect(find.text(Textos.salisteDelNegocio), findsOneWidget);
       // Queda como si un dueño lo quitara.
+      await tocar(tester, find.byType(BotonVolver));
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await esperar(tester);
       expect(find.text(Textos.fueraDelNegocio), findsOneWidget);
@@ -3846,7 +3864,7 @@ void main() {
     }
 
     Future<void> alInterruptor(WidgetTester tester) async {
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tester.scrollUntilVisible(
         find.text(Textos.pedirHuella),
         200,
@@ -3943,7 +3961,7 @@ void main() {
 
     /// El enlace está al final de la pestaña Moca.
     Future<void> abrirBorrar(WidgetTester tester) async {
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       await tester.scrollUntilVisible(
         find.text(Textos.borrarMiNegocio),
         200,
@@ -3975,7 +3993,7 @@ void main() {
         );
       });
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await abrirAjustes(tester);
       expect(find.text(Textos.misNegocios), findsOneWidget);
       // Hasta el final de la pestaña: la lista se arma al verse.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
@@ -4035,5 +4053,122 @@ void main() {
     expect(find.text(Textos.banco), findsOneWidget);
     expect(find.text(formatearSoles(135000)), findsNWidgets(2));
     expect(find.text(formatearSoles(0)), findsNWidgets(2));
+  });
+
+  group('Entregas 29 y 29.1: «Ajustes» y «Datos del negocio»', () {
+    Future<BaseLocal> conCuenta(WidgetTester tester, {Rol? rol}) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      if (rol != null) {
+        await tester.runAsync(
+          () => base
+              .update(base.membresias)
+              .write(MembresiasCompanion(rol: Value(rol))),
+        );
+        await esperar(tester);
+      }
+      return base;
+    }
+
+    testWidgets('La pestaña Moca deja lo del día y lleva a «Ajustes»', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      for (final texto in [
+        Textos.misCuentas,
+        Textos.miEquipo,
+        Textos.misNegocios,
+        Textos.pedirHuella,
+        Textos.borrarMiNegocio,
+      ]) {
+        expect(find.text(texto), findsNothing, reason: texto);
+      }
+      await abrirAjustes(tester);
+      expect(find.text(Textos.tuNegocio), findsOneWidget);
+      expect(find.text(Textos.datosDelNegocio), findsOneWidget);
+      expect(find.text(Textos.misCuentas), findsOneWidget);
+      expect(find.text(Textos.tuEquipoAjustes), findsOneWidget);
+      expect(find.text(Textos.miEquipo), findsOneWidget);
+      expect(find.text(Textos.misNegocios), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(Textos.borrarMiNegocio),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.pedirHuella), findsOneWidget);
+    });
+
+    testWidgets('El ayudante no ve «Tu negocio»; sí la huella y salir', (
+      tester,
+    ) async {
+      await conCuenta(tester, rol: Rol.ayudante);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.tuNegocio), findsNothing);
+      expect(find.text(Textos.datosDelNegocio), findsNothing);
+      expect(find.text(Textos.misCuentas), findsNothing);
+      expect(find.text(Textos.miEquipo), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(Textos.salirDelNegocio),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.pedirHuella), findsOneWidget);
+      expect(find.text(Textos.borrarMiNegocio), findsNothing);
+    });
+
+    testWidgets('El dueño cambia el nombre y la hora, y se sube', (
+      tester,
+    ) async {
+      final base = await conCuenta(tester);
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      final antes = _servidor.subidas.length;
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.datosDelNegocio));
+      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text(formatearHora(21 * 60)), findsOneWidget);
+      final guardar = find.widgetWithText(FilledButton, Textos.guardar);
+      expect(tester.widget<FilledButton>(guardar).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'Bodega Lucho');
+      await tester.pump();
+      // El reloj abre con la hora de cierre; la hora nueva y su aviso se
+      // prueban en repositorio_negocio_test.
+      await tocar(tester, find.text(Textos.aQueHoraCierras));
+      expect(find.byType(Dialog), findsOneWidget);
+      await tocar(
+        tester,
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(TextButton),
+            )
+            .first,
+      );
+      expect(find.byType(Dialog), findsNothing);
+      await tocar(tester, guardar);
+      expect(find.text(Textos.datosGuardados), findsOneWidget);
+      expect(find.text(Textos.tuNegocio), findsOneWidget);
+
+      final empresa = await tester.runAsync(
+        () => base.select(base.empresas).getSingle(),
+      );
+      expect(empresa!.nombre, 'Bodega Lucho');
+      expect(empresa.horaCierreMinutos, 21 * 60);
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      expect(_servidor.subidas.length, greaterThan(antes));
+      final subida = _servidor.subidas.last['empresa']! as Map;
+      expect(subida['nombre'], 'Bodega Lucho');
+      expect(subida['hora_cierre_minutos'], 21 * 60);
+    });
   });
 }

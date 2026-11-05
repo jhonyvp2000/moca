@@ -1154,6 +1154,15 @@ abstract final class Textos {
 
   static const seguridad = 'Seguridad';
 
+  // «Ajustes» y «Datos del negocio» (entregas 29 y 29.1).
+  static const ajustes = 'Ajustes';
+  static const ajustesDetalle = 'Tu negocio, tu equipo y la seguridad';
+  static const tuNegocio = 'Tu negocio';
+  static const tuEquipoAjustes = 'Tu equipo';
+  static const datosDelNegocio = 'Datos del negocio';
+  static const datosDelNegocioDetalle = 'El nombre y la hora de cierre';
+  static const datosGuardados = 'Listo. Guardado.';
+
   // El cobro (entrega 25).
   static String pruebaTeQuedan(int dias, String hasta) => switch (dias) {
     0 => 'Hoy es el último día de tu prueba gratis.',
