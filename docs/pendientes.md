@@ -12,6 +12,7 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - ~~Día y hora del arqueo~~: domingo a la hora de cierre (12-10-2026).
 - Revisar los textos legales y las categorías provisionales de `prototipo-v1.md`.
 - Fecha y negocios de la prueba con pilotos.
+- Pasar el pago con Mercado Pago (entrega 32) de la API de Preferences a la API de Orders. Al crear la aplicación «moca» (05-11-2026), el panel avisa que Preferences «será descontinuada pronto»; Mercado Pago dice que sigue con soporte, sin funciones nuevas, y no da fecha. Conviene hacerlo a la vez en Moca y en TVSamGo, que usan la misma API.
 
 ## Se resuelven en la Fase 0
 
