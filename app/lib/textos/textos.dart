@@ -348,6 +348,37 @@ abstract final class Textos {
   static String invitacionEnviada(String quien) =>
       'Listo. Dile a $quien que instale Moca y toque «$meInvitaron» con su '
       'número. La invitación vale 7 días.';
+  // «Mis categorías» (entrega 31).
+  static const misCategorias = 'Mis categorías';
+  static const misCategoriasDetalle = 'Las de Moca y las que agregues';
+  static const categoriasDeMoca =
+      'Las de Moca no se cambian: de ellas salen el informe y el flujo para '
+      'el crédito. Las tuyas se cambian o se dejan de usar.';
+  static const deMoca = 'De Moca';
+  static const tuya = 'Tuya';
+  static const yaNoLaUsas = 'Tuya · ya no la usas';
+  static const agregarCategoria = 'Agregar una categoría';
+  static const otraCategoria = '+ Otra categoría';
+  static const categoriaNueva = 'Categoría nueva';
+  static const cambiarCategoria = 'Tu categoría';
+  static const nombreCategoria = '¿Cómo se llama?';
+  static const nombreCategoriaEjemplo = 'Por ejemplo: Hielo';
+  static const esDeLoQue = '¿Es de lo que entra o de lo que sale?';
+  static const loQueEntra = 'Lo que entra';
+  static const loQueSale = 'Lo que sale';
+  static const yaNoLaUso = 'Ya no la uso';
+  static const usarlaOtraVez = 'Usarla otra vez';
+  static const categoriaRepetida = 'Ya hay una categoría con ese nombre.';
+  static const noSePudoCategoria = 'No se pudo guardar. Intenta otra vez.';
+  static String sinLugarCategoria(int maximo, bool entra) =>
+      'Ya tienes $maximo categorías tuyas de lo que '
+      '${entra ? 'entra' : 'sale'}. Deja de usar una para agregar otra.';
+  static const categoriaAgregada = 'Listo. Agregaste la categoría.';
+  static const categoriaGuardada = 'Listo. Guardado.';
+  static const categoriaSinUso =
+      'Listo. Ya no se ofrece al anotar; lo anotado la conserva.';
+  static const categoriaOtraVez = 'Listo. Se ofrece otra vez al anotar.';
+
   // La invitación por WhatsApp (entrega 30).
   static const mandarInvitacionWhatsApp = 'Mandarle la invitación por WhatsApp';
   static const mandarPorWhatsApp = 'Mandar por WhatsApp';

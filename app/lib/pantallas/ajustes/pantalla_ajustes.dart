@@ -51,6 +51,12 @@ class PantallaAjustes extends ConsumerWidget {
           ruta: Rutas.cuentas,
         ),
       ],
+      if (permisos.cambiaCategorias)
+        const TarjetaEnlace(
+          titulo: Textos.misCategorias,
+          detalle: Textos.misCategoriasDetalle,
+          ruta: Rutas.categorias,
+        ),
     ];
     final equipo = <Widget>[
       // Con la cuenta guardada, el equipo del negocio (entrega 19).

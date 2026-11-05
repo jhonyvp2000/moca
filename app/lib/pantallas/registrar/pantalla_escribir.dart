@@ -17,6 +17,7 @@ import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../rutas.dart';
 import '../../textos/textos.dart';
 import 'confirmacion.dart';
 import 'franja_sin_senal.dart';
@@ -366,6 +367,22 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             elegida: _categoriaId,
             alElegir: (id) => setState(() => _categoriaId = id),
           ),
+          // Una categoría propia, que queda elegida (entrega 31).
+          if (permisos.cambiaCategorias)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () async {
+                  final id = await context.push<String>(
+                    Rutas.categoriaNueva(tipo),
+                  );
+                  if (id != null && mounted) {
+                    setState(() => _categoriaId = id);
+                  }
+                },
+                child: const Text(Textos.otraCategoria),
+              ),
+            ),
         ],
         const SizedBox(height: 18),
         const Text(Textos.nota, style: etiqueta),

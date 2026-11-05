@@ -4197,4 +4197,152 @@ void main() {
       expect(subida['hora_cierre_minutos'], 21 * 60);
     });
   });
+
+  group('Entrega 31: categorías propias', () {
+    Future<BaseLocal> conCuenta(WidgetTester tester, {Rol? rol}) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      if (rol != null) {
+        await tester.runAsync(
+          () => base
+              .update(base.membresias)
+              .write(MembresiasCompanion(rol: Value(rol))),
+        );
+        await esperar(tester);
+      }
+      return base;
+    }
+
+    // El aviso de abajo tapa los botones: se espera a que se vaya.
+    Future<void> sinAviso(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+    }
+
+    Future<void> nueva(WidgetTester tester, String nombre) async {
+      await tester.enterText(find.byType(TextField), nombre);
+      await tester.pump();
+    }
+
+    testWidgets('El dueño agrega, cambia y deja de usar una; se sube', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCategorias));
+      expect(find.text(Textos.categoriasDeMoca), findsOneWidget);
+      expect(find.text('Venta del día'), findsOneWidget);
+      expect(find.text(Textos.tuya), findsNothing);
+
+      await tocar(tester, find.text(Textos.agregarCategoria));
+      await nueva(tester, 'Hielo');
+      final guardar = find.widgetWithText(FilledButton, Textos.guardar);
+      // Falta elegir si entra o sale.
+      expect(tester.widget<FilledButton>(guardar).onPressed, isNull);
+      await tocar(tester, find.text(Textos.loQueSale));
+      await tocar(tester, guardar);
+      expect(find.text(Textos.categoriaAgregada), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Hielo'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.tuya), findsOneWidget);
+      await sinAviso(tester);
+
+      // Una repetida no entra.
+      await tocar(tester, find.text(Textos.agregarCategoria));
+      await nueva(tester, 'mercaderia');
+      await tocar(tester, find.text(Textos.loQueSale));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(find.text(Textos.categoriaRepetida), findsOneWidget);
+      await tocar(tester, find.byType(BotonVolver));
+
+      // Cambiar el nombre y dejar de usarla.
+      await tester.scrollUntilVisible(
+        find.text('Hielo'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text('Hielo'));
+      await nueva(tester, 'Hielo y agua');
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await sinAviso(tester);
+      await tester.scrollUntilVisible(
+        find.text('Hielo y agua'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text('Hielo y agua'));
+      await tocar(tester, find.text(Textos.yaNoLaUso));
+      expect(find.text(Textos.categoriaSinUso), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(Textos.yaNoLaUsas),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      await tester.pump(const Duration(seconds: 6));
+      await esperar(tester);
+      final subida = _servidor.subidas.last['categorias']! as List;
+      final hielo = subida.cast<Map>().firstWhere(
+        (c) => c['nombre'] == 'Hielo y agua',
+      );
+      expect(hielo['tipo_movimiento'], 'egreso');
+      expect(hielo['activa'], false);
+    });
+
+    testWidgets('«+ Otra categoría» al anotar la deja elegida', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '8');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.efectivo));
+      await tester.scrollUntilVisible(
+        find.text(Textos.otraCategoria),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.otraCategoria));
+      // Ya sabe que es de lo que sale: no lo pregunta.
+      expect(find.text(Textos.esDeLoQue), findsNothing);
+      await nueva(tester, 'Hielo');
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(find.text('Hielo'), findsOneWidget);
+      await sinAviso(tester);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      final guardado = await tester.runAsync(() async {
+        final m = await (base.select(
+          base.movimientos,
+        )..where((m) => m.montoCentimos.equals(800))).getSingle();
+        return (await (base.select(
+          base.categorias,
+        )..where((c) => c.id.equals(m.categoriaId!))).getSingle()).nombre;
+      });
+      expect(guardado, 'Hielo');
+    });
+
+    testWidgets('El ayudante no agrega categorías', (tester) async {
+      await conCuenta(tester, rol: Rol.ayudante);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.misCategorias), findsNothing);
+      await tocar(tester, find.byType(BotonVolver));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.salio));
+      expect(find.text(Textos.otraCategoria), findsNothing);
+    });
+  });
 }

@@ -233,6 +233,9 @@ class Permisos {
       (rol == Rol.dueno || rol == Rol.encargado) && !soloAnotar;
   bool get cambiaCuentas => rol == Rol.dueno && !soloAnotar;
 
+  /// «Mis categorías» y «+ Otra categoría» al anotar (entrega 31).
+  bool get cambiaCategorias => rol == Rol.dueno && !soloAnotar;
+
   /// «Retiro para mí» y «Puse de mi bolsillo» son de la plata del dueño.
   bool get anotaLoDelDueno => rol == Rol.dueno;
   bool get gestionaEquipo => rol == Rol.dueno;

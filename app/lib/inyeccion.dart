@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'datos/local/base_local.dart';
 import 'datos/remoto/lector_foto_remoto.dart';
+import 'datos/repositorios/repositorio_categorias_local.dart';
 import 'datos/repositorios/repositorio_negocio_local.dart';
 import 'datos/repositorios/repositorio_errores_local.dart';
 import 'datos/repositorios/acceso_local.dart';
@@ -23,6 +24,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/categorias.dart';
 import 'dominio/negocio.dart';
 import 'dominio/errores.dart';
 import 'dominio/version.dart';
@@ -159,9 +161,11 @@ final resumenInicioProvider = StreamProvider<ResumenInicio>(
 
 /// Categorías de entró o salió, para «Escribirlo».
 final categoriasProvider = FutureProvider.autoDispose
-    .family<List<CategoriaVista>, TipoMovimiento>(
-      (ref, tipo) => ref.watch(repositorioMovimientosProvider).categorias(tipo),
-    );
+    .family<List<CategoriaVista>, TipoMovimiento>((ref, tipo) {
+      // Al agregar o cambiar una propia (entrega 31), se vuelve a leer.
+      ref.watch(categoriasDelNegocioProvider);
+      return ref.watch(repositorioMovimientosProvider).categorias(tipo);
+    });
 
 // --- Historial -----------------------------------------------------------------
 
@@ -509,6 +513,18 @@ final repositorioErroresProvider = Provider<RepositorioErroresLocal>(
 /// El enlace fijo para bajar Moca, que va en la invitación (entrega 30).
 final enlaceDescargaProvider = Provider<String>(
   (ref) => '$direccionServidor/descargar',
+);
+
+/// «Mis categorías» (entrega 31).
+final repositorioCategoriasProvider = Provider<RepositorioCategorias>(
+  (ref) => RepositorioCategoriasLocal(
+    ref.watch(baseLocalProvider),
+    ahora: ref.watch(relojProvider),
+  ),
+);
+
+final categoriasDelNegocioProvider = StreamProvider<List<CategoriaDelNegocio>>(
+  (ref) => ref.watch(repositorioCategoriasProvider).observar(),
 );
 
 /// «Datos del negocio» (entrega 29.1).

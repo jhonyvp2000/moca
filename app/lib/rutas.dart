@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/ajustes/pantalla_categorias.dart';
 import 'pantallas/ajustes/pantalla_ajustes.dart';
 import 'pantallas/ajustes/pantalla_datos_negocio.dart';
 import 'pantallas/cobro/pantalla_errores.dart';
@@ -83,6 +84,17 @@ abstract final class Rutas {
   static const ajustes = '/ajustes';
   static const datosDelNegocio = '/ajustes/negocio';
 
+  /// «Mis categorías» y una categoría propia, nueva (`?tipo=`) o la que se
+  /// cambia (`?id=`) (entrega 31).
+  static const categorias = '/ajustes/categorias';
+  static const categoria = '/ajustes/categoria';
+  static String categoriaNueva(TipoMovimiento? tipo) => Uri(
+    path: categoria,
+    queryParameters: {if (tipo != null) 'tipo': tipo.name},
+  ).toString();
+  static String categoriaPropia(String id) =>
+      Uri(path: categoria, queryParameters: {'id': id}).toString();
+
   /// «Mis negocios» (entrega 22).
   static const negocios = '/negocios';
 
@@ -156,6 +168,8 @@ final _rutasPorEtapa = {
     Rutas.borrarNegocio,
     Rutas.ajustes,
     Rutas.datosDelNegocio,
+    Rutas.categorias,
+    Rutas.categoria,
   ],
 };
 
@@ -347,6 +361,20 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.datosDelNegocio,
       builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.categorias,
+      builder: (context, estado) => const PantallaCategorias(),
+    ),
+    GoRoute(
+      path: Rutas.categoria,
+      builder: (context, estado) {
+        final tipo = estado.uri.queryParameters['tipo'];
+        return PantallaCategoria(
+          id: estado.uri.queryParameters['id'],
+          tipo: TipoMovimiento.values.where((t) => t.name == tipo).firstOrNull,
+        );
+      },
     ),
     GoRoute(
       path: Rutas.borrarNegocio,

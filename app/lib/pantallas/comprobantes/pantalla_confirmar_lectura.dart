@@ -17,6 +17,8 @@ import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../rutas.dart';
+import '../../dominio/equipo.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 
@@ -175,12 +177,36 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                     : null,
                 onTap: () => Navigator.of(context).pop(c.id),
               ),
+            // Una categoría propia de lo que sale (entrega 31).
+            if ((ref.read(permisosProvider).value ?? Permisos.delDueno)
+                .cambiaCategorias)
+              ListTile(
+                minTileHeight: Medidas.objetivoTactilMinimo + 8,
+                title: Text(
+                  Textos.otraCategoria,
+                  style: Tipografia.texto.copyWith(
+                    color: Colores.marca,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => Navigator.of(context).pop(_otra),
+              ),
           ],
         ),
       ),
     );
+    if (elegida == _otra) {
+      if (!mounted) return;
+      final id = await context.push<String>(
+        Rutas.categoriaNueva(TipoMovimiento.egreso),
+      );
+      if (id != null && mounted) setState(() => _categoriaId = id);
+      return;
+    }
     if (elegida != null) setState(() => _categoriaId = elegida);
   }
+
+  static const _otra = '+';
 
   @override
   Widget build(BuildContext context) {

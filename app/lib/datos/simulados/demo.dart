@@ -10,6 +10,7 @@ import '../calculos/semana.dart';
 import '../local/base_local.dart';
 import '../repositorios/acceso_local.dart';
 import '../repositorios/repositorio_arqueo_local.dart';
+import '../repositorios/repositorio_categorias_local.dart';
 import '../repositorios/repositorio_comprobantes_local.dart';
 import '../repositorios/repositorio_historial_local.dart';
 import '../repositorios/repositorio_movimientos_local.dart';
@@ -68,6 +69,11 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
       for (final tipo in [TipoMovimiento.ingreso, TipoMovimiento.egreso])
         for (final c in await movimientos.categorias(tipo)) c.nombre: c.id,
     };
+    // Una categoría propia del dueño (entrega 31).
+    categorias['Hielo'] = (await RepositorioCategoriasLocal(
+      base,
+      ahora: momento,
+    ).agregar('Hielo', TipoMovimiento.egreso)).id!;
     Future<void> gasto(
       int centimos,
       String categoria,
@@ -360,6 +366,12 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
       if (dia.weekday == DateTime.wednesday && hace % 14 < 7) {
         reloj = alas(16);
         await gasto(4000, 'Bolsas y envases', TipoCuenta.efectivo);
+      }
+      // Hielo para las bebidas los sábados, en su categoría propia. Monto
+      // fijo, para no mover los números al azar del resto de la Demo.
+      if (dia.weekday == DateTime.saturday) {
+        reloj = alas(8, 30);
+        await gasto(600, 'Hielo', TipoCuenta.efectivo);
       }
       // El ayudante los sábados.
       if (dia.weekday == DateTime.saturday) {

@@ -69,7 +69,7 @@ Los mockups muestran el estado ideal. El prototipo necesita además estados que 
 - Dos formas de arrancar: **«Primer día»** (vacía, para probar el alta) y **«Demo»** (con semanas de datos de ejemplo, para mostrar el Inicio, el arqueo y el informe llenos). Un ajuste oculto permite borrar todo y volver a empezar.
 - Los modelos siguen `modelo-datos.md`: montos en céntimos, cuenta en cada movimiento, nivel de confianza, fuente, estado de pago, retiro del dueño.
 - Los saldos, la semana y el informe se calculan en la capa de datos, no en las pantallas. Así, al llegar el backend, solo cambia de dónde salen las cifras.
-- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida. La bodega de la Demo también cobra por Plin. Desde la entrega 28.1 usa todas las categorías y todos los tipos de movimiento (préstamo y cuotas, deudas pagadas y por pagar, cobros de fiado, pases, arqueos con todos los motivos), para que el informe muestre de todo.
+- El modo Demo trae diez semanas de datos de una bodega (más de dos meses), para que el informe pueda compararse con el mes anterior y el Historial muestre un par de registros «por subir». La Demo se abre desde «Ver una demo» de la Bienvenida, muestra una franja «Estás viendo una demo · Salir», y al salir se borra y se vuelve a la Bienvenida. La bodega de la Demo también cobra por Plin. Desde la entrega 28.1 usa todas las categorías y todos los tipos de movimiento (préstamo y cuotas, deudas pagadas y por pagar, cobros de fiado, pases, arqueos con todos los motivos), para que el informe muestre de todo. Desde la entrega 31 trae también una categoría propia, «Hielo», los sábados.
 
 ## Comportamiento acordado
 
@@ -190,7 +190,7 @@ Estados aprobados el 13-10-2026 (entrega 6):
 ### Ajustes y datos del negocio (entregas 29 y 29.1)
 
 - La pestaña Moca muestra lo del día: «Guarda tu avance», el cobro, la pregunta del precio, el resumen de la semana, los avisos y «Aprende en 3 minutos». Al final, «Ajustes» lleva a lo que se toca de vez en cuando.
-- «Ajustes» tiene tres secciones: **Tu negocio** («Datos del negocio» y «Mis cuentas», solo dueños), **Tu equipo** («Mi equipo» y «Mis negocios», con la cuenta guardada) y **Seguridad** («Pedir huella al abrir Moca», «Borrar mi negocio y mis datos» para el titular y «Salir de este negocio» para los demás). Al final, la versión de Moca.
+- «Ajustes» tiene tres secciones: **Tu negocio** («Datos del negocio», «Mis cuentas» y, desde la entrega 31, «Mis categorías», solo dueños), **Tu equipo** («Mi equipo» y «Mis negocios», con la cuenta guardada) y **Seguridad** («Pedir huella al abrir Moca», «Borrar mi negocio y mis datos» para el titular y «Salir de este negocio» para los demás). Al final, la versión de Moca.
 - «Datos del negocio» cambia el nombre (hasta 40 letras) y la hora de cierre. Al guardar dice «Listo. Guardado.», queda en la bitácora, se sube y el aviso de cierre pasa a la hora nueva. El tipo de negocio no se cambia.
 
 ### La invitación por WhatsApp (entrega 30)
@@ -208,6 +208,8 @@ Estados aprobados el 13-10-2026 (entrega 6):
 ### Categorías provisionales
 
 Hasta que la Fase 0 defina las reales. «Retiro para mí» no es categoría: es un tipo de movimiento.
+
+Desde la entrega 31, el dueño agrega las suyas en «Ajustes» → «Mis categorías» o con «+ Otra categoría» al anotar: hasta 10 de lo que sale y 5 de lo que entra por negocio, sin repetir nombres. Las de esta tabla no se cambian. Una propia se puede renombrar o dejar de usar («Ya no la uso»), y lo anotado la conserva. En el flujo para el crédito suma en «Otros gastos fijos» u «Otros ingresos».
 
 | Tipo | Entró | Salió |
 |---|---|---|
