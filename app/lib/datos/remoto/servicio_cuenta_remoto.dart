@@ -386,6 +386,55 @@ class ServicioCuentaRemoto
   }
 
   @override
+  Future<ResultadoInicioDePago> pagarConMercadoPago() async {
+    final r = await _delEquipo(await _delNegocio('/cobro/mercadopago'), {});
+    if (r == null) return (inicio: null, error: ErrorDePago.sinSenal);
+    final cuerpo = _cuerpo(r);
+    if (r.statusCode == 200 &&
+        cuerpo['orden'] is String &&
+        cuerpo['enlace'] is String) {
+      return (
+        inicio: InicioDePago(
+          orden: cuerpo['orden']! as String,
+          enlace: cuerpo['enlace']! as String,
+        ),
+        error: null,
+      );
+    }
+    return (
+      inicio: null,
+      error: switch (cuerpo['error']) {
+        'sin_mercadopago' || 'sin_cobro' => ErrorDePago.noDisponible,
+        'solo_duenos' => ErrorDePago.soloDuenos,
+        _ => ErrorDePago.fallo,
+      },
+    );
+  }
+
+  @override
+  Future<OrdenDePago> estadoDeOrden(String orden) async {
+    final r = await _delEquipo('/cobro/orden/${Uri.encodeComponent(orden)}');
+    if (r == null || r.statusCode != 200) {
+      return (estado: EstadoDeOrden.sinSenal, hasta: null);
+    }
+    final cuerpo = _cuerpo(r);
+    // Ya pagado: el cobro nuevo queda en el teléfono al instante.
+    await _guardarCobro(cuerpo);
+    final cobro = cuerpo['cobro'];
+    return (
+      estado: switch (cuerpo['estado']) {
+        'pagada' => EstadoDeOrden.pagada,
+        'revisar' => EstadoDeOrden.revisar,
+        'reembolsada' => EstadoDeOrden.reembolsada,
+        _ => EstadoDeOrden.pendiente,
+      },
+      hasta: cobro is Map<String, Object?>
+          ? Cobro.desdeServidor(cobro).hasta
+          : null,
+    );
+  }
+
+  @override
   Future<ResultadoEquipo> responderPrecio(
     RespuestaPrecio respuesta, {
     String? motivo,
@@ -663,6 +712,17 @@ class ServicioCuentaRemoto
       sinAbrir: [
         for (final n in (cuerpo['sin_abrir'] as List? ?? const []))
           _ficha(n as Map<String, Object?>),
+      ],
+      porRevisar: [
+        for (final o in (cuerpo['revisar'] as List? ?? const []))
+          if (o is Map<String, Object?>)
+            PagoPorRevisar(
+              nombre: o['nombre'] as String? ?? '',
+              celular: o['celular'] as String?,
+              motivo: o['motivo'] as String? ?? '',
+              operacion: o['mp_pago_id'] as String?,
+              montoCentimos: o['monto_centimos'] as int? ?? 0,
+            ),
       ],
     );
   }

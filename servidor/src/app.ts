@@ -14,6 +14,15 @@ import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
 import { rutasUso } from './uso/rutas.js';
+import type { ConfigMercadoPago, MercadoPago } from './mercadopago/cliente.js';
+import { type Cobrador, rutasMercadoPago } from './mercadopago/rutas.js';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** Aplica y repasa los pagos de Mercado Pago (entrega 32). */
+    cobrador: Cobrador;
+  }
+}
 import {
   type BuscarReleases,
   type ConfigVersion,
@@ -39,6 +48,8 @@ export interface Dependencias {
   versionApp?: ConfigVersion;
   /** Quien lee los Releases de GitHub; las pruebas lo reemplazan. */
   buscarReleases?: BuscarReleases;
+  /** Mercado Pago (entrega 32); sin él, solo el Yape manual. */
+  mercadoPago?: { config: ConfigMercadoPago; cliente: MercadoPago } | null;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -52,7 +63,9 @@ export function crearApp({
   cobro = sinCobro,
   versionApp = leerConfigVersion({}),
   buscarReleases = releasesDeGitHub,
+  mercadoPago = null,
 }: Dependencias): FastifyInstance {
+  const conPago: ConfigCobro = { ...cobro, mercadoPago: mercadoPago !== null };
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
   const app = Fastify({
@@ -92,13 +105,24 @@ export function crearApp({
 
   rutasCuenta(app, pool, verificador);
   rutasBorrar(app, pool);
-  rutasDatos(app, pool, ahora, cobro);
-  rutasBajada(app, pool, ahora, cobro);
-  rutasCambios(app, pool, ahora, cobro);
-  rutasCobro(app, pool, cobro, ahora);
+  rutasDatos(app, pool, ahora, conPago);
+  rutasBajada(app, pool, ahora, conPago);
+  rutasCambios(app, pool, ahora, conPago);
+  rutasCobro(app, pool, conPago, ahora);
   rutasVersion(app, versionApp, buscarReleases, ahora);
-  rutasErrores(app, pool, cobro);
+  rutasErrores(app, pool, conPago);
   rutasUso(app, pool);
+  app.decorate(
+    'cobrador',
+    rutasMercadoPago(
+      app,
+      pool,
+      conPago,
+      mercadoPago?.config ?? null,
+      mercadoPago?.cliente ?? null,
+      ahora,
+    ),
+  );
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);

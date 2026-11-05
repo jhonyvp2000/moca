@@ -163,6 +163,12 @@ class _ServidorFalso {
   /// La pantalla de cobros (entrega 26): los pagos que se registraron y
   /// los que se anularon (26.1).
   final pagos = <Map<String, Object?>>[];
+
+  /// Mercado Pago (entrega 32): el error al pedir pagar y cómo va la orden.
+  String? errorMercadoPago;
+  var ordenesPedidas = 0;
+  var consultasDeOrden = 0;
+  Map<String, Object?> orden = {'estado': 'pendiente'};
   final anulados = <Object?>[];
 
   Map<String, Object?> fichaDeLucho({String? hasta}) => {
@@ -321,6 +327,17 @@ class _ServidorFalso {
                 'ultima_apertura': null,
               },
             ],
+            'revisar': [
+              {
+                'id': 'orden-9',
+                'nombre': 'Bodega Don Lucho',
+                'celular': '987654321',
+                'plan': 'fundador',
+                'monto_centimos': 1490,
+                'motivo': 'monto',
+                'mp_pago_id': '5005',
+              },
+            ],
           }),
           200,
         );
@@ -342,6 +359,22 @@ class _ServidorFalso {
           jsonEncode(fichaDeLucho(hasta: '2026-11-14')),
           200,
         );
+      case '/cobro/mercadopago':
+        ordenesPedidas++;
+        final error = errorMercadoPago;
+        return error != null
+            ? http.Response(jsonEncode({'error': error}), 503)
+            : http.Response(
+                jsonEncode({
+                  'orden': 'orden-1',
+                  'enlace': 'https://mp.falso/pagar/orden-1',
+                  'monto_centimos': 1490,
+                }),
+                200,
+              );
+      case '/cobro/orden/orden-1':
+        consultasDeOrden++;
+        return http.Response(jsonEncode(orden), 200);
       case '/cobro/respuesta':
         respuestasDePrecio.add(cuerpo);
         return http.Response(jsonEncode({'recibida': true}), 200);
@@ -3578,6 +3611,15 @@ void main() {
       expect(find.text(Textos.vencenPronto), findsOneWidget);
       expect(find.text(Textos.sinAbrirMoca), findsOneWidget);
       expect(find.textContaining('Pollería Rosa'), findsOneWidget);
+      // Lo de Mercado Pago que quedó por revisar (entrega 32).
+      expect(find.text(Textos.pagosPorRevisar), findsOneWidget);
+      expect(
+        find.text(
+          'Bodega Don Lucho · 987 654 321 · S/\u00A014.90 · op 5005 · '
+          '${Textos.motivoPorRevisar('monto')}',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Bodega Don Lucho'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '999888777');
@@ -3730,6 +3772,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text(Textos.precioDeFundador), findsOneWidget);
+      // Sin Mercado Pago en el servidor, solo el Yape (entrega 32).
+      expect(find.text(Textos.pagarConMercadoPago), findsNothing);
       await tocar(tester, find.text(Textos.mandarLaCaptura));
       expect(_abiertos.single, startsWith('https://wa.me/51911111111?text='));
       expect(_abiertos.single, isNot(contains('+')));
@@ -3737,6 +3781,105 @@ void main() {
         Uri.parse(_abiertos.single).queryParameters['text'],
         contains('Bodega Don Lucho'),
       );
+    });
+
+    // La espera de Mercado Pago gira sin parar: aquí no hay pumpAndSettle.
+    Future<void> avanzar(WidgetTester tester, Duration cuanto) async {
+      await tester.pump(cuanto);
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+      }
+    }
+
+    Future<void> tocarSinEsperar(WidgetTester tester, Finder f) async {
+      await tester.ensureVisible(f);
+      await tester.tap(f);
+      await avanzar(tester, Duration.zero);
+    }
+
+    testWidgets('Entrega 32: paga con Mercado Pago y Moca queda pagada', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(9),
+        'dias': 9,
+        'mercadopago': true,
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.comoPagar));
+      expect(
+        find.text(Textos.pagaConMercadoPago('S/\u00A014.90')),
+        findsOneWidget,
+      );
+      // El Yape manual queda debajo, con su botón ya no principal.
+      expect(find.text(Textos.oYapeaYMandaLaCaptura), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, Textos.mandarLaCaptura),
+        findsOneWidget,
+      );
+
+      await tocarSinEsperar(tester, find.text(Textos.pagarConMercadoPago));
+      expect(_servidor.ordenesPedidas, 1);
+      expect(_abiertos.single, 'https://mp.falso/pagar/orden-1');
+      expect(find.text(Textos.esperandoElPago), findsOneWidget);
+
+      await avanzar(tester, const Duration(seconds: 3));
+      expect(_servidor.consultasDeOrden, 1);
+      expect(find.text(Textos.esperandoElPago), findsOneWidget);
+
+      final hasta = _ahora.add(const Duration(days: 39));
+      _servidor.orden = {
+        'estado': 'pagada',
+        'cobro': {
+          'estado': 'pagado',
+          'hasta': dia(39),
+          'dias': 39,
+          'plan': 'fundador',
+          'precio': 1490,
+          'mercadopago': true,
+        },
+      };
+      await avanzar(tester, const Duration(seconds: 3));
+      await esperar(tester);
+      expect(find.text(Textos.esperandoElPago), findsNothing);
+      expect(find.text(Textos.pagaTuMes), findsNothing);
+      expect(
+        find.text(Textos.mocaPagadaHasta(formatearDiaYMes(hasta))),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.pagadoHasta(formatearDiaYMes(hasta))),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Entrega 32: «Seguir sin esperar» y sin Mercado Pago', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(9),
+        'dias': 9,
+        'mercadopago': true,
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.comoPagar));
+      await tocarSinEsperar(tester, find.text(Textos.pagarConMercadoPago));
+      await tocarSinEsperar(tester, find.text(Textos.seguirSinEsperar));
+      await avanzar(tester, const Duration(seconds: 10));
+      expect(find.text(Textos.esperandoElPago), findsNothing);
+      expect(_servidor.consultasDeOrden, 0);
+      // Sigue en «Cómo pagar», por si quiere yapear.
+      expect(find.text(Textos.pagaTuMes), findsOneWidget);
+
+      // Si el servidor no tiene Mercado Pago, lo dice y no abre nada.
+      _abiertos.clear();
+      _servidor.errorMercadoPago = 'sin_mercadopago';
+      await tocar(tester, find.text(Textos.pagarConMercadoPago));
+      expect(_abiertos, isEmpty);
+      expect(find.text(Textos.pagoNoDisponible), findsOneWidget);
     });
 
     testWidgets('Por vencer: el aviso sale en el Inicio', (tester) async {

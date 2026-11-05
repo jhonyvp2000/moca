@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -104,6 +106,108 @@ class AvisoDelCobro extends ConsumerWidget {
   }
 }
 
+/// Pagar con Mercado Pago (entrega 32), como en TVSamGo: se abre la página
+/// de pago en el navegador y, mientras tanto, la app pregunta cada 3
+/// segundos, unos 3 minutos. Si el dueño no espera, el pago se activa igual.
+Future<void> pagarConMercadoPago(BuildContext context) async {
+  final mensajes = ScaffoldMessenger.of(context);
+  // El diálogo va en el navegador raíz; «Cómo pagar», en el de su pestaña.
+  final raiz = Navigator.of(context, rootNavigator: true);
+  final contenedor = ProviderScope.containerOf(context, listen: false);
+  final servicio = contenedor.read(servicioCobroProvider);
+  void decir(String texto) => mensajes.showSnackBar(
+    SnackBar(content: Text(texto), duration: const Duration(seconds: 6)),
+  );
+
+  final r = await servicio.pagarConMercadoPago();
+  final inicio = r.inicio;
+  if (inicio == null) {
+    decir(switch (r.error) {
+      ErrorDePago.sinSenal => Textos.pagoSinSenal,
+      ErrorDePago.noDisponible => Textos.pagoNoDisponible,
+      ErrorDePago.soloDuenos => Textos.pagoSoloDuenos,
+      _ => Textos.pagoFallo,
+    });
+    return;
+  }
+  if (!await contenedor.read(abridorProvider).abrir(inicio.enlace)) {
+    decir(Textos.noSeAbrioElPago);
+    return;
+  }
+  if (!context.mounted) return;
+
+  var esperando = true;
+  unawaited(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogo) => AlertDialog(
+        content: const Row(
+          children: [
+            SizedBox.square(
+              dimension: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text(Textos.esperandoElPago, style: Tipografia.texto),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              esperando = false;
+              Navigator.of(dialogo).pop();
+            },
+            child: const Text(Textos.seguirSinEsperar),
+          ),
+        ],
+      ),
+    ).then((_) => esperando = false),
+  );
+  void cerrar() {
+    if (esperando) {
+      esperando = false;
+      raiz.pop();
+    }
+  }
+
+  for (var i = 0; i < 60 && esperando; i++) {
+    await Future<void>.delayed(const Duration(seconds: 3));
+    if (!esperando) return;
+    final orden = await servicio.estadoDeOrden(inicio.orden);
+    if (!esperando) return;
+    switch (orden.estado) {
+      case EstadoDeOrden.pagada:
+        cerrar();
+        final hasta = orden.hasta;
+        // También se cierra «Cómo pagar»: ya está pagado.
+        if (context.mounted) Navigator.of(context).pop();
+        decir(
+          hasta == null
+              ? Textos.mocaPagada
+              : Textos.mocaPagadaHasta(formatearDiaYMes(hasta)),
+        );
+        return;
+      case EstadoDeOrden.revisar:
+        cerrar();
+        decir(Textos.pagoPorRevisar);
+        return;
+      case EstadoDeOrden.reembolsada:
+        cerrar();
+        decir(Textos.pagoDevuelto);
+        return;
+      case EstadoDeOrden.pendiente || EstadoDeOrden.sinSenal:
+        break;
+    }
+  }
+  if (esperando) {
+    cerrar();
+    decir(Textos.siYaPagaste);
+  }
+}
+
 /// A dónde yapear y el botón para mandar la captura por WhatsApp.
 Future<void> mostrarComoPagar(
   BuildContext context,
@@ -143,8 +247,9 @@ class _HojaComoPagar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final yape = cobro.yape;
     final nombre = cobro.nombreYape;
+    // Con Mercado Pago y el Yape, no cabe en un teléfono chico: se desplaza.
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(Medidas.margenLateral),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -152,7 +257,38 @@ class _HojaComoPagar extends ConsumerWidget {
           children: [
             const Text(Textos.pagaTuMes, style: Tipografia.tituloPantalla),
             const SizedBox(height: 12),
-            if (yape == null || nombre == null)
+            // Primero Mercado Pago (entrega 32); el Yape manual queda debajo.
+            if (cobro.mercadoPago) ...[
+              Text(
+                Textos.pagaConMercadoPago(
+                  formatearSolesComprobante(cobro.precioCentimos),
+                ),
+                style: Tipografia.textoFuerte,
+              ),
+              if (cobro.precioCentimos < 1990) ...[
+                const SizedBox(height: 4),
+                const Text(
+                  Textos.precioDeFundador,
+                  style: Tipografia.secundario,
+                ),
+              ],
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => pagarConMercadoPago(context),
+                child: const Text(Textos.pagarConMercadoPago),
+              ),
+              if (yape != null && nombre != null) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  Textos.oYapeaYMandaLaCaptura,
+                  style: Tipografia.secundario,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+            if (cobro.mercadoPago && (yape == null || nombre == null))
+              const SizedBox.shrink()
+            else if (yape == null || nombre == null)
               const Text(Textos.pagoSinDatos, style: Tipografia.texto)
             else ...[
               Text(
@@ -163,7 +299,7 @@ class _HojaComoPagar extends ConsumerWidget {
                 ),
                 style: Tipografia.textoFuerte,
               ),
-              if (cobro.precioCentimos < 1990) ...[
+              if (cobro.precioCentimos < 1990 && !cobro.mercadoPago) ...[
                 const SizedBox(height: 4),
                 const Text(
                   Textos.precioDeFundador,
@@ -183,10 +319,17 @@ class _HojaComoPagar extends ConsumerWidget {
                 child: const Text(Textos.copiarElNumero),
               ),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () => _mandarCaptura(context, ref),
-                child: const Text(Textos.mandarLaCaptura),
-              ),
+              // Con Mercado Pago, el botón principal es el de arriba.
+              if (cobro.mercadoPago)
+                OutlinedButton(
+                  onPressed: () => _mandarCaptura(context, ref),
+                  child: const Text(Textos.mandarLaCaptura),
+                )
+              else
+                FilledButton(
+                  onPressed: () => _mandarCaptura(context, ref),
+                  child: const Text(Textos.mandarLaCaptura),
+                ),
             ],
           ],
         ),

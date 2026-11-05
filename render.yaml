@@ -44,6 +44,12 @@ services:
         sync: false
       - key: MOCA_YAPE_NOMBRE
         sync: false
+      # Pagar con Mercado Pago (entrega 32): el Access Token y la clave
+      # secreta del webhook, de la misma aplicación. Solo en el panel.
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
       # «Actualiza Moca para seguir» (entrega 26.3): con un número de armado,
       # las versiones más viejas solo pueden actualizarse. Vacía: nunca obliga.
       - key: MOCA_APP_MINIMA

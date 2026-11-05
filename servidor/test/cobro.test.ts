@@ -11,6 +11,7 @@ import {
 import { leerConfigCobro } from '../src/cobro/rutas.js';
 import { crearBaseDePrueba, type BaseDePrueba } from './base_de_prueba.js';
 import { verificadorFalso } from './verificador_falso.js';
+import { negocio, type Persona } from './negocio_de_prueba.js';
 
 describe('El estado del cobro (entrega 24)', () => {
   const base = { cobroDesde: '2026-11-10', suscripcion: null, fundadores: 0 };
@@ -171,66 +172,6 @@ describe('El estado del cobro (entrega 24)', () => {
     expect(leerConfigCobro({ MOCA_COBRO_DESDE: 'mañana' }).desde).toBeNull();
   });
 });
-
-interface Persona {
-  usuarioId: string;
-  llave: string;
-}
-
-/** Un negocio con una venta hecha el día indicado. */
-function negocio(nombre: string, duenoId: string, creadoEn: string) {
-  const efectivo = randomUUID();
-  const venta = randomUUID();
-  return {
-    empresa: {
-      id: randomUUID(),
-      nombre,
-      tipo_negocio: 'bodega',
-      modo: 'simple',
-      pais: 'PE',
-      moneda: 'PEN',
-      hora_cierre_minutos: 1260,
-      creado_en: creadoEn,
-    },
-    cuentas: [
-      {
-        id: efectivo,
-        tipo: 'efectivo',
-        nombre: 'Efectivo',
-        orden: 0,
-        saldo_inicial_centimos: 100000,
-        fecha_saldo_inicial: creadoEn,
-      },
-    ],
-    categorias: [
-      {
-        id: venta,
-        nombre: 'Venta del día',
-        tipo_movimiento: 'ingreso',
-        orden: 0,
-        activa: true,
-      },
-    ],
-    movimientos: [
-      {
-        id: randomUUID(),
-        tipo: 'ingreso',
-        cuenta_id: efectivo,
-        monto_centimos: 35000,
-        fecha_movimiento: creadoEn,
-        estado_pago: 'pagado',
-        monto_pagado_centimos: 35000,
-        fecha_pago: creadoEn,
-        categoria_id: venta,
-        nivel_confianza: 'd',
-        fuente: 'voz',
-        autor_id: duenoId,
-        estado: 'vigente',
-        creado_en: creadoEn,
-      },
-    ],
-  };
-}
 
 describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
   let base: BaseDePrueba;

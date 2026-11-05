@@ -222,6 +222,26 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
             alAnular: _anular,
           ),
         ],
+        // Lo que Mercado Pago cobró y no se aplicó solo (entrega 32).
+        if (resumen != null && resumen.porRevisar.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Text(Textos.pagosPorRevisar, style: Tipografia.tituloTarjeta),
+          const SizedBox(height: 8),
+          for (final p in resumen.porRevisar)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                [
+                  p.nombre,
+                  if (p.celular != null) formatearCelular(p.celular!),
+                  formatearSolesComprobante(p.montoCentimos),
+                  if (p.operacion != null) 'op ${p.operacion}',
+                  Textos.motivoPorRevisar(p.motivo),
+                ].join(' · '),
+                style: Tipografia.secundario,
+              ),
+            ),
+        ],
         if (resumen != null) ...[
           const SizedBox(height: 24),
           const Text(Textos.sinAbrirMoca, style: Tipografia.tituloTarjeta),

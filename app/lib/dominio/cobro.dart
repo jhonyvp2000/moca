@@ -15,6 +15,7 @@ class Cobro {
     this.nombreYape,
     this.admin = false,
     this.respondio = false,
+    this.mercadoPago = false,
   });
 
   static const sinCobro = Cobro(estado: EstadoDelCobro.sinCobro);
@@ -41,6 +42,7 @@ class Cobro {
       nombreYape: pago is Map ? pago['nombre'] as String? : null,
       admin: json['admin'] == true,
       respondio: json['respondio'] == true,
+      mercadoPago: json['mercadopago'] == true,
     );
   }
 
@@ -66,6 +68,9 @@ class Cobro {
 
   /// Ya contestó la pregunta del día 10.
   final bool respondio;
+
+  /// Se puede pagar con Mercado Pago (entrega 32).
+  final bool mercadoPago;
 
   /// Al vencer: se anota y se baja el Excel, nada más.
   bool get soloAnotar => estado == EstadoDelCobro.vencido;
@@ -102,9 +107,28 @@ class Cobro {
       nombreYape: nombreYape,
       admin: admin,
       respondio: respondio,
+      mercadoPago: mercadoPago,
     );
   }
 }
+
+/// Pagar con Mercado Pago (entrega 32): la orden y la página de pago.
+class InicioDePago {
+  const InicioDePago({required this.orden, required this.enlace});
+
+  final String orden;
+  final String enlace;
+}
+
+enum ErrorDePago { sinSenal, noDisponible, soloDuenos, fallo }
+
+typedef ResultadoInicioDePago = ({InicioDePago? inicio, ErrorDePago? error});
+
+/// Cómo va la orden: la app pregunta cada 3 segundos al volver de pagar.
+enum EstadoDeOrden { pendiente, pagada, revisar, reembolsada, sinSenal }
+
+/// La orden y, ya pagada, hasta cuándo quedó pagado Moca.
+typedef OrdenDePago = ({EstadoDeOrden estado, DateTime? hasta});
 
 enum RespuestaPrecio { si, noSe, no }
 
@@ -214,6 +238,7 @@ class ResumenDeCobros {
     required this.maximoFundadores,
     required this.negocios,
     this.sinAbrir = const [],
+    this.porRevisar = const [],
   });
 
   final int fundadores;
@@ -224,6 +249,27 @@ class ResumenDeCobros {
 
   /// Los que no abren Moca hace 3 días o más (entrega 28).
   final List<FichaDeCobro> sinAbrir;
+
+  /// Lo cobrado por Mercado Pago que no se aplicó solo (entrega 32).
+  final List<PagoPorRevisar> porRevisar;
+}
+
+/// Un pago de Mercado Pago que Jhony resuelve a mano: cobró menos, ya no le
+/// tocaba el plan, o se devolvió un pago que no era el último.
+class PagoPorRevisar {
+  const PagoPorRevisar({
+    required this.nombre,
+    required this.motivo,
+    this.celular,
+    this.operacion,
+    this.montoCentimos = 0,
+  });
+
+  final String nombre;
+  final String? celular;
+  final String motivo;
+  final String? operacion;
+  final int montoCentimos;
 }
 
 enum ResultadoCobro {

@@ -1236,6 +1236,33 @@ abstract final class Textos {
 
   static const comoPagar = 'Cómo pagar';
   static const pagaTuMes = 'Paga tu mes de Moca';
+
+  // Pagar con Mercado Pago (entrega 32).
+  static String pagaConMercadoPago(String monto) =>
+      'Paga $monto con Yape, tarjeta o PagoEfectivo en la página de Mercado '
+      'Pago.';
+  static const pagarConMercadoPago = 'Pagar con Mercado Pago';
+  static const abriendoMercadoPago = 'Abriendo Mercado Pago…';
+  static const oYapeaYMandaLaCaptura = 'O yapea y manda la captura:';
+  static const esperandoElPago = 'Esperando la confirmación del pago…';
+  static const seguirSinEsperar = 'Seguir sin esperar';
+  static const mocaPagada = 'Listo. Moca está pagada.';
+  static String mocaPagadaHasta(String dia) =>
+      'Listo. Moca está pagada hasta el $dia.';
+  static const pagoPorRevisar =
+      'Recibimos tu pago, pero hay que revisarlo. Te escribiremos por '
+      'WhatsApp.';
+  static const pagoDevuelto = 'Mercado Pago devolvió el pago. No se cobró.';
+  static const siYaPagaste =
+      'Si ya pagaste, Moca se activa sola en unos minutos. PagoEfectivo puede '
+      'tardar unas horas.';
+  static const pagoSinSenal = 'Necesitas señal para pagar.';
+  static const pagoNoDisponible =
+      'Por ahora no se puede pagar con Mercado Pago. Yapea y manda la captura.';
+  static const pagoSoloDuenos = 'Solo un dueño puede pagar Moca.';
+  static const pagoFallo =
+      'No se pudo abrir el pago. Intenta otra vez en un momento.';
+  static const noSeAbrioElPago = 'No se pudo abrir la página de pago.';
   static String yapeaA(String monto, String numero, String nombre) =>
       'Yapea $monto al $numero, a nombre de $nombre.';
   static const precioDeFundador =
@@ -1364,6 +1391,14 @@ abstract final class Textos {
       'Abrió Moca por última vez: $cuando';
   static const nuncaAbrio = 'Sin datos de uso todavía';
   static const sinAbrirMoca = 'Sin abrir Moca hace 3 días o más';
+  static const pagosPorRevisar = 'Pagos de Mercado Pago por revisar';
+  static String motivoPorRevisar(String motivo) => switch (motivo) {
+    'monto' => 'cobró menos de lo que vale',
+    'sin_cupo_fundador' => 'ya no había cupo de fundador',
+    'perdio_fundador' => 'ya no le tocaba el precio de fundador',
+    'devuelto' => 'devuelto, y no era su último pago',
+    _ => motivo,
+  };
   static const todosAbren = 'Todos abrieron Moca en los últimos 3 días.';
   static const nadaPorVencer = 'Nada vence en los próximos 3 días.';
   static String estadoCorto(Cobro cobro) {

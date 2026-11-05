@@ -4,7 +4,7 @@ Plan aprobado por Jhony el 14 de octubre de 2026 (ver `decisiones.md`). Sigue al
 
 ## Objetivo
 
-La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde las entregas 17 a 23, con cobro manual por Yape mientras se reparte como APK: S/ 19.90 al mes, 14 días de prueba, ver `decisiones.md` del 03-11-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
+La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde las entregas 17 a 23, con cobro por Mercado Pago desde la entrega 32 y por Yape manual como segunda opción, mientras se reparte como APK: S/ 19.90 al mes, 14 días de prueba, ver `decisiones.md` del 03-11-2026 y del 05-11-2026), ahora con servidor: cuenta real, datos en la nube, sincronización, cifras calculadas en el servidor, lectura de fotos y redacción de Moca con IA, y publicación en la Play Store.
 
 ## Cómo se trabaja
 

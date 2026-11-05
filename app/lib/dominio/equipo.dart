@@ -265,8 +265,15 @@ class Permisos {
       };
 }
 
-/// La pregunta del día 10 de la prueba (entrega 25).
+/// La pregunta del día 10 de la prueba (entrega 25) y el pago con Mercado
+/// Pago (entrega 32).
 abstract interface class ServicioCobro {
+  /// Pide la orden y la página de pago del mes.
+  Future<ResultadoInicioDePago> pagarConMercadoPago();
+
+  /// Cómo va la orden; al quedar pagada, guarda el cobro nuevo.
+  Future<OrdenDePago> estadoDeOrden(String orden);
+
   /// Manda la respuesta al servidor. Sin señal, `sinSenal`: no se guarda.
   Future<ResultadoEquipo> responderPrecio(
     RespuestaPrecio respuesta, {

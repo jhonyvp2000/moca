@@ -6,6 +6,7 @@ import { leerConfig } from './config.js';
 import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
 import { leerConfigCobro } from './cobro/rutas.js';
 import { leerConfigVersion } from './version/rutas.js';
+import { leerConfigMercadoPago, mercadoPagoReal } from './mercadopago/cliente.js';
 
 // Arranque en Render: migra la base, revisa el aislamiento y abre el puerto.
 const config = leerConfig();
@@ -30,6 +31,12 @@ if (!llaveAnthropic) console.warn('Falta ANTHROPIC_API_KEY: no se pueden leer fo
 // El cobro manual por Yape (entrega 24): sin MOCA_COBRO_DESDE no se cobra.
 const cobro = leerConfigCobro();
 if (!cobro.desde) console.warn('Sin MOCA_COBRO_DESDE: el cobro no ha empezado.');
+// Mercado Pago (entrega 32): sin MP_ACCESS_TOKEN, solo el Yape manual.
+const configMp = leerConfigMercadoPago();
+if (!configMp) console.warn('Sin MP_ACCESS_TOKEN: no se puede pagar con Mercado Pago.');
+else if (!configMp.secreto) {
+  console.warn('Sin MP_WEBHOOK_SECRET: los avisos de Mercado Pago no se comprueban.');
+}
 const app = crearApp({
   pool,
   version: config.version,
@@ -38,6 +45,18 @@ const app = crearApp({
   registrar: true,
   cobro,
   versionApp: leerConfigVersion(),
+  mercadoPago: configMp ? { config: configMp, cliente: mercadoPagoReal(configMp.token) } : null,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
+
+// El aviso que no llegó (entrega 32): cada 5 minutos se le pregunta a Mercado
+// Pago qué pagos cambiaron y van por el mismo camino. Al arrancar, 72 horas.
+if (configMp) {
+  const repasar = (horas: number) =>
+    app.cobrador
+      .repasar(horas)
+      .catch((error: unknown) => console.error('El repaso de Mercado Pago falló:', error));
+  setTimeout(() => void repasar(72), 60_000).unref();
+  setInterval(() => void repasar(6), 5 * 60_000).unref();
+}
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

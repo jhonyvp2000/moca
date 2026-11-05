@@ -24,6 +24,8 @@ export interface ConfigCobro {
   admins: string[];
   /** MOCA_YAPE_NUMERO y MOCA_YAPE_NOMBRE: a dónde yapear. */
   yape: { numero: string; nombre: string } | null;
+  /** Mercado Pago está configurado (entrega 32): la app ofrece pagar ahí. */
+  mercadoPago?: boolean;
 }
 
 export const sinCobro: ConfigCobro = { desde: null, admins: [], yape: null };
@@ -47,7 +49,7 @@ export function leerConfigCobro(entorno: NodeJS.ProcessEnv = process.env): Confi
 type Suscripcion = { plan: Plan; pagadoHasta: string; fueFundador: boolean };
 
 /** Lo que hace falta para el estado de un negocio, con el filtro explícito. */
-async function datosDelCobro(
+export async function datosDelCobro(
   cliente: Cliente,
   empresaId: string,
 ): Promise<{
@@ -133,6 +135,8 @@ export async function esAdmin(pool: Pool, config: ConfigCobro, usuarioId: string
 /** El estado para el teléfono, con a dónde yapear y si quien pide es admin. */
 export type CobroParaElTelefono = EstadoCobro & {
   pago?: { yape: string; nombre: string };
+  /** Se puede pagar con Mercado Pago (entrega 32). */
+  mercadopago?: true;
   admin?: true;
   /** Ya contestó la pregunta del día 10 (entrega 25). */
   respondio: boolean;
@@ -172,6 +176,7 @@ export async function cobroParaElTelefono(
     ...(config.yape && estado.estado !== 'sin_cobro'
       ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
       : {}),
+    ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
     ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }
@@ -217,7 +222,7 @@ export async function recordarPrueba(
   }
 }
 
-class ErrorDeCobro extends Error {
+export class ErrorDeCobro extends Error {
   constructor(
     readonly codigo: number,
     readonly clave: string,
@@ -250,6 +255,148 @@ async function comoAdmin<T>(
   }
 }
 
+/**
+ * Una transacción del servidor mismo, sin persona (entrega 32): el aviso de
+ * Mercado Pago no trae llave. Ve todos los negocios, como quien registra
+ * pagos; quien la usa ya comprobó qué negocio toca.
+ */
+export async function comoServidor<T>(
+  pool: Pool,
+  trabajo: (cliente: Cliente) => Promise<T>,
+): Promise<T> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.admin', 'si', true)`);
+    const resultado = await trabajo(cliente);
+    await cliente.query('COMMIT');
+    return resultado;
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}
+
+/**
+ * Registra un pago: el periodo sigue al anterior si no venció, y quien paga
+ * en la prueba no pierde los días que le quedan. El mismo camino para el Yape
+ * que registra Jhony y para Mercado Pago (entrega 32). Va dentro de una
+ * transacción que ve todos los negocios.
+ */
+export async function registrarPago(
+  cliente: Cliente,
+  config: ConfigCobro,
+  {
+    empresaId,
+    plan,
+    nota,
+    registradoPor,
+    hoy,
+    origen = 'yape',
+    mpPagoId = null,
+  }: {
+    empresaId: string;
+    plan: Plan;
+    nota: string | null;
+    registradoPor: string;
+    hoy: string;
+    origen?: 'yape' | 'mercadopago';
+    mpPagoId?: string | null;
+  },
+): Promise<void> {
+  // Un pago a la vez: el cupo de fundadores no se pasa de 50.
+  const cupo = (
+    await cliente.query<{ usados: number }>(
+      'SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE',
+    )
+  ).rows[0]!.usados;
+  const datos = await datosDelCobro(cliente, empresaId);
+  const actual = datos.suscripcion;
+  const ahoraMismo = estadoDelCobro({ hoy, cobroDesde: config.desde, ...datos });
+  if (plan === 'fundador' && !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })) {
+    throw new ErrorDeCobro(409, actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador');
+  }
+  const periodo = periodoDelPago({
+    hoy,
+    pagadoHasta:
+      actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
+    plan,
+  });
+  await cliente.query(
+    `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por,
+                        origen, mp_pago_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [
+      randomUUID(),
+      empresaId,
+      plan,
+      precios[plan],
+      periodo.desde,
+      periodo.hasta,
+      nota,
+      registradoPor,
+      origen,
+      mpPagoId,
+    ],
+  );
+  await cliente.query(
+    `INSERT INTO suscripciones (empresa_id, plan, pagado_hasta, fue_fundador)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (empresa_id) DO UPDATE
+       SET plan = $2, pagado_hasta = $3,
+           fue_fundador = suscripciones.fue_fundador OR $4,
+           actualizado_en = now()`,
+    [empresaId, plan, periodo.hasta, plan === 'fundador'],
+  );
+  if (plan === 'fundador' && !actual?.fueFundador) {
+    await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
+  }
+}
+
+/**
+ * Anula un pago (entrega 26.1): solo el último del negocio, porque los demás
+ * siguen a este y sus fechas se cruzarían. El negocio queda como antes de ese
+ * pago y, si era su único pago de fundador, el cupo vuelve. Devuelve el
+ * negocio. También lo usa la devolución de Mercado Pago (entrega 32).
+ */
+export async function anularPago(cliente: Cliente, pagoId: string): Promise<string> {
+  await cliente.query('SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE');
+  const pago = (
+    await cliente.query<{ empresa_id: string }>(
+      'SELECT empresa_id FROM pagos WHERE id::text = $1 AND anulado_en IS NULL',
+      [pagoId],
+    )
+  ).rows[0];
+  if (!pago) throw new ErrorDeCobro(404, 'sin_pago');
+  const vigentes = `SELECT id, plan, hasta FROM pagos
+      WHERE empresa_id = $1 AND anulado_en IS NULL ORDER BY creado_en DESC`;
+  const ultimo = (await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])).rows[0];
+  if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, 'no_es_el_ultimo');
+  const antes = (await datosDelCobro(cliente, pago.empresa_id)).suscripcion;
+  await cliente.query('UPDATE pagos SET anulado_en = now() WHERE id = $1', [pagoId]);
+
+  const quedan = (await cliente.query<{ plan: Plan; hasta: string }>(vigentes, [pago.empresa_id]))
+    .rows;
+  const sigueFundador = quedan.some((p) => p.plan === 'fundador');
+  const anterior = quedan[0];
+  if (anterior) {
+    await cliente.query(
+      `UPDATE suscripciones SET plan = $2, pagado_hasta = $3, fue_fundador = $4,
+              actualizado_en = now()
+        WHERE empresa_id = $1`,
+      [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador],
+    );
+  } else {
+    await cliente.query('DELETE FROM suscripciones WHERE empresa_id = $1', [pago.empresa_id]);
+  }
+  if (antes?.fueFundador && !sigueFundador) {
+    await cliente.query('UPDATE cupo_fundadores SET usados = greatest(usados - 1, 0) WHERE id = 1');
+  }
+  return pago.empresa_id;
+}
+
 interface FichaDelNegocio {
   empresa_id: string;
   nombre: string;
@@ -273,7 +420,7 @@ async function ficha(
 }
 
 /** Los negocios activos con el número de su titular. */
-const empresasConTitular = `
+export const empresasConTitular = `
   SELECT e.id, e.nombre, u.celular
     FROM empresas e
     JOIN membresias m ON m.empresa_id = e.id AND m.titular AND m.quitada_en IS NULL
@@ -373,7 +520,7 @@ export function rutasCobro(
         if (!empresa) throw new ErrorDeCobro(404, 'sin_negocio');
         const pagos = (
           await cliente.query(
-            `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en
+            `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en, origen
                FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
             [empresa.id],
           )
@@ -423,61 +570,13 @@ export function rutasCobro(
             }>(`${empresasConTitular} WHERE e.id::text = $1`, [empresa])
           ).rows[0];
           if (!negocio) throw new ErrorDeCobro(404, 'sin_negocio');
-          // Un pago a la vez: el cupo de fundadores no se pasa de 50.
-          const cupo = (
-            await cliente.query<{ usados: number }>(
-              'SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE',
-            )
-          ).rows[0]!.usados;
-          const datos = await datosDelCobro(cliente, negocio.id);
-          const actual = datos.suscripcion;
-          const ahoraMismo = estadoDelCobro({
-            hoy,
-            cobroDesde: config.desde,
-            ...datos,
-          });
-          if (
-            plan === 'fundador' &&
-            !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })
-          ) {
-            throw new ErrorDeCobro(
-              409,
-              actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador',
-            );
-          }
-          // Quien paga en la prueba no pierde los días que le quedan.
-          const periodo = periodoDelPago({
-            hoy,
-            pagadoHasta:
-              actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
+          await registrarPago(cliente, config, {
+            empresaId: negocio.id,
             plan,
+            nota: typeof nota === 'string' && nota.trim() ? nota.trim().slice(0, 200) : null,
+            registradoPor: usuarioId,
+            hoy,
           });
-          await cliente.query(
-            `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [
-              randomUUID(),
-              negocio.id,
-              plan,
-              precios[plan],
-              periodo.desde,
-              periodo.hasta,
-              typeof nota === 'string' && nota.trim() ? nota.trim().slice(0, 200) : null,
-              usuarioId,
-            ],
-          );
-          await cliente.query(
-            `INSERT INTO suscripciones (empresa_id, plan, pagado_hasta, fue_fundador)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (empresa_id) DO UPDATE
-               SET plan = $2, pagado_hasta = $3,
-                   fue_fundador = suscripciones.fue_fundador OR $4,
-                   actualizado_en = now()`,
-            [negocio.id, plan, periodo.hasta, plan === 'fundador'],
-          );
-          if (plan === 'fundador' && !actual?.fueFundador) {
-            await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
-          }
           return await ficha(cliente, config, negocio, hoy);
         });
       } catch (error) {
@@ -495,48 +594,11 @@ export function rutasCobro(
       if (typeof pagoId !== 'string') throw new ErrorDeCobro(400, 'datos_invalidos');
       const hoy = diaEnLima(ahora());
       return await comoAdmin(pool, usuarioId, async (cliente) => {
-        await cliente.query('SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE');
-        const pago = (
-          await cliente.query<{ empresa_id: string }>(
-            'SELECT empresa_id FROM pagos WHERE id::text = $1 AND anulado_en IS NULL',
-            [pagoId],
-          )
-        ).rows[0];
-        if (!pago) throw new ErrorDeCobro(404, 'sin_pago');
-        const vigentes = `SELECT id, plan, hasta FROM pagos
-            WHERE empresa_id = $1 AND anulado_en IS NULL ORDER BY creado_en DESC`;
-        const ultimo = (await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])).rows[0];
-        // Solo el último: los demás siguen a este y sus fechas se cruzarían.
-        if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, 'no_es_el_ultimo');
-        const antes = (await datosDelCobro(cliente, pago.empresa_id)).suscripcion;
-        await cliente.query('UPDATE pagos SET anulado_en = now() WHERE id = $1', [pagoId]);
-
-        const quedan = (
-          await cliente.query<{ plan: Plan; hasta: string }>(vigentes, [pago.empresa_id])
-        ).rows;
-        const sigueFundador = quedan.some((p) => p.plan === 'fundador');
-        const anterior = quedan[0];
-        if (anterior) {
-          await cliente.query(
-            `UPDATE suscripciones SET plan = $2, pagado_hasta = $3, fue_fundador = $4,
-                    actualizado_en = now()
-              WHERE empresa_id = $1`,
-            [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador],
-          );
-        } else {
-          await cliente.query('DELETE FROM suscripciones WHERE empresa_id = $1', [
-            pago.empresa_id,
-          ]);
-        }
-        if (antes?.fueFundador && !sigueFundador) {
-          await cliente.query(
-            'UPDATE cupo_fundadores SET usados = greatest(usados - 1, 0) WHERE id = 1',
-          );
-        }
+        const empresaId = await anularPago(cliente, pagoId);
         const negocio = (
           await cliente.query<{ id: string; nombre: string; celular: string }>(
             `${empresasConTitular} WHERE e.id = $1`,
-            [pago.empresa_id],
+            [empresaId],
           )
         ).rows[0]!;
         return await ficha(cliente, config, negocio, hoy);
@@ -574,7 +636,20 @@ export function rutasCobro(
           )
         ).rows;
         const porId = new Map(fichas.map((f) => [f.empresa_id, f]));
+        // Lo cobrado por Mercado Pago que no se pudo aplicar solo (entrega 32).
+        const revisar = (
+          await cliente.query(
+            `SELECT o.id, e.nombre, right(u.celular, 9) AS celular, o.plan, o.monto_centimos,
+                    o.motivo, o.mp_pago_id, o.actualizado_en
+               FROM ordenes_pago o
+               JOIN empresas e ON e.id = o.empresa_id
+               JOIN usuarios u ON u.id = o.usuario_id
+              WHERE o.estado = 'revisar'
+              ORDER BY o.actualizado_en DESC`,
+          )
+        ).rows;
         return {
+          revisar,
           sin_abrir: sinAbrir.flatMap((s) => {
             const f = porId.get(s.empresa_id);
             return f ? [{ ...f, ultima_apertura: s.ultima ? new Date(s.ultima).toISOString() : null }] : [];
