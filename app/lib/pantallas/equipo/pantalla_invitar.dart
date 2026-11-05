@@ -11,6 +11,7 @@ import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'invitacion_whatsapp.dart';
 
 /// Invitar a alguien al negocio (entrega 19): nombre, celular y rol. Solo
 /// los dueños llegan aquí. La persona entra con su número en «Me invitaron».
@@ -28,6 +29,10 @@ class _EstadoInvitar extends ConsumerState<PantallaInvitar> {
   bool _enviando = false;
   String? _error;
 
+  /// Ya invitada: el aviso y «Mandarle la invitación por WhatsApp»
+  /// (entrega 30). Vale 7 días, como en el servidor.
+  DateTime? _venceEn;
+
   @override
   void dispose() {
     _nombre.dispose();
@@ -42,24 +47,16 @@ class _EstadoInvitar extends ConsumerState<PantallaInvitar> {
       _enviando = true;
       _error = null;
     });
-    final mensajes = ScaffoldMessenger.of(context);
     final nombre = _nombre.text.trim();
     final resultado = await ref
         .read(servicioEquipoProvider)
         .invitar(celular: _digitos, rol: _rol, nombre: nombre);
     if (!mounted) return;
     if (resultado == ResultadoEquipo.listo) {
-      mensajes.showSnackBar(
-        SnackBar(
-          content: Text(
-            Textos.invitacionEnviada(
-              nombre.isEmpty ? formatearCelular(_digitos) : nombre,
-            ),
-          ),
-          duration: const Duration(seconds: 6),
-        ),
-      );
-      context.pop(true);
+      setState(() {
+        _enviando = false;
+        _venceEn = ref.read(relojProvider)().add(const Duration(days: 7));
+      });
       return;
     }
     setState(() {
@@ -74,8 +71,43 @@ class _EstadoInvitar extends ConsumerState<PantallaInvitar> {
     });
   }
 
+  Widget _invitada(DateTime venceEn) {
+    final nombre = _nombre.text.trim();
+    return PantallaConAcciones(
+      encabezado: EncabezadoConVolver(
+        titulo: Textos.invitarAAlguien,
+        alVolver: () => context.pop(true),
+      ),
+      contenido: [
+        Aviso(
+          texto: Textos.invitacionEnviada(
+            nombre.isEmpty ? formatearCelular(_digitos) : nombre,
+          ),
+        ),
+      ],
+      acciones: [
+        FilledButton(
+          onPressed: () => mandarInvitacionPorWhatsApp(
+            context,
+            ref,
+            celular: _digitos,
+            rol: _rol,
+            venceEn: venceEn,
+            nombre: nombre,
+          ),
+          child: const Text(Textos.mandarInvitacionWhatsApp),
+        ),
+        OutlinedButton(
+          onPressed: () => context.pop(true),
+          child: const Text(Textos.listoInvitar),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_venceEn case final venceEn?) return _invitada(venceEn);
     final valido = esCelularValido(_digitos);
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(

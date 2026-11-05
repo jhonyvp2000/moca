@@ -193,6 +193,12 @@ Estados aprobados el 13-10-2026 (entrega 6):
 - «Ajustes» tiene tres secciones: **Tu negocio** («Datos del negocio» y «Mis cuentas», solo dueños), **Tu equipo** («Mi equipo» y «Mis negocios», con la cuenta guardada) y **Seguridad** («Pedir huella al abrir Moca», «Borrar mi negocio y mis datos» para el titular y «Salir de este negocio» para los demás). Al final, la versión de Moca.
 - «Datos del negocio» cambia el nombre (hasta 40 letras) y la hora de cierre. Al guardar dice «Listo. Guardado.», queda en la bitácora, se sube y el aviso de cierre pasa a la hora nueva. El tipo de negocio no se cambia.
 
+### La invitación por WhatsApp (entrega 30)
+
+- Después de invitar, «Mandarle la invitación por WhatsApp» abre el chat de esa persona con el mensaje listo: el negocio, el rol, el enlace para instalar Moca, qué tocar («Me invitaron a un negocio» con su número) y hasta qué día vale. «Listo» vuelve a «Mi equipo».
+- En «Mi equipo», cada invitación que espera tiene «Mandar por WhatsApp», para mandarla otra vez. Solo los dueños lo ven.
+- El enlace es siempre el mismo (`/descargar` del servidor) y lleva al APK más nuevo: la última versión piloto o, mientras no haya ninguna, la última entrega.
+
 ### Textos legales (propuesta para revisar)
 
 - Al pie del alta (S02): «Tus datos se guardan solo en este teléfono. Al empezar aceptas que Moca los use para ordenar tus cuentas».

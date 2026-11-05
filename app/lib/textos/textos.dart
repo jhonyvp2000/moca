@@ -348,6 +348,25 @@ abstract final class Textos {
   static String invitacionEnviada(String quien) =>
       'Listo. Dile a $quien que instale Moca y toque «$meInvitaron» con su '
       'número. La invitación vale 7 días.';
+  // La invitación por WhatsApp (entrega 30).
+  static const mandarInvitacionWhatsApp = 'Mandarle la invitación por WhatsApp';
+  static const mandarPorWhatsApp = 'Mandar por WhatsApp';
+  static const listoInvitar = 'Listo';
+  static String mensajeDeInvitacion({
+    required String? nombre,
+    required String negocio,
+    required Rol rol,
+    required String celular,
+    required String vence,
+    required String enlace,
+  }) =>
+      '${nombre == null ? 'Hola,' : 'Hola $nombre,'} te invité a $negocio en '
+      'Moca, como ${nombreRol(rol)}.\n'
+      '1. Instala Moca desde aquí: $enlace. Si el teléfono pregunta, permite '
+      'instalar desde esa fuente.\n'
+      '2. Abre Moca, toca «$meInvitaron» y pon tu número, $celular. Te llega '
+      'un código por SMS.\n\n'
+      'La invitación vale hasta el $vence.';
   static const sinLugar =
       'Ya están las 3 personas. Quita a alguien o anula una invitación.';
   static const yaEstaEnElNegocio = 'Esa persona ya está en tu negocio.';

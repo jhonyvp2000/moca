@@ -15,6 +15,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'invitacion_whatsapp.dart';
 
 /// «Mi equipo» (entrega 19): quiénes están en el negocio, con su rol, y las
 /// invitaciones que esperan. Un dueño invita, anula y quita; los demás solo
@@ -229,7 +230,23 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
                         if (inv.nombre != null) formatearCelular(inv.celular),
                         Textos.venceEl(formatearDiaYMes(inv.venceEn)),
                       ].join(' · '),
-                      accion: (Textos.anularInvitacion, () => _anular(inv)),
+                      accion: equipo.soyDueno
+                          ? (Textos.anularInvitacion, () => _anular(inv))
+                          : null,
+                      // Para mandarla otra vez (entrega 30).
+                      cajas: equipo.soyDueno
+                          ? (
+                              Textos.mandarPorWhatsApp,
+                              () => mandarInvitacionPorWhatsApp(
+                                context,
+                                ref,
+                                celular: inv.celular,
+                                rol: inv.rol,
+                                venceEn: inv.venceEn,
+                                nombre: inv.nombre,
+                              ),
+                            )
+                          : null,
                       conSeparador: i < equipo.invitaciones.length - 1,
                     ),
                 ],

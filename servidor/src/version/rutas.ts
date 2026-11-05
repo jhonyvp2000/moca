@@ -106,4 +106,13 @@ export function rutasVersion(
       minima: config.minima,
     };
   });
+
+  // El enlace fijo que va en la invitación por WhatsApp (entrega 30): lleva
+  // al APK arm64 de la última «piloto-N» y, mientras no haya ninguna, al de
+  // la última «entrega-N». Sin nada publicado, a la página de los Releases.
+  app.get('/descargar', async (_peticion, respuesta) => {
+    const lista = await releases();
+    const ultima = lista ? (ultimaVersion(lista, false) ?? ultimaVersion(lista, true)) : null;
+    return respuesta.redirect(ultima?.arm64 ?? `https://github.com/${config.repo}/releases`, 302);
+  });
 }

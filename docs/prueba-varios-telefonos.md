@@ -27,7 +27,8 @@ Guion para probar con teléfonos de verdad lo que hicieron las entregas 17 a 22 
 | # | Teléfono | Qué hacer | Qué debe pasar |
 |---|---|---|---|
 | 1.1 | A | Pestaña Moca → «Ajustes» → «Mi equipo» | Sale «Tú» como Dueño · Titular, y cuántos lugares quedan |
-| 1.2 | A | «Invitar a alguien»: nombre «Rosa», el número de B, rol Encargado | «Listo. Dile a Rosa que instale Moca…». En «Mi equipo» aparece la invitación con su fecha de vencimiento (7 días) |
+| 1.2 | A | «Invitar a alguien»: nombre «Rosa», el número de B, rol Encargado | «Listo. Dile a Rosa que instale Moca…» y «Mandarle la invitación por WhatsApp». Tócalo: WhatsApp abre el chat de B con el mensaje listo (negocio, rol, enlace para instalar, número y hasta cuándo vale); mándalo. Con «Listo» vuelves a «Mi equipo», donde aparece la invitación con su fecha de vencimiento (7 días) y «Mandar por WhatsApp» |
+| 1.2.1 | B | En WhatsApp, abre el enlace del mensaje | Baja el APK de Moca; si el teléfono pregunta, permite instalar desde esa fuente e instálalo |
 | 1.3 | B | En la Bienvenida, «Me invitaron a un negocio», el número de B y el código del SMS | «Te invitaron a [tu negocio] · Como Encargado», con el texto del consentimiento |
 | 1.4 | B | «Aceptar y entrar» | Baja lo del negocio y abre el Inicio con «En tu caja hoy» (no «Tienes hoy») |
 | 1.5 | A | Vuelve a «Mi equipo» | Rosa aparece como Encargado; la invitación ya no está |

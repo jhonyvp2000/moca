@@ -506,6 +506,11 @@ final repositorioErroresProvider = Provider<RepositorioErroresLocal>(
   ),
 );
 
+/// El enlace fijo para bajar Moca, que va en la invitación (entrega 30).
+final enlaceDescargaProvider = Provider<String>(
+  (ref) => '$direccionServidor/descargar',
+);
+
 /// «Datos del negocio» (entrega 29.1).
 final repositorioNegocioProvider = Provider<RepositorioNegocio>(
   (ref) => RepositorioNegocioLocal(

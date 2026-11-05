@@ -3051,6 +3051,31 @@ void main() {
       });
       expect(find.text(Textos.invitacionEnviada('Carmen')), findsOneWidget);
 
+      // El mensaje por WhatsApp, listo para Carmen (entrega 30).
+      await tocar(tester, find.text(Textos.mandarInvitacionWhatsApp));
+      expect(_abiertos.single, startsWith('https://wa.me/51987000004?text='));
+      expect(_abiertos.single, isNot(contains('+')));
+      expect(
+        Uri.parse(_abiertos.single).queryParameters['text'],
+        Textos.mensajeDeInvitacion(
+          nombre: 'Carmen',
+          negocio: 'Bodega Don Lucho',
+          rol: Rol.encargado,
+          celular: '987 000 004',
+          vence: formatearDiaYMes(_ahora.add(const Duration(days: 7))),
+          enlace: 'https://moca-servidor.onrender.com/descargar',
+        ),
+      );
+      await tocar(tester, find.text(Textos.listoInvitar));
+
+      // La invitación que espera también se manda otra vez.
+      _abiertos.clear();
+      await tocar(tester, find.text(Textos.mandarPorWhatsApp));
+      final texto = Uri.parse(_abiertos.single).queryParameters['text']!;
+      expect(_abiertos.single, startsWith('https://wa.me/51987000003?text='));
+      expect(texto, startsWith('Hola Pepe, te invité a Bodega Don Lucho'));
+      expect(texto, contains('como Contador'));
+
       // Quitar a Rosa, con confirmación.
       await tocar(tester, find.text(Textos.quitar));
       expect(find.text(Textos.quitarPregunta('Rosa')), findsOneWidget);
@@ -3071,6 +3096,7 @@ void main() {
       expect(find.text('Rosa'), findsOneWidget);
       expect(find.text(Textos.quitar), findsNothing);
       expect(find.text(Textos.invitarAAlguien), findsNothing);
+      expect(find.text(Textos.mandarPorWhatsApp), findsNothing);
     });
 
     testWidgets('Sin señal, lo dice', (tester) async {

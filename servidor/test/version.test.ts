@@ -74,4 +74,42 @@ describe('«Hay una versión nueva de Moca» (entrega 26.3)', () => {
     expect((await pedir()).ultima.armado).toBe(110);
     expect(pedidos).toBe(2);
   });
+
+  it('«/descargar» lleva al APK del último piloto; sin pilotos, a la última entrega', async () => {
+    let lista: Release[] = releases;
+    const app = crearApp({
+      pool: {} as Pool,
+      version: 'prueba',
+      versionApp: { repo: 'jhonyvp2000/moca', minima: null },
+      buscarReleases: async () => lista,
+    });
+    const piloto = await app.inject({ method: 'GET', url: '/descargar' });
+    expect(piloto.statusCode).toBe(302);
+    expect(piloto.headers.location).toBe('https://x/piloto-2/arm64.apk');
+    await app.close();
+
+    lista = [release('entrega-29.1', 124), release('entrega-28', 120)];
+    const app2 = crearApp({
+      pool: {} as Pool,
+      version: 'prueba',
+      versionApp: { repo: 'jhonyvp2000/moca', minima: null },
+      buscarReleases: async () => lista,
+    });
+    const entrega = await app2.inject({ method: 'GET', url: '/descargar' });
+    expect(entrega.headers.location).toBe('https://x/entrega-29.1/arm64.apk');
+    await app2.close();
+
+    const app3 = crearApp({
+      pool: {} as Pool,
+      version: 'prueba',
+      versionApp: { repo: 'jhonyvp2000/moca', minima: null },
+      buscarReleases: async () => {
+        throw new Error('sin red');
+      },
+    });
+    const nada = await app3.inject({ method: 'GET', url: '/descargar' });
+    expect(nada.statusCode).toBe(302);
+    expect(nada.headers.location).toBe('https://github.com/jhonyvp2000/moca/releases');
+    await app3.close();
+  });
 });
