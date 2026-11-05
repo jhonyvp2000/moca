@@ -271,11 +271,21 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
   });
 
   it('La página de regreso dice cómo quedó y que vuelva a Moca', async () => {
-    const r = await app.inject({ method: 'GET', url: '/pago/retorno?estado=exito' });
-    expect(r.statusCode).toBe(200);
-    expect(r.headers['content-type']).toContain('text/html');
-    expect(r.body).toContain('Pago recibido');
-    expect(r.body).toContain('Ya puedes volver a Moca.');
+    for (const [estado, titulo] of [
+      ['exito', 'Pago recibido'],
+      ['pendiente', 'Pago en proceso'],
+      ['fallo', 'El pago no se completó'],
+    ]) {
+      const r = await app.inject({ method: 'GET', url: `/pago/retorno?estado=${estado}` });
+      expect(r.statusCode).toBe(200);
+      expect(r.headers['content-type']).toContain('text/html');
+      expect(r.body).toContain(titulo);
+      // El botón (entrega 32.1) y, por si el navegador no abre la app, el texto.
+      expect(r.body).toContain(
+        '<a href="intent://pago#Intent;scheme=moca;package=pe.moca.app;end">Volver a Moca</a>',
+      );
+      expect(r.body).toContain('Ya puedes volver a Moca.');
+    }
   });
 
   it('Sin Mercado Pago configurado, no se ofrece', async () => {

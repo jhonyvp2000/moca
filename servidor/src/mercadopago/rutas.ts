@@ -355,8 +355,9 @@ export function paginaDeRetorno(estado: string): string {
     'Listo',
     'Vuelve a Moca para ver cómo quedó tu pago.',
   ];
-  // Como en TVSamGo, sin enlace a la app: con taskAffinity="" un enlace
-  // podría abrir una segunda copia de Moca en vez de la que espera el pago.
+  // «Volver a Moca» (entrega 32.1) abre moca://pago: una pantalla de paso
+  // de la app que la abre como el ícono, sin crear una segunda copia. Si el
+  // navegador no deja abrir apps, queda el texto para volver a mano.
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -367,11 +368,13 @@ background:#F3F6FB;color:#0F1F3D;font-family:Roboto,'Segoe UI',Arial,sans-serif}
 .caja{background:#FFFFFF;border:1px solid #D8E0EC;border-radius:16px;padding:28px 22px;
 max-width:360px;margin:16px;text-align:center}
 h1{font-size:22px;margin:0 0 8px}p{font-size:16px;color:#4B5A75;line-height:1.5;margin:0 0 20px}
-strong{display:block;background:#E3ECFB;color:#1E3A8A;font-size:16px;padding:14px;
-border-radius:12px}
+a{display:block;background:#1D4ED8;color:#FFFFFF;text-decoration:none;font-weight:700;
+font-size:16px;padding:14px;border-radius:12px;margin-bottom:12px}
+strong{display:block;color:#1E3A8A;font-size:16px}
 .marca{margin-top:18px;font-size:14px;color:#1E3A8A;font-weight:700}
 </style></head><body><div class="caja">
 <h1>${titulo}</h1><p>${detalle}</p>
+<a href="intent://pago#Intent;scheme=moca;package=pe.moca.app;end">Volver a Moca</a>
 <strong>Ya puedes volver a Moca.</strong>
 <div class="marca">Moca · Tú vendes. Moca hace las cuentas.</div>
 </div></body></html>`;

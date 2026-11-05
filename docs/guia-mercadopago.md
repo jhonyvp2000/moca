@@ -52,7 +52,7 @@ El modo de prueba de Mercado Pago para Perú no funciona (TVSamGo lo comprobó e
 
 1. Desde un teléfono que **no** esté conectado a tu cuenta de Mercado Pago (no puedes pagarte a ti mismo), entra a Moca como dueño de un negocio de prueba.
 2. Pestaña Moca → **Cómo pagar** → **Pagar con Mercado Pago** → paga con Yape.
-3. Vuelve a Moca: en segundos debe decir «Listo. Moca está pagada hasta el…».
+3. En la página de regreso, toca **«Volver a Moca»** (entrega 32.1): debe volver la misma Moca, con la espera del pago, y en segundos decir «Listo. Moca está pagada hasta el…». En «Recientes» tiene que haber una sola Moca.
 4. En el ajuste oculto → **Cobros**, busca ese negocio: el pago aparece con la nota «Mercado Pago · operación …».
 5. Si fue solo prueba, devuélvelo desde tu panel de Mercado Pago. Moca lo anula sola.
 
