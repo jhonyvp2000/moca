@@ -198,6 +198,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
             Textos.tuSemanaEn(segundosDeLectura(texto)),
             style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
           ),
+          // De qué periodo es (entrega 36).
+          const Text(Textos.deLunesAHoy, style: Tipografia.secundario),
           const SizedBox(height: 12),
           Row(
             children: [

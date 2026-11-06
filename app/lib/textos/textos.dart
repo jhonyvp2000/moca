@@ -470,6 +470,28 @@ abstract final class Textos {
   // S03 · Primer día
   static const tuPrimerDia = 'Tu primer día';
   static const tienesHoy = 'Tienes hoy';
+
+  // Notas del periodo bajo cada título (entrega 36): qué abarca cada cifra.
+  static const desdeQueEmpezaste = 'Desde que empezaste con Moca';
+  static const saldosDesdeQueEmpezaste = 'Saldos desde que empezaste con Moca';
+  static const deLunesAHoy = 'De lunes a hoy';
+  static const todoLoQueDebes = 'Todo lo que debes hoy, de cualquier mes';
+
+  /// «Del 1 al 6 de noviembre», «Todo octubre» o «Del 12 al 31 de octubre».
+  static String periodoDelMes(
+    DateTime mes, {
+    required bool enCurso,
+    required DateTime hoy,
+    int? desdeDia,
+  }) {
+    final nombre = nombreDelMes(mes);
+    final desde = desdeDia ?? 1;
+    final hasta = enCurso ? hoy.day : DateTime(mes.year, mes.month + 1, 0).day;
+    if (!enCurso && desdeDia == null) return 'Todo $nombre';
+    if (desde == hasta) return 'El $desde de $nombre';
+    return 'Del $desde al $hasta de $nombre';
+  }
+
   static const notaSaldoMasVenta =
       'Es lo que tenías al empezar más tu venta de hoy. Desde aquí Moca '
       'lleva la cuenta.';

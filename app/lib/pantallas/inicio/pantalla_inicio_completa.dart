@@ -121,6 +121,11 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
                       color: Colores.textoSecundario,
                     ),
                   ),
+                  // De qué periodo es (entrega 36): no se reinicia.
+                  const Text(
+                    Textos.desdeQueEmpezaste,
+                    style: Tipografia.secundario,
+                  ),
                   const SizedBox(height: 2),
                   FittedBox(
                     fit: BoxFit.scaleDown,
@@ -242,7 +247,13 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
     };
   }
 
-  List<Widget> _semana(ResumenInicio r) {
+  List<Widget> _semana(ResumenInicio r) => [
+    ..._lineaDeLaSemana(r),
+    // De qué periodo es (entrega 36).
+    const Text(Textos.deLunesAHoy, style: Tipografia.secundario),
+  ];
+
+  List<Widget> _lineaDeLaSemana(ResumenInicio r) {
     if (!r.semanaConMovimientos) {
       return const [Text(Textos.semanaSinMovimientos, style: Tipografia.texto)];
     }

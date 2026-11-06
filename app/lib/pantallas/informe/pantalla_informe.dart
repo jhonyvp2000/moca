@@ -312,6 +312,13 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
 
   List<Widget> _contenido(InformeMes i) {
     final anterior = i.mesAnterior == null ? '' : nombreDelMes(i.mesAnterior!);
+    // De qué periodo es cada sección (entrega 36).
+    final periodo = Textos.periodoDelMes(
+      i.mes,
+      enCurso: i.enCurso,
+      hoy: ref.read(relojProvider)(),
+      desdeDia: i.desdeDia,
+    );
     final crecio = i.crecioCentimos;
     final diferencia = i.diferenciaConAnteriorCentimos;
     const separacion = SizedBox(height: Medidas.separacionTarjetas);
@@ -402,6 +409,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(Textos.comoSeMovio, style: Tipografia.tituloTarjeta),
+            Text(periodo, style: Tipografia.secundario),
             const SizedBox(height: 8),
             _Fila(
               i.desdeDia == null
@@ -453,6 +461,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(Textos.conQueEntro, style: Tipografia.tituloTarjeta),
+            Text(periodo, style: Tipografia.secundario),
             const SizedBox(height: 8),
             if (i.ingresos.isEmpty)
               const Text(Textos.sinIngresosDelMes, style: Tipografia.secundario)
@@ -476,6 +485,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(Textos.enQueSeFue, style: Tipografia.tituloTarjeta),
+            Text(periodo, style: Tipografia.secundario),
             const SizedBox(height: 8),
             if (i.gastos.isEmpty)
               const Text(Textos.sinGastos, style: Tipografia.secundario)
@@ -519,6 +529,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(Textos.loQueDebesTitulo, style: Tipografia.secundario),
+            const Text(Textos.todoLoQueDebes, style: Tipografia.secundario),
             Text(
               formatearSoles(i.loQueDebesCentimos),
               style: Tipografia.cifra(

@@ -109,6 +109,11 @@ class PantallaPrimerDia extends StatelessWidget {
                       color: Colores.textoSecundario,
                     ),
                   ),
+                  // De qué periodo es (entrega 36): no se reinicia.
+                  const Text(
+                    Textos.desdeQueEmpezaste,
+                    style: Tipografia.secundario,
+                  ),
                   const SizedBox(height: 6),
                   FittedBox(
                     fit: BoxFit.scaleDown,

@@ -2062,6 +2062,8 @@ void main() {
   group('Informe y Moca', () {
     testWidgets('El informe del primer mes', (tester) async {
       await abrirApp(tester, listo: true);
+      // En el Inicio, «Tienes hoy» es desde que empezó (entrega 36).
+      expect(find.text(Textos.desdeQueEmpezaste), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text('Octubre'), findsOneWidget);
       expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
@@ -2070,6 +2072,19 @@ void main() {
       expect(find.text(Textos.tuPlataCrecio), findsOneWidget);
       expect(find.text(Textos.primerMesConMoca), findsOneWidget);
       expect(find.text(Textos.comoSeMovio), findsOneWidget);
+      // La nota del periodo bajo cada título (entrega 36).
+      expect(
+        find.text(
+          Textos.periodoDelMes(
+            DateTime(_ahora.year, _ahora.month),
+            enCurso: true,
+            hoy: _ahora,
+            desdeDia: 12,
+          ),
+          skipOffstage: false,
+        ),
+        findsWidgets,
+      );
       expect(find.text(Textos.empezasteCon), findsOneWidget);
       expect(find.text(formatearSoles(100000)), findsOneWidget);
       expect(find.text(Textos.tienesHoy), findsOneWidget);

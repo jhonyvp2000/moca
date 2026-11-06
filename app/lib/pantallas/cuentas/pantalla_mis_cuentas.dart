@@ -112,6 +112,14 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
         alVolver: () => context.pop(),
       ),
       contenido: [
+        // De qué periodo es (entrega 36).
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text(
+            Textos.saldosDesdeQueEmpezaste,
+            style: Tipografia.secundario,
+          ),
+        ),
         Tarjeta(
           relleno: EdgeInsets.zero,
           child: Column(
