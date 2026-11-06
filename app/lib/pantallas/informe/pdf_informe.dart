@@ -216,6 +216,35 @@ Future<Uint8List> armarPdfDelInforme(
     ],
   );
 
+  /// Con qué entró la plata (entrega 35), en una línea, para que el del
+  /// dueño siga cabiendo en una hoja.
+  pw.Widget conQueEntroCorto() => seccion(Textos.conQueEntro, [
+    if (i.ingresos.isEmpty)
+      pw.Text(Textos.sinIngresosDelMes, style: estilo(10.5))
+    else
+      pw.Wrap(
+        spacing: 14,
+        runSpacing: 2,
+        children: [
+          for (final g in i.ingresos)
+            pw.RichText(
+              text: pw.TextSpan(
+                children: [
+                  pw.TextSpan(
+                    text: '${g.nombre ?? Textos.loDemas} ',
+                    style: estilo(10.5),
+                  ),
+                  pw.TextSpan(
+                    text: formatearSoles(g.centimos),
+                    style: estilo(10.5, fuerte: true),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+  ]);
+
   pw.Widget enQueSeFue() => seccion(Textos.enQueSeFue, [
     if (i.gastos.isEmpty)
       pw.Text(Textos.sinGastos, style: estilo(10.5))
@@ -465,6 +494,7 @@ Future<Uint8List> armarPdfDelInforme(
       cuantoCrecio(),
       comoSeMovio(),
       cuentas(),
+      conQueEntroCorto(),
       enQueSeFue(),
       loQueDebesTotal(),
     ],

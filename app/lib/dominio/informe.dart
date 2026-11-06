@@ -48,6 +48,7 @@ class InformeMes {
     required this.retirosCentimos,
     required this.ajustesCentimos,
     required this.gastos,
+    this.ingresos = const [],
     this.aportesCentimos = 0,
     required this.loQueDebesCentimos,
     required this.advertenciaMercaderia,
@@ -92,6 +93,10 @@ class InformeMes {
 
   /// De mayor a menor; a lo más cinco filas.
   final List<GastoPorCategoria> gastos;
+
+  /// «Con qué entró la plata» (entrega 35): lo que entró por categoría, de
+  /// mayor a menor, a lo más cinco filas. Suma lo mismo que [entroCentimos].
+  final List<GastoPorCategoria> ingresos;
 
   /// Nulo si no hay mes anterior. Si no hubo un cambio grande, [cambio] es
   /// nulo y [mesAnterior] no: «Casi nada cambió».

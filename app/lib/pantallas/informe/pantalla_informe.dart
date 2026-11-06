@@ -446,6 +446,29 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       ),
       separacion,
 
+      // Con qué entró la plata (entrega 35)
+      Tarjeta(
+        relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(Textos.conQueEntro, style: Tipografia.tituloTarjeta),
+            const SizedBox(height: 8),
+            if (i.ingresos.isEmpty)
+              const Text(Textos.sinIngresosDelMes, style: Tipografia.secundario)
+            else
+              for (final (n, g) in i.ingresos.indexed)
+                _Barra(
+                  nombre: g.nombre ?? Textos.loDemas,
+                  centimos: g.centimos,
+                  proporcion: g.centimos / i.ingresos.first.centimos,
+                  primera: n == 0,
+                ),
+          ],
+        ),
+      ),
+      separacion,
+
       // En qué se fue la plata
       Tarjeta(
         relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

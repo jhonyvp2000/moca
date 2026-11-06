@@ -52,6 +52,8 @@ export interface Informe {
   inicioCentimos: number;
   ajustesCentimos: number;
   gastos: { nombre: string | null; centimos: number }[];
+  /** «Con qué entró la plata» (entrega 35): como gastos, de lo que entró. */
+  ingresos: { nombre: string | null; centimos: number }[];
   cambio: { nombre: string; centimos: number } | null;
   loQueDebesCentimos: number;
   confianza: { conComprobante: number; conFoto: number; sinPapel: number } | null;
@@ -569,9 +571,9 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
       }
       return total;
     };
-    const porCategoria = (ms: Movimiento[]) => {
+    const porCategoria = (ms: Movimiento[], tipo: 'egreso' | 'ingreso' = 'egreso') => {
       const total = new Map<string, number>();
-      for (const m of ms.filter((m) => m.tipo === 'egreso')) {
+      for (const m of ms.filter((m) => m.tipo === tipo)) {
         const nombre = nombreCategoria(m.categoriaId) ?? 'Otros';
         total.set(nombre, (total.get(nombre) ?? 0) + m.monto);
       }
@@ -640,22 +642,29 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
         }
       }
 
-      // En qué se fue la plata: a lo más cinco filas.
-      const ordenadas = [...porCategoria(delMes)].sort(
-        (a, b) => b[1] - a[1] || compararTexto(a[0], b[0]),
-      );
-      const gastos =
-        ordenadas.length <= filasDeGastos
+      // En qué se fue la plata y con qué entró (entrega 35): a lo más
+      // cinco filas; la última junta «Lo demás».
+      const filas = (tipo: 'egreso' | 'ingreso') => {
+        const ordenadas = [...porCategoria(delMes, tipo)].sort(
+          (a, b) => b[1] - a[1] || compararTexto(a[0], b[0]),
+        );
+        return ordenadas.length <= filasDeGastos
           ? ordenadas.map(([nombre, centimos]) => ({ nombre, centimos }))
           : [
               ...ordenadas
                 .slice(0, filasDeGastos - 1)
-                .map(([nombre, centimos]) => ({ nombre, centimos })),
+                .map(([nombre, centimos]): { nombre: string | null; centimos: number } => ({
+                  nombre,
+                  centimos,
+                })),
               {
                 nombre: null,
                 centimos: ordenadas.slice(filasDeGastos - 1).reduce((s, e) => s + e[1], 0),
               },
             ];
+      };
+      const gastos = filas('egreso');
+      const ingresos = filas('ingreso');
 
       // Mercadería frente al promedio de hasta tres meses anteriores.
       const anteriores: number[] = [];
@@ -681,6 +690,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
         aportesCentimos: suma(delMes, 'aporte'),
         ajustesCentimos: ajustado(mes, hasta),
         gastos,
+        ingresos,
         cambio,
         loQueDebesCentimos: loQueDebes,
         confianza: confianza(delMes),

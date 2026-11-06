@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/repositorio_arqueo_local.dart';
+import 'package:moca/datos/repositorios/repositorio_categorias_local.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
 import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
@@ -338,6 +339,54 @@ void main() {
     expect(f.meses.take(5).map((m) => m.estado).toSet(), {
       EstadoMesFlujo.antesDeMoca,
     });
+  });
+
+  test('«Con qué entró la plata»: por categoría, sin lo del bolsillo ni '
+      'los pases (entrega 35)', () async {
+    await anotar(TipoMovimiento.ingreso, 120, categoria: 'Cobro de fiado');
+    await anotar(TipoMovimiento.ingreso, 40, categoria: 'Otro ingreso');
+    await anotar(TipoMovimiento.ingreso, 15, categoria: 'Ingreso ocasional');
+    // Ni lo que puso el dueño ni un pase son ingreso del negocio.
+    await anotar(TipoMovimiento.aporte, 300);
+    await movimientos.registrar(
+      const NuevoMovimiento(
+        tipo: TipoMovimiento.transferencia,
+        montoCentimos: 5000,
+        cuenta: TipoCuenta.efectivo,
+        cuentaDestino: TipoCuenta.yape,
+      ),
+    );
+    final i = await informe.observarMes(null).first;
+    expect(
+      [for (final g in i.ingresos) (g.nombre, g.centimos)],
+      [
+        ('Venta del día', 35000),
+        ('Cobro de fiado', 12000),
+        ('Otro ingreso', 4000),
+        ('Ingreso ocasional', 1500),
+      ],
+    );
+    // Suma lo mismo que «Entró».
+    expect(i.ingresos.fold(0, (s, g) => s + g.centimos), i.entroCentimos);
+    // Con seis categorías, la quinta fila junta «Lo demás».
+    final propias = RepositorioCategoriasLocal(base, ahora: () => ahora);
+    for (final (nombre, soles) in [('Propinas', 3), ('Alquiler de silla', 2)]) {
+      final id = (await propias.agregar(nombre, TipoMovimiento.ingreso)).id!;
+      await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: id,
+        ),
+      );
+    }
+    final mas = await informe.observarMes(null).first;
+    expect(mas.ingresos, hasLength(5));
+    expect(mas.ingresos.last.nombre, isNull);
+    // Las cuatro mayores y, juntas, Propinas (3) y Alquiler de silla (2).
+    expect(mas.ingresos.last.centimos, 500);
+    expect(mas.ingresos.fold(0, (s, g) => s + g.centimos), mas.entroCentimos);
   });
 
   test('Un pase cambia la plata de cuenta, no el total ni el informe '

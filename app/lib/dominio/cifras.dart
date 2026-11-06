@@ -120,6 +120,14 @@ class Cifras {
                       centimos: g['centimos']! as int,
                     ),
               ],
+              ingresos: [
+                for (final g in (i['ingresos'] as List? ?? const []))
+                  if (g case final Map<String, Object?> g)
+                    GastoPorCategoria(
+                      nombre: g['nombre'] as String?,
+                      centimos: g['centimos']! as int,
+                    ),
+              ],
               cambio: switch (i['cambio']) {
                 final Map<String, Object?> c => CambioDeCategoria(
                   nombre: c['nombre']! as String,
@@ -201,6 +209,10 @@ class Cifras {
           'aportesCentimos': i.aportesCentimos,
           'gastos': [
             for (final g in i.gastos)
+              {'nombre': g.nombre, 'centimos': g.centimos},
+          ],
+          'ingresos': [
+            for (final g in i.ingresos)
               {'nombre': g.nombre, 'centimos': g.centimos},
           ],
           'cambio': i.cambio == null

@@ -157,9 +157,12 @@ class RepositorioInformeLocal implements RepositorioInforme {
       return total;
     }
 
-    Map<String, int> porCategoria(Iterable<Movimiento> ms) {
+    Map<String, int> porCategoria(
+      Iterable<Movimiento> ms, [
+      TipoMovimiento tipo = TipoMovimiento.egreso,
+    ]) {
       final total = <String, int>{};
-      for (final m in ms.where((m) => m.tipo == TipoMovimiento.egreso)) {
+      for (final m in ms.where((m) => m.tipo == tipo)) {
         final nombre = categorias[m.categoriaId] ?? 'Otros';
         total[nombre] = (total[nombre] ?? 0) + m.montoCentimos;
       }
@@ -215,30 +218,36 @@ class RepositorioInformeLocal implements RepositorioInforme {
       }
     }
 
-    // En qué se fue la plata: a lo más cinco filas.
-    // Empates: por nombre, igual que en el servidor.
-    final ordenadas = porCategoria(delMes).entries.toList()
-      ..sort(
-        (a, b) => switch (b.value.compareTo(a.value)) {
-          0 => a.key.compareTo(b.key),
-          final c => c,
-        },
-      );
-    final gastos = ordenadas.length <= _filasDeGastos
-        ? [
-            for (final e in ordenadas)
-              GastoPorCategoria(nombre: e.key, centimos: e.value),
-          ]
-        : [
-            for (final e in ordenadas.take(_filasDeGastos - 1))
-              GastoPorCategoria(nombre: e.key, centimos: e.value),
-            GastoPorCategoria(
-              nombre: null,
-              centimos: ordenadas
-                  .skip(_filasDeGastos - 1)
-                  .fold(0, (s, e) => s + e.value),
-            ),
-          ];
+    // En qué se fue la plata y con qué entró (entrega 35): a lo más cinco
+    // filas; la última junta «Lo demás». Empates: por nombre, igual que en
+    // el servidor.
+    List<GastoPorCategoria> filas(TipoMovimiento tipo) {
+      final ordenadas = porCategoria(delMes, tipo).entries.toList()
+        ..sort(
+          (a, b) => switch (b.value.compareTo(a.value)) {
+            0 => a.key.compareTo(b.key),
+            final c => c,
+          },
+        );
+      return ordenadas.length <= _filasDeGastos
+          ? [
+              for (final e in ordenadas)
+                GastoPorCategoria(nombre: e.key, centimos: e.value),
+            ]
+          : [
+              for (final e in ordenadas.take(_filasDeGastos - 1))
+                GastoPorCategoria(nombre: e.key, centimos: e.value),
+              GastoPorCategoria(
+                nombre: null,
+                centimos: ordenadas
+                    .skip(_filasDeGastos - 1)
+                    .fold(0, (s, e) => s + e.value),
+              ),
+            ];
+    }
+
+    final gastos = filas(TipoMovimiento.egreso);
+    final ingresos = filas(TipoMovimiento.ingreso);
 
     // Mercadería frente al promedio de hasta tres meses anteriores.
     int mercaderia(Iterable<Movimiento> ms) => ms
@@ -278,6 +287,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
       aportesCentimos: suma(delMes, TipoMovimiento.aporte),
       ajustesCentimos: ajustado(mes, hasta),
       gastos: gastos,
+      ingresos: ingresos,
       cambio: cambio,
       loQueDebesCentimos: vigentes
           .where(

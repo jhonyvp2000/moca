@@ -893,6 +893,8 @@ abstract final class Textos {
       'Cuenta la plata el día en que se movió: lo que todavía debes se cuenta '
       'cuando lo pagas.';
   static const enQueSeFue = 'En qué se fue la plata';
+  static const conQueEntro = 'Con qué entró la plata';
+  static const sinIngresosDelMes = 'En este mes no entró plata.';
   static const loDemas = 'Lo demás';
   static const sinGastos = 'En este mes no hubo gastos.';
   static String subioFrente(String categoria, String monto, String mes) =>
@@ -958,7 +960,8 @@ abstract final class Textos {
   static String paginaDe(int pagina, int total) => 'Página $pagina de $total';
   static const cuantoHayHoyEnCadaCuenta = 'Cuánto hay hoy en cada cuenta';
   static const cuantoHabiaAlCierre = 'Cuánto había en cada cuenta al cierre';
-  static const deDondeVino = 'De dónde vino la plata';
+  // Desde la entrega 35 se llama igual que en el informe.
+  static const deDondeVino = conQueEntro;
   static const sinIngresos = 'En este periodo no entró plata.';
   static const noDebesNada = 'No debes nada.';
   static const columnaFecha = 'Fecha';

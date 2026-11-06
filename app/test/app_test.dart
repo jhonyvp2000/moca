@@ -2074,6 +2074,24 @@ void main() {
       expect(find.text(formatearSoles(100000)), findsOneWidget);
       expect(find.text(Textos.tienesHoy), findsOneWidget);
       expect(find.text(formatearSoles(135000)), findsOneWidget);
+      // Con qué entró la plata (entrega 35): la venta del día, antes de los
+      // gastos.
+      await tester.scrollUntilVisible(
+        find.text(Textos.conQueEntro),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Venta del día'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text(Textos.conQueEntro)).dy,
+        lessThan(
+          tester
+              .getTopLeft(find.text(Textos.enQueSeFue, skipOffstage: false))
+              .dy,
+        ),
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+      await esperar(tester);
       final anterior = tester.widget<IconButton>(
         find.ancestor(
           of: find.byTooltip(Textos.mesAnterior),
