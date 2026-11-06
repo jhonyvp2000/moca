@@ -1235,6 +1235,10 @@ abstract final class Textos {
   }
 
   static const comoPagar = 'Cómo pagar';
+  static const pagarOtroMes = 'Pagar otro mes';
+  static String pagoSumaUnMes(String hasta, String desde, String nuevo) =>
+      'Ya está pagada hasta el $hasta. Este pago suma un mes: del $desde al '
+      '$nuevo.';
   static const pagaTuMes = 'Paga tu mes de Moca';
 
   // Pagar con Mercado Pago (entrega 32).

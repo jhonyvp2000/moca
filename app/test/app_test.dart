@@ -3882,6 +3882,68 @@ void main() {
       expect(find.text(Textos.pagoNoDisponible), findsOneWidget);
     });
 
+    testWidgets('Entrega 32.2: ya pagada, «Pagar otro mes» dice qué cubre', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(30),
+        'dias': 30,
+        'plan': 'fundador',
+        'mercadopago': true,
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.comoPagar), findsNothing);
+      await tocar(tester, find.text(Textos.pagarOtroMes));
+      final hasta = _ahora.add(const Duration(days: 30));
+      final desde = DateTime(hasta.year, hasta.month, hasta.day + 1);
+      final nuevo = DateTime(desde.year, desde.month + 1, desde.day - 1);
+      expect(
+        find.text(
+          Textos.pagoSumaUnMes(
+            formatearDiaYMes(hasta),
+            formatearDiaYMes(desde),
+            formatearDiaYMes(nuevo),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.pagarConMercadoPago), findsOneWidget);
+    });
+
+    testWidgets('Entrega 32.2: con 60 días pagados ya no se adelanta', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(60),
+        'dias': 60,
+        'plan': 'fundador',
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.pagarOtroMes), findsNothing);
+      expect(find.text(Textos.comoPagar), findsNothing);
+    });
+
+    testWidgets('Entrega 32.2: el ayudante no paga ni adelanta', (
+      tester,
+    ) async {
+      final base = await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(30),
+        'dias': 30,
+        'plan': 'fundador',
+      });
+      await tester.runAsync(
+        () => base
+            .update(base.membresias)
+            .write(const MembresiasCompanion(rol: Value(Rol.ayudante))),
+      );
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.pagarOtroMes), findsNothing);
+    });
+
     testWidgets('Por vencer: el aviso sale en el Inicio', (tester) async {
       await conCobro(tester, {
         'estado': 'prueba',

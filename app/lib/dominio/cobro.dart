@@ -75,6 +75,34 @@ class Cobro {
   /// Al vencer: se anota y se baja el Excel, nada más.
   bool get soloAnotar => estado == EstadoDelCobro.vencido;
 
+  /// Hasta cuántos días pagados se ofrece «Pagar otro mes» (entrega 32.2):
+  /// como mucho, unos 3 meses por delante.
+  static const diasParaAdelantar = 60;
+
+  /// Pagada y lejos de vencer: «Pagar otro mes» por adelantado.
+  bool get puedeAdelantar =>
+      estado == EstadoDelCobro.pagado &&
+      !porVencer &&
+      hasta != null &&
+      (dias ?? diasParaAdelantar) < diasParaAdelantar;
+
+  /// Lo que cubriría un pago más si ya está pagada: sigue a lo pagado, como
+  /// en el servidor (`periodoDelPago`). Nulo si no está pagada.
+  ({DateTime desde, DateTime hasta})? get siguienteMes {
+    final ultimo = hasta;
+    if (estado != EstadoDelCobro.pagado || ultimo == null) return null;
+    final desde = DateTime(ultimo.year, ultimo.month, ultimo.day + 1);
+    // Un mes después, con el día ajustado al mes («31 de enero» → «28 de
+    // febrero»), menos un día.
+    final diasDelMes = DateTime(desde.year, desde.month + 2, 0).day;
+    final mes = DateTime(
+      desde.year,
+      desde.month + 1,
+      desde.day > diasDelMes ? diasDelMes : desde.day,
+    );
+    return (desde: desde, hasta: DateTime(mes.year, mes.month, mes.day - 1));
+  }
+
   /// La pregunta del día 10 de la prueba: quedan 4 días o menos.
   bool get tocaPreguntar =>
       estado == EstadoDelCobro.prueba &&

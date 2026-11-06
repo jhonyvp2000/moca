@@ -57,7 +57,15 @@ class TarjetaCobro extends ConsumerWidget {
                   child: const Text(Textos.comoPagar),
                 ),
               ),
-            ],
+            ] else if (cobro.puedeAdelantar)
+              // Por adelantado (entrega 32.2): un enlace, no un aviso.
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => mostrarComoPagar(context, ref, cobro),
+                  child: const Text(Textos.pagarOtroMes),
+                ),
+              ),
           ],
         ),
       ),
@@ -257,6 +265,22 @@ class _HojaComoPagar extends ConsumerWidget {
           children: [
             const Text(Textos.pagaTuMes, style: Tipografia.tituloPantalla),
             const SizedBox(height: 12),
+            // Ya pagada: qué meses cubre este pago, para no pagar dos veces
+            // sin darse cuenta (entrega 32.2).
+            if ((cobro.hasta, cobro.siguienteMes) case (
+              final hasta?,
+              final siguiente?,
+            )) ...[
+              Text(
+                Textos.pagoSumaUnMes(
+                  formatearDiaYMes(hasta),
+                  formatearDiaYMes(siguiente.desde),
+                  formatearDiaYMes(siguiente.hasta),
+                ),
+                style: Tipografia.texto,
+              ),
+              const SizedBox(height: 12),
+            ],
             // Primero Mercado Pago (entrega 32); el Yape manual queda debajo.
             if (cobro.mercadoPago) ...[
               Text(

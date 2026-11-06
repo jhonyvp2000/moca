@@ -66,4 +66,40 @@ void main() {
     expect(dueno.borraElNegocio, isTrue);
     expect(const Permisos(Rol.dueno).veInformes, isTrue);
   });
+
+  test(
+    '«Pagar otro mes»: qué cubre y hasta cuándo se ofrece (entrega 32.2)',
+    () {
+      Cobro pagada(String hasta, int dias, {bool porVencer = false}) =>
+          Cobro.desdeServidor({
+            'estado': 'pagado',
+            'hasta': hasta,
+            'dias': dias,
+            'porVencer': porVencer,
+          });
+      // Sigue a lo pagado, como el servidor.
+      expect(pagada('2026-12-25', 30).siguienteMes, (
+        desde: DateTime(2026, 12, 26),
+        hasta: DateTime(2027, 1, 25),
+      ));
+      // Fin de mes: el día se ajusta al mes siguiente.
+      expect(pagada('2027-01-30', 30).siguienteMes, (
+        desde: DateTime(2027, 1, 31),
+        hasta: DateTime(2027, 2, 27),
+      ));
+      expect(pagada('2026-12-25', 30).puedeAdelantar, isTrue);
+      expect(pagada('2026-12-25', 59).puedeAdelantar, isTrue);
+      // Unos 3 meses por delante como mucho.
+      expect(pagada('2027-02-25', 60).puedeAdelantar, isFalse);
+      // Por vencer ya sale «Cómo pagar».
+      expect(pagada('2026-12-25', 2, porVencer: true).puedeAdelantar, isFalse);
+      final prueba = Cobro.desdeServidor({
+        'estado': 'prueba',
+        'hasta': '2026-12-25',
+        'dias': 9,
+      });
+      expect(prueba.puedeAdelantar, isFalse);
+      expect(prueba.siguienteMes, isNull);
+    },
+  );
 }
