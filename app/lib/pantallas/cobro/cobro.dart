@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../comun/tarjeta.dart';
 import '../../dominio/cobro.dart';
@@ -14,6 +15,7 @@ import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../rutas.dart';
 import '../../textos/textos.dart';
 
 /// El estado del cobro en la pestaña Moca, para los dueños (entrega 25).
@@ -64,6 +66,15 @@ class TarjetaCobro extends ConsumerWidget {
                 child: TextButton(
                   onPressed: () => mostrarComoPagar(context, ref, cobro),
                   child: const Text(Textos.pagarOtroMes),
+                ),
+              ),
+            // Ya pagó alguna vez: sus pagos (entrega 33).
+            if (cobro.plan != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => context.push(Rutas.misPagos),
+                  child: const Text(Textos.verMisPagos),
                 ),
               ),
           ],

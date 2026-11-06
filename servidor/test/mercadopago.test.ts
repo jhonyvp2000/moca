@@ -66,6 +66,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
   const falso = mercadoPagoFalso();
   let lucho: Persona;
   let rosa: Persona;
+  let jhony: Persona;
   let empresaDeLucho: string;
 
   const verificar = async (celular: string): Promise<Persona> => {
@@ -129,6 +130,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     empresaDeLucho = datos.empresa.id;
     expect((await pedir(lucho, 'POST', '/datos/subir', datos)).statusCode).toBe(200);
     rosa = await verificar('987000002');
+    jhony = await verificar('900000000');
   });
   afterAll(() => base.cerrar());
 
@@ -243,7 +245,6 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     expect(await orden(id)).toMatchObject({ estado: 'revisar', motivo: 'monto' });
     expect(await pagosDe(empresaDeLucho)).toHaveLength(3);
     // Jhony lo ve en «Cobros».
-    const jhony = await verificar('900000000');
     const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
     expect(resumen.revisar).toEqual([
       expect.objectContaining({
@@ -268,6 +269,45 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     falso.pagos.get('5001')!.status = 'refunded';
     expect((await avisar('5001')).json().resultado).toBe('revisar');
     expect(pagos[0].anulado_en).toBeNull();
+  });
+
+  it('«Mis pagos de Moca»: el dueño ve sus pagos, sin la nota del Yape (entrega 33)', async () => {
+    expect(
+      (
+        await pedir(jhony, 'POST', '/cobro/pago', {
+          empresa: empresaDeLucho,
+          plan: 'fundador',
+          nota: 'op 777 · lo yapeó su hija',
+        })
+      ).statusCode,
+    ).toBe(200);
+    const r = await pedir(lucho, 'GET', '/cobro/mis-pagos');
+    expect(r.statusCode).toBe(200);
+    const { pagos, en_revision } = r.json();
+    // Del más nuevo al más viejo: el Yape, 5004 (devuelto), 5003 y 5001.
+    expect(pagos.map((p: { medio: string }) => p.medio)).toEqual([
+      'yape',
+      'mercadopago',
+      'mercadopago',
+      'mercadopago',
+    ]);
+    expect(pagos[0]).not.toHaveProperty('operacion');
+    expect(JSON.stringify(r.json())).not.toContain('su hija');
+    expect(pagos[1]).toMatchObject({ operacion: '5004', anulado: true, monto_centimos: 1490 });
+    expect(pagos[3]).toMatchObject({
+      operacion: '5001',
+      anulado: false,
+      plan: 'fundador',
+      desde: '2026-11-26',
+      hasta: '2026-12-25',
+    });
+    // La fecha del pago es la del servidor (now()), no la del reloj de la prueba.
+    expect(Number.isNaN(Date.parse(pagos[3].pagado_en))).toBe(false);
+    // En revisión: la que cobró de menos y la devolución que no era la última.
+    expect(en_revision).toHaveLength(2);
+    expect(en_revision[0]).toMatchObject({ monto_centimos: 1490 });
+    // Quien no es del negocio no ve nada.
+    expect((await pedir(rosa, 'GET', '/cobro/mis-pagos')).statusCode).toBe(403);
   });
 
   it('La página de regreso dice cómo quedó y que vuelva a Moca', async () => {

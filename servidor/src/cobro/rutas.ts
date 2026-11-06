@@ -504,6 +504,71 @@ export function rutasCobro(
     },
   );
 
+  // «Mis pagos de Moca» (entrega 33): los pagos del negocio, para sus dueños.
+  // De un pago por Yape no va la nota: la escribe Jhony, para él.
+  app.get('/cobro/mis-pagos', async (peticion, respuesta) => {
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+    const cliente = await pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      const miembro = await miembroDe(cliente, usuarioId, empresaPedida(peticion.query));
+      if (!miembro || miembro.rol !== 'dueno') {
+        await cliente.query('ROLLBACK');
+        return respuesta.code(403).send({ error: miembro ? 'solo_duenos' : 'sin_negocio' });
+      }
+      await cliente.query(`SELECT set_config('app.empresa_id', $1, true)`, [miembro.empresaId]);
+      const pagos = (
+        await cliente.query<{
+          id: string;
+          plan: Plan;
+          monto_centimos: number;
+          desde: string;
+          hasta: string;
+          creado_en: Date;
+          origen: string;
+          mp_pago_id: string | null;
+          anulado_en: Date | null;
+        }>(
+          `SELECT id, plan, monto_centimos, desde, hasta, creado_en, origen, mp_pago_id, anulado_en
+             FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
+          [miembro.empresaId],
+        )
+      ).rows;
+      // Lo que Mercado Pago cobró y Jhony todavía tiene que revisar.
+      const revisar = (
+        await cliente.query<{ monto_centimos: number; actualizado_en: Date }>(
+          `SELECT monto_centimos, actualizado_en FROM ordenes_pago
+            WHERE empresa_id = $1 AND estado = 'revisar' ORDER BY actualizado_en DESC`,
+          [miembro.empresaId],
+        )
+      ).rows;
+      await cliente.query('COMMIT');
+      return {
+        pagos: pagos.map((p) => ({
+          id: p.id,
+          plan: p.plan,
+          monto_centimos: p.monto_centimos,
+          desde: p.desde,
+          hasta: p.hasta,
+          pagado_en: new Date(p.creado_en).toISOString(),
+          medio: p.origen,
+          ...(p.origen === 'mercadopago' && p.mp_pago_id ? { operacion: p.mp_pago_id } : {}),
+          anulado: p.anulado_en !== null,
+        })),
+        en_revision: revisar.map((o) => ({
+          monto_centimos: o.monto_centimos,
+          desde_el: new Date(o.actualizado_en).toISOString(),
+        })),
+      };
+    } catch (error) {
+      await cliente.query('ROLLBACK');
+      throw error;
+    } finally {
+      cliente.release();
+    }
+  });
+
   // Un negocio por el número de su dueño, con sus pagos.
   app.get('/cobro/negocio', async (peticion, respuesta) => {
     try {

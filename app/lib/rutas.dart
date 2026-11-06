@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/cobro/pantalla_mis_pagos.dart';
 import 'pantallas/ajustes/pantalla_categorias.dart';
 import 'pantallas/ajustes/pantalla_ajustes.dart';
 import 'pantallas/ajustes/pantalla_datos_negocio.dart';
@@ -87,6 +88,9 @@ abstract final class Rutas {
   /// «Mis categorías» y una categoría propia, nueva (`?tipo=`) o la que se
   /// cambia (`?id=`) (entrega 31).
   static const categorias = '/ajustes/categorias';
+
+  /// «Mis pagos de Moca» (entrega 33).
+  static const misPagos = '/ajustes/pagos';
   static const categoria = '/ajustes/categoria';
   static String categoriaNueva(TipoMovimiento? tipo) => Uri(
     path: categoria,
@@ -170,6 +174,7 @@ final _rutasPorEtapa = {
     Rutas.datosDelNegocio,
     Rutas.categorias,
     Rutas.categoria,
+    Rutas.misPagos,
   ],
 };
 
@@ -361,6 +366,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.datosDelNegocio,
       builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.misPagos,
+      builder: (context, estado) => const PantallaMisPagos(),
     ),
     GoRoute(
       path: Rutas.categorias,

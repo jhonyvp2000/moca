@@ -386,6 +386,33 @@ class ServicioCuentaRemoto
   }
 
   @override
+  Future<({MisPagos? pagos, bool alDia})> misPagos() async {
+    final r = await _delEquipo(await _delNegocio('/cobro/mis-pagos'));
+    if (r != null && r.statusCode == 200) {
+      final ahora = _a.ahora();
+      await _a.guardarAjuste(
+        AccesoLocal.claveMisPagos,
+        jsonEncode({'actualizado': ahora.toIso8601String(), ..._cuerpo(r)}),
+      );
+      return (pagos: MisPagos.desdeServidor(_cuerpo(r), ahora), alDia: true);
+    }
+    final guardado = await _a.leerAjuste(AccesoLocal.claveMisPagos);
+    if (guardado == null) return (pagos: null, alDia: false);
+    try {
+      final json = jsonDecode(guardado) as Map<String, Object?>;
+      return (
+        pagos: MisPagos.desdeServidor(
+          json,
+          DateTime.tryParse(json['actualizado'] as String? ?? '') ?? _a.ahora(),
+        ),
+        alDia: false,
+      );
+    } on FormatException {
+      return (pagos: null, alDia: false);
+    }
+  }
+
+  @override
   Future<ResultadoInicioDePago> pagarConMercadoPago() async {
     final r = await _delEquipo(await _delNegocio('/cobro/mercadopago'), {});
     if (r == null) return (inicio: null, error: ErrorDePago.sinSenal);

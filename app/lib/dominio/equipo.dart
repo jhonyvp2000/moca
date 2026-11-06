@@ -268,6 +268,10 @@ class Permisos {
 /// La pregunta del día 10 de la prueba (entrega 25) y el pago con Mercado
 /// Pago (entrega 32).
 abstract interface class ServicioCobro {
+  /// «Mis pagos de Moca» (entrega 33): del servidor y, sin señal, la última
+  /// lista que bajó. Nulo si nunca bajó.
+  Future<({MisPagos? pagos, bool alDia})> misPagos();
+
   /// Pide la orden y la página de pago del mes.
   Future<ResultadoInicioDePago> pagarConMercadoPago();
 

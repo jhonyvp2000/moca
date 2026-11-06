@@ -372,6 +372,38 @@ class _ServidorFalso {
                 }),
                 200,
               );
+      case '/cobro/mis-pagos':
+        return http.Response(
+          jsonEncode({
+            'pagos': [
+              {
+                'id': 'p-2',
+                'plan': 'fundador',
+                'monto_centimos': 1490,
+                'desde': '2026-12-26',
+                'hasta': '2027-01-25',
+                'pagado_en': '2026-11-06T15:00:00.000Z',
+                'medio': 'yape',
+                'anulado': false,
+              },
+              {
+                'id': 'p-1',
+                'plan': 'fundador',
+                'monto_centimos': 1490,
+                'desde': '2026-11-26',
+                'hasta': '2026-12-25',
+                'pagado_en': '2026-11-05T15:00:00.000Z',
+                'medio': 'mercadopago',
+                'operacion': '5001',
+                'anulado': true,
+              },
+            ],
+            'en_revision': [
+              {'monto_centimos': 1490, 'desde_el': '2026-11-06T15:00:00.000Z'},
+            ],
+          }),
+          200,
+        );
       case '/cobro/orden/orden-1':
         consultasDeOrden++;
         return http.Response(jsonEncode(orden), 200);
@@ -3942,6 +3974,67 @@ void main() {
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(find.text(Textos.pagarOtroMes), findsNothing);
+    });
+
+    testWidgets('Entrega 33: «Mis pagos de Moca», también sin señal', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(30),
+        'dias': 30,
+        'plan': 'fundador',
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.verMisPagos));
+      await esperar(tester);
+      expect(
+        find.text(
+          'Moca está pagada hasta el '
+          '${formatearDiaYMes(_ahora.add(const Duration(days: 30)))} · '
+          'Plan de fundador',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.pagoEnRevision), findsOneWidget);
+      expect(find.text('Del 26 de diciembre al 25 de enero'), findsOneWidget);
+      expect(find.text(Textos.porYape), findsOneWidget);
+      expect(find.text(Textos.porMercadoPago('5001')), findsOneWidget);
+      expect(find.text(Textos.pagoDevueltoNoCuenta), findsOneWidget);
+      expect(
+        find.text(Textos.planDelPago(PlanCobro.fundador)),
+        findsNWidgets(2),
+      );
+      expect(find.textContaining('Actualizado el'), findsNothing);
+
+      // Sin señal: la última lista que bajó.
+      await tocar(tester, find.byType(BotonVolver));
+      _conSenal = false;
+      await tocar(tester, find.text(Textos.verMisPagos));
+      await esperar(tester);
+      expect(find.text(Textos.porMercadoPago('5001')), findsOneWidget);
+      expect(find.textContaining('Actualizado el'), findsOneWidget);
+    });
+
+    testWidgets('Entrega 33: en «Ajustes», solo para dueños', (tester) async {
+      final base = await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(9),
+        'dias': 9,
+      });
+      await abrirAjustes(tester);
+      expect(find.text(Textos.misPagos), findsOneWidget);
+      // En la prueba, sin pagos: no sale «Ver mis pagos» en la tarjeta.
+      await tocar(tester, find.byType(BotonVolver));
+      expect(find.text(Textos.verMisPagos), findsNothing);
+      await tester.runAsync(
+        () => base
+            .update(base.membresias)
+            .write(const MembresiasCompanion(rol: Value(Rol.encargado))),
+      );
+      await esperar(tester);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.misPagos), findsNothing);
     });
 
     testWidgets('Por vencer: el aviso sale en el Inicio', (tester) async {

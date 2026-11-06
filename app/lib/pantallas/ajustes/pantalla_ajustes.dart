@@ -7,6 +7,7 @@ import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
+import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
@@ -51,6 +52,13 @@ class PantallaAjustes extends ConsumerWidget {
           ruta: Rutas.cuentas,
         ),
       ],
+      // Los pagos del negocio, con la cuenta guardada (entrega 33).
+      if (guardada && permisos.rol == Rol.dueno)
+        const TarjetaEnlace(
+          titulo: Textos.misPagos,
+          detalle: Textos.misPagosDetalle,
+          ruta: Rutas.misPagos,
+        ),
       if (permisos.cambiaCategorias)
         const TarjetaEnlace(
           titulo: Textos.misCategorias,

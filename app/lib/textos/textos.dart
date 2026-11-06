@@ -1,3 +1,4 @@
+import '../pais/peru/formato.dart';
 import '../dominio/cobro.dart';
 import '../dominio/aviso_cierre.dart';
 import '../dominio/modelos.dart';
@@ -1235,6 +1236,45 @@ abstract final class Textos {
   }
 
   static const comoPagar = 'Cómo pagar';
+
+  // «Mis pagos de Moca» (entrega 33).
+  static const misPagos = 'Mis pagos de Moca';
+  static const misPagosDetalle = 'Cuándo pagaste y qué cubrió cada pago';
+  static const verMisPagos = 'Ver mis pagos';
+  static String resumenDeMisPagos(Cobro c) {
+    final hasta = c.hasta == null ? '' : formatearDiaYMes(c.hasta!);
+    return switch (c.estado) {
+      EstadoDelCobro.pagado => [
+        'Moca está pagada hasta el $hasta',
+        if (c.plan == 'fundador') 'Plan de fundador',
+        if (c.plan == 'anual') 'Plan anual',
+      ].join(' · '),
+      EstadoDelCobro.prueba when c.hasta == null => pruebaSinEmpezar,
+      EstadoDelCobro.prueba => pruebaTeQuedan(c.dias ?? 0, hasta),
+      EstadoDelCobro.vencido =>
+        c.plan == null ? '$pruebaTermino.' : '${pagoVencio(hasta)}.',
+      EstadoDelCobro.sinCobro => 'Moca todavía no cobra.',
+    };
+  }
+
+  static String planDelPago(PlanCobro plan) => switch (plan) {
+    PlanCobro.normal => 'Un mes',
+    PlanCobro.fundador => 'Un mes de fundador',
+    PlanCobro.anual => 'Un año',
+  };
+  static String cubrio(String desde, String hasta) => 'Del $desde al $hasta';
+  static String porMercadoPago(String? operacion) => operacion == null
+      ? 'Mercado Pago'
+      : 'Mercado Pago · operación $operacion';
+  static const porYape = 'Yape';
+  static const pagoDevueltoNoCuenta = 'Anulado o devuelto: no cuenta';
+  static const pagoEnRevision =
+      'Tienes un pago de Mercado Pago en revisión. Te escribiremos por '
+      'WhatsApp.';
+  static const sinPagosTodavia = 'Todavía no hay pagos.';
+  static const misPagosSinSenal =
+      'Necesitas señal para ver tus pagos la primera vez.';
+  static String actualizadoEl(String dia) => 'Actualizado el $dia';
   static const pagarOtroMes = 'Pagar otro mes';
   static String pagoSumaUnMes(String hasta, String desde, String nuevo) =>
       'Ya está pagada hasta el $hasta. Este pago suma un mes: del $desde al '

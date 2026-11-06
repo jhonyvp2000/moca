@@ -186,6 +186,81 @@ class PagoRegistrado {
   final String? nota;
 }
 
+/// «Mis pagos de Moca» (entrega 33): lo que el dueño pagó, para verlo él.
+enum MedioDePago { mercadoPago, yape }
+
+class PagoDeMoca {
+  const PagoDeMoca({
+    required this.plan,
+    required this.montoCentimos,
+    required this.desde,
+    required this.hasta,
+    required this.pagadoEn,
+    required this.medio,
+    this.operacion,
+    this.anulado = false,
+  });
+
+  final PlanCobro plan;
+  final int montoCentimos;
+  final DateTime desde;
+  final DateTime hasta;
+  final DateTime pagadoEn;
+  final MedioDePago medio;
+
+  /// El número de operación de Mercado Pago; del Yape no va la nota.
+  final String? operacion;
+
+  /// Anulado o devuelto: no cuenta.
+  final bool anulado;
+}
+
+class MisPagos {
+  const MisPagos({
+    required this.pagos,
+    required this.actualizado,
+    this.enRevision = 0,
+  });
+
+  /// Lo que manda el servidor en `/cobro/mis-pagos`.
+  factory MisPagos.desdeServidor(
+    Map<String, Object?> json,
+    DateTime actualizado,
+  ) {
+    DateTime dia(Object? v) =>
+        (v is String ? DateTime.tryParse(v) : null) ?? DateTime(2000);
+    return MisPagos(
+      actualizado: actualizado,
+      enRevision: (json['en_revision'] as List? ?? const []).length,
+      pagos: [
+        for (final p in (json['pagos'] as List? ?? const []))
+          if (p case final Map<String, Object?> p)
+            PagoDeMoca(
+              plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
+              montoCentimos: p['monto_centimos'] as int? ?? 0,
+              desde: dia(p['desde']),
+              hasta: dia(p['hasta']),
+              pagadoEn: dia(p['pagado_en']).toLocal(),
+              medio: p['medio'] == 'mercadopago'
+                  ? MedioDePago.mercadoPago
+                  : MedioDePago.yape,
+              operacion: p['operacion'] as String?,
+              anulado: p['anulado'] == true,
+            ),
+      ],
+    );
+  }
+
+  /// Del más nuevo al más viejo.
+  final List<PagoDeMoca> pagos;
+
+  /// Cobros de Mercado Pago que Jhony todavía tiene que revisar.
+  final int enRevision;
+
+  /// Cuándo bajó del servidor: sin señal se muestra lo último.
+  final DateTime actualizado;
+}
+
 /// Lo que contestó el negocio a la pregunta del día 10.
 class RespuestaRegistrada {
   const RespuestaRegistrada({
