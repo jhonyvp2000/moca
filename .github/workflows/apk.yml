@@ -35,6 +35,11 @@ on:
         description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M, entrega-N.M.K o piloto-N). Vacío: solo arma el APK."
         required: false
         default: ""
+      obligatoria:
+        description: "Obligatoria: las versiones anteriores dejan de anotar hasta actualizar (entrega 34)."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -166,6 +171,12 @@ jobs:
 
           - arm64: para casi todos los teléfonos.
           - armeabi-v7a: solo si el teléfono es muy antiguo y el otro no se instala."
+          # Obligatoria (entrega 34): el servidor lee esta marca de las notas.
+          if [[ "${{ inputs.obligatoria }}" == "true" ]]; then
+            notas="$notas
+
+          [obligatoria] Las versiones anteriores dejan de anotar hasta actualizar."
+          fi
           # La versión de los pilotos no es de prueba interna.
           prueba=""
           if [[ "$ENTREGA" == entrega-* ]]; then prueba="--prerelease"; fi

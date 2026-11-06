@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { crearApp } from '../src/app.js';
 import type { Pool } from '../src/base/conexion.js';
-import { leerConfigVersion, type Release, ultimaVersion } from '../src/version/rutas.js';
+import {
+  leerConfigVersion,
+  minimaObligatoria,
+  type Release,
+  ultimaVersion,
+} from '../src/version/rutas.js';
 
 const release = (tag: string, armado: number, draft = false): Release => ({
   tag_name: tag,
@@ -111,5 +116,29 @@ describe('«Hay una versión nueva de Moca» (entrega 26.3)', () => {
     expect(nada.statusCode).toBe(302);
     expect(nada.headers.location).toBe('https://github.com/jhonyvp2000/moca/releases');
     await app3.close();
+  });
+
+  it('Un Release marcado «[obligatoria]» sube la mínima (entrega 34)', async () => {
+    const marcar = (r: Release): Release => ({ ...r, body: 'Arreglos.\n\n[obligatoria]' });
+    expect(minimaObligatoria(releases, false)).toBeNull();
+    const lista = [
+      marcar(release('piloto-1', 90)),
+      release('piloto-2', 110),
+      marcar(release('entrega-26.3', 117)),
+    ];
+    // Los pilotos ven solo los pilotos marcados; Jhony, también las entregas.
+    expect(minimaObligatoria(lista, false)).toBe(90);
+    expect(minimaObligatoria(lista, true)).toBe(117);
+    const app = crearApp({
+      pool: {} as Pool,
+      version: 'prueba',
+      versionApp: { repo: 'jhonyvp2000/moca', minima: 50 },
+      buscarReleases: async () => lista,
+    });
+    expect((await app.inject({ method: 'GET', url: '/app/version' })).json().minima).toBe(90);
+    expect(
+      (await app.inject({ method: 'GET', url: '/app/version?canal=todas' })).json().minima,
+    ).toBe(117);
+    await app.close();
   });
 });

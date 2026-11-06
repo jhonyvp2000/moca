@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/version/version.dart';
 import 'pantallas/cobro/pantalla_mis_pagos.dart';
 import 'pantallas/ajustes/pantalla_categorias.dart';
 import 'pantallas/ajustes/pantalla_ajustes.dart';
@@ -88,6 +89,9 @@ abstract final class Rutas {
   /// «Mis categorías» y una categoría propia, nueva (`?tipo=`) o la que se
   /// cambia (`?id=`) (entrega 31).
   static const categorias = '/ajustes/categorias';
+
+  /// «Actualiza Moca para seguir anotando» (entrega 34).
+  static const actualizar = '/actualizar';
 
   /// «Mis pagos de Moca» (entrega 33).
   static const misPagos = '/ajustes/pagos';
@@ -175,7 +179,22 @@ final _rutasPorEtapa = {
     Rutas.categorias,
     Rutas.categoria,
     Rutas.misPagos,
+    Rutas.actualizar,
   ],
+};
+
+/// Lo que anota: con una versión obligatoria vencida, lleva a actualizar
+/// (entrega 34). Ver, el Historial, los informes y el Excel siguen.
+const rutasQueAnotan = {
+  Rutas.registrar,
+  Rutas.escribir,
+  Rutas.ventaDelDia,
+  Rutas.voz,
+  Rutas.foto,
+  Rutas.qr,
+  Rutas.confirmarLectura,
+  Rutas.corregir,
+  Rutas.arqueo,
 };
 
 String? redirigirSegunEtapa(EtapaInicio? etapa, String ruta) {
@@ -188,11 +207,20 @@ String? redirigirSegunEtapa(EtapaInicio? etapa, String ruta) {
   return permitidas.contains(ruta) ? null : permitidas.first;
 }
 
-GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
+GoRouter crearRutas(
+  ValueNotifier<EtapaInicio?> etapa, [
+  ValueNotifier<bool>? bloqueadoPorVersion,
+]) => GoRouter(
   initialLocation: Rutas.cargando,
-  refreshListenable: etapa,
-  redirect: (context, estado) =>
-      redirigirSegunEtapa(etapa.value, estado.matchedLocation),
+  refreshListenable: Listenable.merge([etapa, ?bloqueadoPorVersion]),
+  redirect: (context, estado) {
+    final ruta = estado.matchedLocation;
+    if ((bloqueadoPorVersion?.value ?? false) &&
+        rutasQueAnotan.contains(ruta)) {
+      return Rutas.actualizar;
+    }
+    return redirigirSegunEtapa(etapa.value, ruta);
+  },
   routes: [
     GoRoute(
       path: Rutas.cargando,
@@ -366,6 +394,10 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
     GoRoute(
       path: Rutas.datosDelNegocio,
       builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.actualizar,
+      builder: (context, estado) => const PantallaActualizar(),
     ),
     GoRoute(
       path: Rutas.misPagos,

@@ -3517,9 +3517,14 @@ void main() {
         versionInstalada: instalada,
         versionDelServidor: version,
       );
-      // La revisión sale después del primer cuadro.
-      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-      await esperar(tester);
+      // La revisión sale después del primer cuadro, y lee lo guardado antes
+      // de guardar lo nuevo (entrega 34).
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await esperar(tester);
+      }
     }
 
     testWidgets('Con una más nueva, el Inicio lo dice y descarga el APK', (
@@ -3555,12 +3560,55 @@ void main() {
       expect(find.text(Textos.versionDeMoca('piloto-1', 100)), findsOneWidget);
     });
 
-    testWidgets('Con MOCA_APP_MINIMA, una versión vieja solo se actualiza', (
+    Future<void> otroDia(WidgetTester tester, BaseLocal base) async {
+      _ahora = _ahora.add(const Duration(days: 1));
+      await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
+      await esperar(tester);
+    }
+
+    Future<BaseLocal> baseDe(WidgetTester tester) async =>
+        ProviderScope.containerOf(tester.element(find.byType(MocaApp)))
+            .read(baseLocalProvider);
+
+    testWidgets(
+      'Entrega 34: obligatoria, un día de gracia y luego no se anota',
+      (tester) async {
+        await abrirCon(tester, publicada(110, minima: 105));
+        // El primer día avisa, sin «Ahora no», y se sigue anotando.
+        expect(find.text(Textos.actualizaDesdeManana), findsOneWidget);
+        expect(find.text(Textos.ahoraNoVersion), findsNothing);
+        expect(find.text(Textos.tienesHoy), findsOneWidget);
+        await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+        expect(find.text(Textos.escribirlo), findsOneWidget);
+        await tocar(tester, find.byType(BotonVolver).first);
+
+        // Al día siguiente, lo que anota lleva a actualizar.
+        await otroDia(tester, await baseDe(tester));
+        expect(find.text(Textos.actualizaParaAnotar), findsOneWidget);
+        expect(find.text(Textos.tienesHoy), findsOneWidget);
+        await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+        expect(find.text(Textos.actualizaMoca), findsOneWidget);
+        expect(find.text(Textos.escribirlo), findsNothing);
+        await tocar(
+          tester,
+          find.widgetWithText(FilledButton, Textos.descargar),
+        );
+        expect(_abiertos.last, 'https://x/arm64.apk');
+        // Ver sigue: vuelve y abre el Historial.
+        await tocar(tester, find.text(Textos.volver));
+        await tocar(tester, find.text(Textos.pestanaHistorial));
+        expect(find.text(Textos.actualizaMoca), findsNothing);
+        // Sin señal no se bloquea: ver test/dominio_version_test.dart.
+      },
+    );
+
+    testWidgets('Entrega 34: el teléfono de Jhony nunca se bloquea', (
       tester,
     ) async {
-      await abrirCon(tester, publicada(110, minima: 105));
-      expect(find.text(Textos.actualizaMoca), findsOneWidget);
-      expect(find.text(Textos.tienesHoy), findsNothing);
+      await abrirCon(tester, publicada(110, minima: 105), admin: true);
+      await otroDia(tester, await baseDe(tester));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.escribirlo), findsOneWidget);
     });
   });
 

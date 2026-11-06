@@ -9,7 +9,6 @@ import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
-import '../../dominio/version.dart';
 import '../cobro/cobro.dart';
 import '../version/version.dart';
 import 'hoja_saldo.dart';
@@ -46,13 +45,8 @@ class PantallaInicio extends ConsumerWidget {
     // El primer día es del dueño que empieza; los demás roles ven el
     // Inicio según lo que les toca (entrega 20).
     final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
-    // Una versión demasiado vieja solo puede actualizarse (entrega 26.3).
-    final (version, _) =
-        ref.watch(versionPublicadaProvider).value ??
-        (const EstadoDeVersion(), false);
-    if (version.obligatoria(ref.watch(versionInstaladaProvider))) {
-      return PantallaActualizar(estado: version);
-    }
+    // Una versión obligatoria ya no tapa el Inicio (entrega 34): el aviso
+    // va arriba y lo que anota lleva a actualizar.
     // Al vencer la prueba o el pago, solo se anota (entrega 25).
     if (permisos.soloAnotar) {
       return InicioSoloAnotar(

@@ -1364,6 +1364,13 @@ abstract final class Textos {
   static const descargar = 'Descargar';
   static const ahoraNoVersion = 'Ahora no';
   static const actualizaMoca = 'Actualiza Moca para seguir';
+  static const actualizaParaAnotar =
+      'Para seguir anotando, instala la versión nueva. Lo que ya anotaste no '
+      'se pierde, y mientras tanto puedes ver tus saldos, tu historial y tus '
+      'informes.';
+  static const actualizaDesdeManana =
+      'Desde mañana tendrás que actualizar para seguir anotando. Toma un '
+      'minuto y no pierdes nada de lo anotado.';
   static const actualizaMocaDetalle =
       'Esta versión de Moca ya no funciona con el servidor. Lo que anotaste '
       'está guardado en este teléfono y se sube cuando actualices.';

@@ -561,6 +561,7 @@ final versionPublicadaProvider =
           return (
             EstadoDeVersion(
               minima: v['minima'] as int?,
+              obligatoriaDesde: v['obligatoria_desde'] as String?,
               ultima: v['armado'] == null
                   ? null
                   : VersionPublicada(
@@ -578,6 +579,19 @@ final versionPublicadaProvider =
       });
     });
 
+/// Si una versión obligatoria deja anotar (entrega 34).
+final bloqueoPorVersionProvider = Provider<BloqueoPorVersion>((ref) {
+  final (estado, _) =
+      ref.watch(versionPublicadaProvider).value ??
+      (const EstadoDeVersion(), false);
+  return estado.bloqueo(
+    ref.watch(versionInstaladaProvider),
+    hoy: ref.watch(relojProvider)().toIso8601String().substring(0, 10),
+    admin: ref.watch(cobroProvider).value?.admin ?? false,
+    conSenal: ref.watch(hayConexionProvider).value ?? true,
+  );
+});
+
 /// «Ahora no»: el aviso se esconde hasta mañana.
 final guardarAhoraNoVersionProvider = Provider<Future<void> Function()>(
   (ref) =>
@@ -588,25 +602,31 @@ final guardarAhoraNoVersionProvider = Provider<Future<void> Function()>(
           ),
 );
 
-/// Pregunta por la última versión una vez al día, con señal, y la guarda.
+/// Pregunta por la última versión cada vez que se abre o se vuelve a la
+/// app, con señal (entrega 34; antes, una vez al día), y la guarda.
 final revisarVersionProvider = Provider<Future<void> Function()>((ref) {
   return () async {
     final reloj = ref.read(relojProvider);
     final acceso = AccesoLocal(ref.read(baseLocalProvider), reloj);
     final hoy = reloj().toIso8601String().substring(0, 10);
-    if (await acceso.leerAjuste(AccesoLocal.claveVersionRevisada) == hoy) {
-      return;
-    }
     final estado = await ref
         .read(servicioVersionProvider)
         // Jhony ve también las entregas: se espera a saber si es su teléfono.
         .buscarVersion(todas: (await ref.read(cobroProvider.future)).admin);
     if (estado == null) return;
     final u = estado.ultima;
+    // El día en que se supo de esta mínima: se conserva mientras no cambie.
+    // El día en que se supo de esta mínima: se conserva mientras no cambie.
+    // Sale de lo que ya se leyó, sin volver a leer la base.
+    final (antes, _) =
+        ref.read(versionPublicadaProvider).value ??
+        (const EstadoDeVersion(), false);
+    final desde = antes.minima == estado.minima ? antes.obligatoriaDesde : null;
     await acceso.guardarAjuste(
       AccesoLocal.claveVersion,
       jsonEncode({
         'minima': estado.minima,
+        if (estado.minima != null) 'obligatoria_desde': desde ?? hoy,
         if (u != null) ...{
           'nombre': u.nombre,
           'armado': u.armado,

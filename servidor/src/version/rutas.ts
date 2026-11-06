@@ -8,6 +8,8 @@ import type { FastifyInstance } from 'fastify';
 export interface Release {
   tag_name: string;
   draft: boolean;
+  /** Las notas: «[obligatoria]» obliga a actualizar (entrega 34). */
+  body?: string | null;
   assets: { name: string; browser_download_url: string }[];
 }
 
@@ -62,6 +64,25 @@ export function ultimaVersion(releases: Release[], todas: boolean): VersionPubli
   return ultima;
 }
 
+/**
+ * La versión mínima por los Releases marcados «[obligatoria]» (entrega 34):
+ * el armado más alto entre los que ve ese canal. Así se obliga desde GitHub,
+ * sin tocar Render.
+ */
+export function minimaObligatoria(releases: Release[], todas: boolean): number | null {
+  let minima: number | null = null;
+  for (const release of releases) {
+    if (release.draft || !release.body?.includes('[obligatoria]')) continue;
+    const esPiloto = release.tag_name.startsWith('piloto-');
+    if (!esPiloto && !(todas && release.tag_name.startsWith('entrega-'))) continue;
+    for (const asset of release.assets) {
+      const armado = Number(archivo.exec(asset.name)?.[1] ?? 0);
+      if (armado && (minima === null || armado > minima)) minima = armado;
+    }
+  }
+  return minima;
+}
+
 /** Lee los Releases de GitHub; las pruebas lo reemplazan. */
 export type BuscarReleases = (repo: string) => Promise<Release[]>;
 
@@ -101,9 +122,12 @@ export function rutasVersion(
   app.get('/app/version', async (peticion) => {
     const todas = (peticion.query as { canal?: unknown } | undefined)?.canal === 'todas';
     const lista = await releases();
+    // La mayor entre MOCA_APP_MINIMA y la última marcada «[obligatoria]».
+    const marcada = lista ? minimaObligatoria(lista, todas) : null;
+    const minimas = [config.minima, marcada].filter((m): m is number => m !== null);
     return {
       ultima: lista ? ultimaVersion(lista, todas) : null,
-      minima: config.minima,
+      minima: minimas.length ? Math.max(...minimas) : null,
     };
   });
 

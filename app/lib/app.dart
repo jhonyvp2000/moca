@@ -1,3 +1,5 @@
+import 'dominio/version.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -30,7 +32,11 @@ class MocaApp extends ConsumerStatefulWidget {
 
 class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   final _etapa = ValueNotifier<EtapaInicio?>(null);
-  late final GoRouter _rutas = crearRutas(_etapa);
+
+  /// Una versión obligatoria vencida: lo que anota lleva a actualizar
+  /// (entrega 34).
+  final _bloqueado = ValueNotifier(false);
+  late final GoRouter _rutas = crearRutas(_etapa, _bloqueado);
 
   /// A dónde ir cuando se tocó una notificación antes de que la app
   /// terminara de abrir.
@@ -49,6 +55,13 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         _abrirPendiente();
       },
       fireImmediately: true,
+    );
+    // El bloqueo por versión (entrega 34), después del primer cuadro: al
+    // abrir hay lecturas más urgentes.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.listenManual(bloqueoPorVersionProvider, (_, bloqueo) {
+        _bloqueado.value = bloqueo == BloqueoPorVersion.bloqueado;
+      }, fireImmediately: true),
     );
     // Las notificaciones se vuelven a programar cada vez que cambian los
     // datos.
@@ -105,7 +118,7 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
       RegistroDeErrores.instancia.pantalla =
           _rutas.routerDelegate.currentConfiguration.uri.path;
     });
-    // La versión nueva, una vez al día (entrega 26.3).
+    // La versión nueva, cada vez que se abre (entregas 26.3 y 34).
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => ref.read(revisarVersionProvider)(),
     );

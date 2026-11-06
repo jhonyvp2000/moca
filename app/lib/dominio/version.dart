@@ -46,13 +46,38 @@ class VersionPublicada {
   final String? v7a;
 }
 
+/// Una versión obligatoria (entrega 34): el primer día avisa; desde el
+/// siguiente, deja de anotar hasta actualizar. Ver, el Historial, los
+/// informes y el Excel siguen.
+enum BloqueoPorVersion { ninguno, desdeManana, bloqueado }
+
 class EstadoDeVersion {
-  const EstadoDeVersion({this.ultima, this.minima});
+  const EstadoDeVersion({this.ultima, this.minima, this.obligatoriaDesde});
 
   final VersionPublicada? ultima;
 
   /// Con un armado menor, hay que actualizar sí o sí.
   final int? minima;
+
+  /// El día («2026-11-06») en que este teléfono supo de esa mínima: ese día
+  /// es de gracia.
+  final String? obligatoriaDesde;
+
+  /// Si se puede anotar. El teléfono de Jhony nunca se bloquea; sin señal,
+  /// tampoco, porque no podría bajar la versión nueva.
+  BloqueoPorVersion bloqueo(
+    VersionInstalada instalada, {
+    required String hoy,
+    required bool admin,
+    required bool conSenal,
+  }) {
+    if (admin || !obligatoria(instalada)) return BloqueoPorVersion.ninguno;
+    final desde = obligatoriaDesde;
+    if (desde == null || desde.compareTo(hoy) >= 0) {
+      return BloqueoPorVersion.desdeManana;
+    }
+    return conSenal ? BloqueoPorVersion.bloqueado : BloqueoPorVersion.ninguno;
+  }
 
   /// Hay una más nueva que la instalada.
   bool hayNueva(VersionInstalada instalada) =>
