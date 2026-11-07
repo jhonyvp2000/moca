@@ -60,6 +60,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Antes de armar (10 minutos): si ese nombre de versión ya está
+      # publicado, avisa en segundos. Son los nombres de las versiones de la
+      # app (entrega-N, piloto-N), no los de los negocios.
+      - name: El nombre de la versión está libre
+        if: env.ENTREGA != '' && github.event_name == 'workflow_dispatch'
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$ENTREGA" > /dev/null 2>&1; then
+            echo "::error::Ya hay una versión publicada con el nombre $ENTREGA. Usa el siguiente número."
+            exit 1
+          fi
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
