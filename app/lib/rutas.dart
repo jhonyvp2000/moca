@@ -8,6 +8,8 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/informe/pantalla_de_categoria.dart';
+import 'pantallas/informe/pantalla_lo_que_debes.dart';
 import 'pantallas/ajustes/pantalla_sin_acceso.dart';
 import 'pantallas/version/version.dart';
 import 'pantallas/cobro/pantalla_mis_pagos.dart';
@@ -90,6 +92,11 @@ abstract final class Rutas {
   /// «Mis categorías» y una categoría propia, nueva (`?tipo=`) o la que se
   /// cambia (`?id=`) (entrega 31).
   static const categorias = '/ajustes/categorias';
+
+  /// «Lo que debes» y los registros de una categoría del informe (entrega
+  /// 38).
+  static const loQueDebes = '/informes/lo-que-debes';
+  static const deCategoria = '/informes/categoria';
 
   /// Sin acceso al negocio (entrega 37).
   static const sinAcceso = '/sin-acceso';
@@ -186,6 +193,8 @@ final _rutasPorEtapa = {
     Rutas.categoria,
     Rutas.misPagos,
     Rutas.actualizar,
+    Rutas.loQueDebes,
+    Rutas.deCategoria,
   ],
 };
 
@@ -400,6 +409,15 @@ GoRouter crearRutas(
     GoRoute(
       path: Rutas.datosDelNegocio,
       builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.loQueDebes,
+      builder: (context, estado) => const PantallaLoQueDebes(),
+    ),
+    GoRoute(
+      path: Rutas.deCategoria,
+      builder: (context, estado) =>
+          PantallaDeCategoria(consulta: estado.extra! as ConsultaDeCategoria),
     ),
     GoRoute(
       path: Rutas.sinAcceso,

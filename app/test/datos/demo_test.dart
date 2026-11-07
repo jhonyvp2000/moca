@@ -12,6 +12,7 @@ import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/demo.dart';
 import 'package:moca/dominio/arqueo.dart';
+import 'package:moca/dominio/historial.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/dominio/moca.dart';
 import 'package:moca/dominio/modelos.dart';
@@ -330,6 +331,52 @@ void main() {
           (m) => m.fechaMovimiento.isAfter(DateTime(2026, 10, 13, 9)),
         ),
         isEmpty,
+      );
+    },
+  );
+
+  test(
+    'Entrega 38: cada barra del informe suma lo mismo que sus registros',
+    () async {
+      await RepositorioOperadorLocal(base, ahora: () => ahora).cargarDemo();
+      final informe = RepositorioInformeLocal(base, ahora: () => ahora);
+      final historial = RepositorioHistorialLocal(base, ahora: () => ahora);
+      for (final mes in [DateTime(2026, 10), DateTime(2026, 9)]) {
+        final i = await informe.observarMes(mes).first;
+        for (final (tipo, filas) in [
+          (TipoMovimiento.egreso, i.gastos),
+          (TipoMovimiento.ingreso, i.ingresos),
+        ]) {
+          expect(filas, isNotEmpty);
+          for (final g in filas) {
+            final registros = await historial
+                .observarDeCategoria(
+                  ConsultaDeCategoria(
+                    mes: i.mes,
+                    tipo: tipo,
+                    titulo: g.nombre ?? 'Lo demás',
+                    nombres: g.nombre == null ? null : {g.nombre!},
+                    salvo: {
+                      for (final o in filas)
+                        if (o.nombre != null) o.nombre!,
+                    },
+                  ),
+                )
+                .first;
+            expect(
+              registros.fold(0, (s, f) => s + f.montoCentimos),
+              g.centimos,
+              reason: '${g.nombre ?? "Lo demás"} en $mes',
+            );
+          }
+        }
+      }
+      // Y lo que debes suma lo mismo que su total.
+      final i = await informe.observarMes(null).first;
+      final deudas = await historial.observarLoQueDebes().first;
+      expect(
+        deudas.fold(0, (s, f) => s + f.montoCentimos),
+        i.loQueDebesCentimos,
       );
     },
   );

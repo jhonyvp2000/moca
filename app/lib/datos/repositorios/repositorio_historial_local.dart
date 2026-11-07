@@ -86,8 +86,69 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       autorNombre: d.equipo[m.autorId]?.$1,
       autorRol: d.equipo[m.autorId]?.$2,
       anotadoEn: m.creadoEn,
+      vence: m.fechaVencimiento,
     );
   }
+
+  @override
+  Stream<List<FilaHistorial>> observarLoQueDebes() =>
+      _a.cambios().asyncMap((_) async {
+        final d = await _leer();
+        if (d == null) return const <FilaHistorial>[];
+        final deudas =
+            [
+              for (final m in d.movimientos)
+                if (m.estado == EstadoRegistro.vigente &&
+                    m.tipo == TipoMovimiento.egreso &&
+                    m.estadoPago != EstadoPago.pagado)
+                  m,
+            ]..sort(
+              (a, b) => (a.fechaVencimiento ?? a.fechaMovimiento).compareTo(
+                b.fechaVencimiento ?? b.fechaMovimiento,
+              ),
+            );
+        return [
+          for (final m in deudas)
+            // Lo que falta pagar, como en el total del informe.
+            _fila(d, m).conMonto(m.montoCentimos - m.montoPagadoCentimos),
+        ];
+      });
+
+  @override
+  Stream<List<FilaHistorial>> observarDeCategoria(ConsultaDeCategoria c) =>
+      _a.cambios().asyncMap((_) async {
+        final d = await _leer();
+        if (d == null) return const <FilaHistorial>[];
+        // La misma regla del informe (RepositorioInformeLocal): lo pagado,
+        // desde el saldo inicial de su cuenta, el día en que se movió.
+        final desdeDe = {for (final k in d.cuentas) k.id: k.fechaSaldoInicial};
+        final ahora = _a.ahora();
+        final actual = DateTime(ahora.year, ahora.month);
+        final hasta = c.mes == actual
+            ? inicioDelDia(ahora).add(const Duration(days: 1))
+            : DateTime(c.mes.year, c.mes.month + 1);
+        DateTime fecha(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
+        bool entra(Movimiento m) {
+          if (m.estado != EstadoRegistro.vigente ||
+              m.tipo != c.tipo ||
+              m.estadoPago != EstadoPago.pagado) {
+            return false;
+          }
+          final f = fecha(m);
+          final desde = desdeDe[m.cuentaId];
+          if (desde != null && f.isBefore(desde)) return false;
+          if (f.isBefore(c.mes) || !f.isBefore(hasta)) return false;
+          final nombre = d.categorias[m.categoriaId] ?? 'Otros';
+          final nombres = c.nombres;
+          return nombres == null
+              ? !c.salvo.contains(nombre)
+              : nombres.contains(nombre);
+        }
+
+        final elegidos = d.movimientos.where(entra).toList()
+          ..sort((a, b) => fecha(b).compareTo(fecha(a)));
+        return [for (final m in elegidos) _fila(d, m)];
+      });
 
   @override
   Stream<ResumenHistorial> observarHistorial() => _a.cambios().asyncMap((

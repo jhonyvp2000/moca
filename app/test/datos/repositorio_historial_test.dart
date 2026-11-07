@@ -241,6 +241,91 @@ void main() {
     );
   });
 
+  test(
+    '«Lo que debes»: lo que falta pagar, y al pagar sale (entrega 38)',
+    () async {
+      final id = await compraQueSeDebe();
+      var deudas = await repo.observarLoQueDebes().first;
+      expect(deudas.single.id, id);
+      expect(deudas.single.proveedor, 'Distribuidora San Martín');
+      expect(deudas.single.montoCentimos, 98000);
+      // Lo pagado no es deuda, ni lo deshecho.
+      await gasto(80);
+      expect(await repo.observarLoQueDebes().first, hasLength(1));
+      ahora = DateTime(2026, 10, 14, 10);
+      await repo.pagar(
+        id,
+        cuenta: TipoCuenta.yape,
+        dia: DateTime(2026, 10, 13),
+      );
+      deudas = await repo.observarLoQueDebes().first;
+      expect(deudas, isEmpty);
+    },
+  );
+
+  test(
+    'Los registros de una categoría suman lo de su barra (entrega 38)',
+    () async {
+      ahora = DateTime(2026, 10, 13, 9);
+      await gasto(80, nota: 'Recibo de luz');
+      await gasto(20);
+      await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 1500,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: transporte,
+        ),
+      );
+      // Lo que se debe no está en la barra hasta pagarlo.
+      await compraQueSeDebe();
+      final mes = DateTime(2026, 10);
+      final servicio = (await movimientos.categorias(TipoMovimiento.egreso))
+          .firstWhere((c) => c.id == servicios)
+          .nombre;
+      final deServicios = await repo
+          .observarDeCategoria(
+            ConsultaDeCategoria(
+              mes: mes,
+              tipo: TipoMovimiento.egreso,
+              titulo: servicio,
+              nombres: {servicio},
+            ),
+          )
+          .first;
+      expect(
+        deServicios.map((f) => f.montoCentimos).fold(0, (a, b) => a + b),
+        10000,
+      );
+      expect(deServicios, hasLength(2));
+      // «Lo demás»: todas menos las que ya tienen fila.
+      final loDemas = await repo
+          .observarDeCategoria(
+            ConsultaDeCategoria(
+              mes: mes,
+              tipo: TipoMovimiento.egreso,
+              titulo: 'Lo demás',
+              salvo: {servicio},
+            ),
+          )
+          .first;
+      expect(loDemas.single.montoCentimos, 1500);
+      expect(loDemas.single.categoria, 'Movilidad del negocio');
+      // Otro mes, nada.
+      final noviembre = await repo
+          .observarDeCategoria(
+            ConsultaDeCategoria(
+              mes: DateTime(2026, 11),
+              tipo: TipoMovimiento.egreso,
+              titulo: servicio,
+              nombres: {servicio},
+            ),
+          )
+          .first;
+      expect(noviembre, isEmpty);
+    },
+  );
+
   test('La primera venta muestra cómo se anotó', () async {
     final id = (await historial()).filas.single.id;
     final d = await detalle(id);

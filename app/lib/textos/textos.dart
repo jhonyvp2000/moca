@@ -987,6 +987,16 @@ abstract final class Textos {
   static const deDondeVino = conQueEntro;
   static const sinIngresos = 'En este periodo no entró plata.';
   static const noDebesNada = 'No debes nada.';
+
+  // «Lo que debes» y los registros de una categoría (entrega 38).
+  static const verDetalle = 'Ver detalle';
+  static const sinProveedor = 'Sin proveedor';
+  static String debesTotal(String monto, int compras) =>
+      'Debes $monto, de $compras ${compras == 1 ? 'compra' : 'compras'}';
+  static String grupoDeuda(String aQuien, String monto, int compras) =>
+      '$aQuien · $monto · $compras ${compras == 1 ? 'compra' : 'compras'}';
+  static String totalDeRegistros(String monto, int registros) =>
+      '$monto · $registros ${registros == 1 ? 'registro' : 'registros'}';
   static const columnaFecha = 'Fecha';
   static const columnaProveedor = 'Proveedor';
   static const columnaDetalle = 'Detalle';

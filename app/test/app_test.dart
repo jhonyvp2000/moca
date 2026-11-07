@@ -2067,6 +2067,31 @@ void main() {
   });
 
   group('Informe y Moca', () {
+    testWidgets('Entrega 38: se toca una categoría y «Lo que debes»', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tester.scrollUntilVisible(
+        find.text(Textos.conQueEntro),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text('Venta del día'));
+      expect(
+        find.text(Textos.totalDeRegistros(formatearSoles(35000), 1)),
+        findsOneWidget,
+      );
+      await tocar(tester, find.byType(BotonVolver));
+      await tester.scrollUntilVisible(
+        find.text(Textos.loQueDebesTitulo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.loQueDebesTitulo));
+      expect(find.text(Textos.noDebesNada), findsOneWidget);
+    });
+
     testWidgets('El informe del primer mes', (tester) async {
       await abrirApp(tester, listo: true);
       // En el Inicio, «Tienes hoy» es desde que empezó (entrega 36).

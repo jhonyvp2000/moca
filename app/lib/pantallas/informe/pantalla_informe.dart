@@ -13,6 +13,8 @@ import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../dominio/historial.dart';
+import '../../dominio/modelos.dart';
 import '../../textos/textos.dart';
 import 'excel_informe.dart';
 import 'pdf_informe.dart';
@@ -472,6 +474,19 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                   centimos: g.centimos,
                   proporcion: g.centimos / i.ingresos.first.centimos,
                   primera: n == 0,
+                  alTocar: () => context.push(
+                    Rutas.deCategoria,
+                    extra: ConsultaDeCategoria(
+                      mes: i.mes,
+                      tipo: TipoMovimiento.ingreso,
+                      titulo: g.nombre ?? Textos.loDemas,
+                      nombres: g.nombre == null ? null : {g.nombre!},
+                      salvo: {
+                        for (final o in i.ingresos)
+                          if (o.nombre != null) o.nombre!,
+                      },
+                    ),
+                  ),
                 ),
           ],
         ),
@@ -496,6 +511,19 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                   centimos: g.centimos,
                   proporcion: g.centimos / i.gastos.first.centimos,
                   primera: n == 0,
+                  alTocar: () => context.push(
+                    Rutas.deCategoria,
+                    extra: ConsultaDeCategoria(
+                      mes: i.mes,
+                      tipo: TipoMovimiento.egreso,
+                      titulo: g.nombre ?? Textos.loDemas,
+                      nombres: g.nombre == null ? null : {g.nombre!},
+                      salvo: {
+                        for (final o in i.gastos)
+                          if (o.nombre != null) o.nombre!,
+                      },
+                    ),
+                  ),
                 ),
             if (i.mesAnterior != null && i.gastos.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -523,20 +551,51 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       ),
       separacion,
 
-      // Lo que debes
+      // Lo que debes: se toca y abre el detalle (entrega 38).
       Tarjeta(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(Textos.loQueDebesTitulo, style: Tipografia.secundario),
-            const Text(Textos.todoLoQueDebes, style: Tipografia.secundario),
-            Text(
-              formatearSoles(i.loQueDebesCentimos),
-              style: Tipografia.cifra(
-                Tipografia.tituloPantalla.copyWith(fontSize: 24),
+        relleno: EdgeInsets.zero,
+        child: Material(
+          color: Colores.superficie,
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+            onTap: () => context.push(Rutas.loQueDebes),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          Textos.loQueDebesTitulo,
+                          style: Tipografia.secundario,
+                        ),
+                        const Text(
+                          Textos.todoLoQueDebes,
+                          style: Tipografia.secundario,
+                        ),
+                        Text(
+                          formatearSoles(i.loQueDebesCentimos),
+                          style: Tipografia.cifra(
+                            Tipografia.tituloPantalla.copyWith(fontSize: 24),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (i.loQueDebesCentimos > 0)
+                    Text(
+                      Textos.verDetalle,
+                      style: Tipografia.textoFuerte.copyWith(
+                        color: Colores.marca,
+                      ),
+                    ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
       if (i.confianza case final c?) ...[
@@ -633,6 +692,7 @@ class _Barra extends StatelessWidget {
     required this.centimos,
     required this.proporcion,
     required this.primera,
+    this.alTocar,
   });
 
   final String nombre;
@@ -640,8 +700,21 @@ class _Barra extends StatelessWidget {
   final double proporcion;
   final bool primera;
 
+  /// Abre sus registros del mes (entrega 38).
+  final VoidCallback? alTocar;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => InkWell(
+    onTap: alTocar,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: Medidas.objetivoTactilMinimo,
+      ),
+      child: _contenido(),
+    ),
+  );
+
+  Widget _contenido() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(

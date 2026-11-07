@@ -23,6 +23,7 @@ class FilaHistorial {
     this.autorNombre,
     this.autorRol,
     this.anotadoEn,
+    this.vence,
   });
 
   final String id;
@@ -58,6 +59,30 @@ class FilaHistorial {
 
   /// Cuándo se anotó en el teléfono (el ayudante deshace lo suyo del día).
   final DateTime? anotadoEn;
+
+  /// Cuándo vence una compra que se debe, si se sabe (entrega 38).
+  final DateTime? vence;
+
+  /// La misma fila con otro monto: lo que falta pagar de una deuda.
+  FilaHistorial conMonto(int centimos) => FilaHistorial(
+    id: id,
+    tipo: tipo,
+    montoCentimos: centimos,
+    fecha: fecha,
+    cuenta: cuenta,
+    loDebes: loDebes,
+    porSubir: porSubir,
+    categoria: categoria,
+    nota: nota,
+    proveedor: proveedor,
+    ajusteArqueo: ajusteArqueo,
+    cuentaDestino: cuentaDestino,
+    deOtro: deOtro,
+    autorNombre: autorNombre,
+    autorRol: autorRol,
+    anotadoEn: anotadoEn,
+    vence: vence,
+  );
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,
@@ -203,8 +228,36 @@ class DetalleMovimiento {
   final int? saldoSiSeDeshaceCentimos;
 }
 
+/// Los registros de una o varias categorías en un mes del informe (entrega
+/// 38). Con [nombres] nulo son «Lo demás»: todas las de ese tipo menos las
+/// de [salvo].
+class ConsultaDeCategoria {
+  const ConsultaDeCategoria({
+    required this.mes,
+    required this.tipo,
+    required this.titulo,
+    this.nombres,
+    this.salvo = const {},
+  });
+
+  /// El primer día del mes.
+  final DateTime mes;
+  final TipoMovimiento tipo;
+  final String titulo;
+  final Set<String>? nombres;
+  final Set<String> salvo;
+}
+
 abstract interface class RepositorioHistorial {
   Stream<ResumenHistorial> observarHistorial();
+
+  /// «Lo que debes» (entrega 38): las compras que todavía se deben, con lo
+  /// que falta pagar de cada una, de la que vence o se anotó antes.
+  Stream<List<FilaHistorial>> observarLoQueDebes();
+
+  /// Los registros de una categoría en un mes, con la regla del informe:
+  /// lo pagado, el día en que se movió la plata. Suman lo de su barra.
+  Stream<List<FilaHistorial>> observarDeCategoria(ConsultaDeCategoria c);
 
   /// Nulo si el movimiento no existe.
   Stream<DetalleMovimiento?> observarDetalle(String id);
