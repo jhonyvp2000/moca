@@ -30,6 +30,39 @@ enum ResultadoVerificacion {
 /// pasó mucho tiempo desde el código y hay que pedir otro (entrega 14.4).
 enum ResultadoBajada { listo, sinSenal, vencido, error }
 
+/// Por qué este teléfono ya no ve el negocio (entrega 37).
+enum MotivoSinAcceso {
+  negocioBorrado,
+  quitado,
+  salio,
+  otroTelefono,
+  sinNegocio,
+}
+
+class SinAcceso {
+  const SinAcceso({required this.motivo, required this.negocio});
+
+  /// Lo que guarda el teléfono en el ajuste `sin_acceso`.
+  factory SinAcceso.desdeJson(Map<String, Object?> json) => SinAcceso(
+    motivo:
+        MotivoSinAcceso.values.asNameMap()[json['motivo']] ??
+        MotivoSinAcceso.sinNegocio,
+    negocio: json['negocio'] as String? ?? '',
+  );
+
+  /// Lo que dice el servidor: `negocio_borrado`, `quitado`, …
+  static MotivoSinAcceso delServidor(Object? error) => switch (error) {
+    'negocio_borrado' => MotivoSinAcceso.negocioBorrado,
+    'quitado' => MotivoSinAcceso.quitado,
+    _ => MotivoSinAcceso.sinNegocio,
+  };
+
+  final MotivoSinAcceso motivo;
+
+  /// El nombre del negocio, para decirlo.
+  final String negocio;
+}
+
 enum EstadoCuenta {
   /// Siguió con «Ahora no»: lo anotado vive solo en el teléfono.
   sinCuenta,

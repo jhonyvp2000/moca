@@ -14,6 +14,11 @@ enum EtapaInicio {
 
   /// El camino terminó: la app abre en Inicio.
   listo,
+
+  /// Este teléfono perdió el acceso al negocio (entrega 37): se borró, lo
+  /// quitaron o la cuenta se abrió en otro teléfono. Su copia ya se borró y
+  /// solo se ve qué pasó y qué hacer.
+  sinAcceso,
 }
 
 class DatosAlta {

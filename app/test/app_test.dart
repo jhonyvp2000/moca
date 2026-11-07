@@ -164,6 +164,9 @@ class _ServidorFalso {
   /// los que se anularon (26.1).
   final pagos = <Map<String, Object?>>[];
 
+  /// Por qué este teléfono ya no ve el negocio (entrega 37).
+  String? sinAccesoAlNegocio;
+
   /// Mercado Pago (entrega 32): el error al pedir pagar y cómo va la orden.
   String? errorMercadoPago;
   var ordenesPedidas = 0;
@@ -437,6 +440,10 @@ class _ServidorFalso {
         return http.Response(jsonEncode({'salio': true}), 200);
       case '/datos/cambios':
         pedidosDeCambios++;
+        // Entrega 37: el negocio se borró, o lo quitaron.
+        if (sinAccesoAlNegocio case final motivo?) {
+          return http.Response(jsonEncode({'error': motivo}), 403);
+        }
         return http.Response(jsonEncode({'hasta': 0}), 200);
       case '/datos/bajar':
         if (cortarBajada) {
@@ -2817,13 +2824,20 @@ void main() {
       await esperar(tester);
       expect(_servidor.subidas, isEmpty);
 
-      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      // Entrega 37: por seguridad se borró lo del negocio y solo queda qué
+      // pasó, con volver a entrar.
       expect(find.text(Textos.cuentaAbiertaEnOtro), findsOneWidget);
+      expect(find.text(Textos.volverAEntrarConMiNumero), findsOneWidget);
+      expect(find.text(Textos.tienesHoy), findsNothing);
+      expect(find.text(Textos.pestanaMoca), findsNothing);
       // Ya no intenta subir.
       await tester.runAsync(() async => base.markTablesUpdated(base.allTables));
       await tester.pump(const Duration(seconds: 6));
       await esperar(tester);
       expect(_servidor.subidas, isEmpty);
+      // Volver a entrar empieza de cero y lleva a entrar con el número.
+      await tocar(tester, find.text(Textos.volverAEntrarConMiNumero));
+      expect(find.text(Textos.cuentaAbiertaEnOtro), findsNothing);
     });
   });
 
@@ -4240,11 +4254,19 @@ void main() {
       await tocar(tester, find.widgetWithText(TextButton, Textos.salir));
       expect(_servidor.salidas, 1);
       expect(find.text(Textos.salisteDelNegocio), findsOneWidget);
-      // Queda como si un dueño lo quitara.
-      await tocar(tester, find.byType(BotonVolver));
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
-      await esperar(tester);
-      expect(find.text(Textos.fueraDelNegocio), findsOneWidget);
+      // Entrega 37: su copia del negocio se borra y queda solo qué pasó.
+      expect(
+        find.text(
+          Textos.sinAccesoTitulo(
+            const SinAcceso(
+              motivo: MotivoSinAcceso.salio,
+              negocio: 'Bodega Don Lucho',
+            ),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.tienesHoy), findsNothing);
     });
   });
 
@@ -4722,6 +4744,124 @@ void main() {
       await tocar(tester, find.text(Textos.escribirlo));
       await tocar(tester, find.text(Textos.salio));
       expect(find.text(Textos.otraCategoria), findsNothing);
+    });
+  });
+
+  group('Entrega 37: sin acceso al negocio', () {
+    Future<BaseLocal> otraDuena(WidgetTester tester) async {
+      final base = await abrirApp(tester, listo: true);
+      // Una escritura por bloque: varias juntas se traban en las pruebas.
+      await tester.runAsync(() => _llavero.guardar('llave-de-prueba'));
+      await tester.runAsync(
+        () => AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321'),
+      );
+      await esperar(tester);
+      final yo = await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).usuario(),
+      );
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveEquipo,
+          jsonEncode([
+            {'usuario_id': 'lucho', 'rol': 'dueno', 'titular': true},
+            {'usuario_id': yo!.id, 'rol': 'dueno', 'titular': false},
+          ]),
+        ),
+      );
+      await esperar(tester);
+      return base;
+    }
+
+    // Lo que la app hace cada 30 segundos: preguntar por lo nuevo. Corre en
+    // el reloj de la prueba, con tiempo real para la base entre cuadros.
+    Future<void> traer(WidgetTester tester) async {
+      var listo = false;
+      unawaited(
+        ProviderScope.containerOf(tester.element(find.byType(MocaApp)))
+            .read(servicioCuentaProvider)
+            .traerCambios()
+            .whenComplete(() => listo = true),
+      );
+      for (var i = 0; i < 100 && !listo; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+      }
+      await esperar(tester);
+    }
+
+    testWidgets('El titular borró el negocio: la otra dueña queda sin datos y '
+        'con salida', (tester) async {
+      final base = await otraDuena(tester);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      _servidor.sinAccesoAlNegocio = 'negocio_borrado';
+      await traer(tester);
+      expect(
+        find.text(
+          Textos.sinAccesoTitulo(
+            const SinAcceso(
+              motivo: MotivoSinAcceso.negocioBorrado,
+              negocio: 'Bodega Don Lucho',
+            ),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.sinAccesoDetalle(MotivoSinAcceso.negocioBorrado)),
+        findsOneWidget,
+      );
+      // Nada del negocio detrás, ni en el teléfono.
+      expect(find.text(Textos.tienesHoy), findsNothing);
+      expect(find.text(Textos.pestanaHistorial), findsNothing);
+      final quedan = await tester.runAsync(
+        () async => (
+          await base.select(base.movimientos).get(),
+          await base.select(base.empresas).get(),
+        ),
+      );
+      expect(quedan!.$1, isEmpty);
+      expect(quedan.$2, isEmpty);
+
+      // Empezar su propio negocio: a la Bienvenida.
+      await tocar(tester, find.text(Textos.empezarMiNegocio));
+      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+    });
+
+    testWidgets('A quien quitaron ve sus negocios e invitaciones', (
+      tester,
+    ) async {
+      await otraDuena(tester);
+      _servidor.sinAccesoAlNegocio = 'quitado';
+      await traer(tester);
+      expect(
+        find.text(Textos.sinAccesoDetalle(MotivoSinAcceso.quitado)),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.verMisNegociosEInvitaciones));
+      expect(find.text(Textos.misNegocios), findsWidgets);
+    });
+
+    testWidgets('«Salir de Moca en este teléfono» borra solo aquí', (
+      tester,
+    ) async {
+      await otraDuena(tester);
+      await abrirAjustes(tester);
+      await tester.scrollUntilVisible(
+        find.text(Textos.salirDeMocaAqui),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.salirDeMocaAqui));
+      expect(find.text(Textos.salirDeMocaAquiPregunta), findsOneWidget);
+      await tocar(tester, find.widgetWithText(TextButton, Textos.salir));
+      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+      // El negocio no se tocó: no salió del equipo.
+      expect(_servidor.salidas, 0);
     });
   });
 }

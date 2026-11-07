@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../../dominio/errores.dart';
 import '../../dominio/version.dart';
 import '../../dominio/cobro.dart';
+import '../../dominio/primer_dia.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/medicion.dart';
@@ -804,8 +805,8 @@ class ServicioCuentaRemoto
     if (r == null) return ResultadoEquipo.sinSenal;
     final resultado = _resultadoEquipo(r);
     if (resultado == ResultadoEquipo.listo) {
-      // Igual que cuando lo quita un dueño (entrega 18).
-      await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+      // Su copia del negocio se borra (entrega 37).
+      await _perderAcceso(MotivoSinAcceso.salio);
     }
     return resultado;
   }
@@ -869,7 +870,9 @@ class ServicioCuentaRemoto
     // Lo de este teléfono que falta subir, antes de reemplazarlo: un dueño
     // que también es contador de otro negocio no pierde nada. A quien
     // quitaron ya no le sube nada (entrega 22.1).
-    if (await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) != null &&
+    // Sin acceso (entrega 37), el teléfono ya no tiene negocio que subir.
+    if (await _a.empresa() != null &&
+        await _a.leerAjuste(AccesoLocal.claveCuentaVerificada) != null &&
         await _a.leerAjuste(_claveFuera) == null &&
         await hayCambiosSinSubir() &&
         !await subirTodo()) {
@@ -1151,14 +1154,13 @@ class ServicioCuentaRemoto
         comprimir: true,
       );
       if (respuesta.statusCode == 401) {
-        // La cuenta se abrió en otro teléfono.
-        await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
+        // La cuenta se abrió en otro teléfono (entrega 37: se borra la copia).
+        await _perderAcceso(MotivoSinAcceso.otroTelefono);
         return false;
       }
       final cuerpo = _cuerpo(respuesta);
-      if (respuesta.statusCode == 403 &&
-          cuerpo['error'] == 'no_es_tu_empresa') {
-        await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+      if (respuesta.statusCode == 403 && _sinAcceso(cuerpo['error'])) {
+        await _perderAcceso(SinAcceso.delServidor(cuerpo['error']));
         return false;
       }
       if (respuesta.statusCode != 200) return false;
@@ -1238,6 +1240,36 @@ class ServicioCuentaRemoto
 
   bool _trayendo = false;
 
+  /// Las respuestas del servidor que dicen que este teléfono ya no ve el
+  /// negocio (entrega 37).
+  static bool _sinAcceso(Object? error) =>
+      error == 'negocio_borrado' ||
+      error == 'quitado' ||
+      error == 'sin_negocio' ||
+      error == 'no_es_tu_empresa';
+
+  /// Este teléfono perdió el acceso (entrega 37): se borra su copia del
+  /// negocio y solo queda qué pasó. La cuenta sigue (salvo si se abrió en
+  /// otro teléfono), para ver otros negocios o invitaciones.
+  Future<void> _perderAcceso(MotivoSinAcceso motivo) async {
+    final negocio = (await _a.empresa())?.nombre ?? '';
+    final celular = await _a.leerAjuste(AccesoLocal.claveCuentaVerificada);
+    await _base.transaction(() async {
+      await _base.customStatement('PRAGMA defer_foreign_keys = ON');
+      for (final tabla in _base.allTables) {
+        await _base.delete(tabla).go();
+      }
+      await _a.guardarAjuste('etapa', EtapaInicio.sinAcceso.name);
+      await _a.guardarAjuste(
+        AccesoLocal.claveSinAcceso,
+        jsonEncode({'motivo': motivo.name, 'negocio': negocio}),
+      );
+      if (motivo != MotivoSinAcceso.otroTelefono && celular != null) {
+        await _a.guardarAjuste(AccesoLocal.claveCuentaVerificada, celular);
+      }
+    });
+  }
+
   @override
   Future<bool> traerCambios() async {
     if (_trayendo || _subiendo) return false;
@@ -1257,12 +1289,12 @@ class ServicioCuentaRemoto
         llave,
       );
       if (respuesta.statusCode == 401) {
-        await _a.guardarAjuste(_claveCerrada, _a.ahora().toIso8601String());
+        await _perderAcceso(MotivoSinAcceso.otroTelefono);
         return false;
       }
       final cuerpo = _cuerpo(respuesta);
-      if (respuesta.statusCode == 403 && cuerpo['error'] == 'sin_negocio') {
-        await _a.guardarAjuste(_claveFuera, _a.ahora().toIso8601String());
+      if (respuesta.statusCode == 403 && _sinAcceso(cuerpo['error'])) {
+        await _perderAcceso(SinAcceso.delServidor(cuerpo['error']));
         return false;
       }
       if (respuesta.statusCode != 200 || cuerpo['empresa_id'] != empresa.id) {
@@ -1587,7 +1619,12 @@ class ServicioCuentaRemoto
       final conAlta = (empresa['nombre']! as String).isNotEmpty;
       await _a.guardarAjuste('etapa', conAlta ? 'listo' : 'alta');
       await _a.guardarAjuste(AccesoLocal.claveCuentaVerificada, celular);
-      for (final clave in [_claveSinCuentaDesde, _claveCerrada, _claveFuera]) {
+      for (final clave in [
+        _claveSinCuentaDesde,
+        _claveCerrada,
+        _claveFuera,
+        AccesoLocal.claveSinAcceso,
+      ]) {
         await (_base.delete(
           _base.ajustes,
         )..where((a) => a.clave.equals(clave))).go();

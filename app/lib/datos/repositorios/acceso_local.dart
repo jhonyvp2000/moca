@@ -62,6 +62,9 @@ class AccesoLocal {
   /// El último estado del cobro que mandó el servidor (entrega 25).
   static const claveCobro = 'cobro';
 
+  /// Por qué el teléfono perdió el acceso al negocio (entrega 37).
+  static const claveSinAcceso = 'sin_acceso';
+
   /// «Mis pagos de Moca» (entrega 33): la última lista, para verla sin señal.
   static const claveMisPagos = 'mis_pagos';
 

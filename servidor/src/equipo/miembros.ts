@@ -139,3 +139,29 @@ export function columnaParaRol(tabla: string, columna: string, rol: Rol): string
   }
   return columna;
 }
+
+/**
+ * Por qué un teléfono ya no ve ese negocio (entrega 37): el titular lo
+ * borró, un dueño lo quitó del equipo, o nunca estuvo. Así el teléfono dice
+ * lo que de verdad pasó y borra su copia.
+ */
+export type SinAcceso = 'negocio_borrado' | 'quitado' | 'sin_negocio';
+
+export async function motivoSinAcceso(
+  cliente: Cliente,
+  usuarioId: string,
+  empresaId?: string,
+): Promise<SinAcceso> {
+  if (!empresaId) return 'sin_negocio';
+  const borrado = await cliente.query('SELECT 1 FROM borrados WHERE empresa_id = $1 LIMIT 1', [
+    empresaId,
+  ]);
+  if (borrado.rowCount) return 'negocio_borrado';
+  await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+  const quitado = await cliente.query(
+    `SELECT 1 FROM membresias
+      WHERE usuario_id = $1 AND empresa_id = $2 AND quitada_en IS NOT NULL LIMIT 1`,
+    [usuarioId, empresaId],
+  );
+  return quitado.rowCount ? 'quitado' : 'sin_negocio';
+}

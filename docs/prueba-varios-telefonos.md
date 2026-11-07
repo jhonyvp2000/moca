@@ -129,6 +129,8 @@ B sigue viendo el negocio de A como contador, después de la sección 8. Se borr
 | 9.5 | B | Apaga datos y wifi; toca «Borrar para siempre» | «Necesitas señal para borrar en el servidor. No se borró nada.» |
 | 9.6 | B | Prende la señal y toca otra vez «Borrar para siempre» | «Se borró todo, también en el servidor.» y vuelve a la Bienvenida |
 | 9.7 | A | Sale y vuelve a la app; Historial y «Mi equipo» | Su negocio sigue igual. B sigue en el equipo como Contador: borrar «Prueba B» no lo saca del negocio de A |
+| 9.8 | A y B | (Entrega 37, el caso de la demostración del 06-11.) En un negocio de prueba con B como **dueña**, A lo borra con «Borrar mi negocio y mis datos» | En B, a los pocos segundos con la app abierta (o al volver a ella): «[negocio] ya no está en Moca», sin saldos ni Historial detrás, con «Empezar mi propio negocio» y «Ver mis negocios e invitaciones» |
+| 9.9 | B | Con B en un negocio sin ser titular: «Ajustes» → «Seguridad» → «Salir de Moca en este teléfono» | Vuelve a la Bienvenida; en A, B sigue en «Mi equipo» |
 
 ## 10. Al terminar
 

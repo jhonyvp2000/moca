@@ -3,7 +3,13 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Cliente, Pool } from '../base/conexion.js';
 import { cifrasDe, enviarJson } from '../cifras/rutas.js';
 import { usuarioDeLlave } from '../cuenta/sesiones.js';
-import { cajasDe, miembroDe, tiposDeCaja, type Miembro } from '../equipo/miembros.js';
+import {
+  cajasDe,
+  miembroDe,
+  motivoSinAcceso,
+  tiposDeCaja,
+  type Miembro,
+} from '../equipo/miembros.js';
 
 /**
  * Las tablas que sube el teléfono, con sus columnas, en el orden en que se
@@ -243,14 +249,26 @@ export async function subir(
     let tocaLaEmpresa = true;
     if (existe.rowCount) {
       const miembro = await miembroDe(cliente, usuarioId, empresaId);
-      if (!miembro) throw new ErrorDeSubida(403, 'no_es_tu_empresa');
+      if (!miembro) {
+        // Quien estuvo y perdió el acceso recibe el motivo (entrega 37); a
+        // quien nunca estuvo, lo de siempre.
+        const motivo = await motivoSinAcceso(cliente, usuarioId, empresaId);
+        throw new ErrorDeSubida(403, motivo === 'sin_negocio' ? 'no_es_tu_empresa' : motivo);
+      }
       await revisarPermisos(cliente, miembro, usuarioId, datos, ahora);
       tocaLaEmpresa = miembro.rol === 'dueno';
     }
     if (tocaLaEmpresa) {
       await guardar(cliente, 'empresas', columnasEmpresa, [datos.empresa], false);
     }
+    // Un negocio que su titular borró no vuelve (entrega 37): otro teléfono
+    // que todavía tenía su copia no lo crea de nuevo al subir.
     if (!existe.rowCount) {
+      const borrado = await cliente.query(
+        'SELECT 1 FROM borrados WHERE empresa_id = $1 LIMIT 1',
+        [empresaId],
+      );
+      if (borrado.rowCount) throw new ErrorDeSubida(403, 'negocio_borrado');
       await cliente.query(
         `INSERT INTO membresias (id, empresa_id, usuario_id, rol, titular)
          VALUES (gen_random_uuid(), $1, $2, 'dueno', true)`,

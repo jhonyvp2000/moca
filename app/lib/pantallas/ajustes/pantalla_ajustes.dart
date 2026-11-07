@@ -102,6 +102,9 @@ class PantallaAjustes extends ConsumerWidget {
               ruta: Rutas.borrarNegocio,
             ),
           if (guardada && permisos.saleDelNegocio) const SalirDelNegocio(),
+          // Una salida que siempre existe para quien no es titular (entrega
+          // 37): solo este teléfono, sin tocar el negocio.
+          if (guardada && permisos.saleDelNegocio) const SalirDeMocaAqui(),
         ]),
         // Qué versión es, para reportar un problema (entrega 26.3).
         const VersionDeMoca(),
@@ -241,6 +244,70 @@ class SalirDelNegocio extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Salir de Moca en este teléfono» (entrega 37): borra lo de Moca solo aquí.
+/// Lo que falta subir sube antes; sin señal, no sale para no perderlo.
+class SalirDeMocaAqui extends ConsumerWidget {
+  const SalirDeMocaAqui({super.key});
+
+  Future<void> _salir(BuildContext context, WidgetRef ref) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text(Textos.salirDeMocaAquiPregunta),
+        content: const Text(Textos.salirDeMocaAquiTexto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text(Textos.salir),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    final cuenta = ref.read(servicioCuentaProvider);
+    if (await cuenta.hayCambiosSinSubir() && !await cuenta.subirTodo()) {
+      mensajes.showSnackBar(
+        const SnackBar(content: Text(Textos.salirDeMocaSinSenal)),
+      );
+      return;
+    }
+    await ref.read(repositorioOperadorProvider).borrarTodo();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Tarjeta(
+      relleno: EdgeInsets.zero,
+      child: Material(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          onTap: () => _salir(context, ref),
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(Textos.salirDeMocaAqui, style: Tipografia.textoFuerte),
+                Text(
+                  Textos.salirDeMocaAquiDetalle,
+                  style: Tipografia.secundario,
                 ),
               ],
             ),

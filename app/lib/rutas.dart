@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/ajustes/pantalla_sin_acceso.dart';
 import 'pantallas/version/version.dart';
 import 'pantallas/cobro/pantalla_mis_pagos.dart';
 import 'pantallas/ajustes/pantalla_categorias.dart';
@@ -90,6 +91,9 @@ abstract final class Rutas {
   /// cambia (`?id=`) (entrega 31).
   static const categorias = '/ajustes/categorias';
 
+  /// Sin acceso al negocio (entrega 37).
+  static const sinAcceso = '/sin-acceso';
+
   /// «Actualiza Moca para seguir anotando» (entrega 34).
   static const actualizar = '/actualizar';
 
@@ -151,6 +155,8 @@ final _rutasPorEtapa = {
     Rutas.invitadoAceptar,
   ],
   EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
+  // Sin nada del negocio detrás: qué pasó, sus negocios y volver a entrar.
+  EtapaInicio.sinAcceso: [Rutas.sinAcceso, Rutas.negocios],
   EtapaInicio.alta: [Rutas.alta],
   EtapaInicio.listo: [
     Rutas.inicio,
@@ -394,6 +400,10 @@ GoRouter crearRutas(
     GoRoute(
       path: Rutas.datosDelNegocio,
       builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.sinAcceso,
+      builder: (context, estado) => const PantallaSinAcceso(),
     ),
     GoRoute(
       path: Rutas.actualizar,

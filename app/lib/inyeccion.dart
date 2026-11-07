@@ -527,6 +527,24 @@ final categoriasDelNegocioProvider = StreamProvider<List<CategoriaDelNegocio>>(
   (ref) => ref.watch(repositorioCategoriasProvider).observar(),
 );
 
+/// Por qué el teléfono perdió el acceso al negocio (entrega 37); nulo si
+/// lo tiene.
+final sinAccesoProvider = StreamProvider<SinAcceso?>((ref) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  return acceso.cambios().asyncMap((_) async {
+    final guardado = await acceso.leerAjuste(AccesoLocal.claveSinAcceso);
+    if (guardado == null) return null;
+    try {
+      return SinAcceso.desdeJson(jsonDecode(guardado) as Map<String, Object?>);
+    } on FormatException {
+      return const SinAcceso(motivo: MotivoSinAcceso.sinNegocio, negocio: '');
+    }
+  });
+});
+
 /// «Datos del negocio» (entrega 29.1).
 final repositorioNegocioProvider = Provider<RepositorioNegocio>(
   (ref) => RepositorioNegocioLocal(

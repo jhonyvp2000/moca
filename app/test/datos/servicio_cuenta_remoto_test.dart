@@ -408,9 +408,20 @@ void main() {
         ahora: () => ahora,
       );
       expect(await cerrado.subirTodo(), isFalse);
-      final situacion = await cerrado.observar().first;
-      expect(situacion.estado, EstadoCuenta.cerradaEnOtro);
-      expect(situacion.mostrarTarjeta, isTrue);
+      // Entrega 37: por seguridad se borra la copia y queda solo el motivo.
+      final acceso = AccesoLocal(base, () => ahora);
+      expect(await base.select(base.empresas).get(), isEmpty);
+      expect(await base.select(base.movimientos).get(), isEmpty);
+      expect(await acceso.leerAjuste('etapa'), 'sinAcceso');
+      expect(
+        await acceso.leerAjuste(AccesoLocal.claveSinAcceso),
+        contains('otroTelefono'),
+      );
+      // La cuenta ya no está en este teléfono: hay que volver a entrar.
+      expect(
+        await acceso.leerAjuste(AccesoLocal.claveCuentaVerificada),
+        isNull,
+      );
     },
   );
 
@@ -916,9 +927,18 @@ void main() {
     test('Si un dueño lo quita del negocio, deja de subir y lo dice', () async {
       codigoCambios = 403;
       expect(await servicio.traerCambios(), isFalse);
-      final situacion = await servicio.observar().first;
-      expect(situacion.estado, EstadoCuenta.fueraDelNegocio);
-      expect(situacion.mostrarTarjeta, isTrue);
+      // Entrega 37: la copia del negocio se borra; la cuenta sigue.
+      final acceso = AccesoLocal(base, () => ahora);
+      expect(await base.select(base.empresas).get(), isEmpty);
+      expect(await acceso.leerAjuste('etapa'), 'sinAcceso');
+      expect(
+        await acceso.leerAjuste(AccesoLocal.claveSinAcceso),
+        contains('Bodega Don Lucho'),
+      );
+      expect(
+        await acceso.leerAjuste(AccesoLocal.claveCuentaVerificada),
+        isNotNull,
+      );
       final antes = subidas.length;
       expect(await servicio.subirTodo(), isFalse);
       expect(subidas, hasLength(antes));
@@ -1010,23 +1030,13 @@ void main() {
     final empresa = (await base.select(base.empresas).getSingle()).id;
     final yo = await AccesoLocal(base, () => ahora).usuario();
 
-    // Un dueño lo quitó; lo que anote desde ahora no sube.
+    // Un dueño lo quitó: su copia del negocio se borra (entrega 37).
     codigoCambios = 403;
     await servicio.traerCambios();
+    expect(await base.select(base.movimientos).get(), isEmpty);
     expect(
-      (await servicio.observar().first).estado,
-      EstadoCuenta.fueraDelNegocio,
-    );
-    final venta = (await (base.select(
-      base.categorias,
-    )..where((c) => c.nombre.equals('Venta del día'))).getSingle()).id;
-    await RepositorioMovimientosLocal(base, ahora: () => ahora).registrar(
-      NuevoMovimiento(
-        tipo: TipoMovimiento.ingreso,
-        montoCentimos: 900,
-        cuenta: TipoCuenta.efectivo,
-        categoriaId: venta,
-      ),
+      await AccesoLocal(base, () => ahora).leerAjuste('etapa'),
+      'sinAcceso',
     );
 
     // Lo vuelven a invitar, ahora como ayudante.
@@ -1054,8 +1064,12 @@ void main() {
     };
     final antes = subidas.length;
     expect(await servicio.aceptar('inv'), ResultadoEquipo.listo);
-    // Lo anotado mientras estaba fuera no sube: el servidor lo rechazaría.
+    // Nada sube: lo de antes ya se borró y el servidor lo rechazaría.
     expect(subidas, hasLength(antes));
+    // Vuelve a ver el negocio, sin la pantalla de «sin acceso».
+    final acceso = AccesoLocal(base, () => ahora);
+    expect(await acceso.leerAjuste('etapa'), 'listo');
+    expect(await acceso.leerAjuste(AccesoLocal.claveSinAcceso), isNull);
     expect(bajadasPedidas.last, empresa);
     expect((await servicio.observar().first).estado, EstadoCuenta.guardada);
     expect(await AccesoLocal(base, () => ahora).miRol(), Rol.ayudante);

@@ -560,9 +560,16 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect(r.json()).toEqual({ quitada: true });
 
     expect((await cambios(pepe, 0)).json()).toEqual({ error: 'sin_negocio' });
+    // Con el negocio que tiene su teléfono, el motivo exacto (entrega 37).
+    const delNegocio = await pedir(
+      pepe,
+      'GET',
+      `/datos/cambios?desde=0&empresa=${lucy.ids.empresa}`,
+    );
+    expect(delNegocio.json()).toEqual({ error: 'quitado' });
     expect((await bajar(pepe)).datos).toBeNull();
     const subida = await pedir(pepe, 'POST', '/datos/subir', { empresa: lucy.datos.empresa });
-    expect(subida.json()).toEqual({ error: 'no_es_tu_empresa' });
+    expect(subida.json()).toEqual({ error: 'quitado' });
     // Lo que anotó se queda.
     const deLucho = await bajar(lucho);
     expect(
@@ -589,5 +596,28 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     ).toBe(false);
     // Fuera del negocio, ya no tiene de dónde salir.
     expect((await pedir(rosa, 'POST', '/equipo/salir')).statusCode).toBe(403);
+  });
+
+  it('Entrega 37: el titular borra; los demás teléfonos lo saben y no lo crean de nuevo', async () => {
+    expect(
+      (await pedir(lucho, 'POST', '/cuenta/borrar-datos', { confirmacion: 'BORRAR' })).statusCode,
+    ).toBe(200);
+    // La contadora, que estaba en él, recibe el motivo exacto.
+    const r = await pedir(carmen, 'GET', `/datos/cambios?desde=0&empresa=${lucy.ids.empresa}`);
+    expect(r.statusCode).toBe(403);
+    expect(r.json()).toEqual({ error: 'negocio_borrado' });
+    // Lo que tenía su teléfono no hace renacer el negocio, ni con ella de titular.
+    const subida = await pedir(carmen, 'POST', '/datos/subir', {
+      empresa: lucy.datos.empresa,
+      movimientos: [movimiento(randomUUID(), carmen.usuarioId, lucy.ids.efectivo, lucy.ids.venta)],
+    });
+    expect(subida.json()).toEqual({ error: 'negocio_borrado' });
+    const quedan = await base.poolAdmin.query('SELECT 1 FROM empresas WHERE id = $1', [
+      lucy.ids.empresa,
+    ]);
+    expect(quedan.rowCount).toBe(0);
+    // Sigue en su otro negocio.
+    const { negocios } = (await pedir(carmen, 'GET', '/cuenta/negocios')).json();
+    expect(negocios.map((n: { nombre: string }) => n.nombre)).toEqual(['Restaurante Marta']);
   });
 });

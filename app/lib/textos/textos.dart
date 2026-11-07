@@ -1,3 +1,4 @@
+import '../dominio/cuenta_real.dart';
 import '../pais/peru/formato.dart';
 import '../dominio/cobro.dart';
 import '../dominio/aviso_cierre.dart';
@@ -1494,6 +1495,52 @@ abstract final class Textos {
       'Tu prueba gratis de Moca termina en 3 días. Toca para ver cómo pagar.';
 
   // Salir de este negocio (entrega 22.2).
+  // Sin acceso al negocio (entrega 37).
+  static String sinAccesoTitulo(SinAcceso s) {
+    final negocio = s.negocio.isEmpty ? 'El negocio' : s.negocio;
+    return switch (s.motivo) {
+      MotivoSinAcceso.negocioBorrado => '$negocio ya no está en Moca',
+      MotivoSinAcceso.otroTelefono => 'Tu cuenta se abrió en otro teléfono',
+      MotivoSinAcceso.salio =>
+        s.negocio.isEmpty ? 'Saliste del negocio' : 'Saliste de ${s.negocio}',
+      _ =>
+        s.negocio.isEmpty
+            ? 'Ya no estás en este negocio'
+            : 'Ya no estás en ${s.negocio}',
+    };
+  }
+
+  static String sinAccesoDetalle(MotivoSinAcceso m) => switch (m) {
+    MotivoSinAcceso.negocioBorrado =>
+      'El dueño borró el negocio y sus datos. Tu cuenta sigue: puedes '
+          'empezar tu propio negocio o entrar a otro donde te inviten.',
+    MotivoSinAcceso.quitado =>
+      'Un dueño te quitó del equipo. Lo que anotaste se quedó en el negocio; '
+          'lo que anotaste sin señal después no se pudo guardar.',
+    MotivoSinAcceso.salio =>
+      'Lo que anotaste se quedó en el negocio. Para volver, un dueño tiene '
+          'que invitarte otra vez.',
+    MotivoSinAcceso.otroTelefono =>
+      'Por seguridad, aquí se borró lo del negocio. Si fuiste tú, vuelve a '
+          'entrar con tu número; lo anotado sigue guardado en tu cuenta.',
+    MotivoSinAcceso.sinNegocio =>
+      'Ya no tienes acceso a este negocio. Tu cuenta sigue: puedes empezar '
+          'tu propio negocio o entrar a otro donde te inviten.',
+  };
+  static const empezarMiNegocio = 'Empezar mi propio negocio';
+  static const verMisNegociosEInvitaciones = 'Ver mis negocios e invitaciones';
+  static const volverAEntrarConMiNumero = 'Volver a entrar con mi número';
+  static const empezarDeCeroAqui = 'Empezar de cero';
+  static const salirDeMocaAqui = 'Salir de Moca en este teléfono';
+  static const salirDeMocaAquiDetalle =
+      'Tu lugar en el negocio sigue; vuelves a entrar con tu número';
+  static const salirDeMocaAquiPregunta = '¿Salir de Moca en este teléfono?';
+  static const salirDeMocaAquiTexto =
+      'Se borra lo de Moca en este teléfono. Lo que ya subió sigue en el '
+      'negocio y vuelves a verlo al entrar con tu número.';
+  static const salirDeMocaSinSenal =
+      'Hay registros que todavía no suben y no hay señal. Prueba con señal '
+      'para no perderlos.';
   static const salirDelNegocio = 'Salir de este negocio';
   static const salirDelNegocioDetalle =
       'Lo que anotaste se queda en el negocio';

@@ -2,7 +2,7 @@ import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from '../base/conexion.js';
 import { enviarJson } from '../cifras/rutas.js';
-import { cajasDe, miembroDe } from '../equipo/miembros.js';
+import { cajasDe, miembroDe, motivoSinAcceso } from '../equipo/miembros.js';
 import { empresaPedida, equipoVisible, leerTabla, ultimoCambio } from './bajar.js';
 import { autenticar, columnasEmpresa, tablas } from './subir.js';
 
@@ -77,8 +77,19 @@ export function rutasCambios(
       return respuesta.code(400).send({ error: 'datos_invalidos' });
     }
     const cambios = await cambiosDesde(pool, usuarioId, desde, empresaPedida(peticion.query));
-    // Sin negocio activo: lo quitaron del equipo o nunca entró.
-    if (!cambios) return respuesta.code(403).send({ error: 'sin_negocio' });
+    // Sin negocio activo: se borró, lo quitaron del equipo o nunca entró
+    // (entrega 37: el motivo exacto, para que el teléfono lo diga).
+    if (!cambios) {
+      const cliente = await pool.connect();
+      try {
+        await cliente.query('BEGIN');
+        const motivo = await motivoSinAcceso(cliente, usuarioId, empresaPedida(peticion.query));
+        await cliente.query('COMMIT');
+        return respuesta.code(403).send({ error: motivo });
+      } finally {
+        cliente.release();
+      }
+    }
     // El estado del cobro va siempre: cambia con los días (entrega 24).
     const empresaId = String(cambios.empresa_id);
     return enviarJson(peticion, respuesta, {
