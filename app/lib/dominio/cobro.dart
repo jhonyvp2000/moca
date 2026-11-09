@@ -3,6 +3,66 @@
 /// sin señal, lo pone al día con la fecha.
 enum EstadoDelCobro { sinCobro, prueba, pagado, vencido }
 
+/// Básico o Full (entrega 43; decisiones.md, 09-11-2026).
+enum NivelDePlan { basico, full }
+
+/// Lo que pagaría con un plan: el monto y cuántas personas extra lleva.
+class OpcionDePlan {
+  const OpcionDePlan({
+    required this.plan,
+    required this.precioCentimos,
+    this.extras = 0,
+  });
+
+  static OpcionDePlan? desdeServidor(Object? json) => json is Map
+      ? OpcionDePlan(
+          plan: PlanCobro.values.asNameMap()[json['plan']] ?? PlanCobro.normal,
+          precioCentimos: json['precio'] as int? ?? 0,
+          extras: json['extras'] as int? ?? 0,
+        )
+      : null;
+
+  Map<String, Object?> aJson() => {
+    'plan': plan.name,
+    'precio': precioCentimos,
+    'extras': extras,
+  };
+
+  final PlanCobro plan;
+  final int precioCentimos;
+
+  /// Personas por encima de las que incluye el plan.
+  final int extras;
+
+  NivelDePlan get nivel =>
+      plan == PlanCobro.basico ? NivelDePlan.basico : NivelDePlan.full;
+
+  /// El precio del plan solo, sin las personas extra.
+  int get precioBaseCentimos => precioDelPlan(plan);
+}
+
+/// Lo que cuesta cada plan al mes, o al año el anual, como en el servidor.
+int precioDelPlan(PlanCobro plan) => switch (plan) {
+  PlanCobro.basico => 1490,
+  PlanCobro.normal => 1990,
+  PlanCobro.fundador => 1490,
+  PlanCobro.anual => 19900,
+};
+
+/// Cada persona más: S/ 2.90 al mes, S/ 34.80 al año.
+int precioPersonaExtra(PlanCobro plan) => plan == PlanCobro.anual ? 3480 : 290;
+
+/// Personas que incluye el plan, con el titular; el contador no cuenta.
+int personasIncluidas(PlanCobro plan) => plan == PlanCobro.basico ? 1 : 3;
+
+int extrasPara(PlanCobro plan, int personas) {
+  final extras = personas - personasIncluidas(plan);
+  return extras < 0 ? 0 : extras;
+}
+
+int precioConExtras(PlanCobro plan, int personas) =>
+    precioDelPlan(plan) + extrasPara(plan, personas) * precioPersonaExtra(plan);
+
 class Cobro {
   const Cobro({
     required this.estado,
@@ -16,6 +76,12 @@ class Cobro {
     this.admin = false,
     this.respondio = false,
     this.mercadoPago = false,
+    this.nivel = NivelDePlan.full,
+    this.personas = 1,
+    this.incluidas = 3,
+    this.credito = true,
+    this.opcionFull,
+    this.opcionBasico,
   });
 
   static const sinCobro = Cobro(estado: EstadoDelCobro.sinCobro);
@@ -43,6 +109,21 @@ class Cobro {
       admin: json['admin'] == true,
       respondio: json['respondio'] == true,
       mercadoPago: json['mercadopago'] == true,
+      // Los planes (entrega 43). Sin ellos (servidor anterior), Full.
+      nivel: json['nivel'] == 'basico' ? NivelDePlan.basico : NivelDePlan.full,
+      personas: json['personas'] as int? ?? 1,
+      incluidas: json['incluidas'] as int? ?? 3,
+      credito: json['credito'] != false,
+      opcionFull: switch (json['opciones']) {
+        final Map<Object?, Object?> o => OpcionDePlan.desdeServidor(o['full']),
+        _ => null,
+      },
+      opcionBasico: switch (json['opciones']) {
+        final Map<Object?, Object?> o => OpcionDePlan.desdeServidor(
+          o['basico'],
+        ),
+        _ => null,
+      },
     );
   }
 
@@ -71,6 +152,28 @@ class Cobro {
 
   /// Se puede pagar con Mercado Pago (entrega 32).
   final bool mercadoPago;
+
+  /// El plan que tiene: Full en la prueba y sin pagos (entrega 43).
+  final NivelDePlan nivel;
+
+  /// Personas del negocio sin el contador, y las que incluye su plan.
+  final int personas;
+  final int incluidas;
+
+  /// Puede armar «Para pedir un crédito»: solo el Full.
+  final bool credito;
+
+  /// Lo que pagaría con cada plan; al fundador no se le ofrece el Básico.
+  final OpcionDePlan? opcionFull;
+  final OpcionDePlan? opcionBasico;
+
+  /// El Full, aunque el servidor todavía no mande las opciones.
+  OpcionDePlan get full =>
+      opcionFull ??
+      OpcionDePlan(
+        plan: precioCentimos < 1990 ? PlanCobro.fundador : PlanCobro.normal,
+        precioCentimos: precioCentimos,
+      );
 
   /// Al vencer: se anota y se baja el Excel, nada más.
   bool get soloAnotar => estado == EstadoDelCobro.vencido;
@@ -136,6 +239,12 @@ class Cobro {
       admin: admin,
       respondio: respondio,
       mercadoPago: mercadoPago,
+      nivel: nivel,
+      personas: personas,
+      incluidas: incluidas,
+      credito: credito,
+      opcionFull: opcionFull,
+      opcionBasico: opcionBasico,
     );
   }
 }
@@ -160,8 +269,9 @@ typedef OrdenDePago = ({EstadoDeOrden estado, DateTime? hasta});
 
 enum RespuestaPrecio { si, noSe, no }
 
-/// Lo que Jhony registra (entrega 26).
-enum PlanCobro { normal, fundador, anual }
+/// Lo que Jhony registra (entrega 26). «basico» es el Básico (entrega 43);
+/// los demás son el Full.
+enum PlanCobro { basico, normal, fundador, anual }
 
 /// Un pago registrado.
 class PagoRegistrado {
@@ -173,9 +283,13 @@ class PagoRegistrado {
     required this.desde,
     required this.hasta,
     this.nota,
+    this.personasExtra = 0,
   });
 
   final String id;
+
+  /// Las personas extra que se cobraron (entrega 43).
+  final int personasExtra;
 
   /// Anulado por error o de prueba (entrega 26.1): queda en la lista.
   final bool anulado;
@@ -199,9 +313,13 @@ class PagoDeMoca {
     required this.medio,
     this.operacion,
     this.anulado = false,
+    this.personasExtra = 0,
   });
 
   final PlanCobro plan;
+
+  /// Las personas extra que se cobraron (entrega 43).
+  final int personasExtra;
   final int montoCentimos;
   final DateTime desde;
   final DateTime hasta;
@@ -238,6 +356,7 @@ class MisPagos {
             PagoDeMoca(
               plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
               montoCentimos: p['monto_centimos'] as int? ?? 0,
+              personasExtra: p['personas_extra'] as int? ?? 0,
               desde: dia(p['desde']),
               hasta: dia(p['hasta']),
               pagadoEn: dia(p['pagado_en']).toLocal(),

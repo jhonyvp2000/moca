@@ -10,7 +10,7 @@ import {
   ErrorDeCobro,
   registrarPago,
 } from '../cobro/rutas.js';
-import { diaEnLima, estadoDelCobro, type Plan, precios } from '../cobro/estado.js';
+import { diaEnLima, estadoDelCobro, type Plan } from '../cobro/estado.js';
 import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
 import { miembroDe } from '../equipo/miembros.js';
@@ -74,6 +74,7 @@ export function rutasMercadoPago(
           usuario_id: string;
           plan: Plan;
           monto_centimos: number;
+          personas_extra: number;
           estado: string;
         }>('SELECT * FROM ordenes_pago WHERE id = $1 FOR UPDATE', [referencia])
       ).rows[0];
@@ -103,6 +104,8 @@ export function rutasMercadoPago(
           await registrarPago(cliente, cobro, {
             empresaId: orden.empresa_id,
             plan: orden.plan,
+            // Las personas que se cobraron, aunque hoy sean otras.
+            personasExtra: orden.personas_extra,
             nota: `Mercado Pago · operación ${mpId}`,
             registradoPor: orden.usuario_id,
             hoy: diaEnLima(ahora()),
@@ -173,7 +176,7 @@ export function rutasMercadoPago(
   }
 
   // El dueño pide pagar el mes: su orden y la página de Mercado Pago.
-  app.post('/cobro/mercadopago', async (peticion, respuesta) => {
+  app.post<{ Body: { plan?: unknown } }>('/cobro/mercadopago', async (peticion, respuesta) => {
     if (!config || !mp) return respuesta.code(503).send({ error: 'sin_mercadopago' });
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
@@ -182,6 +185,12 @@ export function rutasMercadoPago(
     let nombre: string;
     let plan: Plan;
     let monto: number;
+    let extras: number;
+    // El Básico o el Full (entrega 43); sin decirlo, el Full, como antes.
+    const pedido = peticion.body?.plan;
+    if (pedido !== undefined && pedido !== 'basico' && pedido !== 'full') {
+      return respuesta.code(400).send({ error: 'datos_invalidos' });
+    }
     try {
       await cliente.query('BEGIN');
       const miembro = await miembroDe(cliente, usuarioId, empresaPedida(peticion.query));
@@ -208,9 +217,12 @@ export function rutasMercadoPago(
         ).rows[0]?.nombre ?? 'tu negocio';
       await cliente.query('COMMIT');
       if (estado.estado === 'sin_cobro') return respuesta.code(409).send({ error: 'sin_cobro' });
-      // Se paga el mes al precio que le toca: de fundador o normal.
-      plan = estado.precio < precios.normal ? 'fundador' : 'normal';
-      monto = estado.precio;
+      // Se paga el mes al precio que le toca, con sus personas extra.
+      const opcion = pedido === 'basico' ? estado.opciones.basico : estado.opciones.full;
+      if (!opcion) return respuesta.code(409).send({ error: 'sin_basico' });
+      plan = opcion.plan;
+      monto = opcion.precio;
+      extras = opcion.extras;
     } catch (error) {
       await cliente.query('ROLLBACK');
       throw error;
@@ -225,23 +237,25 @@ export function rutasMercadoPago(
         await c.query<{ id: string }>(
           `SELECT id FROM ordenes_pago
             WHERE empresa_id = $1 AND usuario_id = $2 AND plan = $3 AND estado = 'pendiente'
+              AND monto_centimos = $4 AND personas_extra = $5
               AND creado_en > now() - interval '1 hour'
             ORDER BY creado_en DESC LIMIT 1`,
-          [empresaId, usuarioId, plan],
+          [empresaId, usuarioId, plan, monto, extras],
         )
       ).rows[0];
       if (previa) return previa.id;
       const id = randomUUID();
       await c.query(
-        `INSERT INTO ordenes_pago (id, empresa_id, usuario_id, plan, monto_centimos)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [id, empresaId, usuarioId, plan, monto],
+        `INSERT INTO ordenes_pago (id, empresa_id, usuario_id, plan, monto_centimos,
+                                   personas_extra)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [id, empresaId, usuarioId, plan, monto, extras],
       );
       return id;
     });
     try {
       const preferencia = await mp.crearPreferencia({
-        titulo: `Moca · 1 mes · ${nombre}`.slice(0, 120),
+        titulo: `Moca ${plan === 'basico' ? 'Básico' : 'Full'} · 1 mes · ${nombre}`.slice(0, 120),
         centimos: monto,
         referencia: ordenId,
         avisos: `${config.urlPublica}/mercadopago/webhook`,

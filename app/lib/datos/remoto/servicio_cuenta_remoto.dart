@@ -328,6 +328,7 @@ class ServicioCuentaRemoto
     return Equipo(
       miRol: _rol(cuerpo['rol']),
       maximo: cuerpo['maximo'] as int? ?? 3,
+      incluidas: cuerpo['incluidas'] as int? ?? 3,
       personas: [
         for (final p in (cuerpo['personas'] as List? ?? const []))
           if (p case final Map<String, Object?> p)
@@ -414,8 +415,12 @@ class ServicioCuentaRemoto
   }
 
   @override
-  Future<ResultadoInicioDePago> pagarConMercadoPago() async {
-    final r = await _delEquipo(await _delNegocio('/cobro/mercadopago'), {});
+  Future<ResultadoInicioDePago> pagarConMercadoPago({
+    NivelDePlan nivel = NivelDePlan.full,
+  }) async {
+    final r = await _delEquipo(await _delNegocio('/cobro/mercadopago'), {
+      'plan': nivel.name,
+    });
     if (r == null) return (inicio: null, error: ErrorDePago.sinSenal);
     final cuerpo = _cuerpo(r);
     if (r.statusCode == 200 &&
@@ -432,7 +437,9 @@ class ServicioCuentaRemoto
     return (
       inicio: null,
       error: switch (cuerpo['error']) {
-        'sin_mercadopago' || 'sin_cobro' => ErrorDePago.noDisponible,
+        'sin_mercadopago' ||
+        'sin_cobro' ||
+        'sin_basico' => ErrorDePago.noDisponible,
         'solo_duenos' => ErrorDePago.soloDuenos,
         _ => ErrorDePago.fallo,
       },
@@ -691,6 +698,7 @@ class ServicioCuentaRemoto
             anulado: p['anulado_en'] != null,
             plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
             montoCentimos: p['monto_centimos'] as int? ?? 0,
+            personasExtra: p['personas_extra'] as int? ?? 0,
             desde: _leerDia(p['desde']) ?? DateTime(2000),
             hasta: _leerDia(p['hasta']) ?? DateTime(2000),
             nota: p['nota'] as String?,

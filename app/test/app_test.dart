@@ -171,6 +171,9 @@ class _ServidorFalso {
   /// Mercado Pago (entrega 32): el error al pedir pagar y cómo va la orden.
   String? errorMercadoPago;
   var ordenesPedidas = 0;
+
+  /// Lo que pidió la app al pagar con Mercado Pago (entrega 43).
+  Map<String, Object?>? ultimaOrden;
   var consultasDeOrden = 0;
   Map<String, Object?> orden = {'estado': 'pendiente'};
   final anulados = <Object?>[];
@@ -365,6 +368,7 @@ class _ServidorFalso {
         );
       case '/cobro/mercadopago':
         ordenesPedidas++;
+        ultimaOrden = cuerpo;
         final error = errorMercadoPago;
         return error != null
             ? http.Response(jsonEncode({'error': error}), 503)
@@ -2348,7 +2352,7 @@ void main() {
       expect(find.text(Textos.pdfParaMi), findsOneWidget);
       expect(find.text(Textos.pdfParaContador), findsOneWidget);
       expect(find.text(Textos.pdfParaCredito), findsOneWidget);
-      expect(find.text(Textos.mocaPlus), findsOneWidget);
+      expect(find.text(Textos.planFull), findsOneWidget);
       // Para la caja, primero dice qué llenó Moca (entrega 14.15).
       await tocar(tester, find.text(Textos.pdfParaCredito));
       expect(
@@ -3267,7 +3271,7 @@ void main() {
       expect(find.text('Bodega Don Lucho'), findsWidgets);
     });
 
-    Future<void> conCuentaGuardada(WidgetTester tester) async {
+    Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
       final base = await abrirApp(tester, listo: true);
       await tester.runAsync(() async {
         await _llavero.guardar('llave-de-prueba');
@@ -3277,6 +3281,7 @@ void main() {
         ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
       });
       await esperar(tester);
+      return base;
     }
 
     Map<String, Object?> equipoDeLucho() => {
@@ -3321,6 +3326,41 @@ void main() {
       expect(find.text(Textos.miEquipo), findsNothing);
     });
 
+    testWidgets('Entrega 43: invitar a alguien que el plan no incluye', (
+      tester,
+    ) async {
+      final base = await conCuentaGuardada(tester);
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveCobro,
+          jsonEncode({
+            'estado': 'pagado',
+            'hasta': '2026-12-01',
+            'plan': 'basico',
+            'nivel': 'basico',
+            'incluidas': 1,
+            'credito': false,
+          }),
+        ),
+      );
+      _servidor.equipo = {...equipoDeLucho(), 'incluidas': 1};
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.miEquipo));
+      expect(find.text(Textos.planIncluye(1)), findsOneWidget);
+      await tocar(tester, find.text(Textos.invitarAAlguien));
+      await tester.enterText(find.byType(TextField).at(0), 'Carmen');
+      await tester.enterText(find.byType(TextField).at(1), '987000004');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.enviarInvitacion));
+      // Se avisa antes; con «Cancelar» no se invita.
+      expect(find.text(Textos.personaExtraDetalle(1)), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(_servidor.invitados, isEmpty);
+      await tocar(tester, find.text(Textos.enviarInvitacion));
+      await tocar(tester, find.text(Textos.invitarIgual));
+      expect(_servidor.invitados, hasLength(1));
+    });
+
     testWidgets('El dueño ve su equipo, invita y quita', (tester) async {
       await conCuentaGuardada(tester);
       _servidor.equipo = equipoDeLucho();
@@ -3329,8 +3369,8 @@ void main() {
       expect(find.text('Rosa'), findsOneWidget);
       expect(find.text('Ayudante · 987 000 002'), findsOneWidget);
       expect(find.text('Pepe'), findsOneWidget);
-      // Rosa, Lucho y la invitación del contador, que no cuenta.
-      expect(find.text(Textos.lugaresLibres(1, 3)), findsOneWidget);
+      // Sin tope (entrega 43): lo que incluye el plan.
+      expect(find.text(Textos.planIncluye(3)), findsOneWidget);
 
       // Invitar: con ya las 3 personas, lo dice.
       await tocar(tester, find.text(Textos.invitarAAlguien));
@@ -4113,6 +4153,145 @@ void main() {
       await avanzar(tester, Duration.zero);
     }
 
+    testWidgets('Entrega 43: elige Básico o Full, con sus personas extra', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(3),
+        'dias': 3,
+        'precio': 1990,
+        'mercadopago': true,
+        'personas': 2,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+          'basico': {'plan': 'basico', 'precio': 1780, 'extras': 1},
+        },
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.comoPagar).first);
+      expect(find.text(Textos.eligeTuPlan), findsOneWidget);
+      // Viene el Full: tiene 2 personas, el Full incluye 3.
+      expect(
+        find.text(
+          Textos.cuentaDelPlan(
+            Textos.planFull,
+            formatearSolesComprobante(1990),
+            0,
+            formatearSolesComprobante(0),
+            formatearSolesComprobante(1990),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.planBasico));
+      expect(
+        find.text(
+          Textos.cuentaDelPlan(
+            Textos.planBasico,
+            formatearSolesComprobante(1490),
+            1,
+            formatearSolesComprobante(290),
+            formatearSolesComprobante(1780),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          Textos.avisoBasicoConExtras(1, formatearSolesComprobante(290)),
+        ),
+        findsOneWidget,
+      );
+      // S/ 17.80 sigue siendo menos que el Full.
+      expect(
+        find.text(Textos.conFullPagasMenos(formatearSolesComprobante(1990))),
+        findsNothing,
+      );
+      await tester.ensureVisible(find.text(Textos.pagarConMercadoPago));
+      await tester.tap(find.text(Textos.pagarConMercadoPago));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      expect(_servidor.ultimaOrden, {'plan': 'basico'});
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.text(Textos.seguirSinEsperar));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(seconds: 10));
+    });
+
+    testWidgets('Entrega 43: si el Básico sale más caro, sugiere el Full', (
+      tester,
+    ) async {
+      await conCobro(tester, {
+        'estado': 'vencido',
+        'hasta': dia(-2),
+        'precio': 2280,
+        'personas': 4,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 2280, 'extras': 1},
+          'basico': {'plan': 'basico', 'precio': 2360, 'extras': 3},
+        },
+      });
+      await tocar(tester, find.text(Textos.comoPagar).first);
+      await tocar(tester, find.text(Textos.planBasico));
+      final sugerencia = find.text(
+        Textos.conFullPagasMenos(formatearSolesComprobante(2280)),
+      );
+      expect(sugerencia, findsOneWidget);
+      await tocar(tester, find.widgetWithText(TextButton, Textos.planFull));
+      expect(sugerencia, findsNothing);
+      expect(
+        find.text(
+          Textos.cuentaDelPlan(
+            Textos.planFull,
+            formatearSolesComprobante(1990),
+            1,
+            formatearSolesComprobante(290),
+            formatearSolesComprobante(2280),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Entrega 43: el Básico no arma lo del crédito', (tester) async {
+      await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(20),
+        'dias': 20,
+        'plan': 'basico',
+        'nivel': 'basico',
+        'incluidas': 1,
+        'credito': false,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+          'basico': {'plan': 'basico', 'precio': 1490, 'extras': 0},
+        },
+      });
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.compartirPdf));
+      await tocar(tester, find.text(Textos.pdfParaCredito));
+      expect(find.text(Textos.creditoEsDelFull), findsOneWidget);
+      await tocar(tester, find.text(Textos.comoPagar));
+      // «Cómo pagar» se abre con el Básico que tiene.
+      expect(find.text(Textos.eligeTuPlan), findsOneWidget);
+      expect(
+        find.text(
+          Textos.cuentaDelPlan(
+            Textos.planBasico,
+            formatearSolesComprobante(1490),
+            0,
+            formatearSolesComprobante(0),
+            formatearSolesComprobante(1490),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('Entrega 32: paga con Mercado Pago y Moca queda pagada', (
       tester,
     ) async {
@@ -4124,8 +4303,18 @@ void main() {
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       await tocar(tester, find.text(Textos.comoPagar));
+      // El fundador no ve el Básico: solo la cuenta del Full (entrega 43).
+      expect(find.text(Textos.eligeTuPlan), findsNothing);
       expect(
-        find.text(Textos.pagaConMercadoPago('S/\u00A014.90')),
+        find.text(
+          Textos.cuentaDelPlan(
+            Textos.planFull,
+            'S/\u00A014.90',
+            0,
+            'S/\u00A00.00',
+            'S/\u00A014.90',
+          ),
+        ),
         findsOneWidget,
       );
       // El Yape manual queda debajo, con su botón ya no principal.

@@ -75,7 +75,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 - **Paquete de país:** todo lo específico de Perú (QR, SIRE, IGV, regímenes, calendario) va aislado para poder sumar otros países.
 - **Funciona sin señal:** la app guarda en el teléfono y sincroniza después.
 - **Fuera de esta etapa:** captura por WhatsApp y emisión de boletas y facturas electrónicas.
-- **Varias personas por negocio:** dueño (uno o más; el titular borra), encargado, ayudante y contador (solo mira y puede estar en varios negocios); hasta 3 personas sin contar al contador. Lo que un rol no puede ver no baja a su teléfono.
+- **Varias personas por negocio:** dueño (uno o más; el titular borra), encargado, ayudante y contador (solo mira y puede estar en varios negocios); sin tope de personas: el plan incluye 1 (Básico) o 3 (Full) con el titular y cada persona más cuesta S/ 2.90 al mes; el contador no cuenta (entrega 43). Lo que un rol no puede ver no baja a su teléfono.
 - **Cobro por negocio:** 14 días de prueba desde el primer registro; al vencer, «solo anotar», sin perder lo anotado.
 
 ## Interfaz

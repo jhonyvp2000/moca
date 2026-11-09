@@ -31,7 +31,7 @@ La misma V1 de `alcance-v1.md` (modo Simple, varias personas por negocio desde l
 | 16 | Cierre: textos legales, Demo y «Ahora no» reales, respaldos, aviso de errores y publicación en la Play Store | Textos legales revisados, marca |
 | 17 | Equipo A · Servidor: invitaciones por número, roles y permisos en el servidor, sincronización registro por registro (cada teléfono sube solo lo que cambió y baja lo nuevo de los demás) | 12, 13 |
 | 18 | Equipo B · La app sincroniza en los dos sentidos: baja lo de los demás al abrir, al volver y cada pocos minutos con señal; «Actualizado hace…» | 17 |
-| 19 | Equipo C · «Mi equipo» en la «M»: invitar por número (hasta 3 personas por negocio), aceptar con el consentimiento de la Ley 29733, quitar | 17, 18 |
+| 19 | Equipo C · «Mi equipo» en la «M»: invitar por número (hasta 3 personas por negocio; sin tope desde la entrega 43, con las personas extra cobradas aparte), aceptar con el consentimiento de la Ley 29733, quitar | 17, 18 |
 | 20 | Equipo D · Roles en la app (qué ve y hace cada uno) y «Lo anotó…» en el Historial | 19 |
 | 21 | Equipo E · Varias cajas de efectivo con responsables, arqueo por caja y «Pasé plata de una caja a otra» | 20 |
 | 22 | Equipo F · El contador en varios negocios: elige cuál mirar, solo lectura | 20 |

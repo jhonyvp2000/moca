@@ -13,7 +13,9 @@ import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../dominio/cobro.dart';
 import '../../dominio/historial.dart';
+import '../cobro/cobro.dart';
 import '../../dominio/modelos.dart';
 import '../../textos/textos.dart';
 import 'excel_informe.dart';
@@ -77,11 +79,11 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
             ListTile(
               minTileHeight: Medidas.objetivoTactilMinimo + 12,
               title: Text(titulo, style: Tipografia.textoFuerte),
-              // El flujo para la caja es de Moca Plus (decisiones.md,
-              // 29-10-2026); sin cobro todavía, funciona igual.
+              // «Para pedir un crédito» es del plan Full (entrega 43); en la
+              // prueba y sin cobro, funciona igual.
               trailing: destino == DestinoInforme.credito
                   ? Text(
-                      Textos.mocaPlus,
+                      Textos.planFull,
                       style: Tipografia.etiquetaMoca.copyWith(fontSize: 14),
                     )
                   : null,
@@ -130,6 +132,34 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     final mensajes = ScaffoldMessenger.of(context);
     final destino = await _elegirDestino();
     if (destino == null || !mounted) return;
+    // El Básico no arma lo del crédito: se explica y se ofrece el Full.
+    final cobro = ref.read(cobroProvider).value ?? Cobro.sinCobro;
+    if (destino == DestinoInforme.credito && !cobro.credito) {
+      final cambiar = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text(Textos.creditoEsDelFull),
+          content: const Text(
+            Textos.creditoEsDelFullDetalle,
+            style: Tipografia.texto,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(Textos.ahoraNoCorto),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(Textos.comoPagar),
+            ),
+          ],
+        ),
+      );
+      if (cambiar == true && mounted) {
+        await mostrarComoPagar(context, ref, cobro);
+      }
+      return;
+    }
     final repositorio = ref.read(repositorioInformeProvider);
     final flujo = destino == DestinoInforme.credito
         ? await repositorio.flujoParaCredito()

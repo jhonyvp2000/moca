@@ -61,7 +61,20 @@ class Equipo {
     required this.maximo,
     required this.personas,
     this.invitaciones = const [],
+    this.incluidas = 3,
   });
+
+  /// Las personas que incluye el plan, con el titular (entrega 43): las
+  /// demás se cobran aparte. Ya no hay tope.
+  final int incluidas;
+
+  /// Personas e invitaciones vigentes, sin el contador.
+  int get ocupadas =>
+      personas.where((p) => p.rol != Rol.contador).length +
+      invitaciones.where((i) => i.rol != Rol.contador).length;
+
+  /// Una persona más (no contador) ya se cobraría aparte.
+  bool get siguienteSeCobra => ocupadas >= incluidas;
 
   final Rol miRol;
 
@@ -273,7 +286,10 @@ abstract interface class ServicioCobro {
   Future<({MisPagos? pagos, bool alDia})> misPagos();
 
   /// Pide la orden y la página de pago del mes.
-  Future<ResultadoInicioDePago> pagarConMercadoPago();
+  /// El Básico o el Full (entrega 43).
+  Future<ResultadoInicioDePago> pagarConMercadoPago({
+    NivelDePlan nivel = NivelDePlan.full,
+  });
 
   /// Cómo va la orden; al quedar pagada, guarda el cobro nuevo.
   Future<OrdenDePago> estadoDeOrden(String orden);

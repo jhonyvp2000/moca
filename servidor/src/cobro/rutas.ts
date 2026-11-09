@@ -9,10 +9,11 @@ import {
   diaEnLima,
   estadoDelCobro,
   type EstadoCobro,
+  extrasPara,
   maximoDeFundadores,
   periodoDelPago,
   type Plan,
-  precios,
+  precioDe,
   puedeSerFundador,
 } from './estado.js';
 
@@ -57,6 +58,7 @@ export async function datosDelCobro(
   inicioPrueba: string | null;
   fundadores: number;
   respondio: boolean;
+  personas: number;
 }> {
   const suscripcion = (
     await cliente.query<{
@@ -96,7 +98,16 @@ export async function datosDelCobro(
       empresaId,
     ])
   ).rowCount;
+  // Las personas del negocio sin el contador (entrega 43).
+  const personas = (
+    await cliente.query<{ n: string }>(
+      `SELECT count(*) AS n FROM membresias
+        WHERE empresa_id = $1 AND quitada_en IS NULL AND rol <> 'contador'`,
+      [empresaId],
+    )
+  ).rows[0]?.n;
   return {
+    personas: Math.max(1, Number(personas ?? 1)),
     respondio: Boolean(respondio),
     suscripcion: suscripcion
       ? {
@@ -296,9 +307,12 @@ export async function registrarPago(
     hoy,
     origen = 'yape',
     mpPagoId = null,
+    personasExtra,
   }: {
     empresaId: string;
     plan: Plan;
+    /** Las que se cobraron (la orden de Mercado Pago); si no, las de hoy. */
+    personasExtra?: number;
     nota: string | null;
     registradoPor: string;
     hoy: string;
@@ -318,6 +332,7 @@ export async function registrarPago(
   if (plan === 'fundador' && !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })) {
     throw new ErrorDeCobro(409, actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador');
   }
+  const extras = personasExtra ?? extrasPara(plan, datos.personas);
   const periodo = periodoDelPago({
     hoy,
     pagadoHasta:
@@ -326,29 +341,31 @@ export async function registrarPago(
   });
   await cliente.query(
     `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por,
-                        origen, mp_pago_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                        origen, mp_pago_id, personas_extra)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     [
       randomUUID(),
       empresaId,
       plan,
-      precios[plan],
+      precioDe(plan, extras),
       periodo.desde,
       periodo.hasta,
       nota,
       registradoPor,
       origen,
       mpPagoId,
+      extras,
     ],
   );
   await cliente.query(
-    `INSERT INTO suscripciones (empresa_id, plan, pagado_hasta, fue_fundador)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO suscripciones (empresa_id, plan, pagado_hasta, fue_fundador, personas_extra)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (empresa_id) DO UPDATE
        SET plan = $2, pagado_hasta = $3,
            fue_fundador = suscripciones.fue_fundador OR $4,
+           personas_extra = $5,
            actualizado_en = now()`,
-    [empresaId, plan, periodo.hasta, plan === 'fundador'],
+    [empresaId, plan, periodo.hasta, plan === 'fundador', extras],
   );
   if (plan === 'fundador' && !actual?.fueFundador) {
     await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
@@ -370,23 +387,26 @@ export async function anularPago(cliente: Cliente, pagoId: string): Promise<stri
     )
   ).rows[0];
   if (!pago) throw new ErrorDeCobro(404, 'sin_pago');
-  const vigentes = `SELECT id, plan, hasta FROM pagos
+  const vigentes = `SELECT id, plan, hasta, personas_extra FROM pagos
       WHERE empresa_id = $1 AND anulado_en IS NULL ORDER BY creado_en DESC`;
   const ultimo = (await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])).rows[0];
   if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, 'no_es_el_ultimo');
   const antes = (await datosDelCobro(cliente, pago.empresa_id)).suscripcion;
   await cliente.query('UPDATE pagos SET anulado_en = now() WHERE id = $1', [pagoId]);
 
-  const quedan = (await cliente.query<{ plan: Plan; hasta: string }>(vigentes, [pago.empresa_id]))
-    .rows;
+  const quedan = (
+    await cliente.query<{ plan: Plan; hasta: string; personas_extra: number }>(vigentes, [
+      pago.empresa_id,
+    ])
+  ).rows;
   const sigueFundador = quedan.some((p) => p.plan === 'fundador');
   const anterior = quedan[0];
   if (anterior) {
     await cliente.query(
       `UPDATE suscripciones SET plan = $2, pagado_hasta = $3, fue_fundador = $4,
-              actualizado_en = now()
+              personas_extra = $5, actualizado_en = now()
         WHERE empresa_id = $1`,
-      [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador],
+      [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador, anterior.personas_extra],
     );
   } else {
     await cliente.query('DELETE FROM suscripciones WHERE empresa_id = $1', [pago.empresa_id]);
@@ -529,8 +549,10 @@ export function rutasCobro(
           origen: string;
           mp_pago_id: string | null;
           anulado_en: Date | null;
+          personas_extra: number;
         }>(
-          `SELECT id, plan, monto_centimos, desde, hasta, creado_en, origen, mp_pago_id, anulado_en
+          `SELECT id, plan, monto_centimos, desde, hasta, creado_en, origen, mp_pago_id, anulado_en,
+                  personas_extra
              FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
           [miembro.empresaId],
         )
@@ -549,6 +571,7 @@ export function rutasCobro(
           id: p.id,
           plan: p.plan,
           monto_centimos: p.monto_centimos,
+          personas_extra: p.personas_extra,
           desde: p.desde,
           hasta: p.hasta,
           pagado_en: new Date(p.creado_en).toISOString(),
@@ -585,7 +608,8 @@ export function rutasCobro(
         if (!empresa) throw new ErrorDeCobro(404, 'sin_negocio');
         const pagos = (
           await cliente.query(
-            `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en, origen
+            `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en, origen,
+                    personas_extra
                FROM pagos WHERE empresa_id = $1 ORDER BY creado_en DESC`,
             [empresa.id],
           )
@@ -620,7 +644,7 @@ export function rutasCobro(
         const { empresa, plan, nota } = peticion.body ?? {};
         if (
           typeof empresa !== 'string' ||
-          (plan !== 'normal' && plan !== 'fundador' && plan !== 'anual') ||
+          (plan !== 'basico' && plan !== 'normal' && plan !== 'fundador' && plan !== 'anual') ||
           (nota !== undefined && nota !== null && typeof nota !== 'string')
         ) {
           throw new ErrorDeCobro(400, 'datos_invalidos');

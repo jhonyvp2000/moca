@@ -392,6 +392,8 @@ class _Ficha extends StatelessWidget {
                           formatearDiaYMes(p.desde),
                           formatearDiaYMes(p.hasta),
                         ),
+                        // El plan y sus personas extra (entrega 43).
+                        Textos.planDelPago(p.plan, p.personasExtra),
                         if (p.nota != null) p.nota!,
                         if (p.anulado) Textos.anulado,
                       ].join(' · '),
@@ -449,9 +451,11 @@ class _HojaPago extends StatefulWidget {
 
 class _EstadoHojaPago extends State<_HojaPago> {
   final _nota = TextEditingController();
-  late PlanCobro _plan = widget.ficha.cobro.precioCentimos < 1990
-      ? PlanCobro.fundador
-      : PlanCobro.normal;
+
+  /// Viene el plan que tiene, o el Full que le toca (entrega 43).
+  late PlanCobro _plan = widget.ficha.cobro.nivel == NivelDePlan.basico
+      ? PlanCobro.basico
+      : widget.ficha.cobro.full.plan;
 
   @override
   void dispose() {
@@ -481,6 +485,17 @@ class _EstadoHojaPago extends State<_HojaPago> {
               },
               elegida: _plan,
               alElegir: (p) => setState(() => _plan = p),
+            ),
+            const SizedBox(height: 8),
+            // Con las personas de hoy: lo que se registra.
+            Text(
+              Textos.totalConPersonas(
+                widget.ficha.cobro.personas,
+                formatearSolesComprobante(
+                  precioConExtras(_plan, widget.ficha.cobro.personas),
+                ),
+              ),
+              style: Tipografia.textoFuerte,
             ),
             const SizedBox(height: 12),
             TextField(

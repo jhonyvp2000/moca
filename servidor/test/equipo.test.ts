@@ -164,9 +164,10 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
   let rosa: Persona;
   let carmen: Persona;
 
-  it('el titular invita hasta 3 personas; el contador no cuenta', async () => {
+  it('el titular invita sin tope (entrega 43); el contador no cuenta', async () => {
     const equipo = (await pedir(lucho, 'GET', '/equipo')).json();
-    expect(equipo).toMatchObject({ rol: 'dueno', titular: true, maximo: 3 });
+    // Sin pagos es Full: 3 personas incluidas.
+    expect(equipo).toMatchObject({ rol: 'dueno', titular: true, maximo: 3, incluidas: 3 });
     expect(equipo.personas).toHaveLength(1);
 
     for (const [celular, rol, nombre] of [
@@ -177,13 +178,18 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
       expect(r.statusCode, celular).toBe(200);
       expect(r.json()).toMatchObject({ celular: `+51${celular}`, rol, nombre });
     }
-    // Lucho, Rosa y Pepe: ya no hay lugar...
+    // Lucho, Rosa y Pepe, y una cuarta persona también entra: se cobra
+    // aparte (entrega 43). Las versiones anteriores ven siempre un lugar.
     const cuarta = await pedir(lucho, 'POST', '/equipo/invitar', {
       celular: '987000004',
       rol: 'encargado',
     });
-    expect(cuarta.json()).toEqual({ error: 'sin_lugar' });
-    // ...pero la contadora no cuenta.
+    expect(cuarta.statusCode).toBe(200);
+    expect((await pedir(lucho, 'GET', '/equipo')).json().maximo).toBe(5);
+    expect(
+      (await pedir(lucho, 'POST', '/equipo/anular', { invitacion: cuarta.json().id })).statusCode,
+    ).toBe(200);
+    // La contadora no cuenta.
     const contadora = await pedir(lucho, 'POST', '/equipo/invitar', {
       celular: '987000005',
       rol: 'contador',

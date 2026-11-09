@@ -5,6 +5,7 @@ import { crearApp } from '../src/app.js';
 import {
   estadoDelCobro,
   periodoDelPago,
+  precioDe,
   puedeSerFundador,
   sumarMeses,
 } from '../src/cobro/estado.js';
@@ -156,6 +157,44 @@ describe('El estado del cobro (entrega 24)', () => {
     ).toBe(false);
   });
 
+  it('Entrega 43: Básico y Full, con S/ 2.90 por persona más', () => {
+    expect(precioDe('basico', 0)).toBe(1490);
+    expect(precioDe('basico', 2)).toBe(2070);
+    expect(precioDe('normal', 1)).toBe(2280);
+    expect(precioDe('fundador', 1)).toBe(1780);
+    // Al año, S/ 34.80 por persona.
+    expect(precioDe('anual', 1)).toBe(23380);
+    const sinCupo = { ...base, hoy: '2026-11-12', inicioPrueba: '2026-11-10', fundadores: 50 };
+    // Dos personas: el Full no cobra extra; el Básico, una.
+    expect(estadoDelCobro({ ...sinCupo, personas: 2 })).toMatchObject({
+      nivel: 'full',
+      incluidas: 3,
+      credito: true,
+      precio: 1990,
+      opciones: {
+        full: { plan: 'normal', precio: 1990, extras: 0 },
+        basico: { plan: 'basico', precio: 1780, extras: 1 },
+      },
+    });
+    // Cuatro personas: el Básico (S/ 23.60) sale más caro que el Full.
+    expect(estadoDelCobro({ ...sinCupo, personas: 4 }).opciones).toEqual({
+      full: { plan: 'normal', precio: 2280, extras: 1 },
+      basico: { plan: 'basico', precio: 2360, extras: 3 },
+    });
+    // Con el Básico pagado: 1 persona incluida y sin crédito.
+    const basico = { plan: 'basico' as const, pagadoHasta: '2026-12-11', fueFundador: false };
+    expect(estadoDelCobro({ ...sinCupo, suscripcion: basico, personas: 1 })).toMatchObject({
+      estado: 'pagado',
+      nivel: 'basico',
+      incluidas: 1,
+      credito: false,
+    });
+    // Al fundador no se le ofrece el Básico: cuesta lo mismo.
+    expect(
+      estadoDelCobro({ ...base, hoy: '2026-11-12', inicioPrueba: null, personas: 3 }).opciones,
+    ).toEqual({ full: { plan: 'fundador', precio: 1490, extras: 0 } });
+  });
+
   it('La configuración sale del entorno', () => {
     expect(
       leerConfigCobro({
@@ -233,6 +272,13 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       porVencer: false,
       plan: null,
       precio: 1490,
+      // En la prueba es Full (entrega 43); al fundador no se le ofrece el
+      // Básico.
+      nivel: 'full',
+      personas: 1,
+      incluidas: 3,
+      credito: true,
+      opciones: { full: { plan: 'fundador', precio: 1490, extras: 0 } },
       pago: { yape: '911111111', nombre: 'Moca' },
       respondio: false,
     });
@@ -428,6 +474,66 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     expect(
       (await pedir(carmen, 'POST', '/cobro/anular', { pago: ultimo!.id })).statusCode,
     ).toBe(403);
+  });
+
+  it('Entrega 43: el Básico con personas extra, y vuelve al Full', async () => {
+    elDia('2026-11-20');
+    const nora = await verificar('987000006');
+    const datos = negocio('Bodega Nora', nora.usuarioId, '2026-11-20T14:00:00.000Z');
+    await pedir(nora, 'POST', '/datos/subir', datos);
+    const empresa = datos.empresa.id;
+    // Una persona más en el negocio, y la contadora, que no cuenta.
+    for (const [celular, rol] of [
+      ['987000007', 'ayudante'],
+      ['987000008', 'contador'],
+    ]) {
+      await pedir(nora, 'POST', '/equipo/invitar', { celular, rol });
+      const usuarioId = randomUUID();
+      const r = await app.inject({
+        method: 'POST',
+        url: '/cuenta/verificar',
+        payload: { celular, codigo: '123456', usuarioId, modo: 'invitado' },
+      });
+      const persona = { usuarioId: r.json().usuarioId, llave: r.json().llave };
+      const { invitaciones } = (await pedir(persona, 'GET', '/cuenta/invitaciones')).json();
+      await pedir(persona, 'POST', '/cuenta/aceptar', {
+        invitacion: invitaciones[0].id,
+        consentimiento: true,
+      });
+    }
+    expect(await cobroDe(nora)).toMatchObject({ personas: 2, nivel: 'full', incluidas: 3 });
+
+    // El Básico: S/ 14.90 + 1 persona.
+    const basico = await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'basico' });
+    expect(basico.json().cobro).toMatchObject({
+      estado: 'pagado',
+      plan: 'basico',
+      nivel: 'basico',
+      incluidas: 1,
+      credito: false,
+    });
+    expect(await cobroDe(nora)).toMatchObject({ nivel: 'basico', credito: false });
+    expect((await pedir(nora, 'GET', '/equipo')).json().incluidas).toBe(1);
+    // Vuelve al Full: sin personas extra.
+    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'normal' });
+    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000006')).json();
+    expect(
+      ficha.pagos.map((p: { plan: string; monto_centimos: number; personas_extra: number }) => [
+        p.plan,
+        p.monto_centimos,
+        p.personas_extra,
+      ]),
+    ).toEqual([
+      ['normal', 1990, 0],
+      ['basico', 1780, 1],
+    ]);
+    expect(ficha.cobro).toMatchObject({ nivel: 'full', credito: true });
+    // Los dueños ven sus pagos con las personas extra.
+    const mios = (await pedir(nora, 'GET', '/cobro/mis-pagos')).json();
+    expect(mios.pagos[1]).toMatchObject({ plan: 'basico', personas_extra: 1 });
+    // Anular el último lo deja otra vez en el Básico.
+    const anulado = await pedir(jhony, 'POST', '/cobro/anular', { pago: ficha.pagos[0].id });
+    expect(anulado.json().cobro).toMatchObject({ plan: 'basico', nivel: 'basico' });
   });
 
   it('Entrega 28: el uso del negocio llega y Jhony lo ve resumido', async () => {

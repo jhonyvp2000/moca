@@ -330,11 +330,17 @@ abstract final class Textos {
   static const titular = 'Titular';
   static const sinNombre = 'Sin nombre';
   static const invitarAAlguien = 'Invitar a alguien';
-  static String lugaresLibres(int n, int maximo) => n <= 0
-      ? 'Ya están las $maximo personas. El contador no cuenta.'
-      : 'Hasta $maximo personas con el titular. '
-            '${n == 1 ? 'Queda 1 lugar' : 'Quedan $n lugares'}; el contador no '
-            'cuenta.';
+  // Sin tope de personas (entrega 43): el plan incluye algunas y las demás
+  // se cobran aparte.
+  static String planIncluye(int incluidas) =>
+      'Tu plan incluye ${incluidas == 1 ? '1 persona' : '$incluidas personas'} '
+      'con el titular. Cada persona más: S/ 2.90 al mes. El contador no '
+      'cuenta.';
+  static const personaExtraTitulo = 'Esta persona se cobra aparte';
+  static String personaExtraDetalle(int incluidas) =>
+      'Tu plan incluye ${incluidas == 1 ? '1 persona' : '$incluidas personas'}. '
+      'Cada persona más suma S/ 2.90 al mes desde tu próximo pago.';
+  static const invitarIgual = 'Invitar igual';
   static const quitar = 'Quitar';
   static String quitarPregunta(String quien) => '¿Quitar a $quien del negocio?';
   static const quitarDetalle =
@@ -401,7 +407,8 @@ abstract final class Textos {
       'un código por SMS.\n\n'
       'La invitación vale hasta el $vence.';
   static const sinLugar =
-      'Ya están las 3 personas. Quita a alguien o anula una invitación.';
+      'No hay lugar para otra persona. Quita a alguien o anula una '
+      'invitación.';
   static const yaEstaEnElNegocio = 'Esa persona ya está en tu negocio.';
   static const soloLosDuenos = 'Solo un dueño puede cambiar el equipo.';
   static String nombreRol(Rol rol) => switch (rol) {
@@ -1368,11 +1375,15 @@ abstract final class Textos {
     };
   }
 
-  static String planDelPago(PlanCobro plan) => switch (plan) {
-    PlanCobro.normal => 'Un mes',
-    PlanCobro.fundador => 'Un mes de fundador',
-    PlanCobro.anual => 'Un año',
-  };
+  static String planDelPago(PlanCobro plan, [int extras = 0]) =>
+      switch (plan) {
+        PlanCobro.basico => 'Un mes · Básico',
+        PlanCobro.normal => 'Un mes · Full',
+        PlanCobro.fundador => 'Un mes · Full de fundador',
+        PlanCobro.anual => 'Un año · Full',
+      } +
+      (extras > 0 ? ' · ${masPersonas(extras)}' : '');
+  static String masPersonas(int n) => n == 1 ? '+ 1 persona' : '+ $n personas';
   static String cubrio(String desde, String hasta) => 'Del $desde al $hasta';
   static String porMercadoPago(String? operacion) => operacion == null
       ? 'Mercado Pago'
@@ -1428,9 +1439,43 @@ abstract final class Textos {
   static const copiarElNumero = 'Copiar el número';
   static const numeroCopiado = 'Número copiado.';
   static const mandarLaCaptura = 'Mandar la captura por WhatsApp';
-  static String mensajeDePago(String negocio, String celular) =>
-      'Hola, pagué Moca para $negocio. Mi celular es $celular. Te mando la '
-      'captura.';
+  static String mensajeDePago(String negocio, String celular, String plan) =>
+      'Hola, pagué Moca $plan para $negocio. Mi celular es $celular. Te mando '
+      'la captura.';
+
+  // Elegir el plan al pagar (entrega 43).
+  static const eligeTuPlan = 'Elige tu plan';
+  static const planBasico = 'Básico';
+  static const planFull = 'Full';
+  static const detalleBasico = '1 persona. Sin «Para pedir un crédito».';
+  static const detalleFull = '3 personas, con «Para pedir un crédito».';
+  static String cuentaDelPlan(
+    String plan,
+    String base,
+    int extras,
+    String porExtras,
+    String total, {
+    bool anual = false,
+  }) {
+    final periodo = anual ? 'al año' : 'al mes';
+    if (extras == 0) return '$plan $base $periodo';
+    final personas = extras == 1 ? '1 persona más' : '$extras personas más';
+    return '$plan $base + $personas $porExtras = $total $periodo';
+  }
+
+  static String conFullPagasMenos(String precio) =>
+      'Con el Full pagas menos: $precio al mes, con 3 personas y «Para pedir '
+      'un crédito».';
+  static String avisoBasicoConExtras(int extras, String monto) =>
+      'Tu Básico incluye 1 persona. '
+      '${extras == 1 ? 'La otra suma' : 'Las otras $extras suman'} $monto al '
+      'mes hasta que las quites en «Mi equipo».';
+
+  // El crédito es del Full (entrega 43).
+  static const creditoEsDelFull = 'Está en el plan Full';
+  static const creditoEsDelFullDetalle =
+      '«Para pedir un crédito» viene con el plan Full: S/ 19.90 al mes, con '
+      '3 personas. Puedes cambiarte desde «Cómo pagar».';
   static const pagoSinDatos =
       'Muy pronto podrás pagar desde aquí. Te avisaremos.';
   static const noSeAbrioWhatsApp = 'No se pudo abrir WhatsApp.';
@@ -1506,10 +1551,13 @@ abstract final class Textos {
   static const necesitasSenalParaCobros = 'Necesitas señal para los cobros.';
   static const registrarPago = 'Registrar pago';
   static String nombrePlan(PlanCobro plan) => switch (plan) {
-    PlanCobro.normal => 'Mes, S/ 19.90',
-    PlanCobro.fundador => 'Mes de fundador, S/ 14.90',
-    PlanCobro.anual => 'Año, S/ 199',
+    PlanCobro.basico => 'Básico, S/ 14.90',
+    PlanCobro.normal => 'Full, S/ 19.90',
+    PlanCobro.fundador => 'Full de fundador, S/ 14.90',
+    PlanCobro.anual => 'Full al año, S/ 199',
   };
+  static String totalConPersonas(int personas, String total) =>
+      'Con ${personas == 1 ? '1 persona' : '$personas personas'}: $total';
   static const notaDelPago = 'Nota (número de operación de Yape)';
   static String confirmarPago(String plan, String negocio) =>
       '¿Registrar «$plan» para $negocio?';

@@ -129,7 +129,10 @@ class _FilaPago extends StatelessWidget {
               ),
             ],
           ),
-          Text(Textos.planDelPago(p.plan), style: Tipografia.secundario),
+          Text(
+            Textos.planDelPago(p.plan, p.personasExtra),
+            style: Tipografia.secundario,
+          ),
           Text(
             Textos.cubrio(formatearDiaYMes(p.desde), formatearDiaYMes(p.hasta)),
             style: Tipografia.secundario,

@@ -4,8 +4,13 @@ import type { Cliente } from '../base/conexion.js';
 export type Rol = 'dueno' | 'encargado' | 'ayudante' | 'contador';
 export const roles: readonly Rol[] = ['dueno', 'encargado', 'ayudante', 'contador'];
 
-/** Hasta 3 personas por negocio, con el titular; el contador no cuenta. */
-export const maximoDePersonas = 3;
+/**
+ * Sin tope de personas desde la entrega 43 (decisiones.md, 09-11-2026): el
+ * plan incluye 1 (Básico) o 3 (Full) con el titular, y cada persona más se
+ * cobra aparte. El contador no cuenta. Las versiones anteriores de la app
+ * leen un máximo: se les manda uno que siempre deja invitar.
+ */
+export const personasAntes = 3;
 
 /** Días que vale una invitación. */
 export const diasDeLaInvitacion = 7;

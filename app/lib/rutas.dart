@@ -461,7 +461,8 @@ GoRouter crearRutas(
       routes: [
         GoRoute(
           path: 'invitar',
-          builder: (context, estado) => const PantallaInvitar(),
+          builder: (context, estado) =>
+              PantallaInvitar(equipo: estado.extra as Equipo?),
         ),
       ],
     ),

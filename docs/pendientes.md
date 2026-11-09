@@ -13,7 +13,7 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - Revisar los textos legales y las categorías provisionales de `prototipo-v1.md`.
 - Fecha y negocios de la prueba con pilotos.
 - ~~«En qué entró la plata» en el informe del mes~~: «Con qué entró la plata», entrega 35 (06-11-2026).
-- Construir los planes Básico y Full (decididos el 09-11-2026, ver `decisiones.md`), y al hacerlo actualizar `CLAUDE.md` y `v1-real.md` (sin tope de personas).
+- ~~Construir los planes Básico y Full~~: entrega 43 (09-11-2026).
 - ~~«Lo que te deben»~~: entrega 42 (09-11-2026). Mejoras pedidas por Jhony para después: cobros y pagos en partes («me pagó la mitad»); recordarle al cliente por WhatsApp lo que debe; vender a crédito por voz y desde «Anotar la venta de hoy».
 - Pasar el pago con Mercado Pago (entrega 32) de la API de Preferences a la API de Orders. Al crear la aplicación «moca» (05-11-2026), el panel avisa que Preferences «será descontinuada pronto»; Mercado Pago dice que sigue con soporte, sin funciones nuevas, y no da fecha. Conviene hacerlo a la vez en Moca y en TVSamGo, que usan la misma API.
 

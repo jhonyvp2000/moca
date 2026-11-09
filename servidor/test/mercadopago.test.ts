@@ -146,7 +146,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     expect(enlace).toBe(`https://mp.falso/pagar/${id}`);
     expect(monto_centimos).toBe(1490);
     expect(falso.preferencias.at(-1)).toEqual({
-      titulo: 'Moca · 1 mes · Bodega Don Lucho',
+      titulo: 'Moca Full · 1 mes · Bodega Don Lucho',
       centimos: 1490,
       referencia: id,
       avisos: 'https://moca.prueba/mercadopago/webhook',
@@ -161,6 +161,16 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     expect((await pedir(lucho, 'POST', '/cobro/mercadopago')).json().orden).toBe(id);
     // Quien no está en el negocio no paga por él.
     expect((await pedir(rosa, 'POST', '/cobro/mercadopago')).statusCode).toBe(403);
+    // Entrega 43: el fundador no tiene Básico; un plan que no existe, tampoco.
+    expect(
+      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'basico' })).json(),
+    ).toEqual({ error: 'sin_basico' });
+    expect(
+      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'oro' })).statusCode,
+    ).toBe(400);
+    expect(
+      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'full' })).json().orden,
+    ).toBe(id);
   });
 
   it('Con la firma mala no pasa nada; con la buena se registra una sola vez', async () => {

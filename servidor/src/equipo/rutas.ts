@@ -3,11 +3,12 @@ import type { Cliente, Pool } from '../base/conexion.js';
 import { aInternacional, esCelularPeru } from '../cuenta/celular.js';
 import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
+import { personasIncluidas, type Plan } from '../cobro/estado.js';
 import {
   tiposDeCaja,
   diasDeLaInvitacion,
-  maximoDePersonas,
   miembroDe,
+  personasAntes,
   roles,
   type Miembro,
   type Rol,
@@ -107,11 +108,17 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
                 )
               ).rows
             : [];
+          const plan = (
+            await cliente.query<{ plan: Plan }>('SELECT plan FROM suscripciones')
+          ).rows[0]?.plan;
           return {
             empresa_id: miembro.empresaId,
             rol: miembro.rol,
             titular: miembro.titular,
-            maximo: maximoDePersonas,
+            // Para las versiones anteriores: siempre queda un lugar.
+            maximo: Math.max(personasAntes, (await ocupados(cliente)) + 1),
+            // Las que incluye el plan; las demás se cobran (entrega 43).
+            incluidas: personasIncluidas(plan ?? 'normal'),
             personas: personas.rows,
             invitaciones,
           };
@@ -152,9 +159,6 @@ export function rutasEquipo(app: FastifyInstance, pool: Pool): void {
               `UPDATE invitaciones SET anulada_en = now() WHERE ${vigente} AND celular = $1`,
               [internacional],
             );
-            if (rol !== 'contador' && (await ocupados(cliente)) >= maximoDePersonas) {
-              throw new ErrorDeEquipo(409, 'sin_lugar');
-            }
             const { rows } = await cliente.query(
               `INSERT INTO invitaciones (empresa_id, celular, rol, nombre, invitada_por)
                VALUES ($1, $2, $3, $4, $5)
@@ -414,10 +418,6 @@ async function aceptar(
       `UPDATE invitaciones SET aceptada_en = now() WHERE id = $1`,
       [invitacionId],
     );
-    // Ya aceptada, ella misma no cuenta en el límite: solo las personas.
-    if (invitacion.rol !== 'contador' && (await ocupados(cliente)) >= maximoDePersonas) {
-      throw new ErrorDeEquipo(409, 'sin_lugar');
-    }
     await cliente.query(
       `INSERT INTO membresias (id, empresa_id, usuario_id, rol, nombre, consentimiento_en)
        VALUES (gen_random_uuid(), $1, $2, $3, $4, now())`,

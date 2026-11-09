@@ -161,7 +161,7 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
   }
 
   Future<void> _invitar() async {
-    final invito = await context.push<bool>(Rutas.invitar);
+    final invito = await context.push<bool>(Rutas.invitar, extra: _equipo);
     if (invito == true) _cargar();
   }
 
@@ -256,7 +256,7 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
           if (equipo.soyDueno) ...[
             const SizedBox(height: 12),
             Text(
-              Textos.lugaresLibres(equipo.lugaresLibres, equipo.maximo),
+              Textos.planIncluye(equipo.incluidas),
               style: Tipografia.secundario,
             ),
           ],
