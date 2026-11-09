@@ -79,7 +79,7 @@ class DetalleDeFila extends StatelessWidget {
           if (fila.loDebes) ...[
             if (partes.isNotEmpty) const TextSpan(text: ' · '),
             TextSpan(
-              text: Textos.loDebes,
+              text: fila.teDeben ? Textos.teDebe : Textos.loDebes,
               style: Tipografia.secundario.copyWith(
                 color: Colores.avisoTexto,
                 fontWeight: FontWeight.w700,

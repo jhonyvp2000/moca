@@ -52,9 +52,10 @@ class PantallaEscribir extends ConsumerStatefulWidget {
 class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   final _monto = TextEditingController();
   final _nota = TextEditingController();
-  final _proveedor = TextEditingController();
+  final _contraparte = TextEditingController();
 
-  /// Falso: «Todavía lo debo», solo en «Salió» (entrega 41).
+  /// Falso: «Todavía lo debo» en «Salió» (entrega 41) o «Todavía me debe»
+  /// en «Entró» (entrega 42).
   bool _pagado = true;
   TipoMovimiento? _tipo;
   TipoCuenta _cuenta = TipoCuenta.efectivo;
@@ -90,7 +91,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       _monto.text = separarMiles(d.fila.montoCentimos ~/ 100);
       _nota.text = d.fila.nota ?? '';
       _pagado = !d.fila.loDebes;
-      _proveedor.text = d.fila.proveedor ?? '';
+      _contraparte.text = d.fila.proveedor ?? '';
       return;
     }
     final borrador = widget.borrador;
@@ -110,16 +111,23 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   void dispose() {
     _monto.dispose();
     _nota.dispose();
-    _proveedor.dispose();
+    _contraparte.dispose();
     super.dispose();
   }
 
-  /// Una compra que todavía se debe: no se elige de dónde salió la plata.
-  bool get _loDebe =>
-      !_conComprobante && _tipo == TipoMovimiento.egreso && !_pagado;
+  /// Se puede deber: una compra o una venta.
+  bool get _sePuedeDeber =>
+      !_conComprobante &&
+      (_tipo == TipoMovimiento.egreso || _tipo == TipoMovimiento.ingreso);
 
-  String? get _nombreProveedor =>
-      _proveedor.text.trim().isEmpty ? null : _proveedor.text.trim();
+  /// Todavía se debe: no se elige la cuenta, se elige al pagarlo.
+  bool get _loDebe => _sePuedeDeber && !_pagado;
+
+  /// Una venta a crédito (entrega 42).
+  bool get _teDeben => _loDebe && _tipo == TipoMovimiento.ingreso;
+
+  String? get _nombreContraparte =>
+      _contraparte.text.trim().isEmpty ? null : _contraparte.text.trim();
 
   int get _montoCentimos =>
       _montoOriginal ?? leerSolesEnCentimos(_monto.text) ?? 0;
@@ -130,7 +138,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       switch (_tipo!) {
         TipoMovimiento.transferencia => _destino != null && _destino != _cuenta,
         final t => t.delDueno || _categoriaId != null,
-      };
+      } &&
+      // Una venta a crédito lleva quién te debe (entrega 42).
+      !(_teDeben && _nombreContraparte == null);
 
   /// Al corregir, si no cambió nada no se guarda nada.
   bool get _sinCambios {
@@ -144,7 +154,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         (nota.isEmpty ? null : nota) == d.fila.nota &&
         (_conComprobante ||
             (_loDebe == d.fila.loDebes &&
-                (!_loDebe || _nombreProveedor == d.fila.proveedor)));
+                (!_loDebe || _nombreContraparte == d.fila.proveedor)));
   }
 
   Future<void> _guardarCorreccion(NuevoMovimiento correccion) async {
@@ -177,6 +187,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   void _elegirTipo(TipoMovimiento tipo) => setState(() {
     _tipo = tipo;
     _categoriaId = null;
+    _pagado = true;
     // El encargado y el ayudante pasan plata solo desde su caja.
     final misCajas =
         (ref.read(permisosProvider).value ?? Permisos.delDueno).misCajas;
@@ -195,7 +206,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       categoriaId: _categoriaId,
       nota: _nota.text,
       pagado: !_loDebe,
-      proveedor: _loDebe ? _nombreProveedor : null,
+      contraparte: _loDebe ? _nombreContraparte : null,
     );
     final repo = ref.read(repositorioMovimientosProvider);
     setState(() => _guardando = true);
@@ -206,7 +217,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       }
       // Moca pregunta antes de dejar una cuenta en negativo. Lo que se debe
       // todavía no baja la plata.
-      final quedaria = movimiento.loDebe
+      final quedaria = movimiento.pendiente
           ? 0
           : await repo.saldoSiSeGuarda(movimiento);
       if (quedaria < 0) {
@@ -341,35 +352,50 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             ],
           ),
         ],
-        // Una compra puede quedar debiéndose, como con la foto (entrega 41).
-        if (tipo == TipoMovimiento.egreso && !_conComprobante) ...[
+        // Una compra puede quedar debiéndose, como con la foto (entrega 41),
+        // y una venta, a crédito (entrega 42).
+        if (_sePuedeDeber) ...[
           const SizedBox(height: 18),
-          const Text(Textos.yaLoPagaste, style: etiqueta),
+          Text(
+            tipo == TipoMovimiento.ingreso
+                ? Textos.yaTePagaron
+                : Textos.yaLoPagaste,
+            style: etiqueta,
+          ),
           const SizedBox(height: 8),
           Opciones<bool>(
-            opciones: const {
-              true: Textos.siPagado,
-              false: Textos.todaviaLoDebo,
-            },
+            opciones: tipo == TipoMovimiento.ingreso
+                ? const {true: Textos.siMePago, false: Textos.todaviaMeDebe}
+                : const {true: Textos.siPagado, false: Textos.todaviaLoDebo},
             elegida: _pagado,
             alElegir: (p) => setState(() => _pagado = p),
           ),
         ],
         if (_loDebe) ...[
           const SizedBox(height: 8),
-          const Text(Textos.cuentaAlPagar, style: Tipografia.secundario),
+          Text(
+            _teDeben ? Textos.cuentaAlCobrar : Textos.cuentaAlPagar,
+            style: Tipografia.secundario,
+          ),
           const SizedBox(height: 18),
-          const Text(Textos.aQuienLeDebes, style: etiqueta),
+          Text(
+            _teDeben ? Textos.quienTeDebe : Textos.aQuienLeDebes,
+            style: etiqueta,
+          ),
           const SizedBox(height: 8),
           TextField(
-            controller: _proveedor,
+            controller: _contraparte,
             maxLength: 60,
             textCapitalization: TextCapitalization.words,
             style: Tipografia.texto,
-            decoration: const InputDecoration(
-              hintText: Textos.aQuienLeDebesEjemplo,
+            // Una venta a crédito no se guarda sin nombre.
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: _teDeben
+                  ? Textos.quienTeDebeEjemplo
+                  : Textos.aQuienLeDebesEjemplo,
               counterText: '',
-              contentPadding: EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: Medidas.separacionTarjetas,
               ),

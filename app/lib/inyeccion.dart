@@ -211,6 +211,11 @@ final informeProvider = StreamProvider.autoDispose
       (ref, mes) => ref.watch(repositorioInformeProvider).observarMes(mes),
     );
 
+/// «Lo que te deben» (entrega 42): las ventas a crédito sin cobrar.
+final loQueTeDebenProvider = StreamProvider.autoDispose<List<FilaHistorial>>(
+  (ref) => ref.watch(repositorioHistorialProvider).observarLoQueTeDeben(),
+);
+
 /// El resumen de un año (entrega 40); nulo es el actual.
 final resumenAnioProvider = StreamProvider.autoDispose
     .family<ResumenAnio, int?>(

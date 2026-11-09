@@ -63,7 +63,7 @@ Los mockups se dibujaron con el producto completo, así que varias pantallas de 
 | S05 | Acceso directo en la pantalla del teléfono | Se deja para después; en la V1 solo la notificación |
 | S05, S06, S07 | Pagos compartidos desde Yape | Depende de la prueba de viabilidad de la Fase 0 |
 | S06, S10, S16 | Ejemplos de fiado («Le fié 20 a doña Rosa») | Se omiten; el fiado llega en la V1.1 |
-| S14 | «Lo que te deben» y «Ver quiénes» | Se omite hasta la V1.1 |
+| S14 | «Lo que te deben» y «Ver quiénes» | Se omitía hasta la V1.1. Desde la entrega 42 (09-11-2026), una venta escrita puede quedar «Todavía me debe» y el total abre la lista por cliente, con «Ya me pagó» |
 | S14 | «Lo que debes» y «Ver a quiénes» | Se muestra solo el total de compras marcadas «todavía lo debo», sin el enlace. Desde la entrega 38 (07-11-2026), el total abre la lista por proveedor |
 | S14 | Botón «Cerrar el mes» | Se omite; llega con S15 en la V1.1 |
 | S14 | Botón «Usarlo para pedir crédito» | Se omite; queda para después |

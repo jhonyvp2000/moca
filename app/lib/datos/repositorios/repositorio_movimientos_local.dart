@@ -189,6 +189,9 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         (m.cuentaDestino == null || m.cuentaDestino == m.cuenta)) {
       throw ArgumentError('Un pase va de una cuenta a otra distinta.');
     }
+    if (m.faltaQuienDebe) {
+      throw ArgumentError('Una venta a crédito lleva quién la debe.');
+    }
     return _base.transaction(() async {
       final id = await _insertar(
         tipo: m.tipo,
@@ -200,8 +203,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         categoriaId: m.tipo.sinCategoria ? null : m.categoriaId,
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
         fuente: m.fuente,
-        loDebe: m.loDebe,
-        proveedor: m.loDebe ? m.proveedor : null,
+        pendiente: m.pendiente,
+        contraparte: m.pendiente ? m.contraparte : null,
       );
       return Guardado(ids: [id], tienesHoyCentimos: await _tienesHoy());
     });
@@ -244,8 +247,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     String? categoriaId,
     String? nota,
     Fuente fuente = Fuente.texto,
-    bool loDebe = false,
-    String? proveedor,
+    bool pendiente = false,
+    String? contraparte,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
@@ -256,8 +259,14 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         : cuentas.firstWhere((c) => c.tipo == cuentaDestino).id;
     final ahora = _a.ahora();
     final id = _a.nuevoId();
-    final contraparteId = loDebe
-        ? await _a.proveedor(empresa.id, nombre: proveedor)
+    final contraparteId = pendiente
+        ? await _a.contraparte(
+            empresa.id,
+            tipo: tipo == TipoMovimiento.ingreso
+                ? TipoContraparte.cliente
+                : TipoContraparte.proveedor,
+            nombre: contraparte,
+          )
         : null;
     await _base
         .into(_base.movimientos)
@@ -270,11 +279,11 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             cuentaDestinoId: Value(destinoId),
             montoCentimos: montoCentimos,
             fechaMovimiento: ahora,
-            // Lo que se debe no ha salido de ninguna cuenta todavía
-            // (entrega 41): la cuenta se elige al pagarlo.
-            estadoPago: loDebe ? EstadoPago.pendiente : EstadoPago.pagado,
-            montoPagadoCentimos: loDebe ? 0 : montoCentimos,
-            fechaPago: Value(loDebe ? null : ahora),
+            // Lo que se debe (entrega 41) o te deben (entrega 42) no ha
+            // movido ninguna cuenta todavía: la cuenta se elige al pagarlo.
+            estadoPago: pendiente ? EstadoPago.pendiente : EstadoPago.pagado,
+            montoPagadoCentimos: pendiente ? 0 : montoCentimos,
+            fechaPago: Value(pendiente ? null : ahora),
             contraparteId: Value(contraparteId),
             categoriaId: Value(categoriaId),
             nota: Value(nota),
@@ -301,7 +310,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         'categoriaId': categoriaId,
         'nota': nota,
         'fuente': fuente.name,
-        if (loDebe) 'pagado': false,
+        if (pendiente) 'pagado': false,
       },
     );
     return id;

@@ -111,7 +111,9 @@ class _EstadoDetalleMovimiento
       ..showSnackBar(
         SnackBar(
           content: Text(
-            Textos.pagadoAhoraTienes(
+            (d.fila.teDeben
+                ? Textos.cobradoAhoraTienes
+                : Textos.pagadoAhoraTienes)(
               formatearSoles(resultado.saldoCentimos),
               Textos.nombreCuenta(resultado.cuenta),
             ),
@@ -191,7 +193,9 @@ class _EstadoDetalleMovimiento
           const Aviso(texto: Textos.yaNoCuenta),
         ] else if (f.loDebes) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
-          const Aviso(texto: Textos.todaviaLoDebes),
+          Aviso(
+            texto: f.teDeben ? Textos.todaviaTeDebe : Textos.todaviaLoDebes,
+          ),
         ],
         if (f.porSubir) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
@@ -235,7 +239,7 @@ class _EstadoDetalleMovimiento
         if (puedeCambiar && d.vigente && d.ajuste == null && f.loDebes)
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
-            child: const Text(Textos.yaLoPague),
+            child: Text(f.teDeben ? Textos.yaMePago : Textos.yaLoPague),
           ),
         if (puedeCambiar && d.vigente && d.ajuste == null)
           Row(

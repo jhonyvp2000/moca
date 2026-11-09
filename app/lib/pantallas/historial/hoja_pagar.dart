@@ -133,6 +133,8 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
       fontWeight: FontWeight.w700,
       color: Colores.textoPrincipal,
     );
+    // Una venta a crédito se cobra (entrega 42): la plata entra.
+    final cobro = widget.detalle.fila.teDeben;
     final ayerSePuede = !_ayer.isBefore(_primerDia);
     final otroDiaSePuede = _primerDia.isBefore(_ayer);
 
@@ -147,9 +149,15 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(Textos.yaLoPague, style: Tipografia.tituloPantalla),
+            Text(
+              cobro ? Textos.yaMePago : Textos.yaLoPague,
+              style: Tipografia.tituloPantalla,
+            ),
             const SizedBox(height: 16),
-            const Text(Textos.conQuePagaste, style: etiqueta),
+            Text(
+              cobro ? Textos.aDondeEntro : Textos.conQuePagaste,
+              style: etiqueta,
+            ),
             const SizedBox(height: 8),
             OpcionesRejilla<TipoCuenta>(
               opciones: {
@@ -160,7 +168,10 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
               alElegir: (c) => setState(() => _cuenta = c),
             ),
             const SizedBox(height: 18),
-            const Text(Textos.cuandoPagaste, style: etiqueta),
+            Text(
+              cobro ? Textos.cuandoTePago : Textos.cuandoPagaste,
+              style: etiqueta,
+            ),
             const SizedBox(height: 8),
             Opciones<_Cuando>(
               opciones: {
@@ -184,7 +195,7 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _guardando ? null : _pagar,
-              child: const Text(Textos.yaLoPague),
+              child: Text(cobro ? Textos.yaMePago : Textos.yaLoPague),
             ),
           ],
         ),

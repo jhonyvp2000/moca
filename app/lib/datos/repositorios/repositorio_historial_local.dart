@@ -92,6 +92,13 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
 
   @override
   Stream<List<FilaHistorial>> observarLoQueDebes() =>
+      _pendientes(TipoMovimiento.egreso);
+
+  @override
+  Stream<List<FilaHistorial>> observarLoQueTeDeben() =>
+      _pendientes(TipoMovimiento.ingreso);
+
+  Stream<List<FilaHistorial>> _pendientes(TipoMovimiento tipo) =>
       _a.cambios().asyncMap((_) async {
         final d = await _leer();
         if (d == null) return const <FilaHistorial>[];
@@ -99,7 +106,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
             [
               for (final m in d.movimientos)
                 if (m.estado == EstadoRegistro.vigente &&
-                    m.tipo == TipoMovimiento.egreso &&
+                    m.tipo == tipo &&
                     m.estadoPago != EstadoPago.pagado)
                   m,
             ]..sort(
@@ -330,9 +337,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     final monto = conComprobante ? m.montoCentimos : c.montoCentimos;
     final nota = c.nota?.trim();
     final debia = m.estadoPago != EstadoPago.pagado;
-    final debe = conComprobante
-        ? debia
-        : tipo == TipoMovimiento.egreso && !c.pagado;
+    final debe = conComprobante ? debia : c.pendiente;
     return m.copyWith(
       tipo: tipo,
       montoCentimos: monto,
@@ -399,12 +404,21 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     return _base.transaction(() async {
       final d = (await _leer())!;
       final m = await _vigente(d, id);
+      if (m.comprobanteId == null && correccion.faltaQuienDebe) {
+        throw ArgumentError('Una venta a crédito lleva quién la debe.');
+      }
       final corregido = _corregido(
         d,
         m,
         correccion,
-        contraparteId: correccion.loDebe
-            ? await _a.proveedor(d.empresa.id, nombre: correccion.proveedor)
+        contraparteId: correccion.pendiente
+            ? await _a.contraparte(
+                d.empresa.id,
+                tipo: correccion.tipo == TipoMovimiento.ingreso
+                    ? TipoContraparte.cliente
+                    : TipoContraparte.proveedor,
+                nombre: correccion.contraparte,
+              )
             : null,
       );
       if (!corregido.tipo.sinCategoria && corregido.categoriaId == null) {

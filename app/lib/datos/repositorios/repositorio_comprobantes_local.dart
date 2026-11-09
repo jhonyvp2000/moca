@@ -67,7 +67,7 @@ class RepositorioComprobantesLocal implements RepositorioComprobantes {
 
       // El proveedor, si se sabe quién es. Si ya existe (mismo RUC o mismo
       // nombre), se reutiliza.
-      final contraparteId = await _a.proveedor(
+      final contraparteId = await _a.contraparte(
         empresa.id,
         nombre: nombre,
         ruc: l.emisorIdentificacion,

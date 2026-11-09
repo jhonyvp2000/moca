@@ -405,7 +405,7 @@ void main() {
             cuenta: TipoCuenta.efectivo,
             categoriaId: mercaderia,
             pagado: false,
-            proveedor: proveedor,
+            contraparte: proveedor,
           ),
         )).ids.single;
 
@@ -440,7 +440,7 @@ void main() {
           montoCentimos: 5000,
           cuenta: TipoCuenta.efectivo,
           categoriaId: servicios,
-          proveedor: 'Nadie',
+          contraparte: 'Nadie',
         ),
       )).ids.single;
       expect(await tienesHoy(), antes - 5000);
@@ -473,7 +473,7 @@ void main() {
           cuenta: TipoCuenta.efectivo,
           categoriaId: servicios,
           pagado: false,
-          proveedor: 'Luz del Oriente',
+          contraparte: 'Luz del Oriente',
         ),
       )).ids.single;
       expect(await tienesHoy(), antes);
@@ -491,6 +491,89 @@ void main() {
       );
       expect(await tienesHoy(), antes - 4500);
       expect(await repo.observarLoQueDebes().first, isEmpty);
+    });
+  });
+
+  group('Entrega 42: vender a crédito', () {
+    Future<String> venta(int soles, {String? cliente}) async {
+      final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+      return (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: ingresos.first.id,
+          pagado: false,
+          contraparte: cliente,
+        ),
+      )).ids.single;
+    }
+
+    Future<int> efectivo() => movimientos.saldoSiSeGuarda(
+      const NuevoMovimiento(
+        tipo: TipoMovimiento.aporte,
+        montoCentimos: 0,
+        cuenta: TipoCuenta.efectivo,
+      ),
+    );
+
+    test('no sube la plata, sale en «Lo que te deben» y se cobra', () async {
+      final antes = await efectivo();
+      final id = await venta(200, cliente: 'Doña Rosa');
+      expect(await efectivo(), antes);
+      final deben = await repo.observarLoQueTeDeben().first;
+      expect(deben.single.id, id);
+      expect(deben.single.proveedor, 'Doña Rosa');
+      expect(deben.single.teDeben, isTrue);
+      // No se mezcla con lo que tú debes.
+      expect(await repo.observarLoQueDebes().first, isEmpty);
+      // El mismo cliente, aunque se escriba distinto; es cliente, no
+      // proveedor.
+      await venta(50, cliente: 'doña rosa');
+      final contrapartes = await base.select(base.contrapartes).get();
+      expect(contrapartes.single.tipo, TipoContraparte.cliente);
+      // Al cobrarla, sube la cuenta elegida.
+      final yape = await repo.pagar(id, cuenta: TipoCuenta.yape, dia: ahora);
+      expect(yape, 20000 + 20000);
+      expect(await repo.observarLoQueTeDeben().first, hasLength(1));
+    });
+
+    test('no se guarda sin nombre', () async {
+      expect(() => venta(30), throwsArgumentError);
+      expect(() => venta(30, cliente: '  '), throwsArgumentError);
+    });
+
+    test('al corregir, pasa a deberse o a estar cobrada', () async {
+      final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+      final antes = await efectivo();
+      final id = await venta(80, cliente: 'Don Pepe');
+      final cobrada = (await repo.corregir(
+        id,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 8000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: ingresos.first.id,
+        ),
+      )).ids.single;
+      expect(await efectivo(), antes + 8000);
+      expect(await repo.observarLoQueTeDeben().first, isEmpty);
+      await repo.corregir(
+        cobrada,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 8000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: ingresos.first.id,
+          pagado: false,
+          contraparte: 'Don Pepe',
+        ),
+      );
+      expect(await efectivo(), antes);
+      expect(
+        (await repo.observarLoQueTeDeben().first).single.proveedor,
+        'Don Pepe',
+      );
     });
   });
 }

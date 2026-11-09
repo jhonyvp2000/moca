@@ -16,21 +16,29 @@ import '../historial/fila_movimiento.dart';
 
 /// «Lo que debes» (entrega 38): las compras que todavía se deben, por
 /// proveedor. Cada una abre su detalle, con «Ya lo pagué».
+///
+/// Con [teDeben], «Lo que te deben» (entrega 42): las ventas a crédito, por
+/// cliente, con «Ya me pagó».
 class PantallaLoQueDebes extends ConsumerStatefulWidget {
-  const PantallaLoQueDebes({super.key});
+  const PantallaLoQueDebes({super.key, this.teDeben = false});
+
+  final bool teDeben;
 
   @override
   ConsumerState<PantallaLoQueDebes> createState() => _EstadoLoQueDebes();
 }
 
 class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
-  late final Stream<List<FilaHistorial>> _deudas = ref
-      .read(repositorioHistorialProvider)
-      .observarLoQueDebes();
+  late final Stream<List<FilaHistorial>> _deudas = widget.teDeben
+      ? ref.read(repositorioHistorialProvider).observarLoQueTeDeben()
+      : ref.read(repositorioHistorialProvider).observarLoQueDebes();
 
-  /// A quién: el proveedor; si no hay, la nota o la categoría.
-  static String _aQuien(FilaHistorial f) =>
-      f.proveedor ?? f.nota ?? f.categoria ?? Textos.sinProveedor;
+  /// A quién: el proveedor o el cliente; si no hay, la nota o la categoría.
+  String _aQuien(FilaHistorial f) =>
+      f.proveedor ??
+      f.nota ??
+      f.categoria ??
+      (widget.teDeben ? Textos.sinCliente : Textos.sinProveedor);
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +56,9 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
           ..sort((a, b) => total(b.value).compareTo(total(a.value)));
         return PantallaConAcciones(
           encabezado: EncabezadoConVolver(
-            titulo: Textos.loQueDebesTitulo,
+            titulo: widget.teDeben
+                ? Textos.loQueTeDebenTitulo
+                : Textos.loQueDebesTitulo,
             alVolver: () => context.pop(),
           ),
           contenido: [
@@ -58,16 +68,22 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (deudas.isEmpty)
-              const Text(Textos.noDebesNada, style: Tipografia.texto)
+              Text(
+                widget.teDeben ? Textos.nadieTeDebe : Textos.noDebesNada,
+                style: Tipografia.texto,
+              )
             else ...[
               Text(
-                Textos.debesTotal(formatearSoles(total(deudas)), deudas.length),
+                (widget.teDeben ? Textos.teDebenTotal : Textos.debesTotal)(
+                  formatearSoles(total(deudas)),
+                  deudas.length,
+                ),
                 style: Tipografia.tituloTarjeta,
               ),
               const SizedBox(height: Medidas.separacionTarjetas),
               for (final MapEntry(key: aQuien, value: filas) in ordenados) ...[
                 Text(
-                  Textos.grupoDeuda(
+                  (widget.teDeben ? Textos.grupoTeDeben : Textos.grupoDeuda)(
                     aQuien,
                     formatearSoles(total(filas)),
                     filas.length,

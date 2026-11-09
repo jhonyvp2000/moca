@@ -74,7 +74,8 @@ Uint8List armarExcelDelInforme(
           soles(o.centimos),
           t(switch (o.estadoPago) {
             EstadoPago.pagado => Textos.si,
-            EstadoPago.pendiente => Textos.loDebes,
+            EstadoPago.pendiente =>
+              o.tipo == TipoMovimiento.ingreso ? Textos.teDebe : Textos.loDebes,
             EstadoPago.parcial => Textos.pagadoEnParte(
               formatearSolesComprobante(o.pagadoCentimos),
             ),

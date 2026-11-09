@@ -25,10 +25,11 @@ class AccesoLocal {
 
   String nuevoId() => _uuid.v4();
 
-  /// El proveedor por su RUC o su nombre: si ya existe se reutiliza; si no,
-  /// se crea. Nulo si no hay ni nombre ni RUC.
-  Future<String?> proveedor(
+  /// El proveedor o el cliente por su RUC o su nombre: si ya existe se
+  /// reutiliza; si no, se crea. Nulo si no hay ni nombre ni RUC.
+  Future<String?> contraparte(
     String empresaId, {
+    TipoContraparte tipo = TipoContraparte.proveedor,
     String? nombre,
     String? ruc,
   }) async {
@@ -40,8 +41,9 @@ class AccesoLocal {
     )..where((c) => c.empresaId.equals(empresaId))).get();
     final mismo = proveedores.where(
       (c) =>
-          (ruc != null && c.identificacionFiscal == ruc) ||
-          (conNombre && c.nombre.toLowerCase() == n.toLowerCase()),
+          c.tipo == tipo &&
+          ((ruc != null && c.identificacionFiscal == ruc) ||
+              (conNombre && c.nombre.toLowerCase() == n.toLowerCase())),
     );
     if (mismo.isNotEmpty) return mismo.first.id;
     final id = nuevoId();
@@ -53,7 +55,7 @@ class AccesoLocal {
             empresaId: empresaId,
             nombre: conNombre ? n : 'RUC $ruc',
             identificacionFiscal: Value(ruc),
-            tipo: TipoContraparte.proveedor,
+            tipo: tipo,
           ),
         );
     return id;

@@ -34,8 +34,12 @@ class FilaHistorial {
   final DateTime fecha;
   final TipoCuenta cuenta;
 
-  /// Compra que todavía se debe: no ha bajado el saldo.
+  /// Compra que todavía se debe, o venta que todavía te deben (entrega
+  /// 42): no ha movido el saldo.
   final bool loDebes;
+
+  /// Una venta a crédito que todavía te deben (entrega 42).
+  bool get teDeben => loDebes && tipo == TipoMovimiento.ingreso;
   final bool porSubir;
   final String? categoria;
   final String? nota;
@@ -357,6 +361,10 @@ abstract interface class RepositorioHistorial {
   /// «Lo que debes» (entrega 38): las compras que todavía se deben, con lo
   /// que falta pagar de cada una, de la que vence o se anotó antes.
   Stream<List<FilaHistorial>> observarLoQueDebes();
+
+  /// «Lo que te deben» (entrega 42): las ventas que todavía te deben, de la
+  /// más vieja a la más nueva.
+  Stream<List<FilaHistorial>> observarLoQueTeDeben();
 
   /// Los registros de una categoría en un mes, con la regla del informe:
   /// lo pagado, el día en que se movió la plata. Suman lo de su barra.

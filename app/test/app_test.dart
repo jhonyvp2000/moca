@@ -38,6 +38,7 @@ import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/dominio/informe.dart';
+import 'package:moca/pantallas/historial/fila_movimiento.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pais/peru/categorias.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
@@ -1160,6 +1161,64 @@ void main() {
       );
       expect(debe!.montoCentimos, 8000);
       expect(debe.contraparteId, isNotNull);
+    });
+
+    testWidgets('Entrega 42: vender a crédito y cobrarlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.entro).first);
+      await tester.enterText(find.byType(TextField).first, '200');
+      await tester.pump();
+      expect(find.text(Textos.yaTePagaron), findsOneWidget);
+      await tocar(tester, find.text(Textos.todaviaMeDebe));
+      expect(find.text(Textos.aDondeEntro), findsNothing);
+      expect(find.text(Textos.cuentaAlCobrar), findsOneWidget);
+      // Sin nombre no se guarda.
+      expect(botonGuardar(tester).onPressed, isNull);
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Doña Rosa',
+      );
+      await tester.pump();
+      expect(botonGuardar(tester).onPressed, isNotNull);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      // No sube la plata.
+      expect(
+        find.text(Textos.guardadoAhoraTienes(formatearSoles(135000))),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tester.scrollUntilVisible(
+        find.text(Textos.loQueTeDebenTitulo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.todoLoQueTeDeben), findsOneWidget);
+      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      expect(
+        find.text(Textos.teDebenTotal(formatearSoles(20000), 1)),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Doña Rosa'), findsWidgets);
+      await tocar(tester, find.byType(FilaMovimiento).first);
+      expect(find.text(Textos.todaviaTeDebe), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.yaMePago));
+      expect(find.text(Textos.cuandoTePago), findsOneWidget);
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.yaMePago).last,
+      );
+      expect(
+        find.text(
+          Textos.cobradoAhoraTienes(
+            formatearSoles(155000),
+            Textos.nombreCuenta(TipoCuenta.efectivo),
+          ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Moca pregunta antes de dejar una cuenta en negativo', (

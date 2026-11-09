@@ -96,6 +96,7 @@ abstract final class Rutas {
   /// «Lo que debes» y los registros de una categoría del informe (entrega
   /// 38).
   static const loQueDebes = '/informes/lo-que-debes';
+  static const loQueTeDeben = '/informes/lo-que-te-deben';
   static const deCategoria = '/informes/categoria';
 
   /// Sin acceso al negocio (entrega 37).
@@ -194,6 +195,7 @@ final _rutasPorEtapa = {
     Rutas.misPagos,
     Rutas.actualizar,
     Rutas.loQueDebes,
+    Rutas.loQueTeDeben,
     Rutas.deCategoria,
   ],
 };
@@ -413,6 +415,10 @@ GoRouter crearRutas(
     GoRoute(
       path: Rutas.loQueDebes,
       builder: (context, estado) => const PantallaLoQueDebes(),
+    ),
+    GoRoute(
+      path: Rutas.loQueTeDeben,
+      builder: (context, estado) => const PantallaLoQueDebes(teDeben: true),
     ),
     GoRoute(
       path: Rutas.deCategoria,

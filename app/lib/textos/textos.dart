@@ -771,6 +771,28 @@ abstract final class Textos {
   static const yaNoCuenta =
       'Este registro ya no cuenta: se deshizo o se corrigió.';
   static const yaLoPague = 'Ya lo pagué';
+
+  // Vender a crédito: «Lo que te deben» (entrega 42).
+  static const teDebe = 'Te debe';
+  static const yaTePagaron = '¿Ya te pagaron?';
+  static const siMePago = 'Sí, ya me pagó';
+  static const todaviaMeDebe = 'Todavía me debe';
+  static const cuentaAlCobrar =
+      'Eliges a dónde entró la plata cuando te pague.';
+  static const quienTeDebe = '¿Quién te debe?';
+  static const quienTeDebeEjemplo = 'Su nombre';
+  static const todaviaTeDebe =
+      'Todavía te deben esta venta. No sube tu saldo hasta que te paguen.';
+  static const yaMePago = 'Ya me pagó';
+  static const cuandoTePago = '¿Cuándo te pagó?';
+  static const loQueTeDebenTitulo = 'Lo que te deben';
+  static const todoLoQueTeDeben = 'Todo lo que te deben hoy, de cualquier mes';
+  static const nadieTeDebe = 'Nadie te debe nada.';
+  static const sinCliente = 'Sin nombre';
+  static String teDebenTotal(String monto, int ventas) =>
+      'Te deben $monto, de $ventas ${ventas == 1 ? 'venta' : 'ventas'}';
+  static String grupoTeDeben(String quien, String monto, int ventas) =>
+      '$quien · $monto · $ventas ${ventas == 1 ? 'venta' : 'ventas'}';
   static const corregir = 'Corregir';
   static const deshacerRegistro = 'Deshacer este registro';
   static const deshacerTitulo = '¿Deshacer este registro?';
@@ -828,6 +850,8 @@ abstract final class Textos {
   static const otroDia = 'Otro día';
   static String pagadoAhoraTienes(String monto, String cuenta) =>
       'Pagado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
+  static String cobradoAhoraTienes(String monto, String cuenta) =>
+      'Cobrado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
 
   // S12 · Arqueo de la semana
   static const arqueoDeLaSemana = 'Arqueo de la semana';

@@ -12,7 +12,7 @@ class NuevoMovimiento {
     this.nota,
     this.fuente = Fuente.texto,
     this.pagado = true,
-    this.proveedor,
+    this.contraparte,
   });
 
   final TipoMovimiento tipo;
@@ -29,14 +29,23 @@ class NuevoMovimiento {
   /// Escrito o dicho por voz.
   final Fuente fuente;
 
-  /// Falso: una compra que todavía se debe (entrega 41). No baja la plata
-  /// hasta marcarla «Ya lo pagué»; solo vale para «Salió».
+  /// Falso: una compra que todavía se debe (entrega 41) o una venta que
+  /// todavía te deben (entrega 42). No mueve la plata hasta que se paga;
+  /// solo vale para «Salió» y «Entró».
   final bool pagado;
 
-  /// A quién se le debe, si lo escribió.
-  final String? proveedor;
+  /// A quién se le debe (el proveedor) o quién te debe (el cliente).
+  final String? contraparte;
 
-  bool get loDebe => tipo == TipoMovimiento.egreso && !pagado;
+  bool get pendiente =>
+      (tipo == TipoMovimiento.egreso || tipo == TipoMovimiento.ingreso) &&
+      !pagado;
+
+  /// Una venta a crédito lleva el nombre de quién debe (entrega 42).
+  bool get faltaQuienDebe =>
+      pendiente &&
+      tipo == TipoMovimiento.ingreso &&
+      (contraparte?.trim().isEmpty ?? true);
 }
 
 /// Lo que ya se sabe de un movimiento para abrir «Escribirlo» con los datos

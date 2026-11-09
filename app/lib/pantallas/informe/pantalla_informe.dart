@@ -590,51 +590,22 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       separacion,
 
       // Lo que debes: se toca y abre el detalle (entrega 38).
-      Tarjeta(
-        relleno: EdgeInsets.zero,
-        child: Material(
-          color: Colores.superficie,
-          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-            onTap: () => context.push(Rutas.loQueDebes),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          Textos.loQueDebesTitulo,
-                          style: Tipografia.secundario,
-                        ),
-                        const Text(
-                          Textos.todoLoQueDebes,
-                          style: Tipografia.secundario,
-                        ),
-                        Text(
-                          formatearSoles(i.loQueDebesCentimos),
-                          style: Tipografia.cifra(
-                            Tipografia.tituloPantalla.copyWith(fontSize: 24),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (i.loQueDebesCentimos > 0)
-                    Text(
-                      Textos.verDetalle,
-                      style: Tipografia.textoFuerte.copyWith(
-                        color: Colores.marca,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
+      _TarjetaDeuda(
+        titulo: Textos.loQueDebesTitulo,
+        nota: Textos.todoLoQueDebes,
+        centimos: i.loQueDebesCentimos,
+        ruta: Rutas.loQueDebes,
+      ),
+      separacion,
+      // Lo que te deben: las ventas a crédito (entrega 42).
+      _TarjetaDeuda(
+        titulo: Textos.loQueTeDebenTitulo,
+        nota: Textos.todoLoQueTeDeben,
+        centimos: (ref.watch(loQueTeDebenProvider).value ?? const []).fold(
+          0,
+          (s, f) => s + f.montoCentimos,
         ),
+        ruta: Rutas.loQueTeDeben,
       ),
       if (i.confianza case final c?) ...[
         separacion,
@@ -649,6 +620,62 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       ],
     ];
   }
+}
+
+/// Una tarjeta con un total que se toca y abre su lista: «Lo que debes»
+/// (entrega 38) y «Lo que te deben» (entrega 42).
+class _TarjetaDeuda extends StatelessWidget {
+  const _TarjetaDeuda({
+    required this.titulo,
+    required this.nota,
+    required this.centimos,
+    required this.ruta,
+  });
+
+  final String titulo;
+  final String nota;
+  final int centimos;
+  final String ruta;
+
+  @override
+  Widget build(BuildContext context) => Tarjeta(
+    relleno: EdgeInsets.zero,
+    child: Material(
+      color: Colores.superficie,
+      borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        onTap: () => context.push(ruta),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(titulo, style: Tipografia.secundario),
+                    Text(nota, style: Tipografia.secundario),
+                    Text(
+                      formatearSoles(centimos),
+                      style: Tipografia.cifra(
+                        Tipografia.tituloPantalla.copyWith(fontSize: 24),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (centimos > 0)
+                Text(
+                  Textos.verDetalle,
+                  style: Tipografia.textoFuerte.copyWith(color: Colores.marca),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// El resumen del año calendario (entrega 40): cuánto creció la plata, los
