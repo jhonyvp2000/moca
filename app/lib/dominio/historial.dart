@@ -93,6 +93,105 @@ class FilaHistorial {
   };
 }
 
+/// Buscar y filtrar en el Historial (entrega 39). La búsqueda separa por
+/// palabras y cada una tiene que estar en el registro («Y»), en cualquier
+/// orden y sin importar mayúsculas ni tildes: en la nota, el proveedor, la
+/// categoría, quién lo anotó o la cuenta. Una palabra con cifras también
+/// encuentra el monto: «80» trae S/ 80 y S/ 80.50; «80.50», solo S/ 80.50.
+class FiltrosDelHistorial {
+  const FiltrosDelHistorial({
+    this.texto = '',
+    this.cuentas = const {},
+    this.categorias = const {},
+    this.personas = const {},
+  });
+
+  final String texto;
+  final Set<TipoCuenta> cuentas;
+  final Set<String> categorias;
+
+  /// Quién lo anotó, por [personaDe].
+  final Set<String> personas;
+
+  static const _sinFiltro = FiltrosDelHistorial();
+
+  bool get vacios =>
+      texto.trim().isEmpty &&
+      cuentas.isEmpty &&
+      categorias.isEmpty &&
+      personas.isEmpty;
+
+  /// Cuántos de los filtros de la hoja «Filtrar» están puestos.
+  int get puestos =>
+      (cuentas.isEmpty ? 0 : 1) +
+      (categorias.isEmpty ? 0 : 1) +
+      (personas.isEmpty ? 0 : 1);
+
+  FiltrosDelHistorial conTexto(String nuevo) => FiltrosDelHistorial(
+    texto: nuevo,
+    cuentas: cuentas,
+    categorias: categorias,
+    personas: personas,
+  );
+
+  FiltrosDelHistorial sinHoja() => FiltrosDelHistorial(texto: texto);
+
+  /// La clave de quién lo anotó: «yo» o su nombre.
+  static String personaDe(FilaHistorial f) =>
+      f.deOtro ? (f.autorNombre ?? 'otra') : 'yo';
+
+  bool cumple(FilaHistorial f, {required String Function(TipoCuenta) cuenta}) {
+    if (identical(this, _sinFiltro)) return true;
+    if (cuentas.isNotEmpty &&
+        !cuentas.contains(f.cuenta) &&
+        !(f.cuentaDestino != null && cuentas.contains(f.cuentaDestino))) {
+      return false;
+    }
+    if (categorias.isNotEmpty && !categorias.contains(f.categoria)) {
+      return false;
+    }
+    if (personas.isNotEmpty && !personas.contains(personaDe(f))) return false;
+    final palabras = _comparable(texto)
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (palabras.isEmpty) return true;
+    final enElRegistro = _comparable(
+      [
+        f.nota,
+        f.proveedor,
+        f.categoria,
+        f.autorNombre,
+        cuenta(f.cuenta),
+        if (f.cuentaDestino != null) cuenta(f.cuentaDestino!),
+      ].whereType<String>().join(' '),
+    );
+    return palabras.every(
+      (p) => enElRegistro.contains(p) || _esElMonto(p, f.montoCentimos),
+    );
+  }
+
+  /// «80» es S/ 80 con o sin céntimos; «80.5» o «80,50», exacto.
+  static bool _esElMonto(String palabra, int centimos) {
+    final cifra = palabra.replaceAll('s/', '').replaceAll(',', '.');
+    final m = RegExp(r'^(\d+)(?:\.(\d{1,2}))?$').firstMatch(cifra);
+    if (m == null) return false;
+    final soles = int.parse(m.group(1)!);
+    final decimales = m.group(2);
+    if (decimales == null) return centimos ~/ 100 == soles;
+    return centimos == soles * 100 + int.parse(decimales.padRight(2, '0'));
+  }
+
+  static String _comparable(String texto) {
+    const tildes = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'};
+    final b = StringBuffer();
+    for (final letra in texto.toLowerCase().split('')) {
+      b.write(tildes[letra] ?? letra);
+    }
+    return b.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+}
+
 class ResumenHistorial {
   const ResumenHistorial({required this.filas});
 

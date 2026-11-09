@@ -4889,4 +4889,113 @@ void main() {
       expect(_servidor.salidas, 0);
     });
   });
+
+  group('Entrega 39: buscar y filtrar en el Historial', () {
+    Future<void> conGasto(WidgetTester tester) async {
+      final base = await abrirApp(tester, listo: true);
+      final movimientos = RepositorioMovimientosLocal(
+        base,
+        ahora: () => _ahora,
+      );
+      final mercaderia = await tester.runAsync(
+        () async =>
+            (await movimientos.categorias(TipoMovimiento.egreso))
+                .firstWhere((c) => c.nombre == 'Mercadería')
+                .id,
+      );
+      await tester.runAsync(
+        () => movimientos.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 8050,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: mercaderia,
+            nota: 'Jhony Salar Vela',
+          ),
+        ),
+      );
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+    }
+
+    testWidgets('Cada palabra tiene que estar, en cualquier orden', (
+      tester,
+    ) async {
+      await conGasto(tester);
+      expect(find.text('Venta del día'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'vela jhony');
+      await tester.pump();
+      expect(find.text('Jhony Salar Vela'), findsOneWidget);
+      expect(find.text('Venta del día'), findsNothing);
+      expect(
+        find.text(
+          Textos.resumenDeBusqueda(1, formatearSoles(0), formatearSoles(8050)),
+        ),
+        findsOneWidget,
+      );
+      // Una palabra que no está: nada.
+      await tester.enterText(find.byType(TextField), 'jhony paredes');
+      await tester.pump();
+      expect(find.text(Textos.sinResultados), findsOneWidget);
+      await tocar(tester, find.text(Textos.quitarFiltros));
+      expect(find.text('Venta del día'), findsOneWidget);
+      expect(find.text('Jhony Salar Vela'), findsOneWidget);
+      // El monto.
+      await tester.enterText(find.byType(TextField), '80.50');
+      await tester.pump();
+      expect(find.text('Jhony Salar Vela'), findsOneWidget);
+      expect(find.text('Venta del día'), findsNothing);
+    });
+
+    testWidgets('El ayudante busca solo en lo de hoy', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      // Un gasto de ayer, con la nota que se va a buscar.
+      final ayer = RepositorioMovimientosLocal(
+        base,
+        ahora: () => _ahora.subtract(const Duration(days: 1)),
+      );
+      final mercaderia = await tester.runAsync(
+        () async =>
+            (await ayer.categorias(TipoMovimiento.egreso))
+                .firstWhere((c) => c.nombre == 'Mercadería')
+                .id,
+      );
+      await tester.runAsync(
+        () => ayer.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 8050,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: mercaderia,
+            nota: 'Jhony Salar Vela',
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => base
+            .update(base.membresias)
+            .write(const MembresiasCompanion(rol: Value(Rol.ayudante))),
+      );
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tester.enterText(find.byType(TextField), 'jhony');
+      await tester.pump();
+      expect(find.text('Jhony Salar Vela'), findsNothing);
+      expect(find.text(Textos.sinResultados), findsOneWidget);
+    });
+
+    testWidgets(
+      '«Filtrar» por categoría; sin «Quién lo anotó» si es uno solo',
+      (tester) async {
+        await conGasto(tester);
+        await tocar(tester, find.text(Textos.filtrar));
+        expect(find.text(Textos.quienAnoto), findsNothing);
+        await tocar(tester, find.text('Mercadería').last);
+        await tocar(tester, find.text(Textos.verResultados));
+        expect(find.text(Textos.filtrarCon(1)), findsOneWidget);
+        expect(find.text('Jhony Salar Vela'), findsOneWidget);
+        expect(find.text('Venta del día'), findsNothing);
+      },
+    );
+  });
 }

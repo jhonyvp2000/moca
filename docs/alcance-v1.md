@@ -32,7 +32,7 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 | S06 | Registrar | Cuatro entradas: voz, foto, QR y texto. Moca deduce si entró o salió plata. |
 | S07 | Venta de hoy | Muestra lo que Moca entendió de la voz, por cuenta, y pide guardar o corregir. Funciona sin señal. |
 | S08 | Confirmar lectura | Resultado de la foto o del QR: monto, proveedor, tipo de gasto, cuenta de la que salió y si ya está pagado. Guarda solo tras confirmar. |
-| S10 | Historial | Movimientos por día con filtros (todo, entró, salió, por subir), edición y «Deshacer» tras guardar. |
+| S10 | Historial | Movimientos por día con filtros (todo, entró, salió, por subir), edición y «Deshacer» tras guardar. Desde la entrega 39 (09-11-2026), con buscador por palabras y filtros por cuenta, categoría y persona. |
 | S12 | Arqueo semanal | Propone el saldo esperado por cuenta; el dueño corrige. Ante una diferencia, ofrece respuestas rápidas: retiro para mí, gasto olvidado, error de vuelto, no lo sé. |
 | S14 | Informe del mes | Flujo de caja del mes (desde la entrega 14.9): cuánto creció o bajó la plata frente al mes anterior; cómo se movió (empezaste con, entró, pusiste de tu bolsillo, salió del negocio, retiraste para ti, ajustes del arqueo, terminaste con), que cuadra con el saldo; en qué se fue la plata, qué tan seguras son las cuentas (niveles de confianza) y compartir en PDF, en tres versiones (para mí, para mi contador, para pedir un crédito; entrega 14.12) y las operaciones del mes en Excel (entrega 14.13); para pedir un crédito, también el flujo en el formato de la caja (entrega 14.15, Moca Plus). No muestra ganancia: Moca no sabe cuánta mercadería queda. |
 | S16 | Moca | Resumen semanal en texto y audio, y avisos por prioridad. |

@@ -171,6 +171,8 @@ Estados aprobados el 13-10-2026 (entrega 8):
 
 ### Historial y cambios
 
+- Desde la entrega 39, el Historial tiene un buscador por palabras («Jhony Vela» trae «Jhony Salar Vela»; «80» trae los de S/ 80) y «Filtrar» por cuenta, categoría y persona, con la suma de lo encontrado.
+
 - «Deshacer» y las ediciones anulan el registro anterior; nada se borra.
 - La bitácora entra en el prototipo: cada alta, edición, anulación, pago de una compra y arqueo guarda quién, cuándo, el valor anterior y el nuevo, en la capa de datos.
 - Se ve en el detalle de cada movimiento, como una lista «Cambios», del más antiguo al más reciente, con fecha, hora y «Tú». Un registro corregido muestra también la historia del que reemplazó.

@@ -988,6 +988,20 @@ abstract final class Textos {
   static const sinIngresos = 'En este periodo no entró plata.';
   static const noDebesNada = 'No debes nada.';
 
+  // Buscar y filtrar en el Historial (entrega 39).
+  static const buscarEnTuHistorial = 'Buscar en tu historial';
+  static const filtrar = 'Filtrar';
+  static String filtrarCon(int n) => 'Filtrar ($n)';
+  static const quitarFiltros = 'Quitar filtros';
+  static const verResultados = 'Ver resultados';
+  static const quienAnoto = 'Quién lo anotó';
+  static const filtroCuenta = 'Cuenta';
+  static const filtroCategoria = 'Categoría';
+  static const otraPersona = 'Otra persona';
+  static const sinResultados = 'No hay registros con esa búsqueda.';
+  static String resumenDeBusqueda(int n, String entro, String salio) =>
+      '$n ${n == 1 ? 'registro' : 'registros'} · Entró $entro · Salió $salio';
+
   // «Lo que debes» y los registros de una categoría (entrega 38).
   static const verDetalle = 'Ver detalle';
   static const sinProveedor = 'Sin proveedor';
