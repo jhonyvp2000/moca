@@ -612,6 +612,9 @@ abstract final class Textos {
   static const tipoDeGasto = 'Tipo de gasto';
   static const eligeTipoDeGasto = 'Elige';
   static const yaLoPagaste = '¿Ya lo pagaste?';
+  // Al escribir una compra que se debe (entrega 41).
+  static const aQuienLeDebes = '¿A quién le debes?';
+  static const aQuienLeDebesEjemplo = 'Puedes dejarlo vacío';
   static const siPagado = 'Sí, pagado';
   static const todaviaLoDebo = 'Todavía lo debo';
   static const cuentaAlPagar =

@@ -67,35 +67,11 @@ class RepositorioComprobantesLocal implements RepositorioComprobantes {
 
       // El proveedor, si se sabe quién es. Si ya existe (mismo RUC o mismo
       // nombre), se reutiliza.
-      String? contraparteId;
-      final ruc = l.emisorIdentificacion;
-      final conNombre = nombre != null && nombre.isNotEmpty;
-      if (conNombre || ruc != null) {
-        final proveedores = await (_base.select(
-          _base.contrapartes,
-        )..where((c) => c.empresaId.equals(empresa.id))).get();
-        final mismo = proveedores.where(
-          (c) =>
-              (ruc != null && c.identificacionFiscal == ruc) ||
-              (conNombre && c.nombre.toLowerCase() == nombre.toLowerCase()),
-        );
-        if (mismo.isNotEmpty) {
-          contraparteId = mismo.first.id;
-        } else {
-          contraparteId = _a.nuevoId();
-          await _base
-              .into(_base.contrapartes)
-              .insert(
-                ContrapartesCompanion.insert(
-                  id: contraparteId,
-                  empresaId: empresa.id,
-                  nombre: conNombre ? nombre : 'RUC $ruc',
-                  identificacionFiscal: Value(ruc),
-                  tipo: TipoContraparte.proveedor,
-                ),
-              );
-        }
-      }
+      final contraparteId = await _a.proveedor(
+        empresa.id,
+        nombre: nombre,
+        ruc: l.emisorIdentificacion,
+      );
 
       // El comprobante: si ya existía (se deshizo antes), se reutiliza.
       final existente = await _mismoComprobante(empresa.id, l);

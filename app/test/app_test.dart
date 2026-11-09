@@ -1126,6 +1126,42 @@ void main() {
       expect(anulados, hasLength(1));
     });
 
+    testWidgets('Entrega 41: «Todavía lo debo» al escribir una compra', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      // Viene marcado «Sí, pagado»: se elige de dónde salió.
+      expect(find.text(Textos.yaLoPagaste), findsOneWidget);
+      expect(find.text(Textos.deDondeSalio), findsOneWidget);
+      await tocar(tester, find.text(Textos.todaviaLoDebo));
+      expect(find.text(Textos.deDondeSalio), findsNothing);
+      expect(find.text(Textos.cuentaAlPagar), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.aQuienLeDebesEjemplo),
+        'Distribuidora Rosita',
+      );
+      await tocar(tester, find.text('Otros'));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      // No baja la plata ni pregunta por el negativo.
+      expect(
+        find.text(Textos.guardadoAhoraTienes(formatearSoles(135000))),
+        findsOneWidget,
+      );
+      final debe = await tester.runAsync(
+        () =>
+            (base.select(
+                  base.movimientos,
+                )..where((m) => m.estadoPago.equalsValue(EstadoPago.pendiente)))
+                .getSingle(),
+      );
+      expect(debe!.montoCentimos, 8000);
+      expect(debe.contraparteId, isNotNull);
+    });
+
     testWidgets('Moca pregunta antes de dejar una cuenta en negativo', (
       tester,
     ) async {

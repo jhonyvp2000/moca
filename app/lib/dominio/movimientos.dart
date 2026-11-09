@@ -11,6 +11,8 @@ class NuevoMovimiento {
     this.categoriaId,
     this.nota,
     this.fuente = Fuente.texto,
+    this.pagado = true,
+    this.proveedor,
   });
 
   final TipoMovimiento tipo;
@@ -26,6 +28,15 @@ class NuevoMovimiento {
 
   /// Escrito o dicho por voz.
   final Fuente fuente;
+
+  /// Falso: una compra que todavía se debe (entrega 41). No baja la plata
+  /// hasta marcarla «Ya lo pagué»; solo vale para «Salió».
+  final bool pagado;
+
+  /// A quién se le debe, si lo escribió.
+  final String? proveedor;
+
+  bool get loDebe => tipo == TipoMovimiento.egreso && !pagado;
 }
 
 /// Lo que ya se sabe de un movimiento para abrir «Escribirlo» con los datos

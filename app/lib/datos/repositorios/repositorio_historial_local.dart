@@ -316,17 +316,38 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
 
   /// Lo que se puede corregir: en una compra con comprobante, el monto y el
   /// tipo son los del comprobante y no cambian.
-  Movimiento _corregido(_Datos d, Movimiento m, NuevoMovimiento c) {
+  ///
+  /// Una compra escrita puede pasar a deberse o a estar pagada (entrega 41);
+  /// la de un comprobante sigue como estaba.
+  Movimiento _corregido(
+    _Datos d,
+    Movimiento m,
+    NuevoMovimiento c, {
+    String? contraparteId,
+  }) {
     final conComprobante = m.comprobanteId != null;
     final tipo = conComprobante ? m.tipo : c.tipo;
     final monto = conComprobante ? m.montoCentimos : c.montoCentimos;
     final nota = c.nota?.trim();
+    final debia = m.estadoPago != EstadoPago.pagado;
+    final debe = conComprobante
+        ? debia
+        : tipo == TipoMovimiento.egreso && !c.pagado;
     return m.copyWith(
       tipo: tipo,
       montoCentimos: monto,
-      montoPagadoCentimos: m.estadoPago == EstadoPago.pagado
-          ? monto
-          : m.montoPagadoCentimos,
+      estadoPago: debe ? EstadoPago.pendiente : EstadoPago.pagado,
+      montoPagadoCentimos: debe ? (debia ? m.montoPagadoCentimos : 0) : monto,
+      // Al dejar de deberse, la plata sale hoy; al pasar a deberse, todavía
+      // no ha salido.
+      fechaPago: Value(
+        debe
+            ? (debia ? m.fechaPago : null)
+            : (debia ? _a.ahora() : m.fechaPago),
+      ),
+      contraparteId: Value(
+        conComprobante ? m.contraparteId : (debe ? contraparteId : null),
+      ),
       cuentaId: d.idDeCuenta(c.cuenta),
       // Un pase lleva su destino (entrega 21.1).
       cuentaDestinoId: Value(
@@ -352,8 +373,8 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
   Future<int?> saldoSiSeCorrige(String id, NuevoMovimiento correccion) async {
     final d = (await _leer())!;
     final m = await _vigente(d, id);
-    if (m.estadoPago != EstadoPago.pagado) return null;
     final nuevo = _corregido(d, m, correccion);
+    if (nuevo.estadoPago != EstadoPago.pagado) return null;
     return d.saldoCon(
       nuevo.cuentaId,
       m.copyWith(estado: EstadoRegistro.anulado),
@@ -367,6 +388,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     'cuenta': d.tipoDeCuenta(m.cuentaId).name,
     'categoriaId': m.categoriaId,
     'nota': m.nota,
+    'pagado': m.estadoPago == EstadoPago.pagado,
   };
 
   @override
@@ -377,7 +399,14 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     return _base.transaction(() async {
       final d = (await _leer())!;
       final m = await _vigente(d, id);
-      final corregido = _corregido(d, m, correccion);
+      final corregido = _corregido(
+        d,
+        m,
+        correccion,
+        contraparteId: correccion.loDebe
+            ? await _a.proveedor(d.empresa.id, nombre: correccion.proveedor)
+            : null,
+      );
       if (!corregido.tipo.sinCategoria && corregido.categoriaId == null) {
         throw ArgumentError('Entró y salió llevan categoría.');
       }

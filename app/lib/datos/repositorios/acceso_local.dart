@@ -25,6 +25,40 @@ class AccesoLocal {
 
   String nuevoId() => _uuid.v4();
 
+  /// El proveedor por su RUC o su nombre: si ya existe se reutiliza; si no,
+  /// se crea. Nulo si no hay ni nombre ni RUC.
+  Future<String?> proveedor(
+    String empresaId, {
+    String? nombre,
+    String? ruc,
+  }) async {
+    final n = nombre?.trim();
+    final conNombre = n != null && n.isNotEmpty;
+    if (!conNombre && ruc == null) return null;
+    final proveedores = await (base.select(
+      base.contrapartes,
+    )..where((c) => c.empresaId.equals(empresaId))).get();
+    final mismo = proveedores.where(
+      (c) =>
+          (ruc != null && c.identificacionFiscal == ruc) ||
+          (conNombre && c.nombre.toLowerCase() == n.toLowerCase()),
+    );
+    if (mismo.isNotEmpty) return mismo.first.id;
+    final id = nuevoId();
+    await base
+        .into(base.contrapartes)
+        .insert(
+          ContrapartesCompanion.insert(
+            id: id,
+            empresaId: empresaId,
+            nombre: conNombre ? n : 'RUC $ruc',
+            identificacionFiscal: Value(ruc),
+            tipo: TipoContraparte.proveedor,
+          ),
+        );
+    return id;
+  }
+
   /// Sin cuenta, lo guardado sin conexión queda «por subir» y la marca no
   /// cambia, como en el prototipo.
   Future<EstadoSincronizacion> estadoAlGuardar() async {

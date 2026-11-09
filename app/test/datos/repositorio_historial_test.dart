@@ -387,4 +387,110 @@ void main() {
     );
     expect(await acceso.miRol(), Rol.dueno);
   });
+
+  group('Entrega 41: escribir una compra que se debe', () {
+    Future<int> tienesHoy() async => (await movimientos.saldoSiSeGuarda(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.aporte,
+        montoCentimos: 0,
+        cuenta: TipoCuenta.efectivo,
+      ),
+    ));
+
+    Future<String> deuda(int soles, {String? proveedor}) async =>
+        (await movimientos.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: soles * 100,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: mercaderia,
+            pagado: false,
+            proveedor: proveedor,
+          ),
+        )).ids.single;
+
+    test('no baja la plata, sale en «Lo que debes» y se paga', () async {
+      final antes = await tienesHoy();
+      final id = await deuda(120, proveedor: 'Distribuidora Rosita');
+      expect(await tienesHoy(), antes);
+      var debes = await repo.observarLoQueDebes().first;
+      expect(debes.single.id, id);
+      expect(debes.single.proveedor, 'Distribuidora Rosita');
+      expect(debes.single.montoCentimos, 12000);
+      expect(debes.single.loDebes, isTrue);
+      // El mismo proveedor, aunque se escriba distinto.
+      await deuda(30, proveedor: ' distribuidora rosita ');
+      expect(await base.select(base.contrapartes).get(), hasLength(1));
+      // Sin nombre, también se debe.
+      await deuda(10);
+      debes = await repo.observarLoQueDebes().first;
+      expect(debes, hasLength(3));
+      expect(debes.where((f) => f.proveedor == null), hasLength(1));
+      // Al pagarla baja la cuenta elegida.
+      final yape = await repo.pagar(id, cuenta: TipoCuenta.yape, dia: ahora);
+      expect(yape, 20000 - 12000);
+      expect(await repo.observarLoQueDebes().first, hasLength(2));
+    });
+
+    test('un gasto normal sigue pagado y sin proveedor', () async {
+      final antes = await tienesHoy();
+      final id = (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 5000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: servicios,
+          proveedor: 'Nadie',
+        ),
+      )).ids.single;
+      expect(await tienesHoy(), antes - 5000);
+      expect(await repo.observarLoQueDebes().first, isEmpty);
+      final m = await (base.select(
+        base.movimientos,
+      )..where((x) => x.id.equals(id))).getSingle();
+      expect(m.contraparteId, isNull);
+      // «Todavía lo debo» solo vale para «Salió».
+      await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.retiro,
+          montoCentimos: 1000,
+          cuenta: TipoCuenta.efectivo,
+          pagado: false,
+        ),
+      );
+      expect(await tienesHoy(), antes - 6000);
+    });
+
+    test('al corregir, pasa a deberse o a estar pagada', () async {
+      final antes = await tienesHoy();
+      final id = await gasto(40);
+      expect(await tienesHoy(), antes - 4000);
+      final debida = (await repo.corregir(
+        id,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 4000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: servicios,
+          pagado: false,
+          proveedor: 'Luz del Oriente',
+        ),
+      )).ids.single;
+      expect(await tienesHoy(), antes);
+      final debes = await repo.observarLoQueDebes().first;
+      expect(debes.single.id, debida);
+      expect(debes.single.proveedor, 'Luz del Oriente');
+      await repo.corregir(
+        debida,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 4500,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: servicios,
+        ),
+      );
+      expect(await tienesHoy(), antes - 4500);
+      expect(await repo.observarLoQueDebes().first, isEmpty);
+    });
+  });
 }

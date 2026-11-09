@@ -52,6 +52,10 @@ class PantallaEscribir extends ConsumerStatefulWidget {
 class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   final _monto = TextEditingController();
   final _nota = TextEditingController();
+  final _proveedor = TextEditingController();
+
+  /// Falso: «Todavía lo debo», solo en «Salió» (entrega 41).
+  bool _pagado = true;
   TipoMovimiento? _tipo;
   TipoCuenta _cuenta = TipoCuenta.efectivo;
 
@@ -85,6 +89,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       _montoOriginal = d.fila.montoCentimos;
       _monto.text = separarMiles(d.fila.montoCentimos ~/ 100);
       _nota.text = d.fila.nota ?? '';
+      _pagado = !d.fila.loDebes;
+      _proveedor.text = d.fila.proveedor ?? '';
       return;
     }
     final borrador = widget.borrador;
@@ -104,8 +110,16 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   void dispose() {
     _monto.dispose();
     _nota.dispose();
+    _proveedor.dispose();
     super.dispose();
   }
+
+  /// Una compra que todavía se debe: no se elige de dónde salió la plata.
+  bool get _loDebe =>
+      !_conComprobante && _tipo == TipoMovimiento.egreso && !_pagado;
+
+  String? get _nombreProveedor =>
+      _proveedor.text.trim().isEmpty ? null : _proveedor.text.trim();
 
   int get _montoCentimos =>
       _montoOriginal ?? leerSolesEnCentimos(_monto.text) ?? 0;
@@ -127,7 +141,10 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         _cuenta == d.fila.cuenta &&
         _destino == d.fila.cuentaDestino &&
         ((_tipo?.sinCategoria ?? false) || _categoriaId == d.categoriaId) &&
-        (nota.isEmpty ? null : nota) == d.fila.nota;
+        (nota.isEmpty ? null : nota) == d.fila.nota &&
+        (_conComprobante ||
+            (_loDebe == d.fila.loDebes &&
+                (!_loDebe || _nombreProveedor == d.fila.proveedor)));
   }
 
   Future<void> _guardarCorreccion(NuevoMovimiento correccion) async {
@@ -177,6 +194,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       cuentaDestino: _tipo!.esPase ? _destino : null,
       categoriaId: _categoriaId,
       nota: _nota.text,
+      pagado: !_loDebe,
+      proveedor: _loDebe ? _nombreProveedor : null,
     );
     final repo = ref.read(repositorioMovimientosProvider);
     setState(() => _guardando = true);
@@ -185,8 +204,11 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         await _guardarCorreccion(movimiento);
         return;
       }
-      // Moca pregunta antes de dejar una cuenta en negativo.
-      final quedaria = await repo.saldoSiSeGuarda(movimiento);
+      // Moca pregunta antes de dejar una cuenta en negativo. Lo que se debe
+      // todavía no baja la plata.
+      final quedaria = movimiento.loDebe
+          ? 0
+          : await repo.saldoSiSeGuarda(movimiento);
       if (quedaria < 0) {
         if (!mounted) return;
         final seguir = await _preguntarNegativo(quedaria);
@@ -319,27 +341,63 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             ],
           ),
         ],
-        const SizedBox(height: 18),
-        Text(switch (tipo) {
-          TipoMovimiento.transferencia => Textos.deDondeSalePase,
-          final t? when t.entraPlata => Textos.aDondeEntro,
-          _ => Textos.deDondeSalio,
-        }, style: etiqueta),
-        const SizedBox(height: 8),
-        Opciones<TipoCuenta>(
-          opciones: {
-            for (final cuenta in ref.watch(tiposDeCuentaProvider))
-              // El encargado y el ayudante pasan plata solo desde su caja.
-              if (tipo != TipoMovimiento.transferencia ||
-                  (permisos.misCajas?.contains(cuenta) ?? true))
-                cuenta: Textos.nombreCuenta(cuenta),
-          },
-          elegida: _cuenta,
-          alElegir: (cuenta) => setState(() {
-            _cuenta = cuenta;
-            if (_destino == cuenta) _destino = null;
-          }),
-        ),
+        // Una compra puede quedar debiéndose, como con la foto (entrega 41).
+        if (tipo == TipoMovimiento.egreso && !_conComprobante) ...[
+          const SizedBox(height: 18),
+          const Text(Textos.yaLoPagaste, style: etiqueta),
+          const SizedBox(height: 8),
+          Opciones<bool>(
+            opciones: const {
+              true: Textos.siPagado,
+              false: Textos.todaviaLoDebo,
+            },
+            elegida: _pagado,
+            alElegir: (p) => setState(() => _pagado = p),
+          ),
+        ],
+        if (_loDebe) ...[
+          const SizedBox(height: 8),
+          const Text(Textos.cuentaAlPagar, style: Tipografia.secundario),
+          const SizedBox(height: 18),
+          const Text(Textos.aQuienLeDebes, style: etiqueta),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _proveedor,
+            maxLength: 60,
+            textCapitalization: TextCapitalization.words,
+            style: Tipografia.texto,
+            decoration: const InputDecoration(
+              hintText: Textos.aQuienLeDebesEjemplo,
+              counterText: '',
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: Medidas.separacionTarjetas,
+              ),
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 18),
+          Text(switch (tipo) {
+            TipoMovimiento.transferencia => Textos.deDondeSalePase,
+            final t? when t.entraPlata => Textos.aDondeEntro,
+            _ => Textos.deDondeSalio,
+          }, style: etiqueta),
+          const SizedBox(height: 8),
+          Opciones<TipoCuenta>(
+            opciones: {
+              for (final cuenta in ref.watch(tiposDeCuentaProvider))
+                // El encargado y el ayudante pasan plata solo desde su caja.
+                if (tipo != TipoMovimiento.transferencia ||
+                    (permisos.misCajas?.contains(cuenta) ?? true))
+                  cuenta: Textos.nombreCuenta(cuenta),
+            },
+            elegida: _cuenta,
+            alElegir: (cuenta) => setState(() {
+              _cuenta = cuenta;
+              if (_destino == cuenta) _destino = null;
+            }),
+          ),
+        ],
         // A cualquier cuenta del negocio, también a otra caja (entrega 21.1).
         if (tipo == TipoMovimiento.transferencia) ...[
           const SizedBox(height: 18),
