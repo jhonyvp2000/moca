@@ -33,6 +33,10 @@ class PantallaInforme extends ConsumerStatefulWidget {
 class _EstadoInforme extends ConsumerState<PantallaInforme> {
   /// Nulo: el mes en curso.
   DateTime? _mes;
+
+  /// El resumen del año (entrega 40); nulo es el actual.
+  bool _verAnio = false;
+  int? _anio;
   bool _armandoPdf = false;
   bool _armandoExcel = false;
 
@@ -205,8 +209,40 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     }
   }
 
+  /// «Mes · Año» (entrega 40).
+  Widget _selector() => Align(
+    alignment: Alignment.centerLeft,
+    child: SegmentedButton<bool>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(value: false, label: Text(Textos.verMes)),
+        ButtonSegment(value: true, label: Text(Textos.verAnio)),
+      ],
+      selected: {_verAnio},
+      onSelectionChanged: (v) => setState(() {
+        _verAnio = v.first;
+        // El año del mes que estaba mirando.
+        if (_verAnio) _anio = _mes?.year;
+      }),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (_verAnio) {
+      return SafeArea(
+        bottom: false,
+        child: _VistaAnio(
+          anio: _anio,
+          selector: _selector(),
+          alCambiarAnio: (a) => setState(() => _anio = a),
+          alElegirMes: (m) => setState(() {
+            _mes = m;
+            _verAnio = false;
+          }),
+        ),
+      );
+    }
     final informe = ref.watch(informeProvider(_mes)).value;
     if (informe == null) return const SizedBox.shrink();
     final i = informe;
@@ -221,6 +257,8 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           16,
         ),
         children: [
+          _selector(),
+          const SizedBox(height: 8),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -610,6 +648,358 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
         const TarjetaMoca(texto: Textos.advertenciaMercaderia),
       ],
     ];
+  }
+}
+
+/// El resumen del año calendario (entrega 40): cuánto creció la plata, los
+/// meses uno por uno y con qué entró y en qué se fue, con las mismas reglas
+/// del informe de cada mes.
+class _VistaAnio extends ConsumerWidget {
+  const _VistaAnio({
+    required this.anio,
+    required this.selector,
+    required this.alCambiarAnio,
+    required this.alElegirMes,
+  });
+
+  final int? anio;
+  final Widget selector;
+  final ValueChanged<int> alCambiarAnio;
+  final ValueChanged<DateTime> alElegirMes;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final r = ref.watch(resumenAnioProvider(anio)).value;
+    if (r == null) return const SizedBox.shrink();
+    final periodo = Textos.periodoDelAnio(r.desde, enCurso: r.enCurso);
+    final crecio = r.crecioCentimos;
+    const separacion = SizedBox(height: Medidas.separacionTarjetas);
+    final mayorEntrada = r.meses.fold(
+      0,
+      (s, m) => m.entroCentimos > s ? m.entroCentimos : s,
+    );
+
+    Widget categorias(
+      String titulo,
+      String vacio,
+      List<GastoPorCategoria> filas,
+      TipoMovimiento tipo,
+    ) => Tarjeta(
+      relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(titulo, style: Tipografia.tituloTarjeta),
+          Text(periodo, style: Tipografia.secundario),
+          const SizedBox(height: 8),
+          if (filas.isEmpty)
+            Text(vacio, style: Tipografia.secundario)
+          else
+            for (final (n, g) in filas.indexed)
+              _Barra(
+                nombre: g.nombre ?? Textos.loDemas,
+                centimos: g.centimos,
+                proporcion: g.centimos / filas.first.centimos,
+                primera: n == 0,
+                alTocar: () => context.push(
+                  Rutas.deCategoria,
+                  extra: ConsultaDeCategoria(
+                    mes: r.desde,
+                    anual: true,
+                    tipo: tipo,
+                    titulo: g.nombre ?? Textos.loDemas,
+                    nombres: g.nombre == null ? null : {g.nombre!},
+                    salvo: {
+                      for (final o in filas)
+                        if (o.nombre != null) o.nombre!,
+                    },
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        Medidas.margenLateral,
+        12,
+        Medidas.margenLateral,
+        16,
+      ),
+      children: [
+        selector,
+        const SizedBox(height: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Flecha(
+              icono: Icono.volver,
+              etiqueta: Textos.anioAnterior,
+              alTocar: r.anioPrevio == null
+                  ? null
+                  : () => alCambiarAnio(r.anioPrevio!),
+            ),
+            Semantics(
+              header: true,
+              child: Text('${r.anio}', style: Tipografia.tituloPantalla),
+            ),
+            _Flecha(
+              icono: Icono.derecha,
+              etiqueta: Textos.anioSiguiente,
+              alTocar: r.anioSiguiente == null
+                  ? null
+                  : () => alCambiarAnio(r.anioSiguiente!),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 44, top: 2),
+          child: Text(periodo, style: Tipografia.secundario),
+        ),
+        const SizedBox(height: 12),
+
+        // Cuánto creció la plata en el año, y de dónde salió esa cifra.
+        Tarjeta(
+          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                crecio > 0
+                    ? Textos.enElAnioCrecio(r.anio)
+                    : crecio < 0
+                    ? Textos.enElAnioBajo(r.anio)
+                    : Textos.enElAnioIgual(r.anio),
+                style: Tipografia.textoFuerte.copyWith(
+                  color: Colores.textoSecundario,
+                ),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  formatearSoles(crecio.abs()),
+                  maxLines: 1,
+                  style: Tipografia.cifra(
+                    const TextStyle(
+                      fontFamily: Tipografia.familia,
+                      fontSize: 46,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700,
+                      color: Colores.textoPrincipal,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _Fila(Textos.entro, formatearSoles(r.entroCentimos)),
+              if (r.aportesCentimos > 0)
+                _Fila(
+                  Textos.pusisteDeTuBolsillo,
+                  formatearSoles(r.aportesCentimos),
+                ),
+              _Fila(
+                Textos.salioDelNegocio,
+                formatearSoles(r.salioCentimos),
+                salida: true,
+              ),
+              _Fila(
+                Textos.retirasteParaTi,
+                formatearSoles(r.retirosCentimos),
+                salida: true,
+              ),
+              if (r.ajustesCentimos != 0)
+                _Fila(
+                  r.ajustesCentimos > 0
+                      ? Textos.sobroEnLosArqueos
+                      : Textos.faltoEnLosArqueos,
+                  formatearSoles(r.ajustesCentimos.abs()),
+                  salida: r.ajustesCentimos < 0,
+                ),
+            ],
+          ),
+        ),
+        separacion,
+
+        // Mes por mes: cada uno abre su informe.
+        Tarjeta(
+          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(Textos.mesPorMes, style: Tipografia.tituloTarjeta),
+              const Text(Textos.tocaUnMes, style: Tipografia.secundario),
+              const SizedBox(height: 8),
+              const _FilaDeMes.encabezado(),
+              for (final m in r.meses)
+                if (m.estado != EstadoMesDelAnio.porVenir)
+                  _FilaDeMes(
+                    mes: m,
+                    proporcion: mayorEntrada == 0
+                        ? 0
+                        : m.entroCentimos / mayorEntrada,
+                    alTocar: m.cuenta ? () => alElegirMes(m.mes) : null,
+                  ),
+            ],
+          ),
+        ),
+        separacion,
+        categorias(
+          Textos.conQueEntro,
+          Textos.sinIngresosDelAnio,
+          r.ingresos,
+          TipoMovimiento.ingreso,
+        ),
+        separacion,
+        categorias(
+          Textos.enQueSeFue,
+          Textos.sinGastosDelAnio,
+          r.gastos,
+          TipoMovimiento.egreso,
+        ),
+      ],
+    );
+  }
+}
+
+/// Un mes en la tabla del año: entró, salió y cuánto creció, con una barra
+/// de lo que entró frente al mes que más entró.
+class _FilaDeMes extends StatelessWidget {
+  const _FilaDeMes({
+    required MesDelAnio this.mes,
+    required this.proporcion,
+    required this.alTocar,
+  });
+
+  const _FilaDeMes.encabezado() : mes = null, proporcion = 0, alTocar = null;
+
+  /// Nulo: la fila de los títulos.
+  final MesDelAnio? mes;
+  final double proporcion;
+  final VoidCallback? alTocar;
+
+  static const _anchoCifra = 66.0;
+
+  static Widget _cifra(String texto, {Color? color, bool fuerte = false}) =>
+      SizedBox(
+        width: _anchoCifra,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            texto,
+            maxLines: 1,
+            style: Tipografia.cifra(
+              (fuerte ? Tipografia.textoFuerte : Tipografia.texto).copyWith(
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final m = mes;
+    if (m == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(Textos.columnaMes, style: Tipografia.secundario),
+            ),
+            for (final t in const [
+              Textos.columnaEntro,
+              Textos.columnaSalio,
+              Textos.columnaCrecio,
+            ]) ...[
+              const SizedBox(width: 6),
+              SizedBox(
+                width: _anchoCifra,
+                child: Text(
+                  t,
+                  textAlign: TextAlign.right,
+                  style: Tipografia.secundario,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+    final nombre = nombreDelMesCorto(m.mes);
+    if (m.estado == EstadoMesDelAnio.antesDeMoca) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: Medidas.objetivoTactilMinimo,
+        ),
+        child: Row(
+          children: [
+            Expanded(child: Text(nombre, style: Tipografia.secundario)),
+            const Text(Textos.antesDeMoca, style: Tipografia.secundario),
+          ],
+        ),
+      );
+    }
+    final crecio = m.crecioCentimos;
+    return InkWell(
+      onTap: alTocar,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: Medidas.objetivoTactilMinimo,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(nombre, style: Tipografia.textoFuerte),
+                        if (m.estado == EstadoMesDelAnio.enCurso)
+                          const Text(
+                            Textos.hastaHoyMinuscula,
+                            style: Tipografia.secundario,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  _cifra(formatearSoles(m.entroCentimos)),
+                  const SizedBox(width: 6),
+                  _cifra(
+                    formatearSoles(m.salioCentimos),
+                    color: Colores.salida,
+                  ),
+                  const SizedBox(width: 6),
+                  _cifra(
+                    formatearSoles(crecio),
+                    color: crecio < 0 ? Colores.salida : null,
+                    fuerte: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: proporcion.clamp(0, 1),
+                  minHeight: 6,
+                  backgroundColor: Colores.separador,
+                  color: Colores.marca,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

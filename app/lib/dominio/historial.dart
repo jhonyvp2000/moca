@@ -337,10 +337,14 @@ class ConsultaDeCategoria {
     required this.titulo,
     this.nombres,
     this.salvo = const {},
+    this.anual = false,
   });
 
-  /// El primer día del mes.
+  /// El primer día del mes; con [anual], desde cuándo cuenta el año.
   final DateTime mes;
+
+  /// Todo el año de [mes] (entrega 40), hasta hoy si es el actual.
+  final bool anual;
   final TipoMovimiento tipo;
   final String titulo;
   final Set<String>? nombres;

@@ -29,6 +29,159 @@ class RepositorioInformeLocal implements RepositorioInforme {
   Stream<InformeMes> observarMes(DateTime? mes) =>
       _a.cambios().asyncMap((_) => _calcular(mes));
 
+  @override
+  Stream<ResumenAnio> observarAnio(int? anio) =>
+      _a.cambios().asyncMap((_) => _calcularAnio(anio));
+
+  /// El año con el informe de cada mes (entrega 40): así cada mes es igual a
+  /// su informe y el año suma lo mismo que sus meses.
+  Future<ResumenAnio> _calcularAnio(int? pedido) async {
+    final ahora = _a.ahora();
+    final actual = DateTime(ahora.year, ahora.month);
+    // El primer mes con Moca: el informe no deja ir más atrás.
+    final primero = (await _calcular(DateTime(1900))).mes;
+    var anio = pedido ?? ahora.year;
+    if (anio > ahora.year) anio = ahora.year;
+    if (anio < primero.year) anio = primero.year;
+
+    final meses = <MesDelAnio>[];
+    final delAnio = <InformeMes>[];
+    for (var m = 1; m <= 12; m++) {
+      final mes = DateTime(anio, m);
+      if (mes.isBefore(primero)) {
+        meses.add(MesDelAnio(mes: mes, estado: EstadoMesDelAnio.antesDeMoca));
+        continue;
+      }
+      if (mes.isAfter(actual)) {
+        meses.add(MesDelAnio(mes: mes, estado: EstadoMesDelAnio.porVenir));
+        continue;
+      }
+      var i = await _calcular(mes);
+      // Si el servidor no trae ese mes, se calcula en el teléfono.
+      if (i.mes != mes) i = await calcularMes(mes);
+      delAnio.add(i);
+      meses.add(
+        MesDelAnio(
+          mes: mes,
+          estado: i.enCurso
+              ? EstadoMesDelAnio.enCurso
+              : EstadoMesDelAnio.completo,
+          entroCentimos: i.entroCentimos,
+          salioCentimos: i.salioCentimos,
+          crecioCentimos: _crecio(i),
+        ),
+      );
+    }
+    int suma(int Function(InformeMes) cifra) =>
+        delAnio.fold(0, (s, i) => s + cifra(i));
+    final primerDelAnio = delAnio.isEmpty ? null : delAnio.first;
+    final desde = primerDelAnio == null
+        ? DateTime(anio)
+        : DateTime(anio, primerDelAnio.mes.month, primerDelAnio.desdeDia ?? 1);
+    final porCategoria = await _categoriasDelAnio(anio);
+    return ResumenAnio(
+      anio: anio,
+      meses: meses,
+      desde: desde,
+      enCurso: anio == ahora.year,
+      entroCentimos: suma((i) => i.entroCentimos),
+      salioCentimos: suma((i) => i.salioCentimos),
+      retirosCentimos: suma((i) => i.retirosCentimos),
+      aportesCentimos: suma((i) => i.aportesCentimos),
+      ajustesCentimos: suma((i) => i.ajustesCentimos),
+      crecioCentimos: suma(_crecio),
+      ingresos: porCategoria.$1,
+      gastos: porCategoria.$2,
+      anioPrevio: anio > primero.year ? anio - 1 : null,
+      anioSiguiente: anio < ahora.year ? anio + 1 : null,
+    );
+  }
+
+  /// Cuánto creció la plata en el mes, como en «Cómo se movió tu plata».
+  static int _crecio(InformeMes i) =>
+      i.entroCentimos +
+      i.aportesCentimos -
+      i.salioCentimos -
+      i.retirosCentimos +
+      i.ajustesCentimos;
+
+  /// Con qué entró y en qué se fue la plata en el año, con la regla del
+  /// informe: lo pagado, desde el saldo inicial de su cuenta, el día en que
+  /// se movió. A lo más cinco filas; la última junta «Lo demás».
+  Future<(List<GastoPorCategoria>, List<GastoPorCategoria>)> _categoriasDelAnio(
+    int anio,
+  ) async {
+    final empresa = await _a.empresa();
+    if (empresa == null) {
+      return (const <GastoPorCategoria>[], const <GastoPorCategoria>[]);
+    }
+    final ahora = _a.ahora();
+    final hasta = anio == ahora.year
+        ? inicioDelDia(ahora).add(const Duration(days: 1))
+        : DateTime(anio + 1);
+    final categorias = {
+      for (final c in await (_base.select(
+        _base.categorias,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+    final desdeDe = {
+      for (final c in await (_base.select(
+        _base.cuentas,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.fechaSaldoInicial,
+    };
+    final porTipo = {
+      TipoMovimiento.ingreso: <String, int>{},
+      TipoMovimiento.egreso: <String, int>{},
+    };
+    for (final m in await _a.movimientos(empresa.id)) {
+      final total = porTipo[m.tipo];
+      if (total == null ||
+          m.estado != EstadoRegistro.vigente ||
+          m.estadoPago != EstadoPago.pagado) {
+        continue;
+      }
+      final f = _fecha(m);
+      final inicial = desdeDe[m.cuentaId];
+      if (inicial != null && f.isBefore(inicial)) continue;
+      if (f.isBefore(DateTime(anio)) || !f.isBefore(hasta)) continue;
+      final nombre = categorias[m.categoriaId] ?? 'Otros';
+      total[nombre] = (total[nombre] ?? 0) + m.montoCentimos;
+    }
+    return (
+      _filas(porTipo[TipoMovimiento.ingreso]!),
+      _filas(porTipo[TipoMovimiento.egreso]!),
+    );
+  }
+
+  /// A lo más cinco filas, de mayor a menor; la última junta «Lo demás».
+  /// Empates: por nombre, igual que en el servidor.
+  static List<GastoPorCategoria> _filas(Map<String, int> total) {
+    final ordenadas = total.entries.toList()
+      ..sort(
+        (a, b) => switch (b.value.compareTo(a.value)) {
+          0 => a.key.compareTo(b.key),
+          final c => c,
+        },
+      );
+    return ordenadas.length <= _filasDeGastos
+        ? [
+            for (final e in ordenadas)
+              GastoPorCategoria(nombre: e.key, centimos: e.value),
+          ]
+        : [
+            for (final e in ordenadas.take(_filasDeGastos - 1))
+              GastoPorCategoria(nombre: e.key, centimos: e.value),
+            GastoPorCategoria(
+              nombre: null,
+              centimos: ordenadas
+                  .skip(_filasDeGastos - 1)
+                  .fold(0, (s, e) => s + e.value),
+            ),
+          ];
+  }
+
   /// El informe es el flujo de caja del mes (entrega 14.9): un movimiento
   /// cuenta el día en que la plata se movió, igual que en el saldo.
   static DateTime _fecha(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
@@ -221,30 +374,8 @@ class RepositorioInformeLocal implements RepositorioInforme {
     // En qué se fue la plata y con qué entró (entrega 35): a lo más cinco
     // filas; la última junta «Lo demás». Empates: por nombre, igual que en
     // el servidor.
-    List<GastoPorCategoria> filas(TipoMovimiento tipo) {
-      final ordenadas = porCategoria(delMes, tipo).entries.toList()
-        ..sort(
-          (a, b) => switch (b.value.compareTo(a.value)) {
-            0 => a.key.compareTo(b.key),
-            final c => c,
-          },
-        );
-      return ordenadas.length <= _filasDeGastos
-          ? [
-              for (final e in ordenadas)
-                GastoPorCategoria(nombre: e.key, centimos: e.value),
-            ]
-          : [
-              for (final e in ordenadas.take(_filasDeGastos - 1))
-                GastoPorCategoria(nombre: e.key, centimos: e.value),
-              GastoPorCategoria(
-                nombre: null,
-                centimos: ordenadas
-                    .skip(_filasDeGastos - 1)
-                    .fold(0, (s, e) => s + e.value),
-              ),
-            ];
-    }
+    List<GastoPorCategoria> filas(TipoMovimiento tipo) =>
+        _filas(porCategoria(delMes, tipo));
 
     final gastos = filas(TipoMovimiento.egreso);
     final ingresos = filas(TipoMovimiento.ingreso);

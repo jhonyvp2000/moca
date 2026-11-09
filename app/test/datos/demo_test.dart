@@ -380,4 +380,106 @@ void main() {
       );
     },
   );
+
+  test('Entrega 40: el año suma lo mismo que sus meses, con la Demo', () async {
+    await RepositorioOperadorLocal(base, ahora: () => ahora).cargarDemo();
+    final informe = RepositorioInformeLocal(base, ahora: () => ahora);
+    final historial = RepositorioHistorialLocal(base, ahora: () => ahora);
+    final r = await informe.observarAnio(null).first;
+    expect(r.anio, 2026);
+    expect(r.enCurso, isTrue);
+    expect(r.meses, hasLength(12));
+    // Antes de Moca, los meses con Moca, el actual hasta hoy y lo que viene.
+    final primero = (await informe.observarMes(DateTime(1900)).first).mes;
+    for (final m in r.meses) {
+      expect(
+        m.estado,
+        m.mes.isBefore(primero)
+            ? EstadoMesDelAnio.antesDeMoca
+            : m.mes == DateTime(2026, 10)
+            ? EstadoMesDelAnio.enCurso
+            : m.mes.isAfter(DateTime(2026, 10))
+            ? EstadoMesDelAnio.porVenir
+            : EstadoMesDelAnio.completo,
+        reason: '${m.mes}',
+      );
+    }
+    // Cada mes es igual a su informe, y el año es la suma de los meses.
+    var entro = 0, salio = 0, crecio = 0, retiros = 0, aportes = 0;
+    for (final m in r.meses.where((m) => m.cuenta)) {
+      final i = await informe.observarMes(m.mes).first;
+      expect(i.mes, m.mes);
+      expect(m.entroCentimos, i.entroCentimos);
+      expect(m.salioCentimos, i.salioCentimos);
+      expect(m.crecioCentimos, i.crecioCentimos, reason: '${m.mes}');
+      entro += i.entroCentimos;
+      salio += i.salioCentimos;
+      crecio += i.crecioCentimos;
+      retiros += i.retirosCentimos;
+      aportes += i.aportesCentimos;
+    }
+    expect(entro, greaterThan(0));
+    expect(r.entroCentimos, entro);
+    expect(r.salioCentimos, salio);
+    expect(r.crecioCentimos, crecio);
+    expect(r.retirosCentimos, retiros);
+    expect(r.aportesCentimos, aportes);
+    // Las categorías del año suman lo que entró y lo que salió.
+    expect(r.ingresos.fold(0, (s, g) => s + g.centimos), entro);
+    expect(r.gastos.fold(0, (s, g) => s + g.centimos), salio);
+    expect(r.gastos.length, lessThanOrEqualTo(5));
+    // Y cada barra, lo mismo que sus registros del año.
+    for (final (tipo, filas) in [
+      (TipoMovimiento.egreso, r.gastos),
+      (TipoMovimiento.ingreso, r.ingresos),
+    ]) {
+      for (final g in filas) {
+        final registros = await historial
+            .observarDeCategoria(
+              ConsultaDeCategoria(
+                mes: r.desde,
+                anual: true,
+                tipo: tipo,
+                titulo: g.nombre ?? 'Lo demás',
+                nombres: g.nombre == null ? null : {g.nombre!},
+                salvo: {
+                  for (final o in filas)
+                    if (o.nombre != null) o.nombre!,
+                },
+              ),
+            )
+            .first;
+        expect(
+          registros.fold(0, (s, f) => s + f.montoCentimos),
+          g.centimos,
+          reason: g.nombre ?? 'Lo demás',
+        );
+      }
+    }
+    // Las flechas: no hay año antes de Moca ni después de hoy.
+    expect(r.anioPrevio, isNull);
+    expect(r.anioSiguiente, isNull);
+    expect((await informe.observarAnio(2019).first).anio, 2026);
+    expect((await informe.observarAnio(2031).first).anio, 2026);
+  });
+
+  test('Entrega 40: el año siguiente, y las flechas entre los dos', () async {
+    await RepositorioOperadorLocal(base, ahora: () => ahora).cargarDemo();
+    final despues = DateTime(2027, 2, 3, 12);
+    final informe = RepositorioInformeLocal(base, ahora: () => despues);
+    final r = await informe.observarAnio(null).first;
+    expect(r.anio, 2027);
+    expect(r.anioPrevio, 2026);
+    expect(r.anioSiguiente, isNull);
+    expect(r.desde, DateTime(2027));
+    expect(r.meses[0].estado, EstadoMesDelAnio.completo);
+    expect(r.meses[1].estado, EstadoMesDelAnio.enCurso);
+    expect(r.meses[2].estado, EstadoMesDelAnio.porVenir);
+    final antes = await informe.observarAnio(2026).first;
+    expect(antes.enCurso, isFalse);
+    expect(antes.anioPrevio, isNull);
+    expect(antes.anioSiguiente, 2027);
+    expect(antes.meses.last.estado, EstadoMesDelAnio.completo);
+    expect(antes.desde.isAfter(DateTime(2026)), isTrue);
+  });
 }

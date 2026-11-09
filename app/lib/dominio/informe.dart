@@ -352,9 +352,85 @@ class FlujoParaCredito {
   }
 }
 
+/// Un mes en el resumen del año (entrega 40).
+enum EstadoMesDelAnio { antesDeMoca, completo, enCurso, porVenir }
+
+class MesDelAnio {
+  const MesDelAnio({
+    required this.mes,
+    required this.estado,
+    this.entroCentimos = 0,
+    this.salioCentimos = 0,
+    this.crecioCentimos = 0,
+  });
+
+  /// El primer día del mes.
+  final DateTime mes;
+  final EstadoMesDelAnio estado;
+  final int entroCentimos;
+  final int salioCentimos;
+
+  /// Cuánto creció (o bajó) la plata en el mes, como en su informe.
+  final int crecioCentimos;
+
+  bool get cuenta =>
+      estado == EstadoMesDelAnio.completo || estado == EstadoMesDelAnio.enCurso;
+}
+
+/// El resumen del año calendario (entrega 40): los 12 meses y el total, con
+/// las mismas reglas del informe de cada mes, que suman lo mismo que el año.
+class ResumenAnio {
+  const ResumenAnio({
+    required this.anio,
+    required this.meses,
+    required this.desde,
+    required this.enCurso,
+    required this.entroCentimos,
+    required this.salioCentimos,
+    required this.retirosCentimos,
+    required this.aportesCentimos,
+    required this.ajustesCentimos,
+    required this.crecioCentimos,
+    required this.ingresos,
+    required this.gastos,
+    this.anioPrevio,
+    this.anioSiguiente,
+  });
+
+  final int anio;
+
+  /// Enero a diciembre.
+  final List<MesDelAnio> meses;
+
+  /// Desde cuándo cuenta: el 1 de enero, o el día en que empezó con Moca.
+  final DateTime desde;
+
+  /// Es el año actual: va hasta hoy.
+  final bool enCurso;
+  final int entroCentimos;
+  final int salioCentimos;
+  final int retirosCentimos;
+  final int aportesCentimos;
+
+  /// Lo que sobró (positivo) o faltó en los arqueos del año.
+  final int ajustesCentimos;
+  final int crecioCentimos;
+
+  /// Con qué entró y en qué se fue la plata en el año, a lo más cinco filas.
+  final List<GastoPorCategoria> ingresos;
+  final List<GastoPorCategoria> gastos;
+
+  /// Nulo si no hay año antes con Moca, o después (es el actual).
+  final int? anioPrevio;
+  final int? anioSiguiente;
+}
+
 abstract interface class RepositorioInforme {
   /// El informe del mes que empieza en [mes]; nulo es el mes en curso.
   Stream<InformeMes> observarMes(DateTime? mes);
+
+  /// El resumen del año calendario [anio]; nulo es el actual (entrega 40).
+  Stream<ResumenAnio> observarAnio(int? anio);
 
   /// Lo que el PDF necesita además del informe.
   Future<DetalleParaPdf> detalleParaPdf(InformeMes informe);

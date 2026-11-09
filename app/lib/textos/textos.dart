@@ -890,6 +890,40 @@ abstract final class Textos {
   static const mesAnterior = 'Mes anterior';
   static const mesSiguiente = 'Mes siguiente';
   static const hastaHoy = 'Hasta hoy';
+
+  // Resumen del año (entrega 40)
+  static const verMes = 'Mes';
+  static const verAnio = 'Año';
+  static const anioAnterior = 'Año anterior';
+  static const anioSiguiente = 'Año siguiente';
+  static String enElAnioCrecio(int anio) => 'En $anio tu plata creció';
+  static String enElAnioBajo(int anio) => 'En $anio tu plata bajó';
+  static String enElAnioIgual(int anio) => 'En $anio tu plata quedó igual';
+  static const tocaUnMes = 'Toca un mes para ver su informe.';
+  static const antesDeMoca = 'Antes de Moca';
+  static const hastaHoyMinuscula = 'hasta hoy';
+  static const pusisteDeTuBolsillo = 'Pusiste de tu bolsillo';
+  static const salioDelNegocio = 'Salió del negocio';
+  static const retirasteParaTi = 'Retiraste para ti';
+  static const sobroEnLosArqueos = 'Sobró en los arqueos';
+  static const faltoEnLosArqueos = 'Faltó en los arqueos';
+  static const sinIngresosDelAnio = 'Este año aún no entra plata.';
+  static const sinGastosDelAnio = 'Este año aún no sale plata.';
+
+  /// «De enero a hoy», «Del 12 de octubre a hoy», «Todo 2025» o «Del 12 de
+  /// octubre al 31 de diciembre».
+  static String periodoDelAnio(DateTime desde, {required bool enCurso}) {
+    final todoElAnio = desde.month == 1 && desde.day == 1;
+    if (enCurso) {
+      return todoElAnio
+          ? 'De enero a hoy'
+          : 'Del ${desde.day} de ${nombreDelMes(desde)} a hoy';
+    }
+    return todoElAnio
+        ? 'Todo ${desde.year}'
+        : 'Del ${desde.day} de ${nombreDelMes(desde)} al 31 de diciembre';
+  }
+
   static String desdeElDia(int dia) => 'Desde el día $dia';
   static String desdeElDiaHastaHoy(int dia) => 'Desde el día $dia hasta hoy';
   // El informe es el flujo de caja del mes, no la ganancia (entrega 14.9).

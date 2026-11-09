@@ -211,6 +211,12 @@ final informeProvider = StreamProvider.autoDispose
       (ref, mes) => ref.watch(repositorioInformeProvider).observarMes(mes),
     );
 
+/// El resumen de un año (entrega 40); nulo es el actual.
+final resumenAnioProvider = StreamProvider.autoDispose
+    .family<ResumenAnio, int?>(
+      (ref, anio) => ref.watch(repositorioInformeProvider).observarAnio(anio),
+    );
+
 final repositorioMocaProvider = Provider<RepositorioMoca>(
   (ref) => RepositorioMocaLocal(
     ref.watch(baseLocalProvider),

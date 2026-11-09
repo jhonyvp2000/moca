@@ -124,8 +124,11 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
         final desdeDe = {for (final k in d.cuentas) k.id: k.fechaSaldoInicial};
         final ahora = _a.ahora();
         final actual = DateTime(ahora.year, ahora.month);
-        final hasta = c.mes == actual
+        final enCurso = c.anual ? c.mes.year == ahora.year : c.mes == actual;
+        final hasta = enCurso
             ? inicioDelDia(ahora).add(const Duration(days: 1))
+            : c.anual
+            ? DateTime(c.mes.year + 1)
             : DateTime(c.mes.year, c.mes.month + 1);
         DateTime fecha(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
         bool entra(Movimiento m) {

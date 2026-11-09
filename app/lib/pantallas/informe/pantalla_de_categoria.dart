@@ -34,11 +34,13 @@ class _EstadoDeCategoria extends ConsumerState<PantallaDeCategoria> {
   Widget build(BuildContext context) {
     final c = widget.consulta;
     final ahora = ref.read(relojProvider)();
-    final periodo = Textos.periodoDelMes(
-      c.mes,
-      enCurso: c.mes == DateTime(ahora.year, ahora.month),
-      hoy: ahora,
-    );
+    final periodo = c.anual
+        ? Textos.periodoDelAnio(c.mes, enCurso: c.mes.year == ahora.year)
+        : Textos.periodoDelMes(
+            c.mes,
+            enCurso: c.mes == DateTime(ahora.year, ahora.month),
+            hoy: ahora,
+          );
     return StreamBuilder<List<FilaHistorial>>(
       stream: _filas,
       builder: (context, foto) {

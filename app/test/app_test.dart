@@ -2092,6 +2092,68 @@ void main() {
       expect(find.text(Textos.noDebesNada), findsOneWidget);
     });
 
+    testWidgets('Entrega 40: el resumen del año, sus meses y categorías', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.verAnio));
+      expect(find.text('${_ahora.year}'), findsOneWidget);
+      // Empezó el 12: el año va desde ese día hasta hoy.
+      expect(
+        find.text(
+          Textos.periodoDelAnio(
+            DateTime(_ahora.year, _ahora.month, 12),
+            enCurso: true,
+          ),
+          skipOffstage: false,
+        ),
+        findsWidgets,
+      );
+      expect(find.text(Textos.enElAnioCrecio(_ahora.year)), findsOneWidget);
+      // Ni el año anterior ni el siguiente: no hay Moca antes ni después.
+      for (final etiqueta in [Textos.anioAnterior, Textos.anioSiguiente]) {
+        final flecha = tester.widget<IconButton>(
+          find.ancestor(
+            of: find.byTooltip(etiqueta),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(flecha.onPressed, isNull, reason: etiqueta);
+      }
+      // Los meses de antes salen en gris; el actual, hasta hoy.
+      await tester.scrollUntilVisible(
+        find.text(Textos.hastaHoyMinuscula),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.text(Textos.antesDeMoca, skipOffstage: false),
+        findsNWidgets(_ahora.month - 1),
+      );
+      // Una categoría del año abre sus registros del año.
+      await tester.scrollUntilVisible(
+        find.text('Venta del día'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text('Venta del día'));
+      expect(
+        find.text(Textos.totalDeRegistros(formatearSoles(35000), 1)),
+        findsOneWidget,
+      );
+      await tocar(tester, find.byType(BotonVolver));
+      // Tocar el mes abre su informe.
+      await tester.scrollUntilVisible(
+        find.text(Textos.hastaHoyMinuscula),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.hastaHoyMinuscula));
+      expect(find.text(Textos.comoSeMovio), findsOneWidget);
+      expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
+    });
+
     testWidgets('El informe del primer mes', (tester) async {
       await abrirApp(tester, listo: true);
       // En el Inicio, «Tienes hoy» es desde que empezó (entrega 36).
@@ -2281,6 +2343,12 @@ void main() {
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
       await esperar(tester);
       expect(tester.takeException(), isNull, reason: 'S14');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.verAnio));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await esperar(tester);
+      expect(tester.takeException(), isNull, reason: 'el año');
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(tester.takeException(), isNull, reason: 'S16');
     });

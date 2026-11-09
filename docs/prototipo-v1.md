@@ -159,6 +159,7 @@ Estados aprobados el 13-10-2026 (entrega 7):
 - Si no hay mes anterior: «Es tu primer mes con Moca. El próximo mes verás la comparación». Si el primer mes empezó a mitad, se indica «desde el día X».
 - Lo mismo para la semana en S04: sin semana anterior, se omite la comparación.
 - «Compartir PDF» genera el PDF en el teléfono.
+- Desde la entrega 40, arriba hay «Mes · Año». El año (calendario) dice cuánto creció la plata con lo que entró, salió, retiraste y pusiste; tiene la tabla «Mes por mes» (entró, salió y creció, con una barra; los meses de antes en gris, «Antes de Moca»; el actual, «hasta hoy»; los que vienen no se muestran), y «Con qué entró la plata» y «En qué se fue la plata» del año. Tocar un mes abre su informe; tocar una categoría, sus registros del año. Flechas ‹ › desde el primer año con Moca hasta el actual. Sin PDF ni Excel del año.
 
 Estados aprobados el 13-10-2026 (entrega 8):
 
