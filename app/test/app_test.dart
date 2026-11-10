@@ -3440,6 +3440,82 @@ void main() {
       expect(find.text(Textos.yaTengoCuenta), findsOneWidget);
     });
 
+    testWidgets('Entrega 46: «Ayuda» sin cuenta, y pedir ayuda por WhatsApp', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirAjustes(tester);
+      await tester.scrollUntilVisible(
+        find.text(Textos.estadoDeEsteTelefono),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.sinCuentaAyuda), findsOneWidget);
+      // Sin el número de soporte, no hay botón.
+      expect(find.text(Textos.pedirAyudaWhatsApp), findsNothing);
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveVersion,
+          jsonEncode({'soporte': '911111111'}),
+        ),
+      );
+      await esperar(tester);
+      await tester.scrollUntilVisible(
+        find.text(Textos.pedirAyudaWhatsApp),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.pedirAyudaWhatsApp));
+      expect(_abiertos.single, startsWith('https://wa.me/51911111111?text='));
+      final texto = Uri.parse(_abiertos.single).queryParameters['text']!;
+      expect(texto, startsWith('Hola, necesito ayuda con Moca.'));
+      expect(texto, contains('Cuenta: ${Textos.sinCuentaAyuda}'));
+      expect(texto, contains('Negocio: Bodega Don Lucho (código '));
+      expect(texto, contains('Rol: Dueño (titular)'));
+    });
+
+    testWidgets(
+      'Entrega 46: el estado con cuenta, y abierta en otro teléfono',
+      (tester) async {
+        final base = await conCuentaGuardada(tester);
+        await abrirAjustes(tester);
+        await tester.scrollUntilVisible(
+          find.text(Textos.estadoDeEsteTelefono),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text(Textos.unidoATuCuenta('987 654 321')), findsOneWidget);
+        expect(
+          find.text(Textos.negocioYRol('Bodega Don Lucho', 'Dueño', true)),
+          findsOneWidget,
+        );
+        // Lo que espera subir se dice, con qué hacer.
+        await tester.runAsync(
+          () => base
+              .update(base.movimientos)
+              .write(
+                const MovimientosCompanion(
+                  estadoSincronizacion: Value(EstadoSincronizacion.porSubir),
+                ),
+              ),
+        );
+        await esperar(tester);
+        expect(
+          find.textContaining('por subir: abre Moca con señal'),
+          findsOneWidget,
+        );
+        await tester.runAsync(
+          () => AccesoLocal(
+            base,
+            () => _ahora,
+          ).guardarAjuste('cuenta_cerrada_en_otro', 'si'),
+        );
+        await esperar(tester);
+        expect(find.text(Textos.abiertaEnOtroAyuda), findsOneWidget);
+        expect(find.text(Textos.abiertaEnOtroQueHacer), findsOneWidget);
+      },
+    );
+
     testWidgets('Entrega 45.1: con la cuenta unida no aparecen', (
       tester,
     ) async {

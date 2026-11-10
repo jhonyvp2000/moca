@@ -4,13 +4,37 @@ Para que Jhony resuelva solo lo que piden los usuarios de Moca, sin pasar por Cl
 
 Al final de la guía están las cosas que conviene saber de Moca para entender casi cualquier caso.
 
-Escrita el 10-11-2026, con la versión entrega-45.1. Cuando cambie la app, se actualiza aquí.
+Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con la entrega 46. Cuando cambie la app, se actualiza aquí.
 
 ---
 
-## Antes de responder: tres preguntas
+## Antes de responder: «Pedir ayuda por WhatsApp»
 
-Casi todos los problemas se aclaran con estas tres preguntas. Pídele al usuario que te las responda o que te mande una captura:
+Desde la entrega 46, lo más rápido es pedirle:
+
+> Abre Moca → Ajustes, baja hasta **Ayuda** y toca **Pedir ayuda por WhatsApp**. Mándame el mensaje tal como sale.
+
+Te llega algo así:
+
+> Hola, necesito ayuda con Moca.
+> Versión: entrega-46 (174) · Cuenta: Unido a tu cuenta: 987 654 321 · Negocio: Bodega Don Lucho (código AB12CD) · Rol: Dueño (titular) · Por subir: 0
+
+**Cómo leerlo:**
+- **Cuenta:**
+  - «Unido a tu cuenta: …» → todo bien.
+  - «Sin cuenta» o «Falta confirmar tu número» → caso 1.
+  - «Tu cuenta se abrió en otro teléfono» → caso 3.
+  - «Te quitaron de este negocio» → caso 7.
+- **Rol:** si no dice «(titular)», no puede borrar el negocio (caso 4). Lo que puede hacer cada rol está en el caso 6.
+- **Por subir:** si es más de 0, tiene registros que todavía no llegaron al servidor (caso 8).
+- **Versión:** si es vieja, mándale la última (caso 11).
+- **El código del negocio** sirve para distinguir dos negocios con el mismo nombre.
+
+El mismo estado se ve en **Ajustes → Ayuda → Estado de este teléfono**. Si tiene una versión anterior a la 46, o el botón no aparece porque nunca tuvo señal, usa las tres preguntas de abajo.
+
+## Si no puede usar «Pedir ayuda»: tres preguntas
+
+Pídele al usuario que te las responda o que te mande una captura:
 
 1. **¿Qué versión tienes?** Está al final de **Moca → Ajustes**, por ejemplo «Moca entrega-45.1 (172)».
 2. **¿Qué ves en Moca → Ajustes?** Una captura de toda la pantalla.

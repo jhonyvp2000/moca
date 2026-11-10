@@ -590,6 +590,7 @@ final versionPublicadaProvider =
           return (
             EstadoDeVersion(
               minima: v['minima'] as int?,
+              soporte: v['soporte'] as String?,
               obligatoriaDesde: v['obligatoria_desde'] as String?,
               ultima: v['armado'] == null
                   ? null
@@ -619,6 +620,32 @@ final bloqueoPorVersionProvider = Provider<BloqueoPorVersion>((ref) {
     admin: ref.watch(cobroProvider).value?.admin ?? false,
     conSenal: ref.watch(hayConexionProvider).value ?? true,
   );
+});
+
+/// Para «Ayuda» (entrega 46): el código del negocio (las 6 primeras letras
+/// de su id) y cuántos registros esperan subir.
+final datosDeAyudaProvider = StreamProvider<({String? codigo, int porSubir})>((
+  ref,
+) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  final base = ref.watch(baseLocalProvider);
+  return acceso.cambios().asyncMap((_) async {
+    final empresa = await acceso.empresa();
+    final porSubir =
+        await (base.select(base.movimientos)..where(
+              (m) => m.estadoSincronizacion.equalsValue(
+                EstadoSincronizacion.porSubir,
+              ),
+            ))
+            .get();
+    return (
+      codigo: empresa?.id.replaceAll('-', '').substring(0, 6).toUpperCase(),
+      porSubir: porSubir.length,
+    );
+  });
 });
 
 /// «Ahora no»: el aviso se esconde hasta mañana.
@@ -655,6 +682,7 @@ final revisarVersionProvider = Provider<Future<void> Function()>((ref) {
       AccesoLocal.claveVersion,
       jsonEncode({
         'minima': estado.minima,
+        'soporte': ?estado.soporte,
         if (estado.minima != null) 'obligatoria_desde': desde ?? hoy,
         if (u != null) ...{
           'nombre': u.nombre,

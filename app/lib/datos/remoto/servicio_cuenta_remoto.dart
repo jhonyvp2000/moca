@@ -642,6 +642,7 @@ class ServicioCuentaRemoto
       final ultima = cuerpo['ultima'];
       return EstadoDeVersion(
         minima: cuerpo['minima'] as int?,
+        soporte: cuerpo['soporte'] as String?,
         ultima: ultima is Map<String, Object?>
             ? VersionPublicada(
                 nombre: ultima['nombre'] as String? ?? '',

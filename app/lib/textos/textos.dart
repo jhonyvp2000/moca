@@ -1626,6 +1626,49 @@ abstract final class Textos {
   static String versionDeMoca(String entrega, int armado) =>
       entrega.isEmpty ? 'Moca, versión $armado' : 'Moca $entrega ($armado)';
   static const versionDeDesarrollo = 'Moca, versión de desarrollo';
+  static String versionCorta(String entrega, int armado) =>
+      entrega.isEmpty ? 'armado $armado' : '$entrega ($armado)';
+
+  // «Ayuda» en Ajustes (entrega 46).
+  static const ayuda = 'Ayuda';
+  static const estadoDeEsteTelefono = 'Estado de este teléfono';
+  static const etiquetaCuentaAyuda = 'Cuenta';
+  static const etiquetaNegocioAyuda = 'Negocio';
+  static const etiquetaServidor = 'Servidor';
+  static const etiquetaVersion = 'Versión';
+  static String unidoATuCuenta(String celular) => 'Unido a tu cuenta: $celular';
+  static const sinCuentaAyuda =
+      'Sin cuenta: lo anotado vive solo en este teléfono';
+  static const porConfirmarAyuda = 'Falta confirmar tu número';
+  static const abiertaEnOtroAyuda = 'Tu cuenta se abrió en otro teléfono';
+  static const fueraAyuda = 'Te quitaron de este negocio';
+  static String negocioYRol(String negocio, String rol, bool titular) =>
+      '${negocio.isEmpty ? 'Tu negocio' : negocio} · $rol'
+      '${titular ? ' (titular)' : ''}';
+  static String actualizadoAyuda(String cuando) => 'Al día: $cuando';
+  static const sinActualizarAyuda = 'Todavía no se conectó';
+  static String porSubirAyuda(int n) =>
+      '${n == 1 ? '1 registro por subir' : '$n registros por subir'}: abre '
+      'Moca con señal';
+  static const abiertaEnOtroQueHacer =
+      'Usa Moca en el teléfono donde entraste último. Para volver a este, '
+      'entra con «Ya tengo cuenta» y tu número.';
+  static const fueraQueHacer =
+      'Pídele al dueño que te invite otra vez, o entra a otro negocio desde '
+      '«Mis negocios».';
+  static const pedirAyudaWhatsApp = 'Pedir ayuda por WhatsApp';
+  static String mensajeDeAyuda({
+    required String version,
+    required String cuenta,
+    required String negocio,
+    required String? codigo,
+    required String rol,
+    required int porSubir,
+  }) =>
+      'Hola, necesito ayuda con Moca.\n'
+      'Versión: $version · Cuenta: $cuenta · Negocio: $negocio'
+      '${codigo == null ? '' : ' (código $codigo)'} · Rol: $rol'
+      ' · Por subir: $porSubir';
   static String versionConCommit(String entrega, int armado, String commit) =>
       'Versión: ${entrega.isEmpty ? '—' : entrega} · armado $armado · '
       'commit ${commit.isEmpty ? '—' : commit}';

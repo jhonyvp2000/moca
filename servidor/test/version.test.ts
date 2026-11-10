@@ -47,7 +47,16 @@ describe('«Hay una versión nueva de Moca» (entrega 26.3)', () => {
     expect(leerConfigVersion({ MOCA_APP_MINIMA: '105' })).toEqual({
       repo: 'jhonyvp2000/moca',
       minima: 105,
+      soporte: null,
     });
+    // El soporte (entrega 46): el de los pagos, o uno propio.
+    expect(leerConfigVersion({ MOCA_YAPE_NUMERO: '+51 911 111 111' }).soporte).toBe(
+      '911111111',
+    );
+    expect(
+      leerConfigVersion({ MOCA_YAPE_NUMERO: '911111111', MOCA_SOPORTE_NUMERO: '922 222 222' })
+        .soporte,
+    ).toBe('922222222');
     expect(leerConfigVersion({ MOCA_APP_MINIMA: 'nada' }).minima).toBeNull();
   });
 
@@ -59,7 +68,7 @@ describe('«Hay una versión nueva de Moca» (entrega 26.3)', () => {
       pool: {} as Pool,
       version: 'prueba',
       ahora: () => ahora,
-      versionApp: { repo: 'jhonyvp2000/moca', minima: 100 },
+      versionApp: { repo: 'jhonyvp2000/moca', minima: 100, soporte: '911111111' },
       buscarReleases: async () => {
         pedidos++;
         if (falla) throw new Error('sin red');
@@ -70,7 +79,11 @@ describe('«Hay una versión nueva de Moca» (entrega 26.3)', () => {
       (await app.inject({ method: 'GET', url: `/app/version${canal ? `?canal=${canal}` : ''}` }))
         .json();
 
-    expect(await pedir()).toMatchObject({ ultima: { nombre: 'piloto-2' }, minima: 100 });
+    expect(await pedir()).toMatchObject({
+      ultima: { nombre: 'piloto-2' },
+      minima: 100,
+      soporte: '911111111',
+    });
     expect((await pedir('todas')).ultima.nombre).toBe('entrega-26.3');
     expect(pedidos).toBe(1);
 

@@ -52,7 +52,15 @@ class VersionPublicada {
 enum BloqueoPorVersion { ninguno, desdeManana, bloqueado }
 
 class EstadoDeVersion {
-  const EstadoDeVersion({this.ultima, this.minima, this.obligatoriaDesde});
+  const EstadoDeVersion({
+    this.ultima,
+    this.minima,
+    this.obligatoriaDesde,
+    this.soporte,
+  });
+
+  /// El WhatsApp de soporte (entrega 46), los 9 dígitos; viene del servidor.
+  final String? soporte;
 
   final VersionPublicada? ultima;
 

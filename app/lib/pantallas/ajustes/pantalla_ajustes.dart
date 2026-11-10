@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/enlace.dart';
+import 'ayuda.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/cuenta_real.dart';
@@ -116,6 +117,8 @@ class PantallaAjustes extends ConsumerWidget {
             const BorrarEsteTelefono(),
           ],
         ]),
+        // El estado del teléfono y «Pedir ayuda» (entrega 46).
+        seccion(Textos.ayuda, [const AyudaDelTelefono()]),
         // Qué versión es, para reportar un problema (entrega 26.3).
         const VersionDeMoca(),
       ],

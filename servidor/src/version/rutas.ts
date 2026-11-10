@@ -28,13 +28,22 @@ export interface ConfigVersion {
   repo: string;
   /** MOCA_APP_MINIMA: con un armado menor, la app pide actualizar sí o sí. */
   minima: number | null;
+  /**
+   * El WhatsApp de soporte (entrega 46): MOCA_SOPORTE_NUMERO o, sin él, el
+   * mismo de los pagos (MOCA_YAPE_NUMERO). Los 9 dígitos.
+   */
+  soporte?: string | null;
 }
 
 export function leerConfigVersion(entorno: NodeJS.ProcessEnv = process.env): ConfigVersion {
   const minima = Number(entorno.MOCA_APP_MINIMA);
+  const soporte = (entorno.MOCA_SOPORTE_NUMERO ?? entorno.MOCA_YAPE_NUMERO ?? '')
+    .replace(/\D/g, '')
+    .slice(-9);
   return {
     repo: entorno.MOCA_REPO?.trim() || 'jhonyvp2000/moca',
     minima: Number.isSafeInteger(minima) && minima > 0 ? minima : null,
+    soporte: soporte.length === 9 ? soporte : null,
   };
 }
 
@@ -128,6 +137,8 @@ export function rutasVersion(
     return {
       ultima: lista ? ultimaVersion(lista, todas) : null,
       minima: minimas.length ? Math.max(...minimas) : null,
+      // A quién pedir ayuda (entrega 46): también sin cuenta.
+      soporte: config.soporte ?? null,
     };
   });
 
