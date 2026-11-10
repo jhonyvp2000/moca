@@ -87,6 +87,10 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       autorRol: d.equipo[m.autorId]?.$2,
       anotadoEn: m.creadoEn,
       vence: m.fechaVencimiento,
+      parteDe: m.abonaA,
+      pagadoEnPartesCentimos: d
+          .partesDe(m.id)
+          .fold(0, (s, p) => s + p.montoCentimos),
     );
   }
 
@@ -230,8 +234,62 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       saldoSiSeDeshaceCentimos: pagado && m.estado == EstadoRegistro.vigente
           ? d.saldoCon(m.cuentaId, m.copyWith(estado: EstadoRegistro.anulado))
           : null,
+      // Pagos en partes (entrega 44).
+      partes: [
+        for (final p in d.partesDe(m.id))
+          ParteDePago(
+            id: p.id,
+            fechaPago: p.fechaPago ?? p.fechaMovimiento,
+            cuenta: d.tipoDeCuenta(p.cuentaId),
+            montoCentimos: p.montoCentimos,
+          ),
+      ],
+      deuda: switch (m.abonaA) {
+        final id? => switch (d.movimiento(id)) {
+          final deuda? => DeudaDeLaParte(
+            id: deuda.id,
+            tipo: deuda.tipo,
+            faltaCentimos:
+                deuda.estado == EstadoRegistro.vigente &&
+                    deuda.estadoPago != EstadoPago.pagado
+                ? deuda.montoCentimos - deuda.montoPagadoCentimos
+                : 0,
+            abierta:
+                deuda.estado == EstadoRegistro.vigente &&
+                deuda.estadoPago != EstadoPago.pagado,
+          ),
+          null => null,
+        },
+        null => null,
+      },
+      trabaAlCorregir: _trabaAlCorregir(d, m),
+      trabaAlDeshacer: _trabaAlDeshacer(d, m),
     );
   });
+
+  /// Una deuda con partes, o una parte, no se corrige (entrega 44).
+  static TrabaDelRegistro? _trabaAlCorregir(_Datos d, Movimiento m) {
+    if (m.abonaA != null) return TrabaDelRegistro.esParte;
+    if (d.partesDe(m.id).isNotEmpty) return TrabaDelRegistro.tienePartes;
+    return null;
+  }
+
+  /// Una deuda con partes no se deshace; una parte, solo la más reciente
+  /// y con la deuda abierta (entrega 44).
+  static TrabaDelRegistro? _trabaAlDeshacer(_Datos d, Movimiento m) {
+    if (d.partesDe(m.id).isNotEmpty) return TrabaDelRegistro.tienePartes;
+    final deudaId = m.abonaA;
+    if (deudaId == null) return null;
+    final deuda = d.movimiento(deudaId);
+    final abierta =
+        deuda != null &&
+        deuda.estado == EstadoRegistro.vigente &&
+        deuda.estadoPago != EstadoPago.pagado;
+    final ultima = d.partesDe(deudaId).lastOrNull;
+    return abierta && ultima?.id == m.id
+        ? null
+        : TrabaDelRegistro.noEsLaUltimaParte;
+  }
 
   /// Una compra no se paga antes de su comprobante ni antes de que Moca
   /// empezara a llevar las cuentas.
@@ -311,7 +369,12 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
         final cuenta = TipoCuenta.values.asNameMap()[nuevo['cuenta']];
         final fecha = DateTime.tryParse('${nuevo['fechaPago']}');
         if (cuenta == null || fecha == null) return null;
-        return CambioPagado(fila.fecha, cuenta, fecha);
+        return CambioPagado(
+          fila.fecha,
+          cuenta,
+          fecha,
+          parteCentimos: nuevo['parteCentimos'] as int?,
+        );
       case AccionBitacora.anular:
         return CambioDeshecho(fila.fecha);
       case AccionBitacora.arquear:
@@ -404,6 +467,9 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     return _base.transaction(() async {
       final d = (await _leer())!;
       final m = await _vigente(d, id);
+      if (_trabaAlCorregir(d, m) case final traba?) {
+        throw StateError(traba.name);
+      }
       if (m.comprobanteId == null && correccion.faltaQuienDebe) {
         throw ArgumentError('Una venta a crédito lleva quién la debe.');
       }
@@ -480,12 +546,73 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     fechaPago: Value(fecha),
   );
 
+  /// Un pago en parte (entrega 44): un registro pagado de la misma deuda,
+  /// con su cuenta y su día, que dice de qué deuda es.
+  Movimiento _parte(
+    _Datos d,
+    Movimiento m, {
+    required String id,
+    required TipoCuenta cuenta,
+    required DateTime fecha,
+    required int centimos,
+    required String autorId,
+    required EstadoSincronizacion estado,
+    required DateTime creadoEn,
+  }) => m.copyWith(
+    id: id,
+    cuentaId: d.idDeCuenta(cuenta),
+    montoCentimos: centimos,
+    estadoPago: EstadoPago.pagado,
+    montoPagadoCentimos: centimos,
+    fechaMovimiento: fecha,
+    fechaPago: Value(fecha),
+    fechaComprobante: const Value(null),
+    fechaVencimiento: const Value(null),
+    comprobanteId: const Value(null),
+    reemplazaA: const Value(null),
+    abonaA: Value(m.id),
+    autorId: autorId,
+    estado: EstadoRegistro.vigente,
+    estadoSincronizacion: estado,
+    creadoEn: creadoEn,
+  );
+
+  /// Una parte vale si es más que cero y menos de lo que falta.
+  static void _validarParte(Movimiento m, int parte) {
+    if (parte <= 0 || parte >= m.montoCentimos - m.montoPagadoCentimos) {
+      throw ArgumentError('La parte tiene que ser menos de lo que falta.');
+    }
+  }
+
   @override
-  Future<int> saldoSiSePaga(String id, TipoCuenta cuenta) async {
+  Future<int> saldoSiSePaga(
+    String id,
+    TipoCuenta cuenta, {
+    int? parteCentimos,
+  }) async {
     final d = (await _leer())!;
     final m = await _porPagar(d, id);
-    final pagado = _pagado(d, m, cuenta, _a.ahora());
-    return d.saldoCon(pagado.cuentaId, pagado);
+    if (parteCentimos == null) {
+      final pagado = _pagado(d, m, cuenta, _a.ahora());
+      return d.saldoCon(pagado.cuentaId, pagado);
+    }
+    _validarParte(m, parteCentimos);
+    final parte = _parte(
+      d,
+      m,
+      id: '_parte',
+      cuenta: cuenta,
+      fecha: _a.ahora(),
+      centimos: parteCentimos,
+      autorId: m.autorId,
+      estado: m.estadoSincronizacion,
+      creadoEn: _a.ahora(),
+    );
+    return d.saldoCon(
+      parte.cuentaId,
+      m.copyWith(montoCentimos: m.montoCentimos - parteCentimos),
+      extra: parte,
+    );
   }
 
   @override
@@ -493,6 +620,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     String id, {
     required TipoCuenta cuenta,
     required DateTime dia,
+    int? parteCentimos,
   }) => _base.transaction(() async {
     final d = (await _leer())!;
     final m = await _porPagar(d, id);
@@ -506,8 +634,11 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     final fecha = elegido == hoy
         ? ahora
         : DateTime(elegido.year, elegido.month, elegido.day, 12);
-    final pagado = _pagado(d, m, cuenta, fecha);
     final estado = await _a.estadoAlGuardar();
+    if (parteCentimos != null) {
+      return _pagarParte(d, m, cuenta, fecha, parteCentimos, estado);
+    }
+    final pagado = _pagado(d, m, cuenta, fecha);
     await (_base.update(
       _base.movimientos,
     )..where((x) => x.id.equals(m.id))).write(
@@ -542,10 +673,112 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     return d.saldoCon(pagado.cuentaId, pagado);
   });
 
+  /// Paga una parte (entrega 44): un registro pagado nuevo, y la deuda se
+  /// queda con lo que falta.
+  Future<int> _pagarParte(
+    _Datos d,
+    Movimiento m,
+    TipoCuenta cuenta,
+    DateTime fecha,
+    int centimos,
+    EstadoSincronizacion estado,
+  ) async {
+    _validarParte(m, centimos);
+    final usuario = await _a.usuario();
+    final parte = _parte(
+      d,
+      m,
+      id: _a.nuevoId(),
+      cuenta: cuenta,
+      fecha: fecha,
+      centimos: centimos,
+      autorId: usuario.id,
+      estado: estado,
+      creadoEn: _a.ahora(),
+    );
+    await _base.into(_base.movimientos).insert(parte);
+    final queda = m.copyWith(montoCentimos: m.montoCentimos - centimos);
+    await (_base.update(
+      _base.movimientos,
+    )..where((x) => x.id.equals(m.id))).write(
+      MovimientosCompanion(
+        montoCentimos: Value(queda.montoCentimos),
+        estadoSincronizacion: estado == EstadoSincronizacion.porSubir
+            ? const Value(EstadoSincronizacion.porSubir)
+            : const Value.absent(),
+      ),
+    );
+    await _a.anotarEnBitacora(
+      empresaId: d.empresa.id,
+      autorId: usuario.id,
+      entidad: _entidad,
+      entidadId: parte.id,
+      accion: AccionBitacora.crear,
+      nuevo: {
+        'tipo': parte.tipo.name,
+        'cuenta': cuenta.name,
+        'montoCentimos': centimos,
+        'categoriaId': parte.categoriaId,
+        'abonaA': m.id,
+        'fuente': parte.fuente.name,
+      },
+    );
+    await _a.anotarEnBitacora(
+      empresaId: d.empresa.id,
+      autorId: usuario.id,
+      entidad: _entidad,
+      entidadId: m.id,
+      accion: AccionBitacora.pagar,
+      anterior: {'montoCentimos': m.montoCentimos},
+      nuevo: {
+        'cuenta': cuenta.name,
+        'fechaPago': fecha.toIso8601String(),
+        'parteCentimos': centimos,
+        'parte': parte.id,
+        'montoCentimos': queda.montoCentimos,
+      },
+    );
+    return d.saldoCon(parte.cuentaId, queda, extra: parte);
+  }
+
   // --- Deshacer ----------------------------------------------------------------
 
   @override
   Future<void> deshacer(String id) => _base.transaction(() async {
+    final d = await _leer();
+    final m = d?.movimiento(id);
+    if (d != null && m != null && m.estado == EstadoRegistro.vigente) {
+      if (_trabaAlDeshacer(d, m) case final traba?) {
+        throw StateError(traba.name);
+      }
+      // Deshacer una parte devuelve lo pagado a la deuda (entrega 44).
+      if (m.abonaA case final deudaId?) {
+        final deuda = d.movimiento(deudaId)!;
+        final vuelve = deuda.copyWith(
+          montoCentimos: deuda.montoCentimos + m.montoCentimos,
+        );
+        await (_base.update(
+          _base.movimientos,
+        )..where((x) => x.id.equals(deuda.id))).write(
+          MovimientosCompanion(
+            montoCentimos: Value(vuelve.montoCentimos),
+            estadoSincronizacion:
+                await _a.estadoAlGuardar() == EstadoSincronizacion.porSubir
+                ? const Value(EstadoSincronizacion.porSubir)
+                : const Value.absent(),
+          ),
+        );
+        await _a.anotarEnBitacora(
+          empresaId: d.empresa.id,
+          autorId: (await _a.usuario()).id,
+          entidad: _entidad,
+          entidadId: deuda.id,
+          accion: AccionBitacora.editar,
+          anterior: _valores(d, deuda),
+          nuevo: _valores(d, vuelve),
+        );
+      }
+    }
     final empresa = (await _a.empresa())!;
     final actualizados =
         await (_base.update(_base.movimientos)..where(
@@ -601,6 +834,16 @@ class _Datos {
 
   Movimiento? movimiento(String id) =>
       movimientos.where((m) => m.id == id).firstOrNull;
+
+  /// Los pagos en partes vigentes de una deuda, del más viejo al más nuevo
+  /// (entrega 44).
+  List<Movimiento> partesDe(String deudaId) =>
+      movimientos
+          .where(
+            (m) => m.abonaA == deudaId && m.estado == EstadoRegistro.vigente,
+          )
+          .toList()
+        ..sort((a, b) => a.creadoEn.compareTo(b.creadoEn));
 
   TipoCuenta tipoDeCuenta(String cuentaId) =>
       cuentas.firstWhere((c) => c.id == cuentaId).tipo;

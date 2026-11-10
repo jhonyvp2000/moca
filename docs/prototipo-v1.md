@@ -174,6 +174,7 @@ Estados aprobados el 13-10-2026 (entrega 8):
 
 - Desde la entrega 39, el Historial tiene un buscador por palabras («Jhony Vela» trae «Jhony Salar Vela»; «80» trae los de S/ 80) y «Filtrar» por cuenta, categoría y persona, con la suma de lo encontrado.
 
+- Desde la entrega 44, «Ya me pagó» y «Ya lo pagué» preguntan «¿Cuánto?»: todo o una parte. Cada parte queda como un registro pagado («Pago en parte») y la deuda se queda con lo que falta; solo se deshace la parte más reciente.
 - Desde la entrega 42, «Escribirlo» con «Entró» pregunta «¿Ya te pagaron?»; con «Todavía me debe», pide «¿Quién te debe?» (obligatorio), no sube la plata y la venta queda en «Lo que te deben» (Informes), que se cobra con «Ya me pagó».
 - Desde la entrega 41, «Escribirlo» con «Salió» pregunta «¿Ya lo pagaste?»; con «Todavía lo debo», no baja la plata, pide «¿A quién le debes?» (opcional) y la compra queda en «Lo que debes».
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../comun/campo_monto.dart';
 import '../../comun/opciones.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
@@ -12,12 +13,21 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
 class ResultadoPago {
-  const ResultadoPago({required this.cuenta, required this.saldoCentimos});
+  const ResultadoPago({
+    required this.cuenta,
+    required this.saldoCentimos,
+    this.parteCentimos,
+    this.faltaCentimos = 0,
+  });
 
   final TipoCuenta cuenta;
 
   /// Cómo quedó la cuenta.
   final int saldoCentimos;
+
+  /// Un pago en parte (entrega 44): cuánto, y lo que falta.
+  final int? parteCentimos;
+  final int faltaCentimos;
 }
 
 /// «Ya lo pagué» (estado no dibujado, aprobado el 13-10-2026): con qué cuenta
@@ -45,6 +55,20 @@ class _HojaPagar extends ConsumerStatefulWidget {
 class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
   late TipoCuenta _cuenta = widget.detalle.fila.cuenta;
   _Cuando _cuando = _Cuando.hoy;
+
+  /// Todo o una parte (entrega 44).
+  bool _parte = false;
+  final _monto = TextEditingController();
+  String? _errorMonto;
+
+  int get _falta => widget.detalle.fila.montoCentimos;
+
+  @override
+  void dispose() {
+    _monto.dispose();
+    super.dispose();
+  }
+
   DateTime? _otroDia;
   bool _guardando = false;
 
@@ -84,16 +108,43 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
   Future<void> _pagar() async {
     final repo = ref.read(repositorioHistorialProvider);
     final id = widget.detalle.fila.id;
-    setState(() => _guardando = true);
+    final parte = _parte ? leerSolesEnCentimos(_monto.text) : null;
+    if (_parte && (parte == null || parte <= 0 || parte >= _falta)) {
+      setState(
+        () => _errorMonto = Textos.parteMenorQue(
+          formatearSolesComprobante(_falta),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _guardando = true;
+      _errorMonto = null;
+    });
     try {
-      final quedaria = await repo.saldoSiSePaga(id, _cuenta);
+      final quedaria = await repo.saldoSiSePaga(
+        id,
+        _cuenta,
+        parteCentimos: parte,
+      );
       if (quedaria < 0 && mounted && !await _preguntarNegativo(quedaria)) {
         return;
       }
-      final saldo = await repo.pagar(id, cuenta: _cuenta, dia: _dia);
+      final saldo = await repo.pagar(
+        id,
+        cuenta: _cuenta,
+        dia: _dia,
+        parteCentimos: parte,
+      );
       if (!mounted) return;
-      Navigator.of(context)
-          .pop(ResultadoPago(cuenta: _cuenta, saldoCentimos: saldo));
+      Navigator.of(context).pop(
+        ResultadoPago(
+          cuenta: _cuenta,
+          saldoCentimos: saldo,
+          parteCentimos: parte,
+          faltaCentimos: parte == null ? 0 : _falta - parte,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
@@ -154,6 +205,43 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
               style: Tipografia.tituloPantalla,
             ),
             const SizedBox(height: 16),
+            // Todo o una parte (entrega 44).
+            const Text(Textos.cuanto, style: etiqueta),
+            const SizedBox(height: 8),
+            Opciones<bool>(
+              opciones: {
+                false: Textos.todoElMonto(formatearSolesComprobante(_falta)),
+                true: Textos.unaParte,
+              },
+              elegida: _parte,
+              alElegir: (p) => setState(() {
+                _parte = p;
+                _errorMonto = null;
+              }),
+            ),
+            if (_parte) ...[
+              const SizedBox(height: 8),
+              GrupoMontos(
+                filas: [
+                  FilaMonto(
+                    etiqueta: Textos.montoDeLaParte,
+                    controlador: _monto,
+                    autofocus: true,
+                    accionTeclado: TextInputAction.done,
+                  ),
+                ],
+              ),
+              if (_errorMonto case final error?) ...[
+                const SizedBox(height: 6),
+                Text(
+                  error,
+                  style: Tipografia.secundario.copyWith(
+                    color: Colores.avisoTexto,
+                  ),
+                ),
+              ],
+            ],
+            const SizedBox(height: 18),
             Text(
               cobro ? Textos.aDondeEntro : Textos.conQuePagaste,
               style: etiqueta,

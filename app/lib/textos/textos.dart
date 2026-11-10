@@ -2,6 +2,7 @@ import '../dominio/cuenta_real.dart';
 import '../pais/peru/formato.dart';
 import '../dominio/cobro.dart';
 import '../dominio/aviso_cierre.dart';
+import '../dominio/historial.dart';
 import '../dominio/modelos.dart';
 import '../dominio/tutoria.dart';
 
@@ -838,6 +839,45 @@ abstract final class Textos {
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  static String pagasteParte(String monto, String cuenta, String fecha) =>
+      'Pago en parte de $monto: $cuenta, $fecha';
+
+  // Cobros y pagos en partes (entrega 44).
+  static String todoElMonto(String monto) => 'Todo ($monto)';
+  static const unaParte = 'Una parte';
+  static const montoDeLaParte = 'Monto de la parte';
+  static String parteMenorQue(String monto) =>
+      'Tiene que ser más que cero y menos de $monto. Si es todo, elige '
+      '«Todo».';
+  static String cobradoParte(String parte, String quien, String falta) =>
+      'Cobrado $parte. $quien todavía te debe $falta.';
+  static String pagadoParte(String parte, String falta) =>
+      'Pagado $parte. Todavía debes $falta.';
+  static const pagoEnParte = 'Pago en parte';
+  static String pagoDeTotal(String pagado, String total) =>
+      'pagó $pagado de $total';
+  static const pagosEnPartes = 'Pagos en partes';
+  static String faltaPagar(String monto) =>
+      monto.isEmpty ? 'Falta' : 'Falta $monto';
+  static String parteDeUnaDeuda(bool cobro, String falta) => cobro
+      ? (falta.isEmpty
+            ? 'Es una parte de una venta a crédito, que ya está cobrada.'
+            : 'Es una parte de una venta a crédito. Todavía te deben $falta.')
+      : (falta.isEmpty
+            ? 'Es una parte de una compra que debías, que ya está pagada.'
+            : 'Es una parte de una compra que debes. Todavía debes $falta.');
+  static const verLaDeuda = 'Ver la deuda';
+  static const noSePuede = 'No se puede todavía';
+  static String traba(TrabaDelRegistro traba) => switch (traba) {
+    TrabaDelRegistro.tienePartes =>
+      'Tiene pagos en partes. Para corregirla o deshacerla, primero deshaz '
+          'sus partes, empezando por la más reciente.',
+    TrabaDelRegistro.esParte =>
+      'Un pago en parte no se corrige: deshazlo y anótalo otra vez.',
+    TrabaDelRegistro.noEsLaUltimaParte =>
+      'Solo se deshace la parte más reciente, mientras la deuda siga '
+          'abierta.',
+  };
   static const deshiciste = 'Lo deshiciste';
 
   // Corregir

@@ -126,6 +126,10 @@ class Movimientos extends Table with _ConId {
 
   /// En una edición, el movimiento anulado que este reemplaza.
   TextColumn get reemplazaA => text().nullable()();
+
+  /// Un pago en parte (entrega 44): la deuda de la que es parte. La deuda
+  /// se queda con lo que falta.
+  TextColumn get abonaA => text().nullable()();
   TextColumn get estadoSincronizacion => textEnum<EstadoSincronizacion>()();
   DateTimeColumn get creadoEn => dateTime()();
 }

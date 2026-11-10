@@ -37,6 +37,7 @@ import 'package:moca/dominio/tutoria.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pais/peru/formato.dart';
+import 'package:moca/dominio/historial.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/historial/fila_movimiento.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
@@ -1221,6 +1222,75 @@ void main() {
             Textos.nombreCuenta(TipoCuenta.efectivo),
           ),
         ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Entrega 44: cobrar una venta a crédito en partes', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.entro).first);
+      await tester.enterText(find.byType(TextField).first, '200');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.todaviaMeDebe));
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Doña Rosa',
+      );
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tester.scrollUntilVisible(
+        find.text(Textos.loQueTeDebenTitulo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      await tocar(tester, find.byType(FilaMovimiento).first);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.yaMePago));
+      expect(
+        find.text(Textos.todoElMonto(formatearSolesComprobante(20000))),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.unaParte));
+      // Todo no es una parte.
+      await tester.enterText(find.widgetWithText(TextField, '').last, '200');
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.yaMePago).last,
+      );
+      expect(
+        find.text(Textos.parteMenorQue(formatearSolesComprobante(20000))),
+        findsOneWidget,
+      );
+      await tester.enterText(find.widgetWithText(TextField, '200'), '80');
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.yaMePago).last,
+      );
+      expect(
+        find.text(
+          Textos.cobradoParte(
+            formatearSolesComprobante(8000),
+            'Doña Rosa',
+            formatearSolesComprobante(12000),
+          ),
+        ),
+        findsOneWidget,
+      );
+      // La deuda queda con lo que falta y sus partes.
+      expect(find.text(Textos.pagosEnPartes), findsOneWidget);
+      expect(find.text(Textos.faltaPagar('')), findsOneWidget);
+      // Con partes no se deshace: lo explica.
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.deshacerRegistro));
+      expect(
+        find.text(Textos.traba(TrabaDelRegistro.tienePartes)),
         findsOneWidget,
       );
     });

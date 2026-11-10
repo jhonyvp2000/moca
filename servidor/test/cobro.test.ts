@@ -536,6 +536,31 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     expect(anulado.json().cobro).toMatchObject({ plan: 'basico', nivel: 'basico' });
   });
 
+  it('Entrega 44: un pago en parte sube con la deuda de la que es parte', async () => {
+    const tito = await verificar('987000009');
+    const datos = negocio('Bodega Tito', tito.usuarioId, '2026-11-20T14:00:00.000Z');
+    const [venta] = datos.movimientos;
+    const deuda = {
+      ...venta!,
+      id: randomUUID(),
+      monto_centimos: 12000,
+      estado_pago: 'pendiente',
+      monto_pagado_centimos: 0,
+      fecha_pago: null,
+    };
+    // La parte va antes que su deuda: se revisa al final, no fila por fila.
+    const parte = { ...venta!, id: randomUUID(), monto_centimos: 8000, abona_a: deuda.id };
+    const subida = await pedir(tito, 'POST', '/datos/subir', {
+      ...datos,
+      movimientos: [venta, parte, deuda],
+    });
+    expect(subida.statusCode).toBe(200);
+    const bajado = (await pedir(tito, 'GET', '/datos/bajar')).json();
+    const filas = bajado.datos.movimientos as { id: string; abona_a: string | null }[];
+    expect(filas.find((m) => m.id === parte.id)?.abona_a).toBe(deuda.id);
+    expect(filas.find((m) => m.id === deuda.id)?.abona_a).toBeNull();
+  });
+
   it('Entrega 28: el uso del negocio llega y Jhony lo ve resumido', async () => {
     const hace = (horas: number) => new Date(Date.now() - horas * 3_600_000).toISOString();
     const evento = (nombre: string, horas: number, datos?: object) => ({

@@ -24,6 +24,8 @@ class FilaHistorial {
     this.autorRol,
     this.anotadoEn,
     this.vence,
+    this.parteDe,
+    this.pagadoEnPartesCentimos = 0,
   });
 
   final String id;
@@ -40,6 +42,16 @@ class FilaHistorial {
 
   /// Una venta a crédito que todavía te deben (entrega 42).
   bool get teDeben => loDebes && tipo == TipoMovimiento.ingreso;
+
+  /// Un pago en parte (entrega 44): el id de la deuda de la que es parte.
+  final String? parteDe;
+
+  /// En una deuda: lo que ya se pagó en partes. [montoCentimos] es lo que
+  /// falta.
+  final int pagadoEnPartesCentimos;
+
+  /// En una deuda con partes: lo que era al principio.
+  int get totalConPartesCentimos => montoCentimos + pagadoEnPartesCentimos;
   final bool porSubir;
   final String? categoria;
   final String? nota;
@@ -86,6 +98,8 @@ class FilaHistorial {
     autorRol: autorRol,
     anotadoEn: anotadoEn,
     vence: vence,
+    parteDe: parteDe,
+    pagadoEnPartesCentimos: pagadoEnPartesCentimos,
   );
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
@@ -278,10 +292,62 @@ class CambioCorregido extends Cambio {
 }
 
 class CambioPagado extends Cambio {
-  const CambioPagado(super.fecha, this.cuenta, this.fechaPago);
+  const CambioPagado(
+    super.fecha,
+    this.cuenta,
+    this.fechaPago, {
+    this.parteCentimos,
+  });
 
   final TipoCuenta cuenta;
   final DateTime fechaPago;
+
+  /// Un pago en parte (entrega 44): cuánto.
+  final int? parteCentimos;
+}
+
+/// Un pago en parte de una deuda (entrega 44).
+class ParteDePago {
+  const ParteDePago({
+    required this.id,
+    required this.fechaPago,
+    required this.cuenta,
+    required this.montoCentimos,
+  });
+
+  final String id;
+  final DateTime fechaPago;
+  final TipoCuenta cuenta;
+  final int montoCentimos;
+}
+
+/// La deuda de la que es parte un pago en parte (entrega 44).
+class DeudaDeLaParte {
+  const DeudaDeLaParte({
+    required this.id,
+    required this.tipo,
+    required this.faltaCentimos,
+    required this.abierta,
+  });
+
+  final String id;
+  final TipoMovimiento tipo;
+
+  /// Lo que todavía se debe; 0 si ya se pagó.
+  final int faltaCentimos;
+  final bool abierta;
+}
+
+/// Por qué no se corrige o no se deshace un registro (entrega 44).
+enum TrabaDelRegistro {
+  /// Una deuda con pagos en partes: primero se deshacen las partes.
+  tienePartes,
+
+  /// Un pago en parte no se corrige: se deshace y se anota otra vez.
+  esParte,
+
+  /// Solo se deshace la parte más reciente, con la deuda todavía abierta.
+  noEsLaUltimaParte,
 }
 
 class CambioDeshecho extends Cambio {
@@ -302,7 +368,22 @@ class DetalleMovimiento {
     this.primerDiaDePago,
     this.comprobante,
     this.ajuste,
+    this.partes = const [],
+    this.deuda,
+    this.trabaAlCorregir,
+    this.trabaAlDeshacer,
   });
+
+  /// En una deuda: sus pagos en partes, del más viejo al más nuevo
+  /// (entrega 44).
+  final List<ParteDePago> partes;
+
+  /// En un pago en parte: la deuda de la que es parte.
+  final DeudaDeLaParte? deuda;
+
+  /// Nulo si se puede corregir o deshacer.
+  final TrabaDelRegistro? trabaAlCorregir;
+  final TrabaDelRegistro? trabaAlDeshacer;
 
   final FilaHistorial fila;
 
@@ -380,14 +461,18 @@ abstract interface class RepositorioHistorial {
   /// nuevo.
   Future<Guardado> corregir(String id, NuevoMovimiento correccion);
 
-  /// Cómo quedaría la cuenta al pagar una compra que se debe.
-  Future<int> saldoSiSePaga(String id, TipoCuenta cuenta);
+  /// Cómo quedaría la cuenta al pagar una compra que se debe, completa o
+  /// [parteCentimos] (entrega 44).
+  Future<int> saldoSiSePaga(String id, TipoCuenta cuenta, {int? parteCentimos});
 
-  /// «Ya lo pagué»: se paga completo. Devuelve el saldo de la cuenta.
+  /// «Ya lo pagué» o «Ya me pagó»: completo o, con [parteCentimos], una
+  /// parte (entrega 44), que queda como un registro pagado y deja en la
+  /// deuda lo que falta. Devuelve el saldo de la cuenta.
   Future<int> pagar(
     String id, {
     required TipoCuenta cuenta,
     required DateTime dia,
+    int? parteCentimos,
   });
 
   /// Anula el registro; no se borra y queda en la bitácora.

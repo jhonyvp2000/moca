@@ -7,6 +7,7 @@ import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
+import 'package:moca/datos/repositorios/repositorio_informe_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/comprobantes.dart';
@@ -575,5 +576,163 @@ void main() {
         'Don Pepe',
       );
     });
+  });
+
+  group('Entrega 44: cobros y pagos en partes', () {
+    Future<String> venta(int soles) async {
+      final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+      return (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: ingresos.first.id,
+          pagado: false,
+          contraparte: 'Doña Rosa',
+        ),
+      )).ids.single;
+    }
+
+    Future<int> saldo(TipoCuenta cuenta) => movimientos.saldoSiSeGuarda(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.aporte,
+        montoCentimos: 0,
+        cuenta: cuenta,
+      ),
+    );
+
+    test(
+      'una parte sube la cuenta, la deuda baja y el resto la cierra',
+      () async {
+        final informe = RepositorioInformeLocal(base, ahora: () => ahora);
+        final entro = (await informe.observarMes(null).first).entroCentimos;
+        final yapeAntes = await saldo(TipoCuenta.yape);
+        final efectivoAntes = await saldo(TipoCuenta.efectivo);
+        final id = await venta(200);
+        expect(
+          await repo.saldoSiSePaga(id, TipoCuenta.yape, parteCentimos: 8000),
+          yapeAntes + 8000,
+        );
+        final yape = await repo.pagar(
+          id,
+          cuenta: TipoCuenta.yape,
+          dia: ahora,
+          parteCentimos: 8000,
+        );
+        expect(yape, yapeAntes + 8000);
+        var deben = (await repo.observarLoQueTeDeben().first).single;
+        expect(deben.montoCentimos, 12000);
+        expect(deben.pagadoEnPartesCentimos, 8000);
+        expect(deben.totalConPartesCentimos, 20000);
+        // Otra parte, en efectivo; y el resto completo.
+        await repo.pagar(
+          id,
+          cuenta: TipoCuenta.efectivo,
+          dia: ahora,
+          parteCentimos: 5000,
+        );
+        deben = (await repo.observarLoQueTeDeben().first).single;
+        expect(deben.montoCentimos, 7000);
+        final detalle = (await repo.observarDetalle(id).first)!;
+        expect([for (final p in detalle.partes) p.montoCentimos], [8000, 5000]);
+        expect(detalle.trabaAlCorregir, TrabaDelRegistro.tienePartes);
+        expect(detalle.trabaAlDeshacer, TrabaDelRegistro.tienePartes);
+        await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: ahora);
+        expect(await repo.observarLoQueTeDeben().first, isEmpty);
+        // Todo suma exactamente la venta, también en el informe del mes.
+        expect(
+          (await informe.observarMes(null).first).entroCentimos,
+          entro + 20000,
+        );
+        expect(await saldo(TipoCuenta.yape), yapeAntes + 8000);
+        expect(await saldo(TipoCuenta.efectivo), efectivoAntes + 5000 + 7000);
+        final historial = (await repo.observarHistorial().first).filas;
+        expect(
+          historial
+              .where((f) => f.id == id || f.parteDe == id)
+              .fold(0, (s, f) => s + f.montoCentimos),
+          20000,
+        );
+        // La deuda ya pagada: sus partes no se deshacen.
+        final parte = historial.firstWhere((f) => f.parteDe == id);
+        final dp = (await repo.observarDetalle(parte.id).first)!;
+        expect(dp.trabaAlDeshacer, TrabaDelRegistro.noEsLaUltimaParte);
+        expect(dp.trabaAlCorregir, TrabaDelRegistro.esParte);
+        expect(dp.deuda!.abierta, isFalse);
+        expect(() => repo.deshacer(parte.id), throwsStateError);
+      },
+    );
+
+    test('deshacer la última parte la devuelve a la deuda', () async {
+      final efectivo = await saldo(TipoCuenta.efectivo);
+      final id = await venta(100);
+      await repo.pagar(
+        id,
+        cuenta: TipoCuenta.efectivo,
+        dia: ahora,
+        parteCentimos: 3000,
+      );
+      await repo.pagar(
+        id,
+        cuenta: TipoCuenta.efectivo,
+        dia: ahora,
+        parteCentimos: 2000,
+      );
+      final partes = (await repo.observarDetalle(id).first)!.partes;
+      // Solo la más reciente.
+      expect(() => repo.deshacer(partes.first.id), throwsStateError);
+      expect(() => repo.deshacer(id), throwsStateError);
+      await repo.deshacer(partes.last.id);
+      expect(
+        (await repo.observarLoQueTeDeben().first).single.montoCentimos,
+        7000,
+      );
+      expect(await saldo(TipoCuenta.efectivo), efectivo + 3000);
+      final detalle = (await repo.observarDetalle(partes.first.id).first)!;
+      expect(detalle.trabaAlDeshacer, isNull);
+      expect(detalle.deuda!.faltaCentimos, 7000);
+    });
+
+    test(
+      'no se paga cero ni lo que falta como parte; compras también',
+      () async {
+        final id = await venta(50);
+        for (final parte in [0, -100, 5000, 6000]) {
+          expect(
+            () => repo.pagar(
+              id,
+              cuenta: TipoCuenta.efectivo,
+              dia: ahora,
+              parteCentimos: parte,
+            ),
+            throwsArgumentError,
+            reason: '$parte',
+          );
+        }
+        // Una compra que se debe, en partes.
+        final efectivo = await saldo(TipoCuenta.efectivo);
+        final compra = (await movimientos.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 9000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: mercaderia,
+            pagado: false,
+            contraparte: 'Distribuidora',
+          ),
+        )).ids.single;
+        await repo.pagar(
+          compra,
+          cuenta: TipoCuenta.efectivo,
+          dia: ahora,
+          parteCentimos: 4000,
+        );
+        expect(await saldo(TipoCuenta.efectivo), efectivo - 4000);
+        expect(
+          (await repo.observarLoQueDebes().first).single.montoCentimos,
+          5000,
+        );
+      },
+    );
   });
 }

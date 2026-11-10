@@ -56,8 +56,15 @@ List<String> _partes(FilaHistorial f) {
   final tituloEsCategoria =
       f.proveedor == null && f.nota == null && f.categoria != null;
   return [
+    // Un pago en parte, y lo que va pagado de una deuda (entrega 44).
+    if (f.parteDe != null) Textos.pagoEnParte,
     if (!tituloEsCategoria && f.categoria != null) f.categoria!,
     if (!f.loDebes) cuenta,
+    if (f.loDebes && f.pagadoEnPartesCentimos > 0)
+      Textos.pagoDeTotal(
+        formatearSolesComprobante(f.pagadoEnPartesCentimos),
+        formatearSolesComprobante(f.totalConPartesCentimos),
+      ),
     if (f.porSubir) Textos.marcaPorSubir,
     // Con varias personas, quién lo anotó (entrega 20).
     if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),

@@ -1778,6 +1778,7 @@ class ServicioCuentaRemoto
           nota: Value(m['nota'] as String?),
           estado: _enum(EstadoRegistro.values, m['estado']),
           reemplazaA: Value(m['reemplaza_a'] as String?),
+          abonaA: Value(m['abona_a'] as String?),
           estadoSincronizacion: estado,
           creadoEn: _desdeFecha(m['creado_en']),
         ),
@@ -2100,6 +2101,7 @@ class ServicioCuentaRemoto
               'estado': m.estado.name,
               'reemplaza_a': m.reemplazaA,
               'creado_en': _fecha(m.creadoEn),
+              'abona_a': m.abonaA,
             },
       ],
       'arqueos': [

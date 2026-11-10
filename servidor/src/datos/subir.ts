@@ -34,7 +34,7 @@ export const tablas = {
     'fecha_comprobante', 'estado_pago', 'monto_pagado_centimos', 'fecha_vencimiento',
     'fecha_pago', 'categoria_id', 'contraparte_id', 'comprobante_id',
     'nivel_confianza', 'fuente', 'autor_id', 'nota', 'estado', 'reemplaza_a',
-    'creado_en',
+    'creado_en', 'abona_a',
   ],
   arqueos: ['id', 'empresa_id', 'fecha', 'autor_id', 'creado_en'],
   arqueo_cuentas: [

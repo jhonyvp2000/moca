@@ -56,6 +56,21 @@ class _EstadoDetalleMovimiento
     });
   }
 
+  /// Por qué no se corrige o no se deshace todavía (entrega 44).
+  Future<void> _explicar(TrabaDelRegistro traba) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text(Textos.noSePuede),
+      content: Text(Textos.traba(traba), style: Tipografia.texto),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(Textos.entendido),
+        ),
+      ],
+    ),
+  );
+
   Future<void> _corregir(DetalleMovimiento d) async {
     final nuevo = await context.push<String>(Rutas.corregir, extra: d);
     if (nuevo != null && mounted) setState(() => _id = nuevo);
@@ -110,14 +125,25 @@ class _EstadoDetalleMovimiento
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            (d.fila.teDeben
-                ? Textos.cobradoAhoraTienes
-                : Textos.pagadoAhoraTienes)(
-              formatearSoles(resultado.saldoCentimos),
-              Textos.nombreCuenta(resultado.cuenta),
+          content: Text(switch (resultado.parteCentimos) {
+            // Una parte (entrega 44): cuánto entró y lo que falta.
+            final parte? when d.fila.teDeben => Textos.cobradoParte(
+              formatearSolesComprobante(parte),
+              d.fila.proveedor ?? Textos.sinCliente,
+              formatearSolesComprobante(resultado.faltaCentimos),
             ),
-          ),
+            final parte? => Textos.pagadoParte(
+              formatearSolesComprobante(parte),
+              formatearSolesComprobante(resultado.faltaCentimos),
+            ),
+            null =>
+              (d.fila.teDeben
+                  ? Textos.cobradoAhoraTienes
+                  : Textos.pagadoAhoraTienes)(
+                formatearSoles(resultado.saldoCentimos),
+                Textos.nombreCuenta(resultado.cuenta),
+              ),
+          }),
         ),
       );
   }
@@ -197,6 +223,25 @@ class _EstadoDetalleMovimiento
             texto: f.teDeben ? Textos.todaviaTeDebe : Textos.todaviaLoDebes,
           ),
         ],
+        // Un pago en parte: de qué deuda es (entrega 44).
+        if (d.deuda case final deuda?) ...[
+          const SizedBox(height: Medidas.separacionTarjetas),
+          FranjaInformativa(
+            texto: Textos.parteDeUnaDeuda(
+              deuda.tipo == TipoMovimiento.ingreso,
+              deuda.abierta
+                  ? formatearSolesComprobante(deuda.faltaCentimos)
+                  : '',
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.push(Rutas.detalleMovimiento(deuda.id)),
+              child: const Text(Textos.verLaDeuda),
+            ),
+          ),
+        ],
         if (f.porSubir) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
           const FranjaInformativa(texto: Textos.guardadoPorSubir),
@@ -227,6 +272,25 @@ class _EstadoDetalleMovimiento
           ),
         ] else
           _Datos(detalle: d),
+        // Una deuda con pagos en partes (entrega 44).
+        if (d.partes.isNotEmpty) ...[
+          const _Subtitulo(Textos.pagosEnPartes),
+          _TarjetaDeFilas(
+            filas: [
+              for (final p in d.partes)
+                (
+                  '${formatearDiaYMes(p.fechaPago)} · '
+                      '${Textos.nombreCuenta(p.cuenta)}',
+                  formatearSolesComprobante(p.montoCentimos),
+                ),
+              if (f.loDebes)
+                (
+                  Textos.faltaPagar(''),
+                  formatearSolesComprobante(f.montoCentimos),
+                ),
+            ],
+          ),
+        ],
         if (d.comprobante case final c?) ...[
           const _Subtitulo(Textos.etiquetaComprobante),
           _Comprobante(comprobante: c),
@@ -246,14 +310,22 @@ class _EstadoDetalleMovimiento
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: activo ? () => _corregir(d) : null,
+                  onPressed: activo
+                      ? () => d.trabaAlCorregir == null
+                            ? _corregir(d)
+                            : _explicar(d.trabaAlCorregir!)
+                      : null,
                   child: const Text(Textos.corregir),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: activo ? () => _deshacer(d) : null,
+                  onPressed: activo
+                      ? () => d.trabaAlDeshacer == null
+                            ? _deshacer(d)
+                            : _explicar(d.trabaAlDeshacer!)
+                      : null,
                   child: const Text(
                     Textos.deshacerRegistro,
                     textAlign: TextAlign.center,
@@ -334,7 +406,12 @@ class _TarjetaDeFilas extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(etiqueta, style: Tipografia.secundario),
+                  // Una parte lleva fecha y cuenta (entrega 44): puede ser
+                  // larga.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Text(etiqueta, style: Tipografia.secundario),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -527,8 +604,17 @@ class _Cambios extends StatelessWidget {
       campos.isEmpty
           ? [Textos.corregisteSinCambios]
           : [for (final campo in campos) _campo(campo)],
-    CambioPagado(:final cuenta, :final fechaPago) => [
-      Textos.pagaste(Textos.nombreCuenta(cuenta), formatearDiaYMes(fechaPago)),
+    CambioPagado(:final cuenta, :final fechaPago, :final parteCentimos) => [
+      parteCentimos == null
+          ? Textos.pagaste(
+              Textos.nombreCuenta(cuenta),
+              formatearDiaYMes(fechaPago),
+            )
+          : Textos.pagasteParte(
+              formatearSolesComprobante(parteCentimos),
+              Textos.nombreCuenta(cuenta),
+              formatearDiaYMes(fechaPago),
+            ),
     ],
     CambioDeshecho() => [Textos.deshiciste],
   };
