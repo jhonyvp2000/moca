@@ -1270,6 +1270,13 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      // Entrega 45: recordarle por WhatsApp, sin su número.
+      await tocar(tester, find.text(Textos.recordarPorWhatsApp));
+      expect(_abiertos.single, startsWith('https://wa.me/?text='));
+      expect(
+        Uri.parse(_abiertos.single).queryParameters['text'],
+        contains('Hola, Doña Rosa. Le escribimos de Bodega Don Lucho'),
+      );
       await tocar(tester, find.byType(FilaMovimiento).first);
       await tocar(tester, find.widgetWithText(FilledButton, Textos.yaMePago));
       expect(
@@ -3607,6 +3614,39 @@ void main() {
       expect(find.text(Textos.tituloDetalle), findsOneWidget);
       expect(find.text(Textos.corregir), findsNothing);
       expect(find.text(Textos.deshacerRegistro), findsNothing);
+    });
+
+    testWidgets('Entrega 45: el contador no recuerda deudas por WhatsApp', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        final repo = RepositorioMovimientosLocal(base, ahora: () => _ahora);
+        final ingresos = await repo.categorias(TipoMovimiento.ingreso);
+        await repo.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 5000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ingresos.first.id,
+            pagado: false,
+            contraparte: 'Don Pepe',
+          ),
+        );
+        await base
+            .update(base.membresias)
+            .write(const MembresiasCompanion(rol: Value(Rol.contador)));
+      });
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tester.scrollUntilVisible(
+        find.text(Textos.loQueTeDebenTitulo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      expect(find.textContaining('Don Pepe'), findsWidgets);
+      expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });
 
     testWidgets('El encargado no ve los informes ni cambia las cuentas', (

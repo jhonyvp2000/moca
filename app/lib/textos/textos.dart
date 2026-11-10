@@ -839,6 +839,32 @@ abstract final class Textos {
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  // Recordarle al cliente por WhatsApp (entrega 45). De usted: es un
+  // mensaje del negocio a su cliente.
+  static const recordarPorWhatsApp = 'Recordar por WhatsApp';
+  static String recordatorioDeuda({
+    required String? cliente,
+    required String negocio,
+    required String falta,
+    required List<String> fechas,
+    String? total,
+  }) {
+    final saludo = cliente == null ? 'Hola.' : 'Hola, $cliente.';
+    String unir(List<String> partes) => partes.length == 1
+        ? partes.single
+        : '${partes.sublist(0, partes.length - 1).join(', ')} y '
+              '${partes.last}';
+    final de = fechas.length == 1
+        ? 'de su compra del ${fechas.single}'
+        : 'de sus compras ${unir([for (final f in fechas) 'del $f'])}';
+    final pendiente = total == null
+        ? 'tiene pendiente $falta'
+        : 'le queda pendiente $falta de $total';
+    return '$saludo Le escribimos de $negocio para recordarle que '
+        '$pendiente, $de. Cuando pueda, nos avisa cómo prefiere pagar. '
+        'Gracias.';
+  }
+
   // Deshacer un cobro o un pago completo (entrega 44.2).
   static const deshacerElCobro = 'Deshacer el cobro';
   static const deshacerElPago = 'Deshacer el pago';

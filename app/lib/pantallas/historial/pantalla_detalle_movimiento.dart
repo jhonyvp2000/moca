@@ -13,6 +13,7 @@ import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
+import '../informe/recordatorio_whatsapp.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
@@ -355,6 +356,20 @@ class _EstadoDetalleMovimiento
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
             child: Text(f.teDeben ? Textos.yaMePago : Textos.yaLoPague),
+          ),
+        // Una venta a crédito: recordarle al cliente (entrega 45).
+        if (d.vigente &&
+            f.teDeben &&
+            (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
+                Rol.dueno)
+          OutlinedButton(
+            onPressed: () => recordarPorWhatsApp(
+              context,
+              ref,
+              cliente: f.proveedor,
+              ventas: [f],
+            ),
+            child: const Text(Textos.recordarPorWhatsApp),
           ),
         // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).
         if (puedeCambiar && d.vigente && d.sePuedeDeshacerElPago)

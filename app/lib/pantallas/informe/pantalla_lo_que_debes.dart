@@ -13,6 +13,9 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../historial/fila_movimiento.dart';
+import 'recordatorio_whatsapp.dart';
+import '../../dominio/equipo.dart';
+import '../../dominio/modelos.dart';
 
 /// «Lo que debes» (entrega 38): las compras que todavía se deben, por
 /// proveedor. Cada una abre su detalle, con «Ya lo pagué».
@@ -46,6 +49,9 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
       stream: _deudas,
       builder: (context, foto) {
         final deudas = foto.data;
+        final dueno =
+            (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
+            Rol.dueno;
         final grupos = <String, List<FilaHistorial>>{};
         for (final f in deudas ?? const <FilaHistorial>[]) {
           grupos.putIfAbsent(_aQuien(f), () => []).add(f);
@@ -90,6 +96,20 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                   ),
                   style: Tipografia.textoFuerte,
                 ),
+                // Recordarle por WhatsApp, solo los dueños (entrega 45).
+                if (widget.teDeben && dueno)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => recordarPorWhatsApp(
+                        context,
+                        ref,
+                        cliente: filas.first.proveedor,
+                        ventas: filas,
+                      ),
+                      child: const Text(Textos.recordarPorWhatsApp),
+                    ),
+                  ),
                 const SizedBox(height: 6),
                 Tarjeta(
                   relleno: EdgeInsets.zero,
