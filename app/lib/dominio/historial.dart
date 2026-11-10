@@ -354,6 +354,13 @@ enum TrabaDelRegistro {
   noEsLaUltimaParte,
 }
 
+/// Se deshizo un cobro o un pago completo: volvió a deberse (entrega 44.2).
+class CambioPagoDeshecho extends Cambio {
+  const CambioPagoDeshecho(super.fecha, {this.cobro = false});
+
+  final bool cobro;
+}
+
 class CambioDeshecho extends Cambio {
   const CambioDeshecho(super.fecha);
 }
@@ -376,7 +383,16 @@ class DetalleMovimiento {
     this.deuda,
     this.trabaAlCorregir,
     this.trabaAlDeshacer,
+    this.sePuedeDeshacerElPago = false,
+    this.saldoSiSeDeshaceElPagoCentimos,
   });
+
+  /// Fue una deuda y se pagó completa: «Deshacer el cobro» o «Deshacer el
+  /// pago» la vuelve a deberse (entrega 44.2).
+  final bool sePuedeDeshacerElPago;
+
+  /// Cómo quedaría su cuenta al deshacer el pago.
+  final int? saldoSiSeDeshaceElPagoCentimos;
 
   /// En una deuda: sus pagos en partes, del más viejo al más nuevo
   /// (entrega 44).
@@ -481,4 +497,8 @@ abstract interface class RepositorioHistorial {
 
   /// Anula el registro; no se borra y queda en la bitácora.
   Future<void> deshacer(String id);
+
+  /// «Deshacer el cobro» o «Deshacer el pago» (entrega 44.2): una deuda
+  /// pagada completa vuelve a deberse. Devuelve el saldo de su cuenta.
+  Future<int> deshacerPago(String id);
 }

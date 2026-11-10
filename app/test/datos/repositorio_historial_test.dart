@@ -806,4 +806,114 @@ void main() {
       'Marcaste que ya cobraste: Yape, 9 nov',
     );
   });
+
+  group('Entrega 44.2: deshacer el cobro o el pago', () {
+    Future<int> saldo(TipoCuenta cuenta) => movimientos.saldoSiSeGuarda(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.aporte,
+        montoCentimos: 0,
+        cuenta: cuenta,
+      ),
+    );
+
+    Future<String> venta(int soles) async {
+      final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+      return (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: ingresos.first.id,
+          pagado: false,
+          contraparte: 'Doña Rosa',
+        ),
+      )).ids.single;
+    }
+
+    test('una venta cobrada vuelve a deberse y sale de la cuenta', () async {
+      final yape = await saldo(TipoCuenta.yape);
+      final id = await venta(100);
+      expect(
+        (await repo.observarDetalle(id).first)!.sePuedeDeshacerElPago,
+        isFalse,
+      );
+      await repo.pagar(id, cuenta: TipoCuenta.yape, dia: ahora);
+      final detalle = (await repo.observarDetalle(id).first)!;
+      expect(detalle.sePuedeDeshacerElPago, isTrue);
+      expect(detalle.saldoSiSeDeshaceElPagoCentimos, yape);
+      expect(await repo.deshacerPago(id), yape);
+      expect(await saldo(TipoCuenta.yape), yape);
+      final deben = (await repo.observarLoQueTeDeben().first).single;
+      expect(deben.id, id);
+      expect(deben.montoCentimos, 10000);
+      final despues = (await repo.observarDetalle(id).first)!;
+      expect(despues.sePuedeDeshacerElPago, isFalse);
+      expect(
+        despues.cambios.whereType<CambioPagoDeshecho>().single.cobro,
+        isTrue,
+      );
+      // Se puede volver a cobrar, y otra vez deshacer.
+      await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: ahora);
+      expect(
+        (await repo.observarDetalle(id).first)!.sePuedeDeshacerElPago,
+        isTrue,
+      );
+    });
+
+    test(
+      'una compra con comprobante pagada después vuelve a deberse',
+      () async {
+        final efectivo = await saldo(TipoCuenta.efectivo);
+        final id = await compraQueSeDebe();
+        await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: ahora);
+        expect(await saldo(TipoCuenta.efectivo), efectivo - 98000);
+        final detalle = (await repo.observarDetalle(id).first)!;
+        expect(detalle.sePuedeDeshacerElPago, isTrue);
+        // Dejaría el efectivo como estaba.
+        expect(detalle.saldoSiSeDeshaceElPagoCentimos, efectivo);
+        await repo.deshacerPago(id);
+        expect(await saldo(TipoCuenta.efectivo), efectivo);
+        expect((await repo.observarLoQueDebes().first).single.id, id);
+      },
+    );
+
+    test('un gasto anotado ya pagado no lo tiene', () async {
+      final id = await gasto(30);
+      expect(
+        (await repo.observarDetalle(id).first)!.sePuedeDeshacerElPago,
+        isFalse,
+      );
+      expect(() => repo.deshacerPago(id), throwsStateError);
+    });
+
+    test('una deuda en partes cerrada con el resto se reabre', () async {
+      final id = await venta(200);
+      await repo.pagar(
+        id,
+        cuenta: TipoCuenta.efectivo,
+        dia: ahora,
+        parteCentimos: 5000,
+      );
+      await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: ahora);
+      expect(await repo.observarLoQueTeDeben().first, isEmpty);
+      final cerrada = (await repo.observarDetalle(id).first)!;
+      expect(cerrada.sePuedeDeshacerElPago, isTrue);
+      await repo.deshacerPago(id);
+      expect(
+        (await repo.observarLoQueTeDeben().first).single.montoCentimos,
+        15000,
+      );
+      // Y ya se deshace la parte.
+      final parte = (await repo.observarDetalle(id).first)!.partes.single;
+      expect(
+        (await repo.observarDetalle(parte.id).first)!.trabaAlDeshacer,
+        isNull,
+      );
+      await repo.deshacer(parte.id);
+      expect(
+        (await repo.observarLoQueTeDeben().first).single.montoCentimos,
+        20000,
+      );
+    });
+  });
 }

@@ -1224,6 +1224,26 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Entrega 44.2: el cobro se deshace y vuelve a deberse.
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.deshacerElCobro));
+      expect(
+        find.text(
+          Textos.preguntaDeshacerCobro(
+            formatearSolesComprobante(20000),
+            Textos.nombreCuenta(TipoCuenta.efectivo),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.deshacerElCobro),
+      );
+      expect(find.text(Textos.cobroDeshecho), findsOneWidget);
+      expect(find.text(Textos.todaviaTeDebe), findsOneWidget);
+      expect(find.text(Textos.deshicisteCobro), findsOneWidget);
     });
 
     testWidgets('Entrega 44: cobrar una venta a crédito en partes', (

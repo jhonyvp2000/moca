@@ -71,6 +71,57 @@ class _EstadoDetalleMovimiento
     ),
   );
 
+  /// «Deshacer el cobro» o «Deshacer el pago» (entrega 44.2): primero dice
+  /// qué pasa con la plata.
+  Future<void> _deshacerPago(DetalleMovimiento d) async {
+    final f = d.fila;
+    final cobro = f.tipo == TipoMovimiento.ingreso;
+    final monto = formatearSolesComprobante(f.montoCentimos);
+    final cuenta = Textos.nombreCuenta(f.cuenta);
+    final saldo = d.saldoSiSeDeshaceElPagoCentimos;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(cobro ? Textos.deshacerElCobro : Textos.deshacerElPago),
+        content: Text(
+          [
+            cobro
+                ? Textos.preguntaDeshacerCobro(monto, cuenta)
+                : Textos.preguntaDeshacerPago(monto, cuenta),
+            if (saldo != null && saldo < 0)
+              Textos.quedariaEn(cuenta, formatearSoles(saldo)),
+          ].join(' '),
+          style: Tipografia.texto,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(cobro ? Textos.deshacerElCobro : Textos.deshacerElPago),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    setState(() => _ocupado = true);
+    final mensajes = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(repositorioHistorialProvider).deshacerPago(f.id);
+      mensajes
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(cobro ? Textos.cobroDeshecho : Textos.pagoDeshecho),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
   Future<void> _corregir(DetalleMovimiento d) async {
     final nuevo = await context.push<String>(Rutas.corregir, extra: d);
     if (nuevo != null && mounted) setState(() => _id = nuevo);
@@ -304,6 +355,16 @@ class _EstadoDetalleMovimiento
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
             child: Text(f.teDeben ? Textos.yaMePago : Textos.yaLoPague),
+          ),
+        // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).
+        if (puedeCambiar && d.vigente && d.sePuedeDeshacerElPago)
+          OutlinedButton(
+            onPressed: activo ? () => _deshacerPago(d) : null,
+            child: Text(
+              f.tipo == TipoMovimiento.ingreso
+                  ? Textos.deshacerElCobro
+                  : Textos.deshacerElPago,
+            ),
           ),
         if (puedeCambiar && d.vigente && d.ajuste == null)
           Row(
@@ -624,6 +685,9 @@ class _Cambios extends StatelessWidget {
           ),
         },
       ],
+    CambioPagoDeshecho(:final cobro) => [
+      cobro ? Textos.deshicisteCobro : Textos.deshicistePago,
+    ],
     CambioDeshecho() => [Textos.deshiciste],
   };
 

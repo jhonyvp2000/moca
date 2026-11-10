@@ -839,6 +839,22 @@ abstract final class Textos {
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  // Deshacer un cobro o un pago completo (entrega 44.2).
+  static const deshacerElCobro = 'Deshacer el cobro';
+  static const deshacerElPago = 'Deshacer el pago';
+  static String preguntaDeshacerCobro(String monto, String cuenta) =>
+      'La venta vuelve a «Lo que te deben» y salen $monto de '
+      '${cuenta.toLowerCase()}.';
+  static String preguntaDeshacerPago(String monto, String cuenta) =>
+      'La compra vuelve a «Lo que debes» y vuelven $monto a '
+      '${cuenta.toLowerCase()}.';
+  static String quedariaEn(String cuenta, String saldo) =>
+      '$cuenta quedaría en $saldo.';
+  static const cobroDeshecho = 'Listo. La venta volvió a «Lo que te deben».';
+  static const pagoDeshecho = 'Listo. La compra volvió a «Lo que debes».';
+  static const deshicisteCobro =
+      'Deshiciste el cobro: volvió a «Lo que te deben»';
+  static const deshicistePago = 'Deshiciste el pago: volvió a «Lo que debes»';
   static String tePagaron(String cuenta, String fecha) =>
       'Marcaste que ya cobraste: $cuenta, $fecha';
   static String pagasteParte(String monto, String cuenta, String fecha) =>

@@ -264,7 +264,76 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       },
       trabaAlCorregir: _trabaAlCorregir(d, m),
       trabaAlDeshacer: _trabaAlDeshacer(d, m),
+      sePuedeDeshacerElPago: await _fuePagadaComoDeuda(m),
+      saldoSiSeDeshaceElPagoCentimos: await _fuePagadaComoDeuda(m)
+          ? d.saldoCon(m.cuentaId, _otraVezDeuda(m))
+          : null,
     );
+  });
+
+  /// Fue una deuda y se pagó completa con «Ya lo pagué» o «Ya me pagó»
+  /// (entrega 44.2): lo dice su bitácora.
+  Future<bool> _fuePagadaComoDeuda(Movimiento m) async {
+    if (m.estado != EstadoRegistro.vigente ||
+        m.estadoPago != EstadoPago.pagado ||
+        m.abonaA != null) {
+      return false;
+    }
+    final pagos =
+        await (_base.select(_base.bitacora)..where(
+              (b) =>
+                  b.entidad.equals(_entidad) &
+                  b.entidadId.equals(m.id) &
+                  b.accion.equalsValue(AccionBitacora.pagar),
+            ))
+            .get();
+    return pagos.any(
+      (p) => !_leerJson(p.valorNuevo).containsKey('parteCentimos'),
+    );
+  }
+
+  /// El registro otra vez como deuda: no ha movido ninguna cuenta.
+  static Movimiento _otraVezDeuda(Movimiento m) => m.copyWith(
+    estadoPago: EstadoPago.pendiente,
+    montoPagadoCentimos: 0,
+    fechaPago: const Value(null),
+  );
+
+  @override
+  Future<int> deshacerPago(String id) => _base.transaction(() async {
+    final d = (await _leer())!;
+    final m = await _vigente(d, id);
+    if (!await _fuePagadaComoDeuda(m)) {
+      throw StateError('No fue una deuda pagada.');
+    }
+    final deuda = _otraVezDeuda(m);
+    final estado = await _a.estadoAlGuardar();
+    await (_base.update(
+      _base.movimientos,
+    )..where((x) => x.id.equals(m.id))).write(
+      MovimientosCompanion(
+        estadoPago: const Value(EstadoPago.pendiente),
+        montoPagadoCentimos: const Value(0),
+        fechaPago: const Value(null),
+        estadoSincronizacion: estado == EstadoSincronizacion.porSubir
+            ? const Value(EstadoSincronizacion.porSubir)
+            : const Value.absent(),
+      ),
+    );
+    await _a.anotarEnBitacora(
+      empresaId: d.empresa.id,
+      autorId: (await _a.usuario()).id,
+      entidad: _entidad,
+      entidadId: m.id,
+      accion: AccionBitacora.editar,
+      anterior: {
+        'estadoPago': m.estadoPago.name,
+        'cuenta': d.tipoDeCuenta(m.cuentaId).name,
+        'fechaPago': m.fechaPago?.toIso8601String(),
+      },
+      nuevo: {'estadoPago': EstadoPago.pendiente.name, 'deshacerPago': true},
+    );
+    return d.saldoCon(m.cuentaId, deuda);
   });
 
   /// Una deuda con partes, o una parte, no se corrige (entrega 44).
@@ -323,12 +392,20 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     return [for (final fila in filas) ?_cambio(d, fila)];
   }
 
+  static Map<String, Object?> _leerJson(String? json) => json == null
+      ? const {}
+      : (jsonDecode(json) as Map).cast<String, Object?>();
+
   Cambio? _cambio(_Datos d, BitacoraData fila) {
-    Map<String, Object?> leer(String? json) => json == null
-        ? const {}
-        : (jsonDecode(json) as Map).cast<String, Object?>();
-    final anterior = leer(fila.valorAnterior);
-    final nuevo = leer(fila.valorNuevo);
+    final anterior = _leerJson(fila.valorAnterior);
+    final nuevo = _leerJson(fila.valorNuevo);
+    // Se deshizo un cobro o un pago (entrega 44.2).
+    if (fila.accion == AccionBitacora.editar && nuevo['deshacerPago'] == true) {
+      return CambioPagoDeshecho(
+        fila.fecha,
+        cobro: d.movimiento(fila.entidadId)?.tipo == TipoMovimiento.ingreso,
+      );
+    }
     switch (fila.accion) {
       case AccionBitacora.crear:
         final fuente = Fuente.values.asNameMap()[nuevo['fuente']];
