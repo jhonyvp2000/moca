@@ -319,13 +319,71 @@ Future<Uint8List> armarPdfDelInforme(
         fila(g.nombre ?? Textos.loDemas, formatearSoles(g.centimos)),
   ]);
 
-  pw.Widget loQueDebesTotal() => seccion(Textos.loQueDebesTitulo, [
-    fila(
-      i.loQueDebesCentimos == 0 ? Textos.noDebesNada : Textos.columnaTotal,
-      formatearSoles(i.loQueDebesCentimos),
-      fuerte: true,
+  // Lo que te deben (entrega 44.1): las ventas a crédito, de cualquier mes.
+  final teDeben = d.loQueTeDebenCentimos;
+  // En el PDF del dueño, los dos totales juntos: así cabe en una hoja.
+  pw.Widget deudasTotales() => seccion(Textos.deudasTitulo, [
+    // Lado a lado: ocupa lo mismo que antes «Lo que debes» solo.
+    pw.Row(
+      children: [
+        pw.Expanded(
+          child: fila(
+            Textos.loQueDebesTitulo,
+            formatearSoles(i.loQueDebesCentimos),
+            fuerte: true,
+          ),
+        ),
+        pw.SizedBox(width: 24),
+        pw.Expanded(
+          child: fila(
+            Textos.loQueTeDebenTitulo,
+            formatearSoles(teDeben),
+            fuerte: true,
+          ),
+        ),
+      ],
     ),
   ]);
+
+  pw.Widget loQueTeDebenDetalle() =>
+      seccion(Textos.loQueTeDebenTitulo, puedePartirse: d.teDeben.length > 15, [
+        if (d.teDeben.isEmpty)
+          pw.Text(Textos.nadieTeDebe, style: estilo(10.5))
+        else ...[
+          tabla(
+            const [
+              Textos.columnaFecha,
+              Textos.columnaCliente,
+              Textos.columnaDetalle,
+              Textos.columnaMonto,
+            ],
+            [
+              for (final x in d.teDeben)
+                [
+                  fechaCorta(x.fecha),
+                  x.proveedor ?? '—',
+                  x.categoria ?? '—',
+                  x.pagadoEnPartesCentimos > 0
+                      ? Textos.faltaDe(
+                          formatearSolesComprobante(x.centimos),
+                          formatearSolesComprobante(x.pagadoEnPartesCentimos),
+                          formatearSolesComprobante(
+                            x.centimos + x.pagadoEnPartesCentimos,
+                          ),
+                        )
+                      : formatearSolesComprobante(x.centimos),
+                ],
+            ],
+            derecha: const {3},
+            anchos: const {
+              0: pw.FixedColumnWidth(48),
+              3: pw.FixedColumnWidth(120),
+            },
+          ),
+          pw.SizedBox(height: 4),
+          fila(Textos.columnaTotal, formatearSoles(teDeben), fuerte: true),
+        ],
+      ]);
 
   pw.Widget loQueDebesDetalle() =>
       seccion(Textos.loQueDebesTitulo, puedePartirse: d.deudas.length > 15, [
@@ -496,7 +554,7 @@ Future<Uint8List> armarPdfDelInforme(
       cuentas(),
       conQueEntroCorto(),
       enQueSeFue(),
-      loQueDebesTotal(),
+      deudasTotales(),
     ],
     DestinoInforme.contador => [
       cuantoCrecio(),
@@ -505,6 +563,7 @@ Future<Uint8List> armarPdfDelInforme(
       deDondeVino(),
       enQueSeFue(),
       loQueDebesDetalle(),
+      loQueTeDebenDetalle(),
       comprobantes(),
       confianza(),
     ],
@@ -512,6 +571,7 @@ Future<Uint8List> armarPdfDelInforme(
       mesPorMes(),
       cuentas(),
       loQueDebesDetalle(),
+      loQueTeDebenDetalle(),
       confianza(),
       pw.Text(Textos.notaCredito, style: estilo(10, fuerte: true)),
     ],

@@ -134,6 +134,11 @@ Uint8List armarExcelDelInforme(
         t(Textos.loQueDebesTitulo, fuerte: true),
         soles(i.loQueDebesCentimos, enteros: true, fuerte: true),
       ],
+      // Las ventas a crédito (entrega 44.1).
+      [
+        t(Textos.loQueTeDebenTitulo, fuerte: true),
+        soles(d.loQueTeDebenCentimos, enteros: true, fuerte: true),
+      ],
       [],
       [t(Textos.notaCajaExcel)],
       [t(Textos.aclaracionPdf)],
@@ -187,7 +192,41 @@ Uint8List armarExcelDelInforme(
     ],
   );
 
-  return armarXlsx([operaciones, resumen, saldos, deudas]);
+  final teDeben = HojaXlsx(
+    nombre: Textos.hojaLoQueTeDeben,
+    encabezado: true,
+    anchos: const [11, 28, 22, 14, 14],
+    filas: [
+      [
+        t(Textos.columnaDesde),
+        t(Textos.columnaCliente),
+        t(Textos.columnaDetalle),
+        t(Textos.columnaMonto),
+        t(Textos.columnaPagadoEnPartes),
+      ],
+      for (final x in d.teDeben)
+        [
+          CeldaFecha(x.fecha),
+          t(x.proveedor),
+          t(x.categoria),
+          soles(x.centimos),
+          if (x.pagadoEnPartesCentimos > 0)
+            soles(x.pagadoEnPartesCentimos)
+          else
+            null,
+        ],
+      if (d.teDeben.isNotEmpty)
+        [
+          t(Textos.columnaTotal, fuerte: true),
+          null,
+          null,
+          soles(d.loQueTeDebenCentimos, fuerte: true),
+          null,
+        ],
+    ],
+  );
+
+  return armarXlsx([operaciones, resumen, saldos, deudas, teDeben]);
 }
 
 /// «Moca-Bodega-Don-Lucho-operaciones-octubre-2026.xlsx».

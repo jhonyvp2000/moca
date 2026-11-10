@@ -532,18 +532,24 @@ class RepositorioInformeLocal implements RepositorioInforme {
         GastoPorCategoria(nombre: e.key, centimos: e.value),
     ]..sort((a, b) => b.centimos.compareTo(a.centimos));
 
-    // Lo que se debe hoy.
-    final deudas = [
+    // Lo que se debe hoy, y lo que te deben (entrega 44.1), con lo ya
+    // pagado en partes.
+    int enPartes(Movimiento deuda) => vigentes
+        .where((m) => m.abonaA == deuda.id)
+        .fold(0, (s, m) => s + m.montoCentimos);
+    List<DeudaPendiente> pendientes(TipoMovimiento tipo) => [
       for (final m in vigentes)
-        if (m.tipo == TipoMovimiento.egreso &&
-            m.estadoPago != EstadoPago.pagado)
+        if (m.tipo == tipo && m.estadoPago != EstadoPago.pagado)
           DeudaPendiente(
             fecha: m.fechaComprobante ?? m.fechaMovimiento,
             centimos: m.montoCentimos - m.montoPagadoCentimos,
             proveedor: proveedores[m.contraparteId],
             categoria: categorias[m.categoriaId],
+            pagadoEnPartesCentimos: enPartes(m),
           ),
     ]..sort((a, b) => a.fecha.compareTo(b.fecha));
+    final deudas = pendientes(TipoMovimiento.egreso);
+    final teDeben = pendientes(TipoMovimiento.ingreso);
 
     // Los comprobantes emitidos en el mes, con su movimiento vigente.
     final porComprobante = {
@@ -609,6 +615,7 @@ class RepositorioInformeLocal implements RepositorioInforme {
       saldosAlCierre: saldos,
       ingresos: ingresos,
       deudas: deudas,
+      teDeben: teDeben,
       comprobantes: comprobantes,
       meses: meses,
       operaciones: operaciones,

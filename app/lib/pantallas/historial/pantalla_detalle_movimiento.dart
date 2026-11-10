@@ -604,18 +604,26 @@ class _Cambios extends StatelessWidget {
       campos.isEmpty
           ? [Textos.corregisteSinCambios]
           : [for (final campo in campos) _campo(campo)],
-    CambioPagado(:final cuenta, :final fechaPago, :final parteCentimos) => [
-      parteCentimos == null
-          ? Textos.pagaste(
-              Textos.nombreCuenta(cuenta),
-              formatearDiaYMes(fechaPago),
-            )
-          : Textos.pagasteParte(
-              formatearSolesComprobante(parteCentimos),
-              Textos.nombreCuenta(cuenta),
-              formatearDiaYMes(fechaPago),
-            ),
-    ],
+    CambioPagado(
+      :final cuenta,
+      :final fechaPago,
+      :final parteCentimos,
+      :final cobro,
+    ) =>
+      [
+        // Una venta se cobra; una compra se paga (entrega 44.1).
+        switch (parteCentimos) {
+          null => (cobro ? Textos.tePagaron : Textos.pagaste)(
+            Textos.nombreCuenta(cuenta),
+            formatearDiaYMes(fechaPago),
+          ),
+          final parte => (cobro ? Textos.tePagaronParte : Textos.pagasteParte)(
+            formatearSolesComprobante(parte),
+            Textos.nombreCuenta(cuenta),
+            formatearDiaYMes(fechaPago),
+          ),
+        },
+      ],
     CambioDeshecho() => [Textos.deshiciste],
   };
 

@@ -136,12 +136,20 @@ class DeudaPendiente {
     required this.centimos,
     this.proveedor,
     this.categoria,
+    this.pagadoEnPartesCentimos = 0,
   });
 
   final DateTime fecha;
+
+  /// Lo que falta.
   final int centimos;
+
+  /// El proveedor o, en lo que te deben, el cliente.
   final String? proveedor;
   final String? categoria;
+
+  /// Lo ya pagado en partes (entrega 44).
+  final int pagadoEnPartesCentimos;
 }
 
 /// Un comprobante del mes, por su fecha de emisión (para el contador).
@@ -178,6 +186,7 @@ class DetalleParaPdf {
     required this.saldosAlCierre,
     required this.ingresos,
     required this.deudas,
+    this.teDeben = const [],
     required this.comprobantes,
     required this.meses,
     this.operaciones = const [],
@@ -196,6 +205,11 @@ class DetalleParaPdf {
 
   /// Todo lo que se debe hoy, de lo más antiguo a lo más nuevo.
   final List<DeudaPendiente> deudas;
+
+  /// Todo lo que te deben hoy: las ventas a crédito (entrega 44.1).
+  final List<DeudaPendiente> teDeben;
+
+  int get loQueTeDebenCentimos => teDeben.fold(0, (s, x) => s + x.centimos);
 
   /// Los comprobantes emitidos en el mes.
   final List<ComprobanteDelMes> comprobantes;

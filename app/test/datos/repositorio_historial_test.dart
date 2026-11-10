@@ -2,6 +2,10 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:moca/dominio/informe.dart';
+import 'package:moca/pantallas/informe/excel_informe.dart';
+import 'package:moca/pantallas/informe/pdf_informe.dart';
+import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
@@ -17,6 +21,7 @@ import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late BaseLocal base;
   late RepositorioHistorialLocal repo;
   late RepositorioMovimientosLocal movimientos;
@@ -734,5 +739,66 @@ void main() {
         );
       },
     );
+  });
+
+  test('Entrega 44.1: lo que te deben en el PDF y el Excel; los cambios '
+      'de un cobro', () async {
+    final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+    final venta = (await movimientos.registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 20000,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: ingresos.first.id,
+        pagado: false,
+        contraparte: 'Doña Rosa',
+      ),
+    )).ids.single;
+    await repo.pagar(
+      venta,
+      cuenta: TipoCuenta.yape,
+      dia: ahora,
+      parteCentimos: 2000,
+    );
+    final informe = RepositorioInformeLocal(base, ahora: () => ahora);
+    final mes = await informe.observarMes(null).first;
+    final d = await informe.detalleParaPdf(mes);
+    expect(d.deudas, isEmpty);
+    expect(d.teDeben.single.proveedor, 'Doña Rosa');
+    expect(d.teDeben.single.centimos, 18000);
+    expect(d.teDeben.single.pagadoEnPartesCentimos, 2000);
+    // Lo mismo que la tarjeta de la app.
+    expect(
+      d.loQueTeDebenCentimos,
+      (await repo.observarLoQueTeDeben().first).fold(
+        0,
+        (s, f) => s + f.montoCentimos,
+      ),
+    );
+    for (final destino in DestinoInforme.values) {
+      expect(
+        await armarPdfDelInforme(
+          mes,
+          d,
+          destino: destino,
+          nombreNegocio: 'Bodega Don Lucho',
+          hoy: ahora,
+        ),
+        isNotEmpty,
+        reason: destino.name,
+      );
+    }
+    final zip = ZipDecoder().decodeBytes(
+      armarExcelDelInforme(mes, d, nombreNegocio: 'Bodega', hoy: ahora),
+    );
+    expect(
+      utf8.decode(zip.findFile('xl/workbook.xml')!.readBytes()!),
+      contains('name="Lo que te deben"'),
+    );
+    // En los cambios, una venta se cobra.
+    final cambios = (await repo.observarDetalle(venta).first)!.cambios;
+    final pago = cambios.whereType<CambioPagado>().single;
+    expect(pago.cobro, isTrue);
+    expect(pago.parteCentimos, 2000);
   });
 }

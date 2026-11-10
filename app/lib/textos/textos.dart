@@ -839,8 +839,12 @@ abstract final class Textos {
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  static String tePagaron(String cuenta, String fecha) =>
+      'Marcaste que ya te pagaron: $cuenta, $fecha';
   static String pagasteParte(String monto, String cuenta, String fecha) =>
-      'Pago en parte de $monto: $cuenta, $fecha';
+      'Pagaste una parte de $monto: $cuenta, $fecha';
+  static String tePagaronParte(String monto, String cuenta, String fecha) =>
+      'Te pagaron una parte de $monto: $cuenta, $fecha';
 
   // Cobros y pagos en partes (entrega 44).
   static String todoElMonto(String monto) => 'Todo ($monto)';
@@ -1162,6 +1166,12 @@ abstract final class Textos {
   static const hojaResumen = 'Resumen';
   static const hojaSaldos = 'Saldos por cuenta';
   static const hojaLoQueDebes = 'Lo que debes';
+  static const hojaLoQueTeDeben = 'Lo que te deben';
+  static const deudasTitulo = 'Lo que debes y lo que te deben';
+  static const columnaCliente = 'Cliente';
+  static const columnaPagadoEnPartes = 'Pagó en partes';
+  static String faltaDe(String falta, String pagado, String total) =>
+      '$falta (pagó $pagado de $total)';
   static const columnaTipo = 'Tipo';
   static const columnaCategoria = 'Categoría';
   static const columnaNota = 'Nota';

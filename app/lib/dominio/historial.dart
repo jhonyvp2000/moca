@@ -297,10 +297,14 @@ class CambioPagado extends Cambio {
     this.cuenta,
     this.fechaPago, {
     this.parteCentimos,
+    this.cobro = false,
   });
 
   final TipoCuenta cuenta;
   final DateTime fechaPago;
+
+  /// Una venta que te pagaron, no una compra que pagaste (entrega 44.1).
+  final bool cobro;
 
   /// Un pago en parte (entrega 44): cuánto.
   final int? parteCentimos;

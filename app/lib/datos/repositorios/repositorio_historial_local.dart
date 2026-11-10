@@ -374,6 +374,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
           cuenta,
           fecha,
           parteCentimos: nuevo['parteCentimos'] as int?,
+          cobro: d.movimiento(fila.entidadId)?.tipo == TipoMovimiento.ingreso,
         );
       case AccionBitacora.anular:
         return CambioDeshecho(fila.fecha);
