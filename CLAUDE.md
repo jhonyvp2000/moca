@@ -54,6 +54,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `docs/alcance-v1.md` | Corte de versiones y detalle de las 15 pantallas de la V1, con los ajustes respecto al mockup |
 | `docs/modelo-datos.md` | Borrador del modelo de datos |
 | `docs/fase-0.md` | Pruebas con datos reales |
+| `docs/soporte.md` | Guía de soporte para Jhony: lo que dice el usuario, qué revisar y qué hacerle hacer, con mensajes listos. Se actualiza cuando cambia la app |
 | `docs/prueba-varios-telefonos.md` | Guion de la prueba con dos o tres teléfonos (entrega 23) |
 | `docs/guiones-videos.md` | Guiones de los 7 videos cortos de tutoría |
 | `docs/pendientes.md` | Decisiones abiertas |
