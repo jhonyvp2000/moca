@@ -54,11 +54,28 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
     TipoCuenta.otroBanco: Textos.otroBanco,
   };
 
-  static const _tipos = {
-    TipoNegocio.bodega: Textos.bodega,
-    TipoNegocio.restaurante: Textos.restaurante,
-    TipoNegocio.servicios: Textos.servicios,
-    TipoNegocio.otro: Textos.otro,
+  /// En este orden: los más comunes primero; «Servicios» y «Otro» al final
+  /// (entrega 48).
+  static final _tipos = {
+    for (final t in const [
+      TipoNegocio.bodega,
+      TipoNegocio.mercado,
+      TipoNegocio.restaurante,
+      TipoNegocio.comida,
+      TipoNegocio.panaderia,
+      TipoNegocio.ferreteria,
+      TipoNegocio.farmacia,
+      TipoNegocio.agroveterinaria,
+      TipoNegocio.libreria,
+      TipoNegocio.ropa,
+      TipoNegocio.celulares,
+      TipoNegocio.peluqueria,
+      TipoNegocio.taller,
+      TipoNegocio.transporte,
+      TipoNegocio.servicios,
+      TipoNegocio.otro,
+    ])
+      t: Textos.nombreTipoNegocio(t),
   };
 
   @override
@@ -186,7 +203,8 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
         const SizedBox(height: 18),
         const Text(Textos.queTipoDeNegocio, style: etiqueta),
         const SizedBox(height: 8),
-        Opciones<TipoNegocio>(
+        // Una opción por fila: son muchas (entrega 48).
+        OpcionesEnLista<TipoNegocio>(
           opciones: _tipos,
           elegida: _tipo,
           alElegir: (tipo) => setState(() => _tipo = tipo),

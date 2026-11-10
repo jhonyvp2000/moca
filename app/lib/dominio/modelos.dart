@@ -1,7 +1,26 @@
 // Tipos del modelo de datos (docs/modelo-datos.md).
 // Este archivo no depende de Flutter ni de cómo se guardan los datos.
 
-enum TipoNegocio { bodega, restaurante, servicios, otro }
+/// Los tipos de negocio (entrega 48 sumó los que no son bodega ni
+/// restaurante). De él salen las categorías propias del negocio.
+enum TipoNegocio {
+  bodega,
+  restaurante,
+  servicios,
+  otro,
+  mercado,
+  comida,
+  panaderia,
+  ferreteria,
+  farmacia,
+  agroveterinaria,
+  libreria,
+  ropa,
+  celulares,
+  peluqueria,
+  taller,
+  transporte,
+}
 
 enum ModoEmpresa { simple, formal }
 

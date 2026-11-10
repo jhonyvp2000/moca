@@ -1451,9 +1451,7 @@ class ServicioCuentaRemoto
             )..where((x) => x.id.equals(empresa.id))).write(
               EmpresasCompanion(
                 nombre: Value(e['nombre']! as String),
-                tipoNegocio: Value(
-                  _enum(TipoNegocio.values, e['tipo_negocio']),
-                ),
+                tipoNegocio: Value(_tipoNegocio(e['tipo_negocio'])),
                 horaCierreMinutos: Value(e['hora_cierre_minutos']! as int),
                 identificacionFiscal: Value(
                   e['identificacion_fiscal'] as String?,
@@ -1625,6 +1623,11 @@ class ServicioCuentaRemoto
   static T _enum<T extends Enum>(List<T> valores, Object? nombre) =>
       valores.byName(nombre! as String);
 
+  /// Un tipo de negocio que esta versión no conoce se lee como «Otro», en
+  /// vez de fallar (entrega 48): así un tipo nuevo no rompe las anteriores.
+  static TipoNegocio _tipoNegocio(Object? nombre) =>
+      TipoNegocio.values.asNameMap()[nombre] ?? TipoNegocio.otro;
+
   /// Reemplaza lo del teléfono por lo que bajó de la cuenta, en una sola
   /// transacción: si algo falla, el teléfono queda como estaba.
   Future<void> _guardarBajada(
@@ -1675,7 +1678,7 @@ class ServicioCuentaRemoto
             EmpresasCompanion.insert(
               id: empresaId,
               nombre: empresa['nombre']! as String,
-              tipoNegocio: _enum(TipoNegocio.values, empresa['tipo_negocio']),
+              tipoNegocio: _tipoNegocio(empresa['tipo_negocio']),
               modo: _enum(ModoEmpresa.values, empresa['modo']),
               pais: empresa['pais']! as String,
               moneda: empresa['moneda']! as String,

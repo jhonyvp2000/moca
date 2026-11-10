@@ -11,7 +11,14 @@ export const categoriaVentaDelDia = 'Venta del día';
  * mucho, porque bajan la ganancia del mes aunque la mercadería siga en la
  * tienda.
  */
-export const categoriasDeMercaderia = new Set(['Mercadería', 'Insumos de cocina']);
+export const categoriasDeMercaderia = new Set([
+  'Mercadería',
+  'Insumos de cocina',
+  // Entrega 48.
+  'Insumos de panadería',
+  'Medicamentos y productos',
+  'Productos e insumos',
+]);
 
 /** RUC de 11 dígitos con su dígito verificador (módulo 11), como en la app. */
 export function esRucValido(ruc: string): boolean {
@@ -22,4 +29,10 @@ export function esRucValido(ruc: string): boolean {
 }
 
 /** Los tipos de comprobante que se leen por foto, con los nombres de la app. */
-export const tiposDeComprobante = ['Factura', 'Boleta', 'Ticket', 'Recibo', 'Nota de venta'] as const;
+export const tiposDeComprobante = [
+  'Factura',
+  'Boleta',
+  'Ticket',
+  'Recibo',
+  'Nota de venta',
+] as const;

@@ -53,12 +53,32 @@ const categoriasEgresoPorNegocio = {
   ],
   TipoNegocio.servicios: ['Materiales', 'Herramientas y repuestos'],
   TipoNegocio.otro: ['Mercadería'],
+  // Entrega 48.
+  TipoNegocio.mercado: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.comida: ['Insumos de cocina', 'Bebidas', 'Gas', 'Descartables'],
+  TipoNegocio.panaderia: ['Insumos de panadería', 'Gas', 'Bolsas y envases'],
+  TipoNegocio.ferreteria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.farmacia: ['Medicamentos y productos', 'Bolsas y envases'],
+  TipoNegocio.agroveterinaria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.libreria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.ropa: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.celulares: ['Mercadería', 'Repuestos'],
+  TipoNegocio.peluqueria: ['Productos e insumos', 'Herramientas y equipos'],
+  TipoNegocio.taller: ['Repuestos', 'Herramientas y equipos'],
+  TipoNegocio.transporte: ['Repuestos', 'Peajes y cocheras'],
 };
 
 /// Las categorías de compras para vender. El informe advierte cuando suben
 /// mucho, porque bajan la ganancia del mes aunque la mercadería siga en la
 /// tienda.
-const categoriasDeMercaderia = {'Mercadería', 'Insumos de cocina'};
+const categoriasDeMercaderia = {
+  'Mercadería',
+  'Insumos de cocina',
+  // Entrega 48.
+  'Insumos de panadería',
+  'Medicamentos y productos',
+  'Productos e insumos',
+};
 
 /// Categoría → fila del flujo que pide la caja (docs/credito/, entrega
 /// 14.15). Una entrada sin categoría o con otra va a «Otros ingresos
@@ -74,6 +94,12 @@ const filaDelFlujo = {
   'Bebidas': FilaFlujo.mercaderia,
   'Gas': FilaFlujo.mercaderia,
   'Materiales': FilaFlujo.mercaderia,
+  // Entrega 48.
+  'Insumos de panadería': FilaFlujo.mercaderia,
+  'Medicamentos y productos': FilaFlujo.mercaderia,
+  'Productos e insumos': FilaFlujo.mercaderia,
+  'Repuestos': FilaFlujo.mantenimiento,
+  'Herramientas y equipos': FilaFlujo.mantenimiento,
   'Bolsas y envases': FilaFlujo.envases,
   'Descartables': FilaFlujo.envases,
   'Flete': FilaFlujo.fletes,

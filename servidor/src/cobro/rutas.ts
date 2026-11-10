@@ -1,11 +1,11 @@
-import { randomUUID } from "node:crypto";
-import type { FastifyInstance } from "fastify";
-import type { Cliente, Pool } from "../base/conexion.js";
-import { empresaPedida } from "../datos/bajar.js";
-import { autenticar } from "../datos/subir.js";
-import { borrarDatos } from "../cuenta/borrar.js";
-import { miembroDe } from "../equipo/miembros.js";
-import { limpiarUso, usoDe } from "../uso/rutas.js";
+import { randomUUID } from 'node:crypto';
+import type { FastifyInstance } from 'fastify';
+import type { Cliente, Pool } from '../base/conexion.js';
+import { empresaPedida } from '../datos/bajar.js';
+import { autenticar } from '../datos/subir.js';
+import { borrarDatos } from '../cuenta/borrar.js';
+import { miembroDe } from '../equipo/miembros.js';
+import { limpiarUso, usoDe } from '../uso/rutas.js';
 import {
   diaEnLima,
   estadoDelCobro,
@@ -16,7 +16,7 @@ import {
   type Plan,
   precioDe,
   puedeSerFundador,
-} from "./estado.js";
+} from './estado.js';
 
 /** Lo que el cobro toma del entorno (Render). Nada de esto va al repositorio. */
 export interface ConfigCobro {
@@ -32,18 +32,16 @@ export interface ConfigCobro {
 
 export const sinCobro: ConfigCobro = { desde: null, admins: [], yape: null };
 
-const nueveDigitos = (celular: string) => celular.replace(/\D/g, "").slice(-9);
+const nueveDigitos = (celular: string) => celular.replace(/\D/g, '').slice(-9);
 
-export function leerConfigCobro(
-  entorno: NodeJS.ProcessEnv = process.env,
-): ConfigCobro {
+export function leerConfigCobro(entorno: NodeJS.ProcessEnv = process.env): ConfigCobro {
   const desde = entorno.MOCA_COBRO_DESDE?.trim();
   const numero = entorno.MOCA_YAPE_NUMERO?.trim();
   const nombre = entorno.MOCA_YAPE_NOMBRE?.trim();
   return {
     desde: desde && /^\d{4}-\d{2}-\d{2}$/.test(desde) ? desde : null,
-    admins: (entorno.MOCA_ADMIN_CELULARES ?? "")
-      .split(",")
+    admins: (entorno.MOCA_ADMIN_CELULARES ?? '')
+      .split(',')
       .map(nueveDigitos)
       .filter((c) => c.length === 9),
     yape: numero && nombre ? { numero: nueveDigitos(numero), nombre } : null,
@@ -69,10 +67,9 @@ export async function datosDelCobro(
       plan: Plan;
       pagado_hasta: string;
       fue_fundador: boolean;
-    }>(
-      "SELECT plan, pagado_hasta, fue_fundador FROM suscripciones WHERE empresa_id = $1",
-      [empresaId],
-    )
+    }>('SELECT plan, pagado_hasta, fue_fundador FROM suscripciones WHERE empresa_id = $1', [
+      empresaId,
+    ])
   ).rows[0];
   const titular = (
     await cliente.query<{ celular: string | null }>(
@@ -84,27 +81,24 @@ export async function datosDelCobro(
   const guardada = titular?.celular
     ? (
         await cliente.query<{ inicio: string }>(
-          "SELECT inicio FROM pruebas_por_celular WHERE celular = $1",
+          'SELECT inicio FROM pruebas_por_celular WHERE celular = $1',
           [titular.celular],
         )
       ).rows[0]?.inicio
     : undefined;
   const primero = (
     await cliente.query<{ primero: Date | null }>(
-      "SELECT min(creado_en) AS primero FROM movimientos WHERE empresa_id = $1",
+      'SELECT min(creado_en) AS primero FROM movimientos WHERE empresa_id = $1',
       [empresaId],
     )
   ).rows[0]?.primero;
   const fundadores = (
-    await cliente.query<{ usados: number }>(
-      "SELECT usados FROM cupo_fundadores WHERE id = 1",
-    )
+    await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
   ).rows[0]?.usados;
   const respondio = (
-    await cliente.query(
-      "SELECT 1 FROM respuestas_precio WHERE empresa_id = $1 LIMIT 1",
-      [empresaId],
-    )
+    await cliente.query('SELECT 1 FROM respuestas_precio WHERE empresa_id = $1 LIMIT 1', [
+      empresaId,
+    ])
   ).rowCount;
   // Las personas del negocio sin el contador (entrega 43).
   const personas = (
@@ -116,10 +110,9 @@ export async function datosDelCobro(
   ).rows[0]?.n;
   // Los días de prueba que regaló Jhony (entrega 47).
   const diasExtra = (
-    await cliente.query<{ dias: number }>(
-      "SELECT dias FROM pruebas_extra WHERE empresa_id = $1",
-      [empresaId],
-    )
+    await cliente.query<{ dias: number }>('SELECT dias FROM pruebas_extra WHERE empresa_id = $1', [
+      empresaId,
+    ])
   ).rows[0]?.dias;
   return {
     diasExtra: diasExtra ?? 0,
@@ -137,32 +130,23 @@ export async function datosDelCobro(
   };
 }
 
-async function celularDe(
-  pool: Pool,
-  usuarioId: string,
-): Promise<string | null> {
+async function celularDe(pool: Pool, usuarioId: string): Promise<string | null> {
   const cliente = await pool.connect();
   try {
-    await cliente.query("BEGIN");
-    await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [
-      usuarioId,
-    ]);
+    await cliente.query('BEGIN');
+    await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
     const { rows } = await cliente.query<{ celular: string | null }>(
-      "SELECT celular FROM usuarios WHERE id = $1",
+      'SELECT celular FROM usuarios WHERE id = $1',
       [usuarioId],
     );
-    await cliente.query("COMMIT");
+    await cliente.query('COMMIT');
     return rows[0]?.celular ?? null;
   } finally {
     cliente.release();
   }
 }
 
-export async function esAdmin(
-  pool: Pool,
-  config: ConfigCobro,
-  usuarioId: string,
-) {
+export async function esAdmin(pool: Pool, config: ConfigCobro, usuarioId: string) {
   if (!config.admins.length) return false;
   const celular = await celularDe(pool, usuarioId);
   return celular !== null && config.admins.includes(nueveDigitos(celular));
@@ -188,15 +172,15 @@ export async function cobroParaElTelefono(
   const cliente = await pool.connect();
   let datos: Awaited<ReturnType<typeof datosDelCobro>>;
   try {
-    await cliente.query("BEGIN");
+    await cliente.query('BEGIN');
     await cliente.query(
       `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
       [empresaId, usuarioId],
     );
     datos = await datosDelCobro(cliente, empresaId);
-    await cliente.query("COMMIT");
+    await cliente.query('COMMIT');
   } catch (error) {
-    await cliente.query("ROLLBACK");
+    await cliente.query('ROLLBACK');
     throw error;
   } finally {
     cliente.release();
@@ -209,15 +193,11 @@ export async function cobroParaElTelefono(
   return {
     ...estado,
     respondio: datos.respondio,
-    ...(config.yape && estado.estado !== "sin_cobro"
+    ...(config.yape && estado.estado !== 'sin_cobro'
       ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
       : {}),
-    ...(config.mercadoPago && estado.estado !== "sin_cobro"
-      ? { mercadopago: true as const }
-      : {}),
-    ...((await esAdmin(pool, config, usuarioId))
-      ? { admin: true as const }
-      : {}),
+    ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
+    ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }
 
@@ -235,7 +215,7 @@ export async function recordarPrueba(
   if (!config.desde) return;
   const cliente = await pool.connect();
   try {
-    await cliente.query("BEGIN");
+    await cliente.query('BEGIN');
     await cliente.query(
       `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
       [empresaId, usuarioId],
@@ -253,9 +233,9 @@ export async function recordarPrueba(
        ON CONFLICT (celular) DO NOTHING`,
       [empresaId, config.desde],
     );
-    await cliente.query("COMMIT");
+    await cliente.query('COMMIT');
   } catch (error) {
-    await cliente.query("ROLLBACK");
+    await cliente.query('ROLLBACK');
     throw error;
   } finally {
     cliente.release();
@@ -279,16 +259,16 @@ async function comoAdmin<T>(
 ): Promise<T> {
   const cliente = await pool.connect();
   try {
-    await cliente.query("BEGIN");
+    await cliente.query('BEGIN');
     await cliente.query(
       `SELECT set_config('app.admin', 'si', true), set_config('app.usuario_id', $1, true)`,
       [usuarioId],
     );
     const resultado = await trabajo(cliente);
-    await cliente.query("COMMIT");
+    await cliente.query('COMMIT');
     return resultado;
   } catch (error) {
-    await cliente.query("ROLLBACK");
+    await cliente.query('ROLLBACK');
     throw error;
   } finally {
     cliente.release();
@@ -306,13 +286,13 @@ export async function comoServidor<T>(
 ): Promise<T> {
   const cliente = await pool.connect();
   try {
-    await cliente.query("BEGIN");
+    await cliente.query('BEGIN');
     await cliente.query(`SELECT set_config('app.admin', 'si', true)`);
     const resultado = await trabajo(cliente);
-    await cliente.query("COMMIT");
+    await cliente.query('COMMIT');
     return resultado;
   } catch (error) {
-    await cliente.query("ROLLBACK");
+    await cliente.query('ROLLBACK');
     throw error;
   } finally {
     cliente.release();
@@ -334,7 +314,7 @@ export async function registrarPago(
     nota,
     registradoPor,
     hoy,
-    origen = "yape",
+    origen = 'yape',
     mpPagoId = null,
     personasExtra,
   }: {
@@ -345,14 +325,14 @@ export async function registrarPago(
     nota: string | null;
     registradoPor: string;
     hoy: string;
-    origen?: "yape" | "mercadopago";
+    origen?: 'yape' | 'mercadopago';
     mpPagoId?: string | null;
   },
 ): Promise<void> {
   // Un pago a la vez: el cupo de fundadores no se pasa de 50.
   const cupo = (
     await cliente.query<{ usados: number }>(
-      "SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE",
+      'SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE',
     )
   ).rows[0]!.usados;
   const datos = await datosDelCobro(cliente, empresaId);
@@ -362,21 +342,13 @@ export async function registrarPago(
     cobroDesde: config.desde,
     ...datos,
   });
-  if (
-    plan === "fundador" &&
-    !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })
-  ) {
-    throw new ErrorDeCobro(
-      409,
-      actual?.fueFundador ? "perdio_fundador" : "sin_cupo_fundador",
-    );
+  if (plan === 'fundador' && !puedeSerFundador({ hoy, suscripcion: actual, fundadores: cupo })) {
+    throw new ErrorDeCobro(409, actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador');
   }
   const extras = personasExtra ?? extrasPara(plan, datos.personas);
   const periodo = periodoDelPago({
     hoy,
-    pagadoHasta:
-      actual?.pagadoHasta ??
-      (ahoraMismo.estado === "prueba" ? ahoraMismo.hasta : null),
+    pagadoHasta: actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
     plan,
   });
   await cliente.query(
@@ -405,12 +377,10 @@ export async function registrarPago(
            fue_fundador = suscripciones.fue_fundador OR $4,
            personas_extra = $5,
            actualizado_en = now()`,
-    [empresaId, plan, periodo.hasta, plan === "fundador", extras],
+    [empresaId, plan, periodo.hasta, plan === 'fundador', extras],
   );
-  if (plan === "fundador" && !actual?.fueFundador) {
-    await cliente.query(
-      "UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1",
-    );
+  if (plan === 'fundador' && !actual?.fueFundador) {
+    await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
   }
 }
 
@@ -420,61 +390,41 @@ export async function registrarPago(
  * pago y, si era su único pago de fundador, el cupo vuelve. Devuelve el
  * negocio. También lo usa la devolución de Mercado Pago (entrega 32).
  */
-export async function anularPago(
-  cliente: Cliente,
-  pagoId: string,
-): Promise<string> {
-  await cliente.query(
-    "SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE",
-  );
+export async function anularPago(cliente: Cliente, pagoId: string): Promise<string> {
+  await cliente.query('SELECT usados FROM cupo_fundadores WHERE id = 1 FOR UPDATE');
   const pago = (
     await cliente.query<{ empresa_id: string }>(
-      "SELECT empresa_id FROM pagos WHERE id::text = $1 AND anulado_en IS NULL",
+      'SELECT empresa_id FROM pagos WHERE id::text = $1 AND anulado_en IS NULL',
       [pagoId],
     )
   ).rows[0];
-  if (!pago) throw new ErrorDeCobro(404, "sin_pago");
+  if (!pago) throw new ErrorDeCobro(404, 'sin_pago');
   const vigentes = `SELECT id, plan, hasta, personas_extra FROM pagos
       WHERE empresa_id = $1 AND anulado_en IS NULL ORDER BY creado_en DESC`;
-  const ultimo = (
-    await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])
-  ).rows[0];
-  if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, "no_es_el_ultimo");
+  const ultimo = (await cliente.query<{ id: string }>(vigentes, [pago.empresa_id])).rows[0];
+  if (ultimo?.id !== pagoId) throw new ErrorDeCobro(409, 'no_es_el_ultimo');
   const antes = (await datosDelCobro(cliente, pago.empresa_id)).suscripcion;
-  await cliente.query("UPDATE pagos SET anulado_en = now() WHERE id = $1", [
-    pagoId,
-  ]);
+  await cliente.query('UPDATE pagos SET anulado_en = now() WHERE id = $1', [pagoId]);
 
   const quedan = (
-    await cliente.query<{ plan: Plan; hasta: string; personas_extra: number }>(
-      vigentes,
-      [pago.empresa_id],
-    )
+    await cliente.query<{ plan: Plan; hasta: string; personas_extra: number }>(vigentes, [
+      pago.empresa_id,
+    ])
   ).rows;
-  const sigueFundador = quedan.some((p) => p.plan === "fundador");
+  const sigueFundador = quedan.some((p) => p.plan === 'fundador');
   const anterior = quedan[0];
   if (anterior) {
     await cliente.query(
       `UPDATE suscripciones SET plan = $2, pagado_hasta = $3, fue_fundador = $4,
               personas_extra = $5, actualizado_en = now()
         WHERE empresa_id = $1`,
-      [
-        pago.empresa_id,
-        anterior.plan,
-        anterior.hasta,
-        sigueFundador,
-        anterior.personas_extra,
-      ],
+      [pago.empresa_id, anterior.plan, anterior.hasta, sigueFundador, anterior.personas_extra],
     );
   } else {
-    await cliente.query("DELETE FROM suscripciones WHERE empresa_id = $1", [
-      pago.empresa_id,
-    ]);
+    await cliente.query('DELETE FROM suscripciones WHERE empresa_id = $1', [pago.empresa_id]);
   }
   if (antes?.fueFundador && !sigueFundador) {
-    await cliente.query(
-      "UPDATE cupo_fundadores SET usados = greatest(usados - 1, 0) WHERE id = 1",
-    );
+    await cliente.query('UPDATE cupo_fundadores SET usados = greatest(usados - 1, 0) WHERE id = 1');
   }
   return pago.empresa_id;
 }
@@ -559,9 +509,8 @@ export function rutasCobro(
   /** Solo los números de MOCA_ADMIN_CELULARES pasan. */
   async function admin(peticion: Parameters<typeof autenticar>[1]) {
     const usuarioId = await autenticar(pool, peticion);
-    if (!usuarioId) throw new ErrorDeCobro(401, "sin_sesion");
-    if (!(await esAdmin(pool, config, usuarioId)))
-      throw new ErrorDeCobro(403, "sin_permiso");
+    if (!usuarioId) throw new ErrorDeCobro(401, 'sin_sesion');
+    if (!(await esAdmin(pool, config, usuarioId))) throw new ErrorDeCobro(403, 'sin_permiso');
     return usuarioId;
   }
 
@@ -576,25 +525,25 @@ export function rutasCobro(
 
   // La pregunta del día 10 (entrega 25): la contesta cualquiera del negocio.
   app.post<{ Body: { respuesta?: unknown; motivo?: unknown } }>(
-    "/cobro/respuesta",
+    '/cobro/respuesta',
     async (peticion, respuesta) => {
       const usuarioId = await autenticar(pool, peticion);
-      if (!usuarioId) return respuesta.code(401).send({ error: "sin_sesion" });
+      if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
       const { respuesta: dijo, motivo } = peticion.body ?? {};
       if (
-        (dijo !== "si" && dijo !== "no_se" && dijo !== "no") ||
-        (motivo !== undefined && motivo !== null && typeof motivo !== "string")
+        (dijo !== 'si' && dijo !== 'no_se' && dijo !== 'no') ||
+        (motivo !== undefined && motivo !== null && typeof motivo !== 'string')
       ) {
-        return respuesta.code(400).send({ error: "datos_invalidos" });
+        return respuesta.code(400).send({ error: 'datos_invalidos' });
       }
       const empresaId = empresaPedida(peticion.query);
       const cliente = await pool.connect();
       try {
-        await cliente.query("BEGIN");
+        await cliente.query('BEGIN');
         const miembro = await miembroDe(cliente, usuarioId, empresaId);
         if (!miembro) {
-          await cliente.query("ROLLBACK");
-          return respuesta.code(403).send({ error: "sin_negocio" });
+          await cliente.query('ROLLBACK');
+          return respuesta.code(403).send({ error: 'sin_negocio' });
         }
         await cliente.query(
           `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
@@ -614,16 +563,14 @@ export function rutasCobro(
             miembro.empresaId,
             usuarioId,
             dijo,
-            typeof motivo === "string" && motivo.trim()
-              ? motivo.trim().slice(0, 300)
-              : null,
+            typeof motivo === 'string' && motivo.trim() ? motivo.trim().slice(0, 300) : null,
             precio,
           ],
         );
-        await cliente.query("COMMIT");
+        await cliente.query('COMMIT');
         return { recibida: true };
       } catch (error) {
-        await cliente.query("ROLLBACK");
+        await cliente.query('ROLLBACK');
         throw error;
       } finally {
         cliente.release();
@@ -633,26 +580,18 @@ export function rutasCobro(
 
   // «Mis pagos de Moca» (entrega 33): los pagos del negocio, para sus dueños.
   // De un pago por Yape no va la nota: la escribe Jhony, para él.
-  app.get("/cobro/mis-pagos", async (peticion, respuesta) => {
+  app.get('/cobro/mis-pagos', async (peticion, respuesta) => {
     const usuarioId = await autenticar(pool, peticion);
-    if (!usuarioId) return respuesta.code(401).send({ error: "sin_sesion" });
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
     const cliente = await pool.connect();
     try {
-      await cliente.query("BEGIN");
-      const miembro = await miembroDe(
-        cliente,
-        usuarioId,
-        empresaPedida(peticion.query),
-      );
-      if (!miembro || miembro.rol !== "dueno") {
-        await cliente.query("ROLLBACK");
-        return respuesta
-          .code(403)
-          .send({ error: miembro ? "solo_duenos" : "sin_negocio" });
+      await cliente.query('BEGIN');
+      const miembro = await miembroDe(cliente, usuarioId, empresaPedida(peticion.query));
+      if (!miembro || miembro.rol !== 'dueno') {
+        await cliente.query('ROLLBACK');
+        return respuesta.code(403).send({ error: miembro ? 'solo_duenos' : 'sin_negocio' });
       }
-      await cliente.query(`SELECT set_config('app.empresa_id', $1, true)`, [
-        miembro.empresaId,
-      ]);
+      await cliente.query(`SELECT set_config('app.empresa_id', $1, true)`, [miembro.empresaId]);
       const pagos = (
         await cliente.query<{
           id: string;
@@ -680,7 +619,7 @@ export function rutasCobro(
           [miembro.empresaId],
         )
       ).rows;
-      await cliente.query("COMMIT");
+      await cliente.query('COMMIT');
       return {
         pagos: pagos.map((p) => ({
           id: p.id,
@@ -691,9 +630,7 @@ export function rutasCobro(
           hasta: p.hasta,
           pagado_en: new Date(p.creado_en).toISOString(),
           medio: p.origen,
-          ...(p.origen === "mercadopago" && p.mp_pago_id
-            ? { operacion: p.mp_pago_id }
-            : {}),
+          ...(p.origen === 'mercadopago' && p.mp_pago_id ? { operacion: p.mp_pago_id } : {}),
           anulado: p.anulado_en !== null,
         })),
         en_revision: revisar.map((o) => ({
@@ -702,7 +639,7 @@ export function rutasCobro(
         })),
       };
     } catch (error) {
-      await cliente.query("ROLLBACK");
+      await cliente.query('ROLLBACK');
       throw error;
     } finally {
       cliente.release();
@@ -710,7 +647,7 @@ export function rutasCobro(
   });
 
   // Un negocio por el número de su dueño, con sus pagos.
-  app.get("/cobro/negocio", async (peticion, respuesta) => {
+  app.get('/cobro/negocio', async (peticion, respuesta) => {
     try {
       const usuarioId = await admin(peticion);
       const consulta = peticion.query as {
@@ -719,11 +656,9 @@ export function rutasCobro(
       };
       // Por el celular del titular o, desde la búsqueda de soporte (entrega
       // 47), por el negocio.
-      const porEmpresa =
-        typeof consulta.empresa === "string" ? consulta.empresa : null;
-      const celular = nueveDigitos(String(consulta.celular ?? ""));
-      if (!porEmpresa && celular.length !== 9)
-        throw new ErrorDeCobro(400, "datos_invalidos");
+      const porEmpresa = typeof consulta.empresa === 'string' ? consulta.empresa : null;
+      const celular = nueveDigitos(String(consulta.celular ?? ''));
+      if (!porEmpresa && celular.length !== 9) throw new ErrorDeCobro(400, 'datos_invalidos');
       return await comoAdmin(pool, usuarioId, async (cliente) => {
         const empresa = (
           await cliente.query<{ id: string; nombre: string; celular: string }>(
@@ -733,7 +668,7 @@ export function rutasCobro(
             [porEmpresa ?? celular],
           )
         ).rows[0];
-        if (!empresa) throw new ErrorDeCobro(404, "sin_negocio");
+        if (!empresa) throw new ErrorDeCobro(404, 'sin_negocio');
         const pagos = (
           await cliente.query(
             `SELECT id, plan, monto_centimos, desde, hasta, nota, creado_en, anulado_en, origen,
@@ -765,17 +700,15 @@ export function rutasCobro(
   });
 
   // Soporte (entrega 47): un número cualquiera, con sus negocios y su rol.
-  app.get("/soporte/buscar", async (peticion, respuesta) => {
+  app.get('/soporte/buscar', async (peticion, respuesta) => {
     try {
       const usuarioId = await admin(peticion);
-      const celular = nueveDigitos(
-        String((peticion.query as { celular?: unknown }).celular ?? ""),
-      );
-      if (celular.length !== 9) throw new ErrorDeCobro(400, "datos_invalidos");
+      const celular = nueveDigitos(String((peticion.query as { celular?: unknown }).celular ?? ''));
+      if (celular.length !== 9) throw new ErrorDeCobro(400, 'datos_invalidos');
       return await comoAdmin(pool, usuarioId, async (cliente) => {
         const usuario = (
           await cliente.query<{ id: string }>(
-            "SELECT id FROM usuarios WHERE right(celular, 9) = $1 LIMIT 1",
+            'SELECT id FROM usuarios WHERE right(celular, 9) = $1 LIMIT 1',
             [celular],
           )
         ).rows[0];
@@ -799,13 +732,13 @@ export function rutasCobro(
 
   // Días de prueba de regalo (entrega 47): solo a quien nunca pagó.
   app.post<{ Body: { empresa?: unknown; dias?: unknown } }>(
-    "/soporte/dias-prueba",
+    '/soporte/dias-prueba',
     async (peticion, respuesta) => {
       try {
         const usuarioId = await admin(peticion);
         const { empresa, dias } = peticion.body ?? {};
-        if (typeof empresa !== "string" || (dias !== 7 && dias !== 14)) {
-          throw new ErrorDeCobro(400, "datos_invalidos");
+        if (typeof empresa !== 'string' || (dias !== 7 && dias !== 14)) {
+          throw new ErrorDeCobro(400, 'datos_invalidos');
         }
         const hoy = diaEnLima(ahora());
         return await comoAdmin(pool, usuarioId, async (cliente) => {
@@ -816,11 +749,11 @@ export function rutasCobro(
               celular: string;
             }>(`${empresasConTitular} WHERE e.id::text = $1`, [empresa])
           ).rows[0];
-          if (!negocio) throw new ErrorDeCobro(404, "sin_negocio");
+          if (!negocio) throw new ErrorDeCobro(404, 'sin_negocio');
           const datos = await datosDelCobro(cliente, negocio.id);
-          if (datos.suscripcion) throw new ErrorDeCobro(409, "ya_pago");
+          if (datos.suscripcion) throw new ErrorDeCobro(409, 'ya_pago');
           const antes = datos.diasExtra;
-          if (antes + dias > 60) throw new ErrorDeCobro(409, "demasiados_dias");
+          if (antes + dias > 60) throw new ErrorDeCobro(409, 'demasiados_dias');
           await cliente.query(
             `INSERT INTO pruebas_extra (empresa_id, dias) VALUES ($1, $2)
              ON CONFLICT (empresa_id) DO UPDATE
@@ -830,13 +763,7 @@ export function rutasCobro(
           await cliente.query(
             `INSERT INTO acciones_soporte (id, admin_id, empresa_id, empresa_nombre, accion, detalle)
              VALUES ($1, $2, $3, $4, 'dias_prueba', $5)`,
-            [
-              randomUUID(),
-              usuarioId,
-              negocio.id,
-              negocio.nombre,
-              `+${dias} días`,
-            ],
+            [randomUUID(), usuarioId, negocio.id, negocio.nombre, `+${dias} días`],
           );
           return await ficha(cliente, config, negocio, hoy);
         });
@@ -849,13 +776,13 @@ export function rutasCobro(
   // Borrar un negocio a pedido de su titular (entrega 47): lo mismo que
   // «Borrar mi negocio», confirmado con el nombre del negocio.
   app.post<{ Body: { empresa?: unknown; confirmacion?: unknown } }>(
-    "/soporte/borrar",
+    '/soporte/borrar',
     async (peticion, respuesta) => {
       try {
         const usuarioId = await admin(peticion);
         const { empresa, confirmacion } = peticion.body ?? {};
-        if (typeof empresa !== "string" || typeof confirmacion !== "string") {
-          throw new ErrorDeCobro(400, "datos_invalidos");
+        if (typeof empresa !== 'string' || typeof confirmacion !== 'string') {
+          throw new ErrorDeCobro(400, 'datos_invalidos');
         }
         const negocio = await comoAdmin(pool, usuarioId, async (cliente) => {
           const fila = (
@@ -871,12 +798,9 @@ export function rutasCobro(
               [empresa],
             )
           ).rows[0];
-          if (!fila) throw new ErrorDeCobro(404, "sin_negocio");
-          if (
-            fila.nombre.trim().toLowerCase() !==
-            confirmacion.trim().toLowerCase()
-          ) {
-            throw new ErrorDeCobro(400, "sin_confirmacion");
+          if (!fila) throw new ErrorDeCobro(404, 'sin_negocio');
+          if (fila.nombre.trim().toLowerCase() !== confirmacion.trim().toLowerCase()) {
+            throw new ErrorDeCobro(400, 'sin_confirmacion');
           }
           await cliente.query(
             `INSERT INTO acciones_soporte (id, admin_id, empresa_id, empresa_nombre, accion)
@@ -895,20 +819,17 @@ export function rutasCobro(
 
   // Registra un pago por Yape: el periodo sigue al anterior si no venció.
   app.post<{ Body: { empresa?: unknown; plan?: unknown; nota?: unknown } }>(
-    "/cobro/pago",
+    '/cobro/pago',
     async (peticion, respuesta) => {
       try {
         const usuarioId = await admin(peticion);
         const { empresa, plan, nota } = peticion.body ?? {};
         if (
-          typeof empresa !== "string" ||
-          (plan !== "basico" &&
-            plan !== "normal" &&
-            plan !== "fundador" &&
-            plan !== "anual") ||
-          (nota !== undefined && nota !== null && typeof nota !== "string")
+          typeof empresa !== 'string' ||
+          (plan !== 'basico' && plan !== 'normal' && plan !== 'fundador' && plan !== 'anual') ||
+          (nota !== undefined && nota !== null && typeof nota !== 'string')
         ) {
-          throw new ErrorDeCobro(400, "datos_invalidos");
+          throw new ErrorDeCobro(400, 'datos_invalidos');
         }
         const hoy = diaEnLima(ahora());
         return await comoAdmin(pool, usuarioId, async (cliente) => {
@@ -919,14 +840,11 @@ export function rutasCobro(
               celular: string;
             }>(`${empresasConTitular} WHERE e.id::text = $1`, [empresa])
           ).rows[0];
-          if (!negocio) throw new ErrorDeCobro(404, "sin_negocio");
+          if (!negocio) throw new ErrorDeCobro(404, 'sin_negocio');
           await registrarPago(cliente, config, {
             empresaId: negocio.id,
             plan,
-            nota:
-              typeof nota === "string" && nota.trim()
-                ? nota.trim().slice(0, 200)
-                : null,
+            nota: typeof nota === 'string' && nota.trim() ? nota.trim().slice(0, 200) : null,
             registradoPor: usuarioId,
             hoy,
           });
@@ -940,34 +858,30 @@ export function rutasCobro(
 
   // Anula el último pago de un negocio (entrega 26.1): queda como antes de
   // ese pago y, si era su único pago de fundador, el cupo vuelve.
-  app.post<{ Body: { pago?: unknown } }>(
-    "/cobro/anular",
-    async (peticion, respuesta) => {
-      try {
-        const usuarioId = await admin(peticion);
-        const pagoId = peticion.body?.pago;
-        if (typeof pagoId !== "string")
-          throw new ErrorDeCobro(400, "datos_invalidos");
-        const hoy = diaEnLima(ahora());
-        return await comoAdmin(pool, usuarioId, async (cliente) => {
-          const empresaId = await anularPago(cliente, pagoId);
-          const negocio = (
-            await cliente.query<{
-              id: string;
-              nombre: string;
-              celular: string;
-            }>(`${empresasConTitular} WHERE e.id = $1`, [empresaId])
-          ).rows[0]!;
-          return await ficha(cliente, config, negocio, hoy);
-        });
-      } catch (error) {
-        return responder(error, respuesta);
-      }
-    },
-  );
+  app.post<{ Body: { pago?: unknown } }>('/cobro/anular', async (peticion, respuesta) => {
+    try {
+      const usuarioId = await admin(peticion);
+      const pagoId = peticion.body?.pago;
+      if (typeof pagoId !== 'string') throw new ErrorDeCobro(400, 'datos_invalidos');
+      const hoy = diaEnLima(ahora());
+      return await comoAdmin(pool, usuarioId, async (cliente) => {
+        const empresaId = await anularPago(cliente, pagoId);
+        const negocio = (
+          await cliente.query<{
+            id: string;
+            nombre: string;
+            celular: string;
+          }>(`${empresasConTitular} WHERE e.id = $1`, [empresaId])
+        ).rows[0]!;
+        return await ficha(cliente, config, negocio, hoy);
+      });
+    } catch (error) {
+      return responder(error, respuesta);
+    }
+  });
 
   // Lo que vence pronto o ya venció (30 días), y cuántos fundadores van.
-  app.get("/cobro/resumen", async (peticion, respuesta) => {
+  app.get('/cobro/resumen', async (peticion, respuesta) => {
     try {
       const usuarioId = await admin(peticion);
       const hoy = diaEnLima(ahora());
@@ -978,12 +892,9 @@ export function rutasCobro(
           )
         ).rows;
         const fichas: FichaDelNegocio[] = [];
-        for (const negocio of negocios)
-          fichas.push(await ficha(cliente, config, negocio, hoy));
+        for (const negocio of negocios) fichas.push(await ficha(cliente, config, negocio, hoy));
         const fundadores = (
-          await cliente.query<{ usados: number }>(
-            "SELECT usados FROM cupo_fundadores WHERE id = 1",
-          )
+          await cliente.query<{ usados: number }>('SELECT usados FROM cupo_fundadores WHERE id = 1')
         ).rows[0]!.usados;
         // Los que no abren Moca hace 3 días o más (entrega 28).
         const sinAbrir = (
@@ -1017,17 +928,13 @@ export function rutasCobro(
               ? [
                   {
                     ...f,
-                    ultima_apertura: s.ultima
-                      ? new Date(s.ultima).toISOString()
-                      : null,
+                    ultima_apertura: s.ultima ? new Date(s.ultima).toISOString() : null,
                   },
                 ]
               : [];
           }),
           fundadores: { usados: fundadores, maximo: maximoDeFundadores },
-          negocios: fichas.filter(
-            (f) => f.cobro.porVencer || f.cobro.estado === "vencido",
-          ),
+          negocios: fichas.filter((f) => f.cobro.porVencer || f.cobro.estado === 'vencido'),
         };
       });
     } catch (error) {

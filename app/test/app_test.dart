@@ -974,7 +974,10 @@ void main() {
       final listo = find.widgetWithText(FilledButton, Textos.listoEmpezar);
       expect(tester.widget<FilledButton>(listo).onPressed, isNull);
       await tester.enterText(find.byType(TextField).at(0), 'Bodega Don Lucho');
-      await tocar(tester, find.text(Textos.bodega));
+      await tocar(
+        tester,
+        find.text(Textos.nombreTipoNegocio(TipoNegocio.bodega)),
+      );
       await tester.enterText(find.byType(TextField).at(1), '1200');
       await tester.pump();
       expect(find.text('1,200'), findsOneWidget);
@@ -1004,7 +1007,24 @@ void main() {
       await tocar(tester, find.text(Textos.ahoraNo));
 
       await tester.enterText(find.byType(TextField).at(0), 'Taller Rojas');
-      await tocar(tester, find.text(Textos.servicios));
+      // La lista de tipos es larga (entrega 48): se cierra el teclado, que
+      // si no vuelve a subir la pantalla hasta el nombre, y se baja.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      await tester.scrollUntilVisible(
+        find.text(Textos.nombreTipoNegocio(TipoNegocio.otro)),
+        200,
+        scrollable: find
+            .ancestor(
+              of: find.text(Textos.queTipoDeNegocio),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tocar(
+        tester,
+        find.text(Textos.nombreTipoNegocio(TipoNegocio.servicios)),
+      );
       await tocar(tester, find.text(Textos.noSeCuantoTengo));
 
       expect(find.text(Textos.notaSaldoPendiente), findsOneWidget);
@@ -2692,7 +2712,10 @@ void main() {
       await tocar(tester, find.text(Textos.ahoraNo));
 
       await tester.enterText(find.byType(TextField).at(0), 'Bodega Don Lucho');
-      await tocar(tester, find.text(Textos.bodega));
+      await tocar(
+        tester,
+        find.text(Textos.nombreTipoNegocio(TipoNegocio.bodega)),
+      );
       await tocar(tester, find.text(Textos.plin));
       await tocar(tester, find.text(Textos.otra));
       // Sin el nombre de la otra billetera no se puede terminar.
@@ -3122,6 +3145,27 @@ void main() {
       expect(_servidor.subidas, isEmpty);
       expect(await _llavero.leer(), 'llave-de-prueba');
     });
+
+    testWidgets(
+      'Entrega 48: un tipo de negocio que no conoce se lee como «Otro»',
+      (tester) async {
+        final base = await abrirApp(tester);
+        final cuenta = _cuentaDeLucho();
+        _servidor.cuentaParaEntrar = {
+          ...cuenta,
+          'empresa': {
+            ...cuenta['empresa']! as Map<String, Object?>,
+            'tipo_negocio': 'joyeria',
+          },
+        };
+        await entrar(tester);
+        expect(find.text(Textos.yaTienesTodo), findsOneWidget);
+        final empresa = await tester.runAsync(
+          () => base.select(base.empresas).getSingle(),
+        );
+        expect(empresa!.tipoNegocio, TipoNegocio.otro);
+      },
+    );
 
     testWidgets('Si se corta la señal al bajar, se intenta otra vez', (
       tester,

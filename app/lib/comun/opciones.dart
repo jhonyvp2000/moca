@@ -35,6 +35,39 @@ class Opciones<T> extends StatelessWidget {
   }
 }
 
+/// Una sola elección, una opción por fila, a todo el ancho: para listas
+/// largas como el tipo de negocio (entrega 48).
+class OpcionesEnLista<T> extends StatelessWidget {
+  const OpcionesEnLista({
+    super.key,
+    required this.opciones,
+    required this.elegida,
+    required this.alElegir,
+  });
+
+  final Map<T, String> opciones;
+  final T? elegida;
+  final ValueChanged<T> alElegir;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, MapEntry(key: valor, value: texto))
+            in opciones.entries.indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _Opcion(
+            texto: texto,
+            elegida: valor == elegida,
+            alTocar: () => alElegir(valor),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Botones de varias elecciones, con la misma forma que [Opciones] (S02:
 /// «¿Usas otra billetera?»).
 class OpcionesVarias<T> extends StatelessWidget {

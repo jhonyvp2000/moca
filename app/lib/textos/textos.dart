@@ -464,6 +464,25 @@ abstract final class Textos {
   static const restaurante = 'Restaurante';
   static const servicios = 'Servicios';
   static const otro = 'Otro';
+  // Los tipos de negocio (entrega 48).
+  static String nombreTipoNegocio(TipoNegocio tipo) => switch (tipo) {
+    TipoNegocio.bodega => 'Bodega o minimarket',
+    TipoNegocio.mercado => 'Puesto de mercado (abarrotes, frutas, carnes)',
+    TipoNegocio.restaurante => 'Restaurante, menú o pollería',
+    TipoNegocio.comida => 'Comida al paso, juguería o cafetería',
+    TipoNegocio.panaderia => 'Panadería o pastelería',
+    TipoNegocio.ferreteria => 'Ferretería',
+    TipoNegocio.farmacia => 'Farmacia o botica',
+    TipoNegocio.agroveterinaria => 'Agroveterinaria',
+    TipoNegocio.libreria => 'Librería, bazar o útiles',
+    TipoNegocio.ropa => 'Ropa, calzado o accesorios',
+    TipoNegocio.celulares => 'Celulares y accesorios',
+    TipoNegocio.peluqueria => 'Peluquería, barbería o spa',
+    TipoNegocio.taller => 'Taller mecánico o de motos',
+    TipoNegocio.transporte => 'Transporte (mototaxi, taxi, carga)',
+    TipoNegocio.servicios => 'Servicios',
+    TipoNegocio.otro => 'Otro',
+  };
   static const cuantaPlataTienes = '¿Cuánta plata tienes hoy en cada sitio?';
   static const sinContarLaVenta =
       'Sin contar la venta que acabas de anotar. Un aproximado sirve. '

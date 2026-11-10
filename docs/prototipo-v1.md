@@ -174,6 +174,7 @@ Estados aprobados el 13-10-2026 (entrega 8):
 
 - Desde la entrega 39, el Historial tiene un buscador por palabras («Jhony Vela» trae «Jhony Salar Vela»; «80» trae los de S/ 80) y «Filtrar» por cuenta, categoría y persona, con la suma de lo encontrado.
 
+- Desde la entrega 48, «¿Qué tipo de negocio es?» tiene 16 opciones (de Bodega a Transporte), una por fila, cada una con sus categorías de gasto propias.
 - Desde la entrega 45.1, un teléfono sin la cuenta unida tiene en Ajustes → Seguridad «Entrar con mi celular» y «Borrar todo en este teléfono»; al reinstalar, Moca empieza en la bienvenida (Android ya no restaura sus datos).
 - Desde la entrega 45, «Lo que te deben» y el detalle de una venta a crédito tienen «Recordar por WhatsApp» (solo dueños): el mensaje va listo, de usted, y el dueño elige el contacto.
 - Desde la entrega 44.2, una deuda ya pagada con «Ya me pagó» o «Ya lo pagué» tiene «Deshacer el cobro» o «Deshacer el pago»: vuelve a deberse y la plata vuelve a como estaba.
