@@ -427,6 +427,70 @@ class UsoDelNegocio {
   final DateTime? ultimaApertura;
 }
 
+/// Una persona del negocio en la ficha de soporte (entrega 47).
+class PersonaDeSoporte {
+  const PersonaDeSoporte({
+    required this.rol,
+    this.titular = false,
+    this.nombre,
+    this.celular,
+    this.version,
+    this.subioEn,
+  });
+
+  final String rol;
+  final bool titular;
+  final String? nombre;
+  final String? celular;
+
+  /// «entrega-47 (180)»; nulo si todavía no subió con una versión que lo
+  /// diga.
+  final String? version;
+  final DateTime? subioEn;
+}
+
+/// Una invitación en la ficha de soporte: vigente, vencida, aceptada o
+/// anulada.
+class InvitacionDeSoporte {
+  const InvitacionDeSoporte({
+    required this.celular,
+    required this.rol,
+    required this.estado,
+    this.nombre,
+  });
+
+  final String celular;
+  final String rol;
+  final String estado;
+  final String? nombre;
+}
+
+/// Un negocio en el que está un número (entrega 47).
+class NegocioDeSoporte {
+  const NegocioDeSoporte({
+    required this.empresaId,
+    required this.nombre,
+    required this.rol,
+    this.titular = false,
+  });
+
+  final String empresaId;
+  final String nombre;
+  final String rol;
+  final bool titular;
+}
+
+/// Lo que se sabe de un número: si tiene cuenta y en qué negocios está.
+class BusquedaDeSoporte {
+  const BusquedaDeSoporte({
+    required this.tieneCuenta,
+    this.negocios = const [],
+  });
+
+  final bool tieneCuenta;
+  final List<NegocioDeSoporte> negocios;
+}
+
 /// Un negocio como lo ve quien registra los pagos.
 class FichaDeCobro {
   const FichaDeCobro({
@@ -438,7 +502,16 @@ class FichaDeCobro {
     this.respuestas = const [],
     this.uso,
     this.ultimaApertura,
+    this.personas = const [],
+    this.invitaciones = const [],
+    this.registros,
   });
+
+  /// La ficha de soporte (entrega 47): quiénes están, con su versión y su
+  /// última subida, las invitaciones y cuántos registros hay.
+  final List<PersonaDeSoporte> personas;
+  final List<InvitacionDeSoporte> invitaciones;
+  final int? registros;
 
   final String empresaId;
   final String nombre;
@@ -508,6 +581,13 @@ enum ResultadoCobro {
 
   /// Solo se anula el último pago de un negocio.
   noEsElUltimo,
+
+  /// Días de prueba: el negocio ya pagó alguna vez, o ya tiene muchos.
+  yaPago,
+  demasiadosDias,
+
+  /// Para borrar hay que escribir el nombre del negocio.
+  sinConfirmacion,
   error,
 }
 
@@ -526,4 +606,19 @@ abstract interface class ServicioPagos {
     PlanCobro plan, {
     String? nota,
   });
+
+  /// Soporte (entrega 47): un número cualquiera, con sus negocios.
+  Future<(BusquedaDeSoporte?, ResultadoCobro)> buscarNumero(String celular);
+
+  /// La ficha de un negocio por su id.
+  Future<(FichaDeCobro?, ResultadoCobro)> fichaDeNegocio(String empresaId);
+
+  /// 7 o 14 días más de prueba, a un negocio que nunca pagó.
+  Future<(FichaDeCobro?, ResultadoCobro)> darDiasDePrueba(
+    String empresaId,
+    int dias,
+  );
+
+  /// Borra el negocio a pedido de su titular, con su nombre escrito.
+  Future<ResultadoCobro> borrarNegocio(String empresaId, String confirmacion);
 }

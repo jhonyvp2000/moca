@@ -123,6 +123,7 @@ export function estadoDelCobro({
   suscripcion,
   fundadores,
   personas = 1,
+  diasExtra = 0,
 }: {
   hoy: string;
   cobroDesde: string | null;
@@ -132,6 +133,8 @@ export function estadoDelCobro({
   fundadores: number;
   /** Personas del negocio sin el contador. */
   personas?: number;
+  /** Días de prueba que regaló Jhony desde soporte (entrega 47). */
+  diasExtra?: number;
 }): EstadoCobro {
   const fundador = puedeSerFundador({ hoy, suscripcion, fundadores });
   const opcion = (plan: Plan): OpcionDePlan => {
@@ -172,9 +175,11 @@ export function estadoDelCobro({
   }
 
   // Nadie pierde la prueba por haber empezado antes del cobro.
-  if (!inicioPrueba) return { ...base, estado: 'prueba', hasta: null, dias: diasDePrueba };
+  if (!inicioPrueba) {
+    return { ...base, estado: 'prueba', hasta: null, dias: diasDePrueba + diasExtra };
+  }
   const inicio = inicioPrueba > cobroDesde ? inicioPrueba : cobroDesde;
-  const hasta = sumarDias(inicio, diasDePrueba - 1);
+  const hasta = sumarDias(inicio, diasDePrueba + diasExtra - 1);
   const dias = diasEntre(hoy, hasta);
   return dias >= 0
     ? {

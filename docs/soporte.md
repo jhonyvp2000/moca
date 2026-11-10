@@ -4,11 +4,28 @@ Para que Jhony resuelva solo lo que piden los usuarios de Moca, sin pasar por Cl
 
 Al final de la guía están las cosas que conviene saber de Moca para entender casi cualquier caso.
 
-Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con la entrega 46. Cuando cambie la app, se actualiza aquí.
+Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con las entregas 46 y 47. Cuando cambie la app, se actualiza aquí.
 
 ---
 
-## Antes de responder: «Pedir ayuda por WhatsApp»
+## Lo primero: busca su número en «Cobros»
+
+Desde la entrega 47, en tu teléfono: pestaña Moca → mantén presionado el logo → **Cobros** → escribe el celular de la persona → **Buscar**. Sirve con **cualquier** número, no solo el del titular.
+
+- **«Ese número no tiene cuenta en Moca»** → nunca guardó su avance: es el caso 1 (sin cuenta). Lo que anotó vive solo en su teléfono.
+- **«Ese número tiene cuenta, pero no está en ningún negocio»** → lo quitaron, salió o su negocio se borró. Si quiere volver, que lo inviten (caso 7) o que empiece uno nuevo.
+- **Un negocio** → se abre su ficha. **Varios** (por ejemplo, un contador) → tocas el que te interesa.
+
+**La ficha** muestra, además del cobro, los pagos y el uso:
+- **Personas**: rol, quién es el titular, su celular, **qué versión de Moca tiene** y **cuándo subió por última vez**. Una versión vieja → caso 11. «No subió todavía» o una fecha vieja → no está unido a su cuenta o no tiene señal (casos 1 y 8).
+- **Invitaciones**: vigentes, vencidas, aceptadas o anuladas (caso 7).
+- **Registros**: cuántos tiene el negocio. Solo el número: lo que anotan no lo ve nadie.
+
+**Lo que puedes hacer desde la ficha** (pide confirmar y queda anotado):
+- **Dar días de prueba**: 7 o 14 días más, solo a un negocio que nunca pagó.
+- **Borrar el negocio**: solo cuando su titular te lo pide y no puede hacerlo él (caso 4). Escribes el nombre del negocio para confirmar.
+
+## Después: «Pedir ayuda por WhatsApp»
 
 Desde la entrega 46, lo más rápido es pedirle:
 
@@ -95,12 +112,14 @@ Si dos personas del mismo negocio necesitan anotar, cada una necesita **su propi
 
 ### 4. «Quiero borrar todo mi negocio»
 
-**Quién puede:** solo el **titular**, desde **Moca → Ajustes → Seguridad → Borrar mi negocio y mis datos**. Le pide escribir BORRAR. Borra todo, también lo del servidor, y en los teléfonos de los demás aparece que el negocio se borró.
+**Quién puede:** el **titular**, desde **Moca → Ajustes → Seguridad → Borrar mi negocio y mis datos**. Le pide escribir BORRAR. Borra todo, también lo del servidor, y en los teléfonos de los demás aparece que el negocio se borró.
 
 - Si no ve esa opción y ve «Salir de este negocio», no es el titular: tiene que pedírselo a quien creó el negocio.
 - Si no ve ninguna de las dos, es el caso 1: primero tiene que entrar con su número.
 
 > Abre Moca → Ajustes → Seguridad → **Borrar mi negocio y mis datos**, escribe BORRAR y confirma. Moca queda como recién instalada.
+
+Si el titular no puede entrar y te pide que lo borres: búscalo en **Cobros** → **Borrar el negocio** → escribe el nombre del negocio.
 
 Si solo quiere dejar **su teléfono** limpio, sin borrar el negocio, es «Borrar todo en este teléfono» (sin cuenta) o «Salir de Moca en este teléfono» (si fue invitado).
 

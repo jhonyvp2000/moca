@@ -1679,7 +1679,55 @@ abstract final class Textos {
       'Buscar un negocio, registrar un pago por Yape y ver lo que vence.';
   static String fundadoresUsados(int usados, int maximo) =>
       'Fundadores: $usados de $maximo.';
-  static const celularDelDueno = 'Celular del dueño';
+  static const celularDelDueno = 'Celular de la persona';
+
+  // La ficha de soporte (entrega 47).
+  static const numeroSinCuenta47 =
+      'Ese número no tiene cuenta en Moca: nunca guardó su avance.';
+  static const sinNegociosActivos =
+      'Ese número tiene cuenta, pero no está en ningún negocio.';
+  static const enQueNegocios = 'Está en estos negocios:';
+  static String negocioYRolSoporte(String nombre, String rol, bool titular) =>
+      '$nombre · $rol${titular ? ' (titular)' : ''}';
+  static const personasSoporte = 'Personas';
+  static String personaSoporte({
+    required String rol,
+    required bool titular,
+    String? nombre,
+    String? celular,
+    String? version,
+    String? subio,
+  }) => [
+    ?nombre,
+    '$rol${titular ? ' (titular)' : ''}',
+    ?celular,
+    version ?? 'versión sin datos',
+    subio == null ? 'no subió todavía' : 'subió $subio',
+  ].join(' · ');
+  static const invitacionesSoporte = 'Invitaciones';
+  static String invitacionSoporte(
+    String celular,
+    String rol,
+    String estado,
+    String? nombre,
+  ) => [?nombre, celular, rol, estado].join(' · ');
+  static String registrosSoporte(int n) =>
+      n == 1 ? '1 registro' : '$n registros';
+  static const darDiasDePrueba = 'Dar días de prueba';
+  static String diasDePrueba(int dias) => '$dias días más';
+  static String diasDadosHasta(String hasta) =>
+      'Listo. La prueba va hasta el $hasta.';
+  static const borrarElNegocio = 'Borrar el negocio';
+  static String borrarElNegocioDetalle(String nombre) =>
+      'Se borra «$nombre» con todo lo que anotaron, también en el servidor. '
+      'Solo a pedido de su titular. Para confirmar, escribe el nombre del '
+      'negocio.';
+  static const negocioBorrado47 = 'Listo. El negocio se borró.';
+  static const yaPagoSoporte =
+      'Ese negocio ya pagó alguna vez: no se le dan días de prueba.';
+  static const demasiadosDiasSoporte =
+      'Ese negocio ya tiene muchos días de regalo.';
+  static const nombreNoCoincide = 'El nombre no coincide con el del negocio.';
   static const buscar = 'Buscar';
   static const sinNegocioConEseNumero = 'No hay un negocio con ese número.';
   static const sinPermisoCobros = 'Este número no registra pagos.';

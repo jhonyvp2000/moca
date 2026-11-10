@@ -1,44 +1,50 @@
-import { randomUUID } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { crearApp } from '../src/app.js';
+import { randomUUID } from "node:crypto";
+import type { FastifyInstance } from "fastify";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { crearApp } from "../src/app.js";
 import {
   estadoDelCobro,
   periodoDelPago,
   precioDe,
   puedeSerFundador,
   sumarMeses,
-} from '../src/cobro/estado.js';
-import { leerConfigCobro } from '../src/cobro/rutas.js';
-import { crearBaseDePrueba, type BaseDePrueba } from './base_de_prueba.js';
-import { verificadorFalso } from './verificador_falso.js';
-import { negocio, type Persona } from './negocio_de_prueba.js';
+} from "../src/cobro/estado.js";
+import { leerConfigCobro } from "../src/cobro/rutas.js";
+import { crearBaseDePrueba, type BaseDePrueba } from "./base_de_prueba.js";
+import { verificadorFalso } from "./verificador_falso.js";
+import { negocio, type Persona } from "./negocio_de_prueba.js";
 
-describe('El estado del cobro (entrega 24)', () => {
-  const base = { cobroDesde: '2026-11-10', suscripcion: null, fundadores: 0 };
+const sumarDiasAFecha = (dia: string, dias: number) => {
+  const f = new Date(`${dia}T00:00:00Z`);
+  f.setUTCDate(f.getUTCDate() + dias);
+  return f.toISOString().slice(0, 10);
+};
 
-  it('Sin MOCA_COBRO_DESDE no se cobra', () => {
+describe("El estado del cobro (entrega 24)", () => {
+  const base = { cobroDesde: "2026-11-10", suscripcion: null, fundadores: 0 };
+
+  it("Sin MOCA_COBRO_DESDE no se cobra", () => {
     expect(
       estadoDelCobro({
         ...base,
-        hoy: '2026-12-30',
+        hoy: "2026-12-30",
         cobroDesde: null,
-        inicioPrueba: '2026-11-01',
+        inicioPrueba: "2026-11-01",
       }).estado,
-    ).toBe('sin_cobro');
+    ).toBe("sin_cobro");
   });
 
-  it('14 días desde el primer registro, nunca antes de que empiece el cobro', () => {
+  it("14 días desde el primer registro, nunca antes de que empiece el cobro", () => {
     // Empezó antes del cobro: cuenta desde el 10.
     expect(
       estadoDelCobro({
         ...base,
-        hoy: '2026-11-12',
-        inicioPrueba: '2026-11-01',
+        hoy: "2026-11-12",
+        inicioPrueba: "2026-11-01",
       }),
     ).toMatchObject({
-      estado: 'prueba',
-      hasta: '2026-11-23',
+      estado: "prueba",
+      hasta: "2026-11-23",
       dias: 11,
       porVencer: false,
       precio: 1490,
@@ -47,45 +53,48 @@ describe('El estado del cobro (entrega 24)', () => {
     expect(
       estadoDelCobro({
         ...base,
-        hoy: '2026-11-22',
-        inicioPrueba: '2026-11-15',
+        hoy: "2026-11-22",
+        inicioPrueba: "2026-11-15",
       }),
-    ).toMatchObject({ estado: 'prueba', hasta: '2026-11-28', dias: 6 });
+    ).toMatchObject({ estado: "prueba", hasta: "2026-11-28", dias: 6 });
     // Sin registros, la prueba no empezó.
-    expect(estadoDelCobro({ ...base, hoy: '2026-11-22', inicioPrueba: null })).toMatchObject({
-      estado: 'prueba',
+    expect(
+      estadoDelCobro({ ...base, hoy: "2026-11-22", inicioPrueba: null }),
+    ).toMatchObject({
+      estado: "prueba",
       hasta: null,
       dias: 14,
     });
     // Tres días antes avisa; al día siguiente del último, vence.
     expect(
-      estadoDelCobro({ ...base, hoy: '2026-11-20', inicioPrueba: '2026-11-01' }).porVencer,
+      estadoDelCobro({ ...base, hoy: "2026-11-20", inicioPrueba: "2026-11-01" })
+        .porVencer,
     ).toBe(true);
     expect(
       estadoDelCobro({
         ...base,
-        hoy: '2026-11-24',
-        inicioPrueba: '2026-11-01',
+        hoy: "2026-11-24",
+        inicioPrueba: "2026-11-01",
       }),
-    ).toMatchObject({ estado: 'vencido', hasta: '2026-11-23' });
+    ).toMatchObject({ estado: "vencido", hasta: "2026-11-23" });
   });
 
-  it('Pagado hasta el día que dice, con su aviso', () => {
+  it("Pagado hasta el día que dice, con su aviso", () => {
     const suscripcion = {
-      plan: 'normal' as const,
-      pagadoHasta: '2026-12-20',
+      plan: "normal" as const,
+      pagadoHasta: "2026-12-20",
       fueFundador: false,
     };
     expect(
       estadoDelCobro({
         ...base,
         suscripcion,
-        hoy: '2026-12-17',
-        inicioPrueba: '2026-11-10',
+        hoy: "2026-12-17",
+        inicioPrueba: "2026-11-10",
       }),
     ).toMatchObject({
-      estado: 'pagado',
-      hasta: '2026-12-20',
+      estado: "pagado",
+      hasta: "2026-12-20",
       dias: 3,
       porVencer: true,
     });
@@ -93,130 +102,148 @@ describe('El estado del cobro (entrega 24)', () => {
       estadoDelCobro({
         ...base,
         suscripcion,
-        hoy: '2026-12-21',
-        inicioPrueba: '2026-11-10',
+        hoy: "2026-12-21",
+        inicioPrueba: "2026-11-10",
       }).estado,
-    ).toBe('vencido');
+    ).toBe("vencido");
   });
 
-  it('El mes sigue al anterior y se ajusta a fin de mes', () => {
-    expect(sumarMeses('2026-01-31', 1)).toBe('2026-02-28');
-    expect(periodoDelPago({ hoy: '2026-11-21', pagadoHasta: null, plan: 'normal' })).toEqual({
-      desde: '2026-11-21',
-      hasta: '2026-12-20',
+  it("El mes sigue al anterior y se ajusta a fin de mes", () => {
+    expect(sumarMeses("2026-01-31", 1)).toBe("2026-02-28");
+    expect(
+      periodoDelPago({ hoy: "2026-11-21", pagadoHasta: null, plan: "normal" }),
+    ).toEqual({
+      desde: "2026-11-21",
+      hasta: "2026-12-20",
     });
     expect(
       periodoDelPago({
-        hoy: '2026-12-15',
-        pagadoHasta: '2026-12-20',
-        plan: 'normal',
+        hoy: "2026-12-15",
+        pagadoHasta: "2026-12-20",
+        plan: "normal",
       }),
-    ).toEqual({ desde: '2026-12-21', hasta: '2027-01-20' });
+    ).toEqual({ desde: "2026-12-21", hasta: "2027-01-20" });
     expect(
       periodoDelPago({
-        hoy: '2027-02-01',
-        pagadoHasta: '2026-12-20',
-        plan: 'anual',
+        hoy: "2027-02-01",
+        pagadoHasta: "2026-12-20",
+        plan: "anual",
       }),
-    ).toEqual({ desde: '2027-02-01', hasta: '2028-01-31' });
+    ).toEqual({ desde: "2027-02-01", hasta: "2028-01-31" });
   });
 
-  it('El fundador: 50 cupos; lo pierde quien renueva más de 30 días tarde', () => {
+  it("El fundador: 50 cupos; lo pierde quien renueva más de 30 días tarde", () => {
     expect(
       puedeSerFundador({
-        hoy: '2026-11-21',
+        hoy: "2026-11-21",
         suscripcion: null,
         fundadores: 49,
       }),
     ).toBe(true);
     expect(
       puedeSerFundador({
-        hoy: '2026-11-21',
+        hoy: "2026-11-21",
         suscripcion: null,
         fundadores: 50,
       }),
     ).toBe(false);
     const fundador = {
-      plan: 'fundador' as const,
-      pagadoHasta: '2026-12-20',
+      plan: "fundador" as const,
+      pagadoHasta: "2026-12-20",
       fueFundador: true,
     };
     expect(
       puedeSerFundador({
-        hoy: '2027-01-19',
+        hoy: "2027-01-19",
         suscripcion: fundador,
         fundadores: 50,
       }),
     ).toBe(true);
     expect(
       puedeSerFundador({
-        hoy: '2027-01-20',
+        hoy: "2027-01-20",
         suscripcion: fundador,
         fundadores: 0,
       }),
     ).toBe(false);
   });
 
-  it('Entrega 43: Básico y Full, con S/ 2.90 por persona más', () => {
-    expect(precioDe('basico', 0)).toBe(1490);
-    expect(precioDe('basico', 2)).toBe(2070);
-    expect(precioDe('normal', 1)).toBe(2280);
-    expect(precioDe('fundador', 1)).toBe(1780);
+  it("Entrega 43: Básico y Full, con S/ 2.90 por persona más", () => {
+    expect(precioDe("basico", 0)).toBe(1490);
+    expect(precioDe("basico", 2)).toBe(2070);
+    expect(precioDe("normal", 1)).toBe(2280);
+    expect(precioDe("fundador", 1)).toBe(1780);
     // Al año, S/ 34.80 por persona.
-    expect(precioDe('anual', 1)).toBe(23380);
-    const sinCupo = { ...base, hoy: '2026-11-12', inicioPrueba: '2026-11-10', fundadores: 50 };
+    expect(precioDe("anual", 1)).toBe(23380);
+    const sinCupo = {
+      ...base,
+      hoy: "2026-11-12",
+      inicioPrueba: "2026-11-10",
+      fundadores: 50,
+    };
     // Dos personas: el Full no cobra extra; el Básico, una.
     expect(estadoDelCobro({ ...sinCupo, personas: 2 })).toMatchObject({
-      nivel: 'full',
+      nivel: "full",
       incluidas: 3,
       credito: true,
       precio: 1990,
       opciones: {
-        full: { plan: 'normal', precio: 1990, extras: 0 },
-        basico: { plan: 'basico', precio: 1780, extras: 1 },
+        full: { plan: "normal", precio: 1990, extras: 0 },
+        basico: { plan: "basico", precio: 1780, extras: 1 },
       },
     });
     // Cuatro personas: el Básico (S/ 23.60) sale más caro que el Full.
     expect(estadoDelCobro({ ...sinCupo, personas: 4 }).opciones).toEqual({
-      full: { plan: 'normal', precio: 2280, extras: 1 },
-      basico: { plan: 'basico', precio: 2360, extras: 3 },
+      full: { plan: "normal", precio: 2280, extras: 1 },
+      basico: { plan: "basico", precio: 2360, extras: 3 },
     });
     // Con el Básico pagado: 1 persona incluida y sin crédito.
-    const basico = { plan: 'basico' as const, pagadoHasta: '2026-12-11', fueFundador: false };
-    expect(estadoDelCobro({ ...sinCupo, suscripcion: basico, personas: 1 })).toMatchObject({
-      estado: 'pagado',
-      nivel: 'basico',
+    const basico = {
+      plan: "basico" as const,
+      pagadoHasta: "2026-12-11",
+      fueFundador: false,
+    };
+    expect(
+      estadoDelCobro({ ...sinCupo, suscripcion: basico, personas: 1 }),
+    ).toMatchObject({
+      estado: "pagado",
+      nivel: "basico",
       incluidas: 1,
       credito: false,
     });
     // Al fundador no se le ofrece el Básico: cuesta lo mismo.
     expect(
-      estadoDelCobro({ ...base, hoy: '2026-11-12', inicioPrueba: null, personas: 3 }).opciones,
-    ).toEqual({ full: { plan: 'fundador', precio: 1490, extras: 0 } });
+      estadoDelCobro({
+        ...base,
+        hoy: "2026-11-12",
+        inicioPrueba: null,
+        personas: 3,
+      }).opciones,
+    ).toEqual({ full: { plan: "fundador", precio: 1490, extras: 0 } });
   });
 
-  it('La configuración sale del entorno', () => {
+  it("La configuración sale del entorno", () => {
     expect(
       leerConfigCobro({
-        MOCA_COBRO_DESDE: '2026-11-10',
-        MOCA_ADMIN_CELULARES: '+51 900 000 000, 911222333',
-        MOCA_YAPE_NUMERO: '+51 911 111 111',
-        MOCA_YAPE_NOMBRE: 'Moca',
+        MOCA_COBRO_DESDE: "2026-11-10",
+        MOCA_ADMIN_CELULARES: "+51 900 000 000, 911222333",
+        MOCA_YAPE_NUMERO: "+51 911 111 111",
+        MOCA_YAPE_NOMBRE: "Moca",
       }),
     ).toEqual({
-      desde: '2026-11-10',
-      admins: ['900000000', '911222333'],
-      yape: { numero: '911111111', nombre: 'Moca' },
+      desde: "2026-11-10",
+      admins: ["900000000", "911222333"],
+      yape: { numero: "911111111", nombre: "Moca" },
     });
-    expect(leerConfigCobro({ MOCA_COBRO_DESDE: 'mañana' }).desde).toBeNull();
+    expect(leerConfigCobro({ MOCA_COBRO_DESDE: "mañana" }).desde).toBeNull();
   });
 });
 
-describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
+describe("El cobro manual por Yape en el servidor (entrega 24)", () => {
   let base: BaseDePrueba;
   let app: FastifyInstance;
   // 10 de la mañana en Lima del día indicado.
-  let ahora = new Date('2026-11-12T15:00:00Z');
+  let ahora = new Date("2026-11-12T15:00:00Z");
   const elDia = (dia: string) => {
     ahora = new Date(`${dia}T15:00:00Z`);
   };
@@ -224,15 +251,23 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
   let jhony: Persona;
   let empresaDeLucho: string;
 
-  const verificar = async (celular: string, usuarioId: string = randomUUID()): Promise<Persona> => {
+  const verificar = async (
+    celular: string,
+    usuarioId: string = randomUUID(),
+  ): Promise<Persona> => {
     const r = await app.inject({
-      method: 'POST',
-      url: '/cuenta/verificar',
-      payload: { celular, codigo: '123456', usuarioId },
+      method: "POST",
+      url: "/cuenta/verificar",
+      payload: { celular, codigo: "123456", usuarioId },
     });
     return { usuarioId, llave: r.json().llave };
   };
-  const pedir = (persona: Persona, metodo: 'GET' | 'POST', url: string, payload?: object) =>
+  const pedir = (
+    persona: Persona,
+    metodo: "GET" | "POST",
+    url: string,
+    payload?: object,
+  ) =>
     app.inject({
       method: metodo,
       url,
@@ -240,329 +275,520 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       ...(payload ? { payload } : {}),
     });
   const cobroDe = async (persona: Persona) =>
-    (await pedir(persona, 'GET', '/datos/bajar')).json().cobro;
+    (await pedir(persona, "GET", "/datos/bajar")).json().cobro;
 
   beforeAll(async () => {
     base = await crearBaseDePrueba();
     app = crearApp({
       pool: base.pool,
-      version: 'prueba',
+      version: "prueba",
       verificador: verificadorFalso(),
       ahora: () => ahora,
       cobro: {
-        desde: '2026-11-10',
-        admins: ['900000000'],
-        yape: { numero: '911111111', nombre: 'Moca' },
+        desde: "2026-11-10",
+        admins: ["900000000"],
+        yape: { numero: "911111111", nombre: "Moca" },
       },
     });
-    lucho = await verificar('987000001');
-    const datos = negocio('Bodega Don Lucho', lucho.usuarioId, '2026-11-01T14:00:00.000Z');
+    lucho = await verificar("987000001");
+    const datos = negocio(
+      "Bodega Don Lucho",
+      lucho.usuarioId,
+      "2026-11-01T14:00:00.000Z",
+    );
     empresaDeLucho = datos.empresa.id;
-    expect((await pedir(lucho, 'POST', '/datos/subir', datos)).statusCode).toBe(200);
-    jhony = await verificar('900000000');
+    expect((await pedir(lucho, "POST", "/datos/subir", datos)).statusCode).toBe(
+      200,
+    );
+    jhony = await verificar("900000000");
   });
   afterAll(() => base.cerrar());
 
-  it('El teléfono recibe su prueba y a dónde yapear', async () => {
-    elDia('2026-11-12');
+  it("El teléfono recibe su prueba y a dónde yapear", async () => {
+    elDia("2026-11-12");
     expect(await cobroDe(lucho)).toEqual({
-      estado: 'prueba',
-      hasta: '2026-11-23',
+      estado: "prueba",
+      hasta: "2026-11-23",
       dias: 11,
       porVencer: false,
       plan: null,
       precio: 1490,
       // En la prueba es Full (entrega 43); al fundador no se le ofrece el
       // Básico.
-      nivel: 'full',
+      nivel: "full",
       personas: 1,
       incluidas: 3,
       credito: true,
-      opciones: { full: { plan: 'fundador', precio: 1490, extras: 0 } },
-      pago: { yape: '911111111', nombre: 'Moca' },
+      opciones: { full: { plan: "fundador", precio: 1490, extras: 0 } },
+      pago: { yape: "911111111", nombre: "Moca" },
       respondio: false,
     });
-    elDia('2026-11-21');
-    const cambios = (await pedir(lucho, 'GET', '/datos/cambios?desde=0')).json();
+    elDia("2026-11-21");
+    const cambios = (
+      await pedir(lucho, "GET", "/datos/cambios?desde=0")
+    ).json();
     expect(cambios.cobro).toMatchObject({
-      estado: 'prueba',
+      estado: "prueba",
       dias: 2,
       porVencer: true,
     });
   });
 
-  it('Solo el número de Jhony registra pagos', async () => {
-    expect((await pedir(lucho, 'GET', '/cobro/negocio?celular=987000001')).json()).toEqual({
-      error: 'sin_permiso',
+  it("Solo el número de Jhony registra pagos", async () => {
+    expect(
+      (await pedir(lucho, "GET", "/cobro/negocio?celular=987000001")).json(),
+    ).toEqual({
+      error: "sin_permiso",
     });
     expect(
       (
-        await pedir(lucho, 'POST', '/cobro/pago', {
+        await pedir(lucho, "POST", "/cobro/pago", {
           empresa: empresaDeLucho,
-          plan: 'normal',
+          plan: "normal",
         })
       ).statusCode,
     ).toBe(403);
-    expect((await pedir(jhony, 'GET', '/cobro/resumen')).statusCode).toBe(200);
+    expect((await pedir(jhony, "GET", "/cobro/resumen")).statusCode).toBe(200);
   });
 
-  it('Un pago en la prueba empieza cuando la prueba termina; el siguiente, a continuación', async () => {
-    elDia('2026-11-21');
-    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987 000 001')).json();
+  it("Un pago en la prueba empieza cuando la prueba termina; el siguiente, a continuación", async () => {
+    elDia("2026-11-21");
+    const ficha = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987 000 001")
+    ).json();
     expect(ficha).toMatchObject({
       empresa_id: empresaDeLucho,
-      nombre: 'Bodega Don Lucho',
-      celular: '987000001',
-      cobro: { estado: 'prueba', hasta: '2026-11-23' },
+      nombre: "Bodega Don Lucho",
+      celular: "987000001",
+      cobro: { estado: "prueba", hasta: "2026-11-23" },
       pagos: [],
     });
 
-    const pago = await pedir(jhony, 'POST', '/cobro/pago', {
+    const pago = await pedir(jhony, "POST", "/cobro/pago", {
       empresa: empresaDeLucho,
-      plan: 'fundador',
-      nota: 'Yape op. 123',
+      plan: "fundador",
+      nota: "Yape op. 123",
     });
     expect(pago.json().cobro).toMatchObject({
-      estado: 'pagado',
-      hasta: '2026-12-23',
-      plan: 'fundador',
+      estado: "pagado",
+      hasta: "2026-12-23",
+      plan: "fundador",
       precio: 1490,
     });
     expect(await cobroDe(lucho)).toMatchObject({
-      estado: 'pagado',
-      hasta: '2026-12-23',
+      estado: "pagado",
+      hasta: "2026-12-23",
     });
 
-    await pedir(jhony, 'POST', '/cobro/pago', {
+    await pedir(jhony, "POST", "/cobro/pago", {
       empresa: empresaDeLucho,
-      plan: 'fundador',
+      plan: "fundador",
     });
-    const despues = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
-    expect(despues.cobro.hasta).toBe('2027-01-23');
+    const despues = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000001")
+    ).json();
+    expect(despues.cobro.hasta).toBe("2027-01-23");
     expect(
       despues.pagos.map((p: { desde: string; monto_centimos: number }) => [
         p.desde,
         p.monto_centimos,
       ]),
     ).toEqual([
-      ['2026-12-24', 1490],
-      ['2026-11-24', 1490],
+      ["2026-12-24", 1490],
+      ["2026-11-24", 1490],
     ]);
     // Cuenta una sola vez para los 50.
-    expect((await pedir(jhony, 'GET', '/cobro/resumen')).json().fundadores).toEqual({
+    expect(
+      (await pedir(jhony, "GET", "/cobro/resumen")).json().fundadores,
+    ).toEqual({
       usados: 1,
       maximo: 50,
     });
   });
 
-  it('Más de 30 días tarde pierde el fundador; paga S/ 19.90', async () => {
-    elDia('2027-02-23');
+  it("Más de 30 días tarde pierde el fundador; paga S/ 19.90", async () => {
+    elDia("2027-02-23");
     expect(await cobroDe(lucho)).toMatchObject({
-      estado: 'vencido',
+      estado: "vencido",
       precio: 1990,
     });
-    const r = await pedir(jhony, 'POST', '/cobro/pago', {
+    const r = await pedir(jhony, "POST", "/cobro/pago", {
       empresa: empresaDeLucho,
-      plan: 'fundador',
+      plan: "fundador",
     });
-    expect(r.json()).toEqual({ error: 'perdio_fundador' });
-    const normal = await pedir(jhony, 'POST', '/cobro/pago', {
+    expect(r.json()).toEqual({ error: "perdio_fundador" });
+    const normal = await pedir(jhony, "POST", "/cobro/pago", {
       empresa: empresaDeLucho,
-      plan: 'normal',
+      plan: "normal",
     });
     expect(normal.json().cobro).toMatchObject({
-      estado: 'pagado',
-      hasta: '2027-03-22',
+      estado: "pagado",
+      hasta: "2027-03-22",
     });
   });
 
-  it('Lo vencido sale en el resumen; borrar y volver a empezar no da otra prueba', async () => {
-    elDia('2026-11-12');
-    const rosa = await verificar('987000002');
+  it("Lo vencido sale en el resumen; borrar y volver a empezar no da otra prueba", async () => {
+    elDia("2026-11-12");
+    const rosa = await verificar("987000002");
     expect(
       (
         await pedir(
           rosa,
-          'POST',
-          '/datos/subir',
-          negocio('Pollería Rosa', rosa.usuarioId, '2026-11-12T14:00:00.000Z'),
+          "POST",
+          "/datos/subir",
+          negocio("Pollería Rosa", rosa.usuarioId, "2026-11-12T14:00:00.000Z"),
         )
       ).statusCode,
     ).toBe(200);
-    elDia('2026-11-26');
+    elDia("2026-11-26");
     expect(await cobroDe(rosa)).toMatchObject({
-      estado: 'vencido',
-      hasta: '2026-11-25',
+      estado: "vencido",
+      hasta: "2026-11-25",
     });
-    const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
-    expect(resumen.negocios.map((n: { nombre: string }) => n.nombre)).toContain('Pollería Rosa');
+    const resumen = (await pedir(jhony, "GET", "/cobro/resumen")).json();
+    expect(resumen.negocios.map((n: { nombre: string }) => n.nombre)).toContain(
+      "Pollería Rosa",
+    );
 
     expect(
       (
-        await pedir(rosa, 'POST', '/cuenta/borrar-datos', {
-          confirmacion: 'BORRAR',
+        await pedir(rosa, "POST", "/cuenta/borrar-datos", {
+          confirmacion: "BORRAR",
         })
       ).statusCode,
     ).toBe(200);
-    const deNuevo = await verificar('987000002', rosa.usuarioId);
+    const deNuevo = await verificar("987000002", rosa.usuarioId);
     await pedir(
       deNuevo,
-      'POST',
-      '/datos/subir',
-      negocio('Pollería Rosa 2', rosa.usuarioId, '2026-11-26T14:00:00.000Z'),
+      "POST",
+      "/datos/subir",
+      negocio("Pollería Rosa 2", rosa.usuarioId, "2026-11-26T14:00:00.000Z"),
     );
     expect(await cobroDe(deNuevo)).toMatchObject({
-      estado: 'vencido',
-      hasta: '2026-11-25',
+      estado: "vencido",
+      hasta: "2026-11-25",
     });
   });
 
-  it('Entrega 25: la pregunta del día 10 se contesta una vez y Jhony la ve', async () => {
-    elDia('2027-02-23');
+  it("Entrega 25: la pregunta del día 10 se contesta una vez y Jhony la ve", async () => {
+    elDia("2027-02-23");
     expect((await cobroDe(lucho)).respondio).toBe(false);
     expect(
-      (await pedir(lucho, 'POST', '/cobro/respuesta', { respuesta: 'quizas' })).statusCode,
+      (await pedir(lucho, "POST", "/cobro/respuesta", { respuesta: "quizas" }))
+        .statusCode,
     ).toBe(400);
     expect(
       (
-        await pedir(lucho, 'POST', '/cobro/respuesta', {
-          respuesta: 'no_se',
-          motivo: 'Depende de las ventas',
+        await pedir(lucho, "POST", "/cobro/respuesta", {
+          respuesta: "no_se",
+          motivo: "Depende de las ventas",
         })
       ).json(),
     ).toEqual({ recibida: true });
     expect((await cobroDe(lucho)).respondio).toBe(true);
-    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
+    const ficha = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000001")
+    ).json();
     expect(ficha.respuestas).toMatchObject([
-      { respuesta: 'no_se', motivo: 'Depende de las ventas', precio_centimos: 1990 },
+      {
+        respuesta: "no_se",
+        motivo: "Depende de las ventas",
+        precio_centimos: 1990,
+      },
     ]);
   });
 
-  it('Entrega 26.1: anular el último pago lo deja como antes, con su cupo', async () => {
-    elDia('2026-11-20');
-    const carmen = await verificar('987000003');
-    const datos = negocio('Bodega Carmen', carmen.usuarioId, '2026-11-20T14:00:00.000Z');
-    await pedir(carmen, 'POST', '/datos/subir', datos);
+  it("Entrega 26.1: anular el último pago lo deja como antes, con su cupo", async () => {
+    elDia("2026-11-20");
+    const carmen = await verificar("987000003");
+    const datos = negocio(
+      "Bodega Carmen",
+      carmen.usuarioId,
+      "2026-11-20T14:00:00.000Z",
+    );
+    await pedir(carmen, "POST", "/datos/subir", datos);
     const empresa = datos.empresa.id;
     const cupo = async () =>
-      (await pedir(jhony, 'GET', '/cobro/resumen')).json().fundadores.usados as number;
+      (await pedir(jhony, "GET", "/cobro/resumen")).json().fundadores
+        .usados as number;
     const antes = await cupo();
 
-    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
-    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
+    await pedir(jhony, "POST", "/cobro/pago", { empresa, plan: "fundador" });
+    await pedir(jhony, "POST", "/cobro/pago", { empresa, plan: "fundador" });
     expect(await cupo()).toBe(antes + 1);
-    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000003')).json();
+    const ficha = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000003")
+    ).json();
     const [ultimo, primero] = ficha.pagos as { id: string }[];
     // Solo el último.
     expect(
-      (await pedir(jhony, 'POST', '/cobro/anular', { pago: primero!.id })).json(),
-    ).toEqual({ error: 'no_es_el_ultimo' });
+      (
+        await pedir(jhony, "POST", "/cobro/anular", { pago: primero!.id })
+      ).json(),
+    ).toEqual({ error: "no_es_el_ultimo" });
 
-    const r = await pedir(jhony, 'POST', '/cobro/anular', { pago: ultimo!.id });
-    expect(r.json().cobro).toMatchObject({ estado: 'pagado', hasta: '2027-01-03' });
-    const r2 = await pedir(jhony, 'POST', '/cobro/anular', { pago: primero!.id });
+    const r = await pedir(jhony, "POST", "/cobro/anular", { pago: ultimo!.id });
+    expect(r.json().cobro).toMatchObject({
+      estado: "pagado",
+      hasta: "2027-01-03",
+    });
+    const r2 = await pedir(jhony, "POST", "/cobro/anular", {
+      pago: primero!.id,
+    });
     // Sin pagos, vuelve a su prueba y el cupo de fundador vuelve.
-    expect(r2.json().cobro).toMatchObject({ estado: 'prueba', hasta: '2026-12-03' });
+    expect(r2.json().cobro).toMatchObject({
+      estado: "prueba",
+      hasta: "2026-12-03",
+    });
     expect(await cupo()).toBe(antes);
-    expect((await cobroDe(carmen)).estado).toBe('prueba');
+    expect((await cobroDe(carmen)).estado).toBe("prueba");
     // Quedan marcados, no borrados.
-    const despues = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000003')).json();
-    expect(despues.pagos.every((p: { anulado_en: string | null }) => p.anulado_en)).toBe(true);
-    expect((await pedir(jhony, 'POST', '/cobro/anular', { pago: ultimo!.id })).statusCode).toBe(
-      404,
-    );
+    const despues = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000003")
+    ).json();
     expect(
-      (await pedir(carmen, 'POST', '/cobro/anular', { pago: ultimo!.id })).statusCode,
+      despues.pagos.every((p: { anulado_en: string | null }) => p.anulado_en),
+    ).toBe(true);
+    expect(
+      (await pedir(jhony, "POST", "/cobro/anular", { pago: ultimo!.id }))
+        .statusCode,
+    ).toBe(404);
+    expect(
+      (await pedir(carmen, "POST", "/cobro/anular", { pago: ultimo!.id }))
+        .statusCode,
     ).toBe(403);
   });
 
-  it('Entrega 43: el Básico con personas extra, y vuelve al Full', async () => {
-    elDia('2026-11-20');
-    const nora = await verificar('987000006');
-    const datos = negocio('Bodega Nora', nora.usuarioId, '2026-11-20T14:00:00.000Z');
-    await pedir(nora, 'POST', '/datos/subir', datos);
+  it("Entrega 43: el Básico con personas extra, y vuelve al Full", async () => {
+    elDia("2026-11-20");
+    const nora = await verificar("987000006");
+    const datos = negocio(
+      "Bodega Nora",
+      nora.usuarioId,
+      "2026-11-20T14:00:00.000Z",
+    );
+    await pedir(nora, "POST", "/datos/subir", datos);
     const empresa = datos.empresa.id;
     // Una persona más en el negocio, y la contadora, que no cuenta.
     for (const [celular, rol] of [
-      ['987000007', 'ayudante'],
-      ['987000008', 'contador'],
+      ["987000007", "ayudante"],
+      ["987000008", "contador"],
     ]) {
-      await pedir(nora, 'POST', '/equipo/invitar', { celular, rol });
+      await pedir(nora, "POST", "/equipo/invitar", { celular, rol });
       const usuarioId = randomUUID();
       const r = await app.inject({
-        method: 'POST',
-        url: '/cuenta/verificar',
-        payload: { celular, codigo: '123456', usuarioId, modo: 'invitado' },
+        method: "POST",
+        url: "/cuenta/verificar",
+        payload: { celular, codigo: "123456", usuarioId, modo: "invitado" },
       });
       const persona = { usuarioId: r.json().usuarioId, llave: r.json().llave };
-      const { invitaciones } = (await pedir(persona, 'GET', '/cuenta/invitaciones')).json();
-      await pedir(persona, 'POST', '/cuenta/aceptar', {
+      const { invitaciones } = (
+        await pedir(persona, "GET", "/cuenta/invitaciones")
+      ).json();
+      await pedir(persona, "POST", "/cuenta/aceptar", {
         invitacion: invitaciones[0].id,
         consentimiento: true,
       });
     }
-    expect(await cobroDe(nora)).toMatchObject({ personas: 2, nivel: 'full', incluidas: 3 });
+    expect(await cobroDe(nora)).toMatchObject({
+      personas: 2,
+      nivel: "full",
+      incluidas: 3,
+    });
 
     // El Básico: S/ 14.90 + 1 persona.
-    const basico = await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'basico' });
+    const basico = await pedir(jhony, "POST", "/cobro/pago", {
+      empresa,
+      plan: "basico",
+    });
     expect(basico.json().cobro).toMatchObject({
-      estado: 'pagado',
-      plan: 'basico',
-      nivel: 'basico',
+      estado: "pagado",
+      plan: "basico",
+      nivel: "basico",
       incluidas: 1,
       credito: false,
     });
-    expect(await cobroDe(nora)).toMatchObject({ nivel: 'basico', credito: false });
-    expect((await pedir(nora, 'GET', '/equipo')).json().incluidas).toBe(1);
+    expect(await cobroDe(nora)).toMatchObject({
+      nivel: "basico",
+      credito: false,
+    });
+    expect((await pedir(nora, "GET", "/equipo")).json().incluidas).toBe(1);
     // Vuelve al Full: sin personas extra.
-    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'normal' });
-    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000006')).json();
+    await pedir(jhony, "POST", "/cobro/pago", { empresa, plan: "normal" });
+    const ficha = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000006")
+    ).json();
     expect(
-      ficha.pagos.map((p: { plan: string; monto_centimos: number; personas_extra: number }) => [
-        p.plan,
-        p.monto_centimos,
-        p.personas_extra,
-      ]),
+      ficha.pagos.map(
+        (p: {
+          plan: string;
+          monto_centimos: number;
+          personas_extra: number;
+        }) => [p.plan, p.monto_centimos, p.personas_extra],
+      ),
     ).toEqual([
-      ['normal', 1990, 0],
-      ['basico', 1780, 1],
+      ["normal", 1990, 0],
+      ["basico", 1780, 1],
     ]);
-    expect(ficha.cobro).toMatchObject({ nivel: 'full', credito: true });
+    expect(ficha.cobro).toMatchObject({ nivel: "full", credito: true });
     // Los dueños ven sus pagos con las personas extra.
-    const mios = (await pedir(nora, 'GET', '/cobro/mis-pagos')).json();
-    expect(mios.pagos[1]).toMatchObject({ plan: 'basico', personas_extra: 1 });
+    const mios = (await pedir(nora, "GET", "/cobro/mis-pagos")).json();
+    expect(mios.pagos[1]).toMatchObject({ plan: "basico", personas_extra: 1 });
     // Anular el último lo deja otra vez en el Básico.
-    const anulado = await pedir(jhony, 'POST', '/cobro/anular', { pago: ficha.pagos[0].id });
-    expect(anulado.json().cobro).toMatchObject({ plan: 'basico', nivel: 'basico' });
+    const anulado = await pedir(jhony, "POST", "/cobro/anular", {
+      pago: ficha.pagos[0].id,
+    });
+    expect(anulado.json().cobro).toMatchObject({
+      plan: "basico",
+      nivel: "basico",
+    });
   });
 
-  it('Entrega 44: un pago en parte sube con la deuda de la que es parte', async () => {
-    const tito = await verificar('987000009');
-    const datos = negocio('Bodega Tito', tito.usuarioId, '2026-11-20T14:00:00.000Z');
+  it("Entrega 44: un pago en parte sube con la deuda de la que es parte", async () => {
+    const tito = await verificar("987000009");
+    const datos = negocio(
+      "Bodega Tito",
+      tito.usuarioId,
+      "2026-11-20T14:00:00.000Z",
+    );
     const [venta] = datos.movimientos;
     const deuda = {
       ...venta!,
       id: randomUUID(),
       monto_centimos: 12000,
-      estado_pago: 'pendiente',
+      estado_pago: "pendiente",
       monto_pagado_centimos: 0,
       fecha_pago: null,
     };
     // La parte va antes que su deuda: se revisa al final, no fila por fila.
-    const parte = { ...venta!, id: randomUUID(), monto_centimos: 8000, abona_a: deuda.id };
-    const subida = await pedir(tito, 'POST', '/datos/subir', {
+    const parte = {
+      ...venta!,
+      id: randomUUID(),
+      monto_centimos: 8000,
+      abona_a: deuda.id,
+    };
+    const subida = await pedir(tito, "POST", "/datos/subir", {
       ...datos,
       movimientos: [venta, parte, deuda],
     });
     expect(subida.statusCode).toBe(200);
-    const bajado = (await pedir(tito, 'GET', '/datos/bajar')).json();
-    const filas = bajado.datos.movimientos as { id: string; abona_a: string | null }[];
+    const bajado = (await pedir(tito, "GET", "/datos/bajar")).json();
+    const filas = bajado.datos.movimientos as {
+      id: string;
+      abona_a: string | null;
+    }[];
     expect(filas.find((m) => m.id === parte.id)?.abona_a).toBe(deuda.id);
     expect(filas.find((m) => m.id === deuda.id)?.abona_a).toBeNull();
   });
 
-  it('Entrega 28: el uso del negocio llega y Jhony lo ve resumido', async () => {
-    const hace = (horas: number) => new Date(Date.now() - horas * 3_600_000).toISOString();
+  it("Entrega 47: soporte busca cualquier número, ve la ficha y actúa", async () => {
+    elDia("2026-11-20");
+    // Un número sin cuenta.
+    expect(
+      (await pedir(jhony, "GET", "/soporte/buscar?celular=987000099")).json(),
+    ).toEqual({
+      tiene_cuenta: false,
+      negocios: [],
+    });
+    const sol = await verificar("987000011");
+    const datos = negocio(
+      "Bodega Sol",
+      sol.usuarioId,
+      "2026-11-20T14:00:00.000Z",
+    );
+    const empresa = datos.empresa.id;
+    const subida = await app.inject({
+      method: "POST",
+      url: "/datos/subir",
+      headers: {
+        authorization: `Bearer ${sol.llave}`,
+        "x-moca-version": "entrega-47 (180)",
+      },
+      payload: datos,
+    });
+    expect(subida.statusCode).toBe(200);
+    await pedir(sol, "POST", "/equipo/invitar", {
+      celular: "987000012",
+      rol: "ayudante",
+    });
+    // Solo el número de Jhony.
+    expect(
+      (await pedir(sol, "GET", "/soporte/buscar?celular=987000011")).statusCode,
+    ).toBe(403);
+    expect(
+      (await pedir(jhony, "GET", "/soporte/buscar?celular=987 000 011")).json(),
+    ).toMatchObject({
+      tiene_cuenta: true,
+      negocios: [
+        {
+          empresa_id: empresa,
+          nombre: "Bodega Sol",
+          rol: "dueno",
+          titular: true,
+        },
+      ],
+    });
+    const ficha = (
+      await pedir(jhony, "GET", `/cobro/negocio?empresa=${empresa}`)
+    ).json();
+    expect(ficha.personas).toMatchObject([
+      {
+        rol: "dueno",
+        titular: true,
+        celular: "987000011",
+        version_app: "entrega-47 (180)",
+      },
+    ]);
+    expect(ficha.personas[0].subio_en).not.toBeNull();
+    expect(ficha.registros).toBe(1);
+    expect(ficha.invitaciones).toMatchObject([
+      { celular: "987000012", rol: "ayudante", estado: "vigente" },
+    ]);
+    // Días de prueba: 7 o 14, a quien no pagó.
+    const antes = (await cobroDe(sol)).hasta as string;
+    expect(
+      (await pedir(jhony, "POST", "/soporte/dias-prueba", { empresa, dias: 5 }))
+        .statusCode,
+    ).toBe(400);
+    const mas = await pedir(jhony, "POST", "/soporte/dias-prueba", {
+      empresa,
+      dias: 7,
+    });
+    expect(mas.json().cobro.hasta).toBe(sumarDiasAFecha(antes, 7));
+    expect((await cobroDe(sol)).hasta).toBe(sumarDiasAFecha(antes, 7));
+    await pedir(jhony, "POST", "/cobro/pago", { empresa, plan: "normal" });
+    expect(
+      (
+        await pedir(jhony, "POST", "/soporte/dias-prueba", { empresa, dias: 7 })
+      ).json(),
+    ).toEqual({ error: "ya_pago" });
+
+    // Borrar a pedido del titular: con el nombre del negocio.
+    expect(
+      (
+        await pedir(jhony, "POST", "/soporte/borrar", {
+          empresa,
+          confirmacion: "otra cosa",
+        })
+      ).json(),
+    ).toEqual({ error: "sin_confirmacion" });
+    expect(
+      (
+        await pedir(jhony, "POST", "/soporte/borrar", {
+          empresa,
+          confirmacion: "bodega sol",
+        })
+      ).json(),
+    ).toEqual({ borrado: true });
+    expect(
+      (await pedir(jhony, "GET", "/soporte/buscar?celular=987000011")).json()
+        .negocios,
+    ).toEqual([]);
+  });
+
+  it("Entrega 28: el uso del negocio llega y Jhony lo ve resumido", async () => {
+    const hace = (horas: number) =>
+      new Date(Date.now() - horas * 3_600_000).toISOString();
     const evento = (nombre: string, horas: number, datos?: object) => ({
       id: randomUUID(),
       nombre,
@@ -570,26 +796,33 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       ...(datos ? { datos } : {}),
     });
     const eventos = [
-      evento('appAbierta', 1),
-      evento('appAbierta', 30),
-      evento('ventaGuardada', 1, { modo: 'voz', segundos: 6 }),
-      evento('ventaGuardada', 30, { modo: 'escrita', segundos: 12 }),
-      evento('ventaGuardada', 31, { modo: 'voz', segundos: 8 }),
-      evento('vozConDuda', 1),
-      evento('notificacionRespondida', 2, { accion: 'decir' }),
-      evento('informeAbierto', 2),
+      evento("appAbierta", 1),
+      evento("appAbierta", 30),
+      evento("ventaGuardada", 1, { modo: "voz", segundos: 6 }),
+      evento("ventaGuardada", 30, { modo: "escrita", segundos: 12 }),
+      evento("ventaGuardada", 31, { modo: "voz", segundos: 8 }),
+      evento("vozConDuda", 1),
+      evento("notificacionRespondida", 2, { accion: "decir" }),
+      evento("informeAbierto", 2),
       // De hace más de una semana: no cuenta.
-      evento('ventaGuardada', 24 * 10, { segundos: 90 }),
+      evento("ventaGuardada", 24 * 10, { segundos: 90 }),
     ];
-    expect((await pedir(lucho, 'POST', '/uso', { eventos })).json()).toEqual({ recibidos: 9 });
+    expect((await pedir(lucho, "POST", "/uso", { eventos })).json()).toEqual({
+      recibidos: 9,
+    });
     // Reenviar no duplica.
-    await pedir(lucho, 'POST', '/uso', { eventos });
+    await pedir(lucho, "POST", "/uso", { eventos });
     expect(
-      (await pedir(lucho, 'POST', '/uso', { eventos: [{ id: 'x', nombre: 'a', fecha: hace(1) }] }))
-        .statusCode,
+      (
+        await pedir(lucho, "POST", "/uso", {
+          eventos: [{ id: "x", nombre: "a", fecha: hace(1) }],
+        })
+      ).statusCode,
     ).toBe(400);
 
-    const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
+    const ficha = (
+      await pedir(jhony, "GET", "/cobro/negocio?celular=987000001")
+    ).json();
     expect(ficha.uso).toMatchObject({
       dias_que_abrio: 2,
       ventas_anotadas: 3,
@@ -600,24 +833,24 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     });
     expect(ficha.uso.ultima_apertura).not.toBeNull();
     // Abrió hace una hora: no está entre los que no abren.
-    const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
-    expect(resumen.sin_abrir.map((n: { nombre: string }) => n.nombre)).not.toContain(
-      'Bodega Don Lucho',
-    );
+    const resumen = (await pedir(jhony, "GET", "/cobro/resumen")).json();
+    expect(
+      resumen.sin_abrir.map((n: { nombre: string }) => n.nombre),
+    ).not.toContain("Bodega Don Lucho");
   });
 
-  it('Sin cobro configurado, todo sigue abierto', async () => {
+  it("Sin cobro configurado, todo sigue abierto", async () => {
     const sin = crearApp({
       pool: base.pool,
-      version: 'prueba',
+      version: "prueba",
       ahora: () => ahora,
     });
     const r = await sin.inject({
-      method: 'GET',
-      url: '/datos/bajar',
+      method: "GET",
+      url: "/datos/bajar",
       headers: { authorization: `Bearer ${lucho.llave}` },
     });
-    expect(r.json().cobro).toMatchObject({ estado: 'sin_cobro' });
+    expect(r.json().cobro).toMatchObject({ estado: "sin_cobro" });
     expect(r.json().cobro.pago).toBeUndefined();
   });
 });

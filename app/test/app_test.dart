@@ -173,6 +173,9 @@ class _ServidorFalso {
   String? errorMercadoPago;
   var ordenesPedidas = 0;
 
+  /// Los días de prueba que se dieron desde soporte (entrega 47).
+  final diasDados = <Object?>[];
+
   /// Lo que pidió la app al pagar con Mercado Pago (entrega 43).
   Map<String, Object?>? ultimaOrden;
   var consultasDeOrden = 0;
@@ -183,6 +186,19 @@ class _ServidorFalso {
     'empresa_id': 'empresa-lucho',
     'nombre': 'Bodega Don Lucho',
     'celular': '987654321',
+    'personas': [
+      {
+        'rol': 'dueno',
+        'titular': true,
+        'celular': '987654321',
+        'version_app': 'entrega-47 (180)',
+        'subio_en': '2026-10-12T20:00:00Z',
+      },
+    ],
+    'invitaciones': [
+      {'celular': '987000002', 'rol': 'ayudante', 'estado': 'vencida'},
+    ],
+    'registros': 12,
     'cobro': hasta == null
         ? {'estado': 'prueba', 'hasta': '2026-10-14', 'dias': 2, 'precio': 1490}
         : {'estado': 'pagado', 'hasta': hasta, 'dias': 30, 'plan': 'fundador'},
@@ -349,8 +365,37 @@ class _ServidorFalso {
           }),
           200,
         );
+      // Soporte (entrega 47): el número de Lucho tiene su negocio; el
+      // 987000099, ninguna cuenta.
+      case '/soporte/buscar':
+        return http.Response(
+          jsonEncode(
+            pedido.url.queryParameters['celular'] == '987654321'
+                ? {
+                    'tiene_cuenta': true,
+                    'negocios': [
+                      {
+                        'empresa_id': 'empresa-lucho',
+                        'nombre': 'Bodega Don Lucho',
+                        'rol': 'dueno',
+                        'titular': true,
+                      },
+                    ],
+                  }
+                : {'tiene_cuenta': false, 'negocios': []},
+          ),
+          200,
+        );
+      case '/soporte/dias-prueba':
+        diasDados.add(cuerpo['dias']);
+        return http.Response(jsonEncode(fichaDeLucho()), 200);
+      case '/soporte/borrar':
+        return cuerpo['confirmacion'] == 'Bodega Don Lucho'
+            ? http.Response(jsonEncode({'borrado': true}), 200)
+            : http.Response(jsonEncode({'error': 'sin_confirmacion'}), 400);
       case '/cobro/negocio':
-        return pedido.url.queryParameters['celular'] == '987654321'
+        return pedido.url.queryParameters['celular'] == '987654321' ||
+                pedido.url.queryParameters['empresa'] == 'empresa-lucho'
             ? http.Response(
                 jsonEncode(
                   fichaDeLucho(hasta: pagos.isEmpty ? null : '2026-11-14'),
@@ -4182,6 +4227,58 @@ void main() {
       await abrirAjusteOculto(tester);
     }
 
+    testWidgets('Entrega 47: la ficha de soporte, días de prueba y borrar', (
+      tester,
+    ) async {
+      await comoAdmin(tester, admin: true);
+      await tocar(tester, find.text(Textos.cobros));
+      await tester.enterText(find.byType(TextField), '987654321');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.buscar));
+      // Las personas con su versión, la invitación y los registros.
+      expect(
+        find.text(
+          Textos.personaSoporte(
+            rol: 'dueno',
+            titular: true,
+            celular: '987 654 321',
+            version: 'entrega-47 (180)',
+            subio: '12 de octubre',
+          ),
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          Textos.invitacionSoporte('987 000 002', 'ayudante', 'vencida', null),
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(Textos.registrosSoporte(12), skipOffstage: false),
+        findsOneWidget,
+      );
+      // Días de prueba: 7 o 14.
+      await tocar(tester, find.text(Textos.darDiasDePrueba));
+      await tocar(tester, find.text(Textos.diasDePrueba(7)));
+      expect(_servidor.diasDados, [7]);
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      // Borrar, con el nombre del negocio.
+      await tocar(tester, find.text(Textos.borrarElNegocio));
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        'Bodega Don Lucho',
+      );
+      await tocar(tester, find.text(Textos.borrar));
+      expect(find.text(Textos.negocioBorrado47), findsOneWidget);
+    });
+
     testWidgets('Solo aparece en el teléfono de quien registra los pagos', (
       tester,
     ) async {
@@ -4212,7 +4309,8 @@ void main() {
       await tester.enterText(find.byType(TextField), '999888777');
       await tester.pump();
       await tocar(tester, find.text(Textos.buscar));
-      expect(find.text(Textos.sinNegocioConEseNumero), findsOneWidget);
+      // Un número sin cuenta (entrega 47).
+      expect(find.text(Textos.numeroSinCuenta47), findsOneWidget);
 
       // Tocar el negocio de la lista lo abre.
       await tocar(tester, find.text('Bodega Don Lucho').last);

@@ -340,6 +340,8 @@ export function rutasDatos(
         const empresaId = (peticion.body.empresa as { id?: unknown } | undefined)?.id;
         if (typeof empresaId === 'string') {
           await recordarPrueba(pool, cobro, usuarioId, empresaId);
+          // Qué versión de Moca tiene y cuándo subió (entrega 47).
+          await recordarVersion(pool, usuarioId, empresaId, peticion.headers['x-moca-version']);
         }
         // Las cifras con lo recién subido (entrega 13).
         return enviarJson(peticion, respuesta, {
@@ -364,4 +366,33 @@ export function rutasDatos(
       }
     },
   );
+}
+
+/** La versión de Moca de la persona y su última subida, para soporte. */
+async function recordarVersion(
+  pool: Pool,
+  usuarioId: string,
+  empresaId: string,
+  cabecera: string | string[] | undefined,
+): Promise<void> {
+  const version = typeof cabecera === 'string' ? cabecera.trim().slice(0, 40) : null;
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    await cliente.query(
+      `SELECT set_config('app.empresa_id', $1, true), set_config('app.usuario_id', $2, true)`,
+      [empresaId, usuarioId],
+    );
+    await cliente.query(
+      `UPDATE membresias SET subio_en = now(), version_app = coalesce($3, version_app)
+        WHERE usuario_id = $1 AND empresa_id = $2 AND quitada_en IS NULL`,
+      [usuarioId, empresaId, version],
+    );
+    await cliente.query('COMMIT');
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
 }

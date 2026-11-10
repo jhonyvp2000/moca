@@ -102,11 +102,18 @@ class ServicioCuentaRemoto
             'Content-Type': 'application/json',
             'Content-Encoding': ?(comprimir ? 'gzip' : null),
             'Authorization': ?(llave == null ? null : 'Bearer $llave'),
+            // Qué versión tiene, para la ficha de soporte (entrega 47).
+            'X-Moca-Version': ?_versionDeMoca,
           },
           body: comprimir ? gzip.encode(bytes) : bytes,
         )
         .timeout(_espera);
   }
+
+  static final String? _versionDeMoca = () {
+    final v = VersionInstalada.delArmado();
+    return v.conocida ? '${v.entrega} (${v.armado})' : null;
+  }();
 
   Future<http.Response> _pedir(String ruta, String llave) => _cliente
       .get(_servidor.resolve(ruta), headers: {'Authorization': 'Bearer $llave'})
@@ -684,6 +691,31 @@ class ServicioCuentaRemoto
       : null;
 
   static FichaDeCobro _ficha(Map<String, Object?> f) => FichaDeCobro(
+    // La ficha de soporte (entrega 47).
+    personas: [
+      for (final p in (f['personas'] as List? ?? const []))
+        if (p case final Map<String, Object?> p)
+          PersonaDeSoporte(
+            rol: p['rol'] as String? ?? '',
+            titular: p['titular'] == true,
+            nombre: p['nombre'] as String?,
+            celular: p['celular'] as String?,
+            version: p['version_app'] as String?,
+            subioEn: DateTime.tryParse(p['subio_en'] as String? ?? '')
+                ?.toLocal(),
+          ),
+    ],
+    invitaciones: [
+      for (final i in (f['invitaciones'] as List? ?? const []))
+        if (i case final Map<String, Object?> i)
+          InvitacionDeSoporte(
+            celular: i['celular'] as String? ?? '',
+            rol: i['rol'] as String? ?? '',
+            estado: i['estado'] as String? ?? '',
+            nombre: i['nombre'] as String?,
+          ),
+    ],
+    registros: f['registros'] as int?,
     uso: _uso(f['uso']),
     ultimaApertura: DateTime.tryParse(f['ultima_apertura'] as String? ?? '')
         ?.toLocal(),
@@ -729,6 +761,11 @@ class ServicioCuentaRemoto
           ResultadoCobro.perdioFundador,
         409 when _cuerpo(r)['error'] == 'no_es_el_ultimo' =>
           ResultadoCobro.noEsElUltimo,
+        409 when _cuerpo(r)['error'] == 'ya_pago' => ResultadoCobro.yaPago,
+        409 when _cuerpo(r)['error'] == 'demasiados_dias' =>
+          ResultadoCobro.demasiadosDias,
+        400 when _cuerpo(r)['error'] == 'sin_confirmacion' =>
+          ResultadoCobro.sinConfirmacion,
         409 => ResultadoCobro.sinCupoFundador,
         _ => ResultadoCobro.error,
       };
@@ -774,6 +811,77 @@ class ServicioCuentaRemoto
     return resultado == ResultadoCobro.listo
         ? (_ficha(_cuerpo(r)), resultado)
         : (null, resultado);
+  }
+
+  @override
+  Future<(BusquedaDeSoporte?, ResultadoCobro)> buscarNumero(
+    String celular,
+  ) async {
+    final r = await _delEquipo(
+      '/soporte/buscar?celular=${Uri.encodeQueryComponent(celular)}',
+    );
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    if (resultado != ResultadoCobro.listo) return (null, resultado);
+    final cuerpo = _cuerpo(r);
+    return (
+      BusquedaDeSoporte(
+        tieneCuenta: cuerpo['tiene_cuenta'] == true,
+        negocios: [
+          for (final n in (cuerpo['negocios'] as List? ?? const []))
+            if (n case final Map<String, Object?> n)
+              NegocioDeSoporte(
+                empresaId: n['empresa_id']! as String,
+                nombre: n['nombre'] as String? ?? '',
+                rol: n['rol'] as String? ?? '',
+                titular: n['titular'] == true,
+              ),
+        ],
+      ),
+      resultado,
+    );
+  }
+
+  @override
+  Future<(FichaDeCobro?, ResultadoCobro)> fichaDeNegocio(
+    String empresaId,
+  ) async {
+    final r = await _delEquipo(
+      '/cobro/negocio?empresa=${Uri.encodeQueryComponent(empresaId)}',
+    );
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    return resultado == ResultadoCobro.listo
+        ? (_ficha(_cuerpo(r)), resultado)
+        : (null, resultado);
+  }
+
+  @override
+  Future<(FichaDeCobro?, ResultadoCobro)> darDiasDePrueba(
+    String empresaId,
+    int dias,
+  ) async {
+    final r = await _delEquipo('/soporte/dias-prueba', {
+      'empresa': empresaId,
+      'dias': dias,
+    });
+    if (r == null) return (null, ResultadoCobro.sinSenal);
+    final resultado = _resultadoCobro(r);
+    return resultado == ResultadoCobro.listo
+        ? (_ficha(_cuerpo(r)), resultado)
+        : (null, resultado);
+  }
+
+  @override
+  Future<ResultadoCobro> borrarNegocio(
+    String empresaId,
+    String confirmacion,
+  ) async {
+    final r = await _delEquipo('/soporte/borrar', {
+      'empresa': empresaId,
+      'confirmacion': confirmacion,
+    });
+    return r == null ? ResultadoCobro.sinSenal : _resultadoCobro(r);
   }
 
   @override
