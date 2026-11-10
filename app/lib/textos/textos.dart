@@ -965,6 +965,32 @@ abstract final class Textos {
   static String cobradoAhoraTienes(String monto, String cuenta) =>
       'Cobrado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
 
+  // Cobrar o pagar una deuda por voz (entrega 50)
+  static String teDebeEsDeEsa(String quien, String monto) =>
+      '$quien te debe $monto. ¿Es de esa deuda?';
+  static String leDebesEsDeEsa(String quien, String monto) =>
+      'A $quien le debes $monto. ¿Es de esa deuda?';
+  static const siDeEsaDeuda = 'Sí, de esa deuda';
+  static const noAnotarloAparte = 'No, anotarlo aparte';
+  static const anotarloAparte = 'Anotarlo aparte';
+  static const deQuienEsElCobro = '¿De quién es lo que cobraste?';
+  static const aQuienLePagaste = '¿A quién le pagaste?';
+  static String quienYCuanto(String quien, String monto) => '$quien · $monto';
+  static String teDebeNoTanto(String quien, String debe, String dicho) =>
+      '$quien te debe $debe, no $dicho.';
+  static String leDebesNoTanto(String quien, String debe, String dicho) =>
+      'A $quien le debes $debe, no $dicho.';
+  static String cobrarLos(String monto) => 'Cobrar los $monto';
+  static String pagarLos(String monto) => 'Pagar los $monto';
+  static String cobroDeLoQueTeDebe(String quien) =>
+      'Cobro de lo que te debe $quien';
+  static String pagoDeLoQueLeDebes(String quien) =>
+      'Pago de lo que le debes a $quien';
+  static String leQueda(String monto) => 'Le queda $monto';
+  static String teFalta(String monto) => 'Te falta $monto';
+  static const yaNoDebeNada = 'Ya no debe nada';
+  static const yaNoLeDebesNada = 'Ya no le debes nada';
+
   // S12 · Arqueo de la semana
   static const arqueoDeLaSemana = 'Arqueo de la semana';
   static const arqueoDetalle =

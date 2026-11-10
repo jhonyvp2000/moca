@@ -173,9 +173,9 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a Informes → **Lo que te deben**. Ahí está cada cliente con lo que falta. Toca **Recordar por WhatsApp** y elige el contacto del cliente: el mensaje ya va escrito.
 
-**Desde la entrega 49 también se fía por voz:** «Le fié 50 a doña Rosa» o «Le debo 100 a don Pepe» quedan como deuda, sin preguntar la cuenta. Si dice «Cobré el fiado de doña Rosa» y la deuda no bajó, es que la voz anotó un cobro aparte, sin unirlo a la deuda:
+**Por voz (entregas 49 y 50):** «Le fié 50 a doña Rosa» o «Le debo 100 a don Pepe» quedan como deuda, sin preguntar la cuenta. «Cobré 30 del fiado de doña Rosa» o «Le pagué 100 a don Pepe» descuentan la deuda si el usuario toca **«Sí, de esa deuda»**. Si dice que la deuda no bajó, revisa su versión (antes de la 50 se anotaba aparte) y si tocó **«Anotarlo aparte»**:
 
-> Para cobrar lo que te deben, ve a Informes → **Lo que te deben**, toca al cliente y luego **Ya me pagó**. Si ya lo anotaste por voz, deshaz ese registro en el Historial para que no cuente dos veces.
+> Si lo anotaste aparte, deshaz ese registro en el Historial y cóbralo desde Informes → **Lo que te deben** → el cliente → **Ya me pagó**, para que no cuente dos veces. La próxima vez, cuando Moca te pregunte «¿Es de esa deuda?», toca «Sí, de esa deuda».
 
 ### 11. «Tengo una versión vieja» · «No me sale lo que me dijiste»
 

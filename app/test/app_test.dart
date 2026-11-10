@@ -1704,6 +1704,151 @@ void main() {
       expect(find.text('100'), findsOneWidget);
     });
 
+    // La segunda vez, la voz escucha al abrir: la frase va antes.
+    Future<void> hablar(WidgetTester tester, String frase) async {
+      _loQueDice = [AlternativaVoz(frase)];
+      await abrirVozLibre(tester);
+      await decir(tester, [AlternativaVoz(frase)]);
+    }
+
+    Future<void> fiarPorVoz(WidgetTester tester, String frase) async {
+      await hablar(tester, frase);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+    }
+
+    testWidgets('Entrega 50: «Cobré 30 del fiado de doña Rosa» descuenta su '
+        'deuda', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await fiarPorVoz(tester, 'Le fié 80 a doña Rosa');
+      await hablar(tester, 'Cobré 30 del fiado de doña Rosa en efectivo');
+
+      expect(
+        find.text(Textos.teDebeEsDeEsa('Doña Rosa', 'S/\u00A080')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.siDeEsaDeuda));
+      expect(find.text(Textos.cobroDeLoQueTeDebe('Doña Rosa')), findsOneWidget);
+      expect(find.textContaining(Textos.leQueda('S/\u00A050')), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      expect(
+        find.text(Textos.cobradoParte('S/\u00A030', 'Doña Rosa', 'S/\u00A050')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 5));
+
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      final deudaDeRosa = movimientos!.singleWhere(
+        (m) => m.estadoPago == EstadoPago.pendiente,
+      );
+      expect(deudaDeRosa.montoCentimos, 5000);
+      final parte = movimientos.singleWhere((m) => m.abonaA != null);
+      expect(parte.abonaA, deudaDeRosa.id);
+      expect(parte.montoCentimos, 3000);
+      expect(parte.estadoPago, EstadoPago.pagado);
+    });
+
+    testWidgets('Entrega 50: sin nombre se elige a quién; de más, no se '
+        'descuenta solo', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await fiarPorVoz(tester, 'Le fié 80 a doña Rosa');
+      await fiarPorVoz(tester, 'Le fié 20 a Juan');
+      await hablar(tester, 'Cobré 100 del fiado en efectivo');
+
+      expect(find.text(Textos.deQuienEsElCobro), findsOneWidget);
+      expect(
+        find.text(Textos.quienYCuanto('Juan', 'S/\u00A020')),
+        findsOneWidget,
+      );
+      await tocar(
+        tester,
+        find.text(Textos.quienYCuanto('Doña Rosa', 'S/\u00A080')),
+      );
+      expect(
+        find.text(
+          Textos.teDebeNoTanto('Doña Rosa', 'S/\u00A080', 'S/\u00A0100'),
+        ),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.cobrarLos('S/\u00A080')));
+      expect(find.textContaining(Textos.yaNoDebeNada), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      final pendientes = movimientos!.where(
+        (m) => m.estadoPago == EstadoPago.pendiente,
+      );
+      expect(pendientes.single.montoCentimos, 2000);
+    });
+
+    testWidgets('Entrega 50: «Corregir un dato» abre la deuda con «Ya me '
+        'pagó»', (tester) async {
+      await abrirApp(tester, listo: true);
+      await fiarPorVoz(tester, 'Le fié 80 a doña Rosa');
+      await hablar(tester, 'Doña Rosa me pagó 30 en efectivo');
+      await tocar(tester, find.text(Textos.siDeEsaDeuda));
+      await tocar(tester, find.text(Textos.corregirUnDato));
+      expect(
+        find.widgetWithText(FilledButton, Textos.yaMePago),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Entrega 50: «No, anotarlo aparte» lo anota como siempre', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await fiarPorVoz(tester, 'Le fié 80 a doña Rosa');
+      await hablar(tester, 'Cobré 30 del fiado de doña Rosa en efectivo');
+      await tocar(tester, find.text(Textos.noAnotarloAparte));
+      expect(find.text('Cobro de fiado'), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      expect(
+        movimientos!
+            .singleWhere((m) => m.estadoPago == EstadoPago.pendiente)
+            .montoCentimos,
+        8000,
+      );
+      expect(movimientos.where((m) => m.abonaA != null), isEmpty);
+    });
+
+    testWidgets('Entrega 50: «Le pagué 100 a don Pepe» paga lo que le debes', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await fiarPorVoz(tester, 'Le debo 100 a don Pepe de mercadería');
+      await hablar(tester, 'Le pagué 100 a don Pepe en efectivo');
+      expect(
+        find.text(Textos.leDebesEsDeEsa('Don Pepe', 'S/\u00A0100')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.text(Textos.siDeEsaDeuda));
+      expect(find.textContaining(Textos.yaNoLeDebesNada), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      expect(
+        movimientos!.singleWhere((m) => m.montoCentimos == 10000).estadoPago,
+        EstadoPago.pagado,
+      );
+      expect(
+        movimientos.where((m) => m.estadoPago != EstadoPago.pagado),
+        isEmpty,
+      );
+    });
+
     testWidgets('«Saqué 100 para mí» se guarda como retiro', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirVozLibre(tester);

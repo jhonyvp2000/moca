@@ -45,9 +45,30 @@ LecturaVoz interpretarVoz(
   // Una venta a crédito o una compra que se debe (entrega 49). En la
   // venta de hoy no: esa es siempre al contado.
   final debe = !soloVenta && frase.debe;
+  // ¿Cobra o paga algo que se debía? (entrega 50). Moca lo busca en lo que
+  // se debe; si no está, se anota como siempre.
+  final texto = normalizar(principal.texto);
+  final abona =
+      !soloVenta &&
+      !debe &&
+      !frase.prestamo &&
+      switch (tipo) {
+        TipoMovimiento.ingreso => _cobroDeDeuda.hasMatch(texto),
+        TipoMovimiento.egreso => _pagoDeDeuda.hasMatch(texto),
+        _ => false,
+      };
   return LecturaVoz(
     debe: debe,
-    contraparte: debe ? quienDebe(principal.texto) : null,
+    contraparte: debe
+        ? quienDebe(principal.texto)
+        : abona
+        ? quienPaga(principal.texto, tipo!)
+        : null,
+    pagaDeuda:
+        abona &&
+        (tipo == TipoMovimiento.ingreso
+            ? categoria == categoriaCobroDeFiado
+            : _loQueSeDebia.hasMatch(texto)),
     textoDicho: principal.texto.trim(),
     tipo: tipo,
     // Con duda, la partida conserva la cuenta dicha; el monto se confirma.
@@ -229,6 +250,17 @@ final _cobroDeDeuda = RegExp(
   r'\b(cobre|cobramos|me pago|me pagaron|me yapeo|me yapearon|me debia|me debian)\b',
 );
 
+/// «Le pagué 100 a don Pepe», «pagué lo que debía» (entrega 50).
+final _pagoDeDeuda = RegExp(
+  r'\b(pague|pagamos|cancele|cancelamos|yapee|yapeamos|abone|abonamos)\b',
+);
+
+/// «Lo que debía», «la deuda», «el crédito»: paga algo que se debía.
+final _loQueSeDebia = RegExp(
+  r'\blo que (le |les )?(debia|debo|debiamos|debemos)\b|\bla deuda\b|'
+  r'\bel credito\b|\b(lo|el) fiado\b|\blo que me fiaron\b',
+);
+
 /// Palabras que no son nombres de personas ni de negocios.
 const _noSonNombre = {
   'credito',
@@ -289,6 +321,18 @@ const _noSonNombre = {
   'medio',
   'mil',
   'cien',
+  // Lo que se cobra o se paga, no a quién (entrega 50).
+  'venta',
+  'ventas',
+  'personal',
+  'luz',
+  'agua',
+  'alquiler',
+  'deuda',
+  'debia',
+  'cuota',
+  'prestamo',
+  'pasaje',
 };
 
 /// Quién debe o a quién se le debe, si se dijo (entrega 49): «a doña
@@ -296,47 +340,13 @@ const _noSonNombre = {
 /// se entendió; Moca lo pregunta o el dueño lo escribe.
 String? quienDebe(String original) {
   final t = original.trim();
-  String? limpio(String crudo) {
-    final palabras = [
-      for (final p in crudo.split(RegExp(r'\s+')))
-        if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) p,
-    ];
-    final nombre = <String>[];
-    for (final p in palabras) {
-      final n = normalizar(p).trim();
-      final titulo = RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
-          .hasMatch(n);
-      if (nombre.isEmpty && titulo) {
-        nombre.add(p);
-        continue;
-      }
-      // «a la señora María»: el artículo no es parte del nombre.
-      if (nombre.isEmpty && (n == 'la' || n == 'el')) continue;
-      if (n.isEmpty || _noSonNombre.contains(n)) break;
-      nombre.add(p);
-      if (nombre.length >= (titulo ? 2 : 3)) break;
-    }
-    // Solo un título («a don») no es un nombre.
-    final sinTitulo = nombre.where(
-      (p) =>
-          !RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
-              .hasMatch(normalizar(p).trim()),
-    );
-    if (sinTitulo.isEmpty) return null;
-    return nombre
-        .map(
-          (p) =>
-              p.isEmpty ? p : p[0].toUpperCase() + p.substring(1).toLowerCase(),
-        )
-        .join(' ');
-  }
 
   // «Doña Rosa me quedó debiendo 30».
   final antes = RegExp(
     r'^(.+?)\s+(me|nos)\s+(qued[oó]|quedaron)\s+debiendo',
     caseSensitive: false,
   ).firstMatch(t);
-  if (antes != null) return limpio(antes.group(1)!);
+  if (antes != null) return _limpio(antes.group(1)!);
   // «a doña Rosa», «al señor Juan», «en la distribuidora», «donde Pepe».
   // Se prueba desde cada «a», «al», «en la»…: «vendí 80 al crédito a
   // Juan» encuentra «Juan» después de descartar «crédito».
@@ -344,8 +354,80 @@ String? quienDebe(String original) {
     r'\b(?:a|al|en la|en el|donde|de)\s+',
     caseSensitive: false,
   ).allMatches(t)) {
-    final nombre = limpio(t.substring(m.end));
+    final nombre = _limpio(t.substring(m.end));
     if (nombre != null) return nombre;
+  }
+  return null;
+}
+
+/// Un nombre limpio: «doña rosa en efectivo» → «Doña Rosa». Nulo si no hay.
+String? _limpio(String crudo) {
+  final palabras = [
+    for (final p in crudo.split(RegExp(r'\s+')))
+      if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) p,
+  ];
+  final nombre = <String>[];
+  for (final p in palabras) {
+    final n = normalizar(p).trim();
+    final titulo = RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+        .hasMatch(n);
+    if (nombre.isEmpty && titulo) {
+      nombre.add(p);
+      continue;
+    }
+    // «a la señora María»: el artículo no es parte del nombre.
+    if (nombre.isEmpty && (n == 'la' || n == 'el')) continue;
+    if (n.isEmpty || _noSonNombre.contains(n)) break;
+    nombre.add(p);
+    if (nombre.length >= (titulo ? 2 : 3)) break;
+  }
+  // Solo un título («a don») no es un nombre.
+  final sinTitulo = nombre.where(
+    (p) =>
+        !RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+            .hasMatch(normalizar(p).trim()),
+  );
+  if (sinTitulo.isEmpty) return null;
+  return nombre
+      .map(
+        (p) =>
+            p.isEmpty ? p : p[0].toUpperCase() + p.substring(1).toLowerCase(),
+      )
+      .join(' ');
+}
+
+/// Quién pagó o a quién se le pagó, si se dijo (entrega 50): «Doña Rosa me
+/// pagó 30», «me yapeó Juan», «cobré el fiado de doña Rosa», «le pagué 100
+/// a don Pepe». Nulo si no se entendió.
+String? quienPaga(String original, TipoMovimiento tipo) {
+  final t = original.trim();
+  if (tipo == TipoMovimiento.ingreso) {
+    const verbo =
+        r'(pag[oó]|pagaron|yape[oó]|yapearon|plin[eé][oó]|deposit[oó]|'
+        r'transfiri[oó]|cancel[oó])';
+    final antes = RegExp(
+      // Sin límite de palabra al final: la «ó» no cuenta como letra.
+      '^(.+?)\\s+(me|nos)\\s+$verbo(?=\\s|\$|[,.])',
+      caseSensitive: false,
+    ).firstMatch(t);
+    if (antes != null) {
+      if (_limpio(antes.group(1)!) case final nombre?) return nombre;
+    }
+    final despues = RegExp(
+      '\\b(me|nos)\\s+$verbo\\s+',
+      caseSensitive: false,
+    ).firstMatch(t);
+    if (despues != null) {
+      if (_limpio(t.substring(despues.end)) case final nombre?) return nombre;
+    }
+  }
+  // Al cobrar, «a doña Rosa» o «de doña Rosa»; al pagar, «a don Pepe» o
+  // «en la distribuidora», pero no «de luz».
+  final antesDelNombre = tipo == TipoMovimiento.ingreso
+      ? r'\b(?:a|al|de)\s+'
+      : r'\b(?:a|al|donde|en la|en el)\s+';
+  for (final m in RegExp(antesDelNombre, caseSensitive: false).allMatches(t)) {
+    if (_limpio(t.substring(m.end)) case final nombre?) return nombre;
   }
   return null;
 }

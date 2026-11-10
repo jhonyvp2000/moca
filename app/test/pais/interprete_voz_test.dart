@@ -477,4 +477,58 @@ void main() {
       expect(leer('le fié 50 a doña rosa', soloVenta: true).debe, isFalse);
     });
   });
+
+  group('Cobrar o pagar lo que se debe (entrega 50)', () {
+    test('«Cobré 50 del fiado de doña Rosa»', () {
+      final l = leer('cobré 50 del fiado de doña rosa en efectivo');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.categoria, categoriaCobroDeFiado);
+      expect(l.pagaDeuda, isTrue);
+      expect(l.contraparte, 'Doña Rosa');
+      expect(l.debe, isFalse);
+      expect(l.buscaDeuda, isTrue);
+    });
+
+    test('«Doña Rosa me pagó 30» y «me yapeó Juan 80»', () {
+      final rosa = leer('Doña Rosa me pagó 30 en efectivo');
+      expect(rosa.tipo, TipoMovimiento.ingreso);
+      expect(rosa.contraparte, 'Doña Rosa');
+      expect(rosa.pagaDeuda, isFalse);
+      final juan = leer('me yapeó juan 80');
+      expect(juan.contraparte, 'Juan');
+      expect(juan.partidas.single.cuenta, TipoCuenta.yape);
+    });
+
+    test('«Cobré el fiado» sin nombre busca en todas las deudas', () {
+      final l = leer('cobré 50 del fiado');
+      expect(l.pagaDeuda, isTrue);
+      expect(l.contraparte, isNull);
+      expect(leer('me pagaron 30 que me debían').pagaDeuda, isTrue);
+    });
+
+    test(
+      '«Le pagué 100 a don Pepe», «pagué lo que debía a la distribuidora»',
+      () {
+        final pepe = leer('le pagué 100 a don pepe en efectivo');
+        expect(pepe.tipo, TipoMovimiento.egreso);
+        expect(pepe.contraparte, 'Don Pepe');
+        expect(pepe.debe, isFalse);
+        final dist = leer('pagué 150 de lo que debía a la distribuidora');
+        expect(dist.pagaDeuda, isTrue);
+        expect(dist.contraparte, 'Distribuidora');
+      },
+    );
+
+    test('Ventas y gastos de siempre no buscan deuda', () {
+      for (final frase in [
+        'vendí 200 en efectivo',
+        'me yapearon 200',
+        'pagué 80 de luz',
+        'pagué 300 al personal',
+        'vendí 50 a doña rosa',
+      ]) {
+        expect(leer(frase).buscaDeuda, isFalse, reason: frase);
+      }
+    });
+  });
 }

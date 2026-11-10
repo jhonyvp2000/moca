@@ -1,3 +1,4 @@
+import 'historial.dart';
 import 'modelos.dart';
 
 /// Una de las lecturas posibles que da el reconocimiento de voz. La
@@ -45,6 +46,9 @@ class LecturaVoz {
     this.cuentaDestino,
     this.debe = false,
     this.contraparte,
+    this.pagaDeuda = false,
+    this.abono,
+    this.aparte = false,
   });
 
   static const vacia = LecturaVoz(textoDicho: '');
@@ -75,6 +79,26 @@ class LecturaVoz {
 
   /// Quién debe o a quién se le debe, si se entendió («Doña Rosa»).
   final String? contraparte;
+
+  /// Dijo que cobra o paga algo que se debía («cobré el fiado», «pagué lo
+  /// que debía»), aunque no dijera de quién (entrega 50).
+  final bool pagaDeuda;
+
+  /// La deuda que se cobra o se paga con este monto (entrega 50).
+  final DeudaDePersona? abono;
+
+  /// El dueño dijo que no es de ninguna deuda: se anota aparte.
+  final bool aparte;
+
+  /// Puede ser el cobro o el pago de una deuda (entrega 50): un solo monto
+  /// que entró o salió, con un nombre o diciendo que se debía.
+  bool get buscaDeuda =>
+      !debe &&
+      !aparte &&
+      abono == null &&
+      partidas.length == 1 &&
+      (tipo == TipoMovimiento.ingreso || tipo == TipoMovimiento.egreso) &&
+      (pagaDeuda || contraparte != null);
 
   /// Una venta a crédito sin nombre: Moca lo pregunta.
   bool get faltaQuienDebe =>
@@ -173,6 +197,118 @@ class PreguntaQuienDebe extends PreguntaVoz {
   const PreguntaQuienDebe();
 }
 
+/// ¿Es de lo que debe esta persona? Con una sola, se confirma; con varias,
+/// se elige (entrega 50).
+class PreguntaDeuda extends PreguntaVoz {
+  const PreguntaDeuda(this.opciones);
+
+  final List<DeudaDePersona> opciones;
+}
+
+/// Dijo más de lo que se debe: no se descuenta solo (entrega 50).
+class PreguntaMasDeLoQueSeDebe extends PreguntaVoz {
+  const PreguntaMasDeLoQueSeDebe(this.deuda);
+
+  final DeudaDePersona deuda;
+}
+
+// --- Cobrar o pagar una deuda por voz (entrega 50) ------------------------------
+
+/// Lo que debe una persona, o lo que se le debe: sus deudas sin pagar, la
+/// más antigua primero, con lo que falta de cada una.
+class DeudaDePersona {
+  const DeudaDePersona(this.nombre, this.deudas);
+
+  final String nombre;
+  final List<FilaHistorial> deudas;
+
+  int get totalCentimos => deudas.fold(0, (s, d) => s + d.montoCentimos);
+}
+
+/// Junta las deudas por nombre, en el orden en que vienen (la más antigua
+/// primero). Las que no tienen nombre no entran: se cobran desde «Lo que
+/// te deben» o el Historial.
+List<DeudaDePersona> agruparDeudas(List<FilaHistorial> filas) {
+  final grupos = <String, (String, List<FilaHistorial>)>{};
+  for (final f in filas) {
+    final nombre = f.proveedor?.trim();
+    if (nombre == null || nombre.isEmpty || f.montoCentimos <= 0) continue;
+    final clave = _sinTitulo(nombre).join(' ');
+    if (clave.isEmpty) continue;
+    grupos.putIfAbsent(clave, () => (nombre, <FilaHistorial>[])).$2.add(f);
+  }
+  return [
+    for (final (nombre, deudas) in grupos.values)
+      DeudaDePersona(nombre, deudas),
+  ];
+}
+
+const _titulos = {'don', 'dona', 'sr', 'sra', 'senor', 'senora', 'tio', 'tia'};
+
+/// Las palabras del nombre, en minúsculas, sin tildes ni «don» o «doña».
+List<String> _sinTitulo(String nombre) {
+  const tildes = {
+    'á': 'a',
+    'é': 'e',
+    'í': 'i',
+    'ó': 'o',
+    'ú': 'u',
+    'ü': 'u',
+    'ñ': 'n',
+  };
+  var t = nombre.toLowerCase();
+  tildes.forEach((con, sin) => t = t.replaceAll(con, sin));
+  return [
+    for (final p in t.replaceAll('.', ' ').split(RegExp(r'\s+')))
+      if (p.isNotEmpty && !_titulos.contains(p)) p,
+  ];
+}
+
+/// El nombre dicho coincide con el de la deuda si todas sus palabras están
+/// en el otro: «Rosa» es «Doña Rosa» y «Rosa Pérez».
+bool mismoNombre(String dicho, String guardado) {
+  final a = _sinTitulo(dicho);
+  final b = _sinTitulo(guardado);
+  if (a.isEmpty || b.isEmpty) return false;
+  return a.every(b.contains) || b.every(a.contains);
+}
+
+/// De qué deudas puede ser lo que se dijo. Con nombre, las de esa persona;
+/// si nadie se llama así o no dijo nombre, todas, pero solo si dijo que se
+/// debía. Vacío: se anota como siempre.
+List<DeudaDePersona> deudasPosibles(
+  LecturaVoz lectura,
+  List<DeudaDePersona> deudas,
+) {
+  if (!lectura.buscaDeuda) return const [];
+  if (lectura.contraparte case final dicho?) {
+    final suyas = [
+      for (final d in deudas)
+        if (mismoNombre(dicho, d.nombre)) d,
+    ];
+    if (suyas.isNotEmpty) return suyas;
+  }
+  return lectura.pagaDeuda ? deudas : const [];
+}
+
+/// Cómo se reparte el monto: primero la deuda más antigua. Las que alcanza
+/// se pagan completas (parte nula) y la última, en parte.
+List<(FilaHistorial, int?)> repartirAbono(DeudaDePersona deuda, int centimos) {
+  final reparto = <(FilaHistorial, int?)>[];
+  var queda = centimos;
+  for (final d in deuda.deudas) {
+    if (queda <= 0) break;
+    if (queda >= d.montoCentimos) {
+      reparto.add((d, null));
+      queda -= d.montoCentimos;
+    } else {
+      reparto.add((d, queda));
+      queda = 0;
+    }
+  }
+  return reparto;
+}
+
 /// Qué falta preguntar. Nulo si ya está todo. [categoriasValidas] y
 /// [cuentasValidas] son las del negocio: una categoría o una cuenta
 /// reconocida que el negocio no tiene se pregunta («por Plin» sin Plin).
@@ -181,6 +317,7 @@ PreguntaVoz? siguientePregunta(
   required Set<String> categoriasValidas,
   Set<TipoCuenta> cuentasValidas = const {...TipoCuenta.values},
   Set<TipoCuenta>? destinosValidos,
+  List<DeudaDePersona> deudasPosibles = const [],
 }) {
   if (lectura.montoDudoso) return PreguntaMonto(lectura.montosPosibles);
   if (lectura.tipo == null) return const PreguntaTipo();
@@ -207,6 +344,12 @@ PreguntaVoz? siguientePregunta(
     }
     return null;
   }
+  // Cobrar o pagar una deuda (entrega 50): no hace falta la categoría.
+  if (lectura.abono case final deuda?) {
+    final monto = lectura.partidas.single.centimos;
+    return monto > deuda.totalCentimos ? PreguntaMasDeLoQueSeDebe(deuda) : null;
+  }
+  if (deudasPosibles.isNotEmpty) return PreguntaDeuda(deudasPosibles);
   if (!(lectura.tipo?.sinCategoria ?? false) &&
       !categoriasValidas.contains(lectura.categoria)) {
     return const PreguntaCategoria();
@@ -232,6 +375,37 @@ extension RespuestasVoz on LecturaVoz {
     cuentaDestino: cuentaDestino ?? this.cuentaDestino,
     debe: debe,
     contraparte: contraparte,
+    pagaDeuda: pagaDeuda,
+    abono: abono,
+    aparte: aparte,
+  );
+
+  /// Es de lo que debe esta persona (entrega 50).
+  LecturaVoz conAbono(DeudaDePersona deuda) => LecturaVoz(
+    textoDicho: textoDicho,
+    tipo: tipo,
+    partidas: partidas,
+    montosPosibles: montosPosibles,
+    categoria: categoria,
+    prestamo: prestamo,
+    cuentaDestino: cuentaDestino,
+    contraparte: contraparte,
+    pagaDeuda: pagaDeuda,
+    abono: deuda,
+  );
+
+  /// No es de ninguna deuda: se anota aparte, como siempre (entrega 50).
+  LecturaVoz comoAparte() => LecturaVoz(
+    textoDicho: textoDicho,
+    tipo: tipo,
+    partidas: partidas,
+    montosPosibles: montosPosibles,
+    categoria: categoria,
+    prestamo: prestamo,
+    cuentaDestino: cuentaDestino,
+    contraparte: contraparte,
+    pagaDeuda: pagaDeuda,
+    aparte: true,
   );
 
   /// El nombre de quien debe, escrito o corregido (entrega 49).
@@ -245,6 +419,9 @@ extension RespuestasVoz on LecturaVoz {
     cuentaDestino: cuentaDestino,
     debe: debe,
     contraparte: nombre.trim().isEmpty ? null : nombre.trim(),
+    pagaDeuda: pagaDeuda,
+    abono: abono,
+    aparte: aparte,
   );
 
   /// El dueño eligió o escribió el monto: queda una sola partida, con la
@@ -267,6 +444,7 @@ extension RespuestasVoz on LecturaVoz {
     categoria: categoria,
     debe: debe,
     contraparte: contraparte,
+    pagaDeuda: pagaDeuda,
   );
 
   LecturaVoz conCuenta(int indicePartida, TipoCuenta cuenta) => _con(

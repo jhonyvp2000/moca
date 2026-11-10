@@ -26,6 +26,7 @@ import '../registrar/confirmacion.dart';
 import '../registrar/franja_sin_senal.dart';
 import '../../dominio/cuentas.dart';
 import '../../dominio/equipo.dart';
+import '../../dominio/historial.dart';
 import '../../dominio/medicion.dart';
 
 /// En qué modo se abre la voz.
@@ -223,6 +224,12 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
 
   void _corregir(List<CategoriaVista> categorias) {
     ref.read(medicionProvider).anotar(EventoMedicion.vozCorregida);
+    // Un cobro o pago de una deuda se corrige desde la deuda, con «Ya me
+    // pagó» o «Ya lo pagué» (entrega 50).
+    if (_lectura.abono case final deuda?) {
+      context.pushReplacement(Rutas.detalleMovimiento(deuda.deudas.first.id));
+      return;
+    }
     if (_esVentaDelDia || widget.modo == ModoVoz.primeraVenta) {
       _escribir(montos: _montosPorCuenta);
       return;
@@ -282,6 +289,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
           'modo': 'voz',
         });
+      } else if (_lectura.abono case final deuda?) {
+        // El cobro o el pago de una deuda (entrega 50): como «Ya me pagó»,
+        // primero la más antigua.
+        await _abonar(deuda);
+        return;
       } else if (_lectura.debe) {
         // Lo que se debe (entrega 49): una sola deuda, sin mover la plata.
         // Como al escribirlo: la caja, o la de quien anota.
@@ -341,6 +353,64 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     }
   }
 
+  Future<void> _abonar(DeudaDePersona deuda) async {
+    final cuenta = _lectura.partidas.single.cuenta!;
+    final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+    final monto = _total;
+    // Moca pregunta antes de dejar una cuenta en negativo.
+    if (!cobro) {
+      final quedaria = await ref
+          .read(repositorioMovimientosProvider)
+          .saldoSiSeGuarda(
+            NuevoMovimiento(
+              tipo: TipoMovimiento.egreso,
+              montoCentimos: monto,
+              cuenta: cuenta,
+              fuente: Fuente.voz,
+            ),
+          );
+      if (quedaria < 0 && mounted) {
+        if (!await _preguntarNegativo(cuenta, quedaria)) return;
+      }
+    }
+    final historial = ref.read(repositorioHistorialProvider);
+    final ahora = ref.read(relojProvider)();
+    var saldo = 0;
+    for (final (fila, parte) in repartirAbono(deuda, monto)) {
+      saldo = await historial.pagar(
+        fila.id,
+        cuenta: cuenta,
+        dia: ahora,
+        parteCentimos: parte,
+      );
+    }
+    if (!mounted) return;
+    final falta = deuda.totalCentimos - monto;
+    final mensajes = ScaffoldMessenger.of(context);
+    context.pop();
+    mensajes
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(switch (falta) {
+            > 0 when cobro => Textos.cobradoParte(
+              formatearSolesComprobante(monto),
+              deuda.nombre,
+              formatearSolesComprobante(falta),
+            ),
+            > 0 => Textos.pagadoParte(
+              formatearSolesComprobante(monto),
+              formatearSolesComprobante(falta),
+            ),
+            _ => (cobro ? Textos.cobradoAhoraTienes : Textos.pagadoAhoraTienes)(
+              formatearSoles(saldo),
+              Textos.nombreCuenta(cuenta),
+            ),
+          }),
+        ),
+      );
+  }
+
   Future<bool> _preguntarNegativo(TipoCuenta cuenta, int quedaria) async {
     final seguir = await showDialog<bool>(
       context: context,
@@ -376,6 +446,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         ? const <CategoriaVista>[]
         : ref.watch(categoriasProvider(tipo)).value ?? const <CategoriaVista>[];
     final validas = {for (final c in categorias) c.nombre};
+    final deudas = _deudas();
     final pregunta = _fase == _Fase.revisando
         ? siguientePregunta(
             _lectura,
@@ -389,6 +460,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                   in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
                 c.tipo,
             },
+            deudasPosibles: deudasPosibles(_lectura, deudas),
           )
         : null;
     final completo = _fase == _Fase.revisando && pregunta == null;
@@ -440,6 +512,29 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
       ],
     );
+  }
+
+  /// Lo que se debe y quien anota puede cobrar o pagar (entrega 50): lo que
+  /// te deben si entró plata, lo que debes si salió.
+  List<DeudaDePersona> _deudas() {
+    if (widget.modo != ModoVoz.libre) return const [];
+    // Se leen desde que se abre, para tenerlas al terminar de hablar.
+    final teDeben = ref.watch(loQueTeDebenProvider).value;
+    final debes = ref.watch(loQueDebesProvider).value;
+    if (!_lectura.buscaDeuda) return const [];
+    final filas = switch (_lectura.tipo) {
+      TipoMovimiento.ingreso => teDeben,
+      TipoMovimiento.egreso => debes,
+      _ => null,
+    };
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    final ahora = ref.watch(relojProvider)();
+    bool delDia(DateTime f) =>
+        f.year == ahora.year && f.month == ahora.month && f.day == ahora.day;
+    return agruparDeudas([
+      for (final f in filas ?? const <FilaHistorial>[])
+        if (permisos.puedeCambiar(deOtro: f.deOtro, delDia: delDia(f.fecha))) f,
+    ]);
   }
 
   List<Widget> _detalle(
@@ -613,6 +708,81 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             ],
           ),
         );
+      case PreguntaDeuda(:final opciones):
+        final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+        if (opciones.length == 1) {
+          final deuda = opciones.single;
+          final monto = formatearSolesComprobante(deuda.totalCentimos);
+          return _TarjetaPregunta(
+            texto: cobro
+                ? Textos.teDebeEsDeEsa(deuda.nombre, monto)
+                : Textos.leDebesEsDeEsa(deuda.nombre, monto),
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton(
+                  onPressed: () =>
+                      setState(() => _lectura = _lectura.conAbono(deuda)),
+                  child: const Text(Textos.siDeEsaDeuda),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () =>
+                      setState(() => _lectura = _lectura.comoAparte()),
+                  child: const Text(Textos.noAnotarloAparte),
+                ),
+              ],
+            ),
+          );
+        }
+        return _TarjetaPregunta(
+          texto: cobro ? Textos.deQuienEsElCobro : Textos.aQuienLePagaste,
+          hijo: Opciones<int>(
+            opciones: {
+              for (final (i, d) in opciones.indexed)
+                i: Textos.quienYCuanto(
+                  d.nombre,
+                  formatearSolesComprobante(d.totalCentimos),
+                ),
+              -1: Textos.anotarloAparte,
+            },
+            elegida: null,
+            alElegir: (i) => setState(
+              () => _lectura = i < 0
+                  ? _lectura.comoAparte()
+                  : _lectura.conAbono(opciones[i]),
+            ),
+          ),
+        );
+      case PreguntaMasDeLoQueSeDebe(:final deuda):
+        final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+        final debe = formatearSolesComprobante(deuda.totalCentimos);
+        final dicho = formatearSolesComprobante(_total);
+        return _TarjetaPregunta(
+          texto: cobro
+              ? Textos.teDebeNoTanto(deuda.nombre, debe, dicho)
+              : Textos.leDebesNoTanto(deuda.nombre, debe, dicho),
+          pie: Textos.mocaNuncaAdivina,
+          hijo: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton(
+                onPressed: () => setState(
+                  () => _lectura = _lectura.conMonto(deuda.totalCentimos),
+                ),
+                child: Text(
+                  cobro ? Textos.cobrarLos(debe) : Textos.pagarLos(debe),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () =>
+                    setState(() => _lectura = _lectura.comoAparte()),
+                child: const Text(Textos.anotarloAparte),
+              ),
+            ],
+          ),
+        );
       case PreguntaCategoria():
         return _TarjetaPregunta(
           texto: _lectura.tipo == TipoMovimiento.ingreso
@@ -649,6 +819,24 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         ],
       ),
       const SizedBox(height: 8),
+      // El cobro o el pago de una deuda (entrega 50).
+      if (_lectura.abono case final deuda?) ...[
+        _TarjetaPartida(
+          icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+          titulo: tipo == TipoMovimiento.ingreso
+              ? Textos.cobroDeLoQueTeDebe(deuda.nombre)
+              : Textos.pagoDeLoQueLeDebes(deuda.nombre),
+          detalle:
+              '${Textos.nombreCuenta(_lectura.partidas.single.cuenta!)}'
+              ' · ${switch (deuda.totalCentimos - _total) {
+                <= 0 when tipo == TipoMovimiento.ingreso => Textos.yaNoDebeNada,
+                <= 0 => Textos.yaNoLeDebesNada,
+                final falta when tipo == TipoMovimiento.ingreso => Textos.leQueda(formatearSolesComprobante(falta)),
+                final falta => Textos.teFalta(formatearSolesComprobante(falta)),
+              }}',
+          monto: formatearSolesComprobante(_total),
+        ),
+      ] else
       // Lo que se debe (entrega 49): un total, sin cuenta, con quién.
       if (_lectura.debe) ...[
         _TarjetaPartida(
