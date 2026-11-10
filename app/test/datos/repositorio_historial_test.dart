@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:moca/textos/textos.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/informe/excel_informe.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
@@ -800,5 +801,9 @@ void main() {
     final pago = cambios.whereType<CambioPagado>().single;
     expect(pago.cobro, isTrue);
     expect(pago.parteCentimos, 2000);
+    expect(
+      Textos.tePagaron('Yape', '9 nov'),
+      'Marcaste que ya cobraste: Yape, 9 nov',
+    );
   });
 }

@@ -840,11 +840,11 @@ abstract final class Textos {
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
   static String tePagaron(String cuenta, String fecha) =>
-      'Marcaste que ya te pagaron: $cuenta, $fecha';
+      'Marcaste que ya cobraste: $cuenta, $fecha';
   static String pagasteParte(String monto, String cuenta, String fecha) =>
       'Pagaste una parte de $monto: $cuenta, $fecha';
   static String tePagaronParte(String monto, String cuenta, String fecha) =>
-      'Te pagaron una parte de $monto: $cuenta, $fecha';
+      'Cobraste una parte de $monto: $cuenta, $fecha';
 
   // Cobros y pagos en partes (entrega 44).
   static String todoElMonto(String monto) => 'Todo ($monto)';
