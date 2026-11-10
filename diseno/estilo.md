@@ -4,51 +4,60 @@ Reglas extraídas de los 50 mockups. Los HTML de `pantallas/` son la referencia 
 
 ## Color
 
-Azules como color de marca. Ámbar reservado para avisos. Rojo sobrio solo en los montos de salida. Sin verde y sin negro.
+Sistema de diseño de la mejora 01 (`docs/mejora-01/moca-08-sistema-de-diseno.png`, decisiones.md, 10-11-2026). Los valores viven en `app/lib/tema/colores.dart`; ninguna pantalla usa colores a mano.
+
+Azul de marca. Ámbar para avisos y para lo pendiente. Rojo coral para las salidas. Sin verde y sin negro.
 
 | Uso | Color |
 |---|---|
-| Texto principal | `#0F1F3D` |
-| Texto secundario | `#4B5A75` |
-| Marca, botón principal, enlaces | `#1D4ED8` |
-| Azul oscuro (enlace activo, texto sobre tinte) | `#1E3A8A` |
-| Tinte azul (tarjetas de Moca, selección) | `#E3ECFB` |
-| Fondo de pantalla | `#F3F6FB` |
-| Superficie de tarjeta | `#FFFFFF` |
-| Borde de tarjeta | `#D8E0EC` |
-| Borde de botón secundario | `#B5C2D6` |
-| Borde de campo de texto | `#8696B0` |
-| Separador interno, pista de barra | `#E4EAF3` |
-| Aviso: marca y barra | `#9A4A06` |
-| Aviso: texto | `#7A3A05` |
-| Aviso: texto fuerte | `#5C2C04` |
-| Aviso: fondo | `#FBEEDD` |
-| Monto de una salida (gasto, retiro, faltante del arqueo) | `#B42318` |
+| Azul 50 · 100 · 400 | `#EEF3FF` · `#E3EDFF` · `#3B6BEB` |
+| Marca, botón principal, enlaces, ingreso | `#1D4ED8` |
+| Azul 900 (texto sobre tinte, sombras) | `#1E3A8A` |
+| Texto principal · secundario | `#13213F` · `#52607A` |
+| Fondo de la app · superficie | `#F4F7FC` · `#FFFFFF` |
+| Ingreso · su fondo | `#1D4ED8` · `#E3EDFF` |
+| Egreso · su fondo | `#C42B3C` · `#FDE8EB` |
+| Pendiente (barras y puntos) · texto · fondo | `#D97706` · `#8A4500` · `#FFF1D6` |
+| Neutro o cero · su fondo | `#5F6B84` · `#F4F6FA` |
+| Icono de Yape · su fondo | `#6D28D9` · `#F1EAFE` |
+| Icono de Plin · su fondo | `#0E7490` · `#E0F5FA` |
+| Borde de chip y campo · de campo de texto · separador | `#DDE5F0` · `#8696B0` · `#E4EAF3` |
+| Sombra (azul al 6 %) | `#1E3A8A` al 6 % |
 
-No se usa color para decir si algo es bueno o malo; eso lo dice el texto («Te alcanza», «Faltan S/ 80»). El rojo de las salidas dice hacia dónde fue la plata, no que esté mal: va solo en el monto (en el Historial, su detalle, las filas de salida del informe y su PDF, y el «Salió» y «Retiraste» de la semana en el Inicio), nunca en fondos, tarjetas ni totales como «Tienes hoy» o «tu plata bajó» (decisiones.md, 29-10-2026).
+Todo par de texto y fondo pasa el contraste AA (4.5:1). El ámbar fuerte `#D97706` no lo pasa como texto: va solo en barras y puntos.
+
+**El color nunca va solo.** Ingreso y egreso llevan además su signo (`+ S/ 80`, `– S/ 100`) y su flecha, y cada estado su palabra («Te debe», «Por subir»), para quien no distinga colores. El cero va siempre en gris neutro, nunca en rojo.
+
+- **Rojo coral:** en el monto de una salida y en fondos suaves de chips, iconos y la tarjeta «Debes», siempre con su signo o flecha; nunca en el «Tienes hoy» ni en un resultado que bajó.
+- **Subió o bajó (Informes):** flecha y signo siempre; azul si subió, gris neutro si bajó. No se pinta de rojo lo que bajó.
+- **Yape morado y Plin celeste:** solo en el icono de esas cuentas, porque se reconocen al instante. El resto de iconos va en azul.
 
 ## Tipografía
 
-Plus Jakarta Sans, pesos 400, 500, 600 y 700.
+Plus Jakarta Sans, pesos 400 a 800 (`app/lib/tema/tipografia.dart`).
 
-| Uso | Tamaño | Peso |
-|---|---|---|
-| Cifra principal («Tienes hoy») | grande, ver S04 | 700 |
-| Título de pantalla | 17 a 20 px | 700 |
-| Título de tarjeta | 16 a 17 px | 700 |
-| Texto | 15 px | 400 a 600 |
-| Texto secundario y etiquetas | 14 px | 400 a 700 |
-| Etiquetas de la barra inferior | 14 px | 500 a 600 |
+| Uso | Tamaño / peso |
+|---|---|
+| Monto principal («Tienes hoy») | 52 / 800, con el «S/» al 45 % y más liviano |
+| Monto de tarjeta | 24 / 800 |
+| Título de pantalla | 26 / 800 |
+| Título de sección | 16 / 800 |
+| Texto | 15 / 500, interlineado 1.4 |
+| Texto secundario | 14 / 500 |
+| Texto de apoyo y etiquetas | 14 / 600 |
 
-Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026; antes las etiquetas de la barra inferior usaban 13 px). Las cifras usan números tabulares.
+Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026 y confirmado el 10-11-2026: el «13 px» del sistema de diseño queda en 14). Todos los montos van con cifras tabulares. Se prueba con la letra del sistema al 130 % y al 150 %.
 
 ## Forma
 
-- Tarjetas: radio 16 px, borde de 1 px, relleno 14 a 16 px.
-- Botones: radio 12 a 14 px. Principal de 52 px de alto, relleno azul y texto blanco; secundario de 48 px, fondo blanco y borde.
-- Campos de texto: 44 px de alto, radio 10 px.
-- Objetivo táctil mínimo: 44 px.
-- Margen lateral de pantalla: 20 px. Separación entre tarjetas: 12 a 14 px.
+- Espaciado en múltiplos de 4 y 8. Radios de 12, 16, 20 y 24 px (`app/lib/tema/medidas.dart`).
+- Tarjetas: radio 20 px, sin borde gris, con sombra azul suave en dos niveles (`0 1 2` y `0 4 14`).
+- Botones: radio 16 px. Principal de 52 px, relleno azul y texto blanco; secundario de 48 px, fondo azul suave y texto azul.
+- Campos de texto: 48 px de alto, radio 12 px.
+- Objetivo táctil mínimo: 48 px.
+- Margen lateral de pantalla: 20 px. Separación entre tarjetas: 12 px.
+- Iconos: Material Icons redondeados (vienen con Flutter), uno por tipo de movimiento, por categoría y por cuenta.
+- Componentes reutilizables en `app/lib/comun/`: `MontoText`, `TarjetaResumen`, `BadgeEstado`, `ChipSeleccion`, `EstadoVacio`, `SeccionTitulo` y `FilaMovimiento`.
 
 ## Marca
 

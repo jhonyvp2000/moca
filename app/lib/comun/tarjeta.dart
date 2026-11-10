@@ -5,7 +5,8 @@ import '../tema/medidas.dart';
 import '../tema/tipografia.dart';
 import 'isotipo.dart';
 
-/// Tarjeta blanca con borde (diseno/estilo.md).
+/// Tarjeta blanca con sombra azul suave, sin borde gris (sistema de
+/// diseño, mejora-01).
 class Tarjeta extends StatelessWidget {
   const Tarjeta({super.key, required this.child, this.relleno});
 
@@ -20,7 +21,7 @@ class Tarjeta extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colores.superficie,
         borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-        border: Border.all(color: Colores.bordeTarjeta),
+        boxShadow: Sombras.nivel1,
       ),
       child: child,
     );

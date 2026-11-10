@@ -299,11 +299,17 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                     ? null
                     : () => setState(() => _mes = i.mesPrevio),
               ),
-              Semantics(
-                header: true,
-                child: Text(
-                  nombreDelMesConMayuscula(i.mes),
-                  style: Tipografia.tituloPantalla,
+              // Con letra grande se achica antes que desbordarse.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      nombreDelMesConMayuscula(i.mes),
+                      style: Tipografia.tituloPantalla,
+                    ),
+                  ),
                 ),
               ),
               _Flecha(

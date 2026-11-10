@@ -57,3 +57,5 @@ flutter:
           weight: 600
         - asset: assets/fuentes/PlusJakartaSans-Bold.ttf
           weight: 700
+        - asset: assets/fuentes/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
