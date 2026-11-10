@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/boton_redondo.dart';
+import '../../comun/estado_vacio.dart';
+import '../../comun/monto_text.dart';
 import '../../comun/opciones.dart';
+import '../../comun/tono.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
@@ -149,6 +153,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
     FiltroHistorial.todo => Textos.historialVacio,
     FiltroHistorial.entro => Textos.sinEntradas,
     FiltroHistorial.salio => Textos.sinSalidas,
+    FiltroHistorial.pendientes => Textos.sinPendientes,
     FiltroHistorial.porSubir => Textos.nadaPorSubir,
   };
 
@@ -197,21 +202,42 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
         bottom: false,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 16),
+          // Espacio para el + que sobresale de la barra.
+          padding: const EdgeInsets.only(bottom: Medidas.e8 + Medidas.e4),
           children: [
+            // El título y, a la derecha, «Filtrar» (entrega 39), aparte de
+            // los filtros rápidos (mejora 01).
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 Medidas.margenLateral,
-                16,
+                Medidas.e4,
                 Medidas.margenLateral,
-                8,
+                Medidas.e3,
               ),
-              child: Semantics(
-                header: true,
-                child: const Text(
-                  Textos.tituloHistorial,
-                  style: Tipografia.tituloPantalla,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: const Text(
+                        Textos.tituloHistorial,
+                        style: Tipografia.tituloPantalla,
+                      ),
+                    ),
+                  ),
+                  Badge(
+                    isLabelVisible: _filtros.puestos > 0,
+                    label: Text('${_filtros.puestos}'),
+                    backgroundColor: Colores.marca,
+                    child: BotonRedondo(
+                      icono: Icons.tune_rounded,
+                      nombre: _filtros.puestos == 0
+                          ? Textos.filtrar
+                          : Textos.filtrarCon(_filtros.puestos),
+                      alTocar: () => _abrirFiltros(visibles),
+                    ),
+                  ),
+                ],
               ),
             ),
             // Buscar (entrega 39): cada palabra tiene que estar.
@@ -220,52 +246,89 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                 Medidas.margenLateral,
                 0,
                 Medidas.margenLateral,
-                8,
+                Medidas.e3,
               ),
-              child: TextField(
-                controller: _buscar,
-                textInputAction: TextInputAction.search,
-                onChanged: (t) =>
-                    setState(() => _filtros = _filtros.conTexto(t)),
-                decoration: const InputDecoration(
-                  hintText: Textos.buscarEnTuHistorial,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Medidas.radioMedio),
+                  boxShadow: Sombras.nivel1,
+                ),
+                child: TextField(
+                  controller: _buscar,
+                  textInputAction: TextInputAction.search,
+                  onChanged: (t) =>
+                      setState(() => _filtros = _filtros.conTexto(t)),
+                  decoration: InputDecoration(
+                    hintText: Textos.buscarEnTuHistorial,
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Colores.textoSecundario,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: Medidas.e4,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Medidas.radioMedio),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Medidas.radioMedio),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
               ),
             ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: Medidas.margenLateral,
-              ),
-              child: Row(
-                children: [
-                  _Filtro(
-                    texto: _filtros.puestos == 0
-                        ? Textos.filtrar
-                        : Textos.filtrarCon(_filtros.puestos),
-                    elegido: _filtros.puestos > 0,
-                    alTocar: () => _abrirFiltros(visibles),
-                  ),
-                  const SizedBox(width: 8),
-                  for (final (i, filtro) in FiltroHistorial.values.indexed) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    _Filtro(
-                      texto: switch (filtro) {
-                        FiltroHistorial.todo => Textos.filtroTodo,
-                        FiltroHistorial.entro => Textos.entro,
-                        FiltroHistorial.salio => Textos.salio,
-                        FiltroHistorial.porSubir => Textos.filtroPorSubir(
-                          resumen?.porSubir ?? 0,
-                        ),
-                      },
-                      elegido: filtro == _filtro,
-                      alTocar: () => setState(() => _filtro = filtro),
-                    ),
-                  ],
+            // Los filtros rápidos se deslizan; el borde que se desvanece dice
+            // que hay más (mejora 01).
+            ShaderMask(
+              blendMode: BlendMode.dstIn,
+              shaderCallback: (r) => LinearGradient(
+                colors: [
+                  Colores.superficie,
+                  Colores.superficie,
+                  Colores.superficie.withValues(alpha: 0),
                 ],
+                stops: const [0, 0.88, 1],
+              ).createShader(r),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Medidas.margenLateral,
+                ),
+                child: Row(
+                  children: [
+                    for (final (i, filtro)
+                        in FiltroHistorial.values.indexed) ...[
+                      if (i > 0) const SizedBox(width: Medidas.e2),
+                      _Filtro(
+                        texto: switch (filtro) {
+                          FiltroHistorial.todo => Textos.filtroTodo,
+                          FiltroHistorial.entro => Textos.entro,
+                          FiltroHistorial.salio => Textos.salio,
+                          FiltroHistorial.pendientes => Textos.filtroPendientes(
+                            resumen?.pendientes ?? 0,
+                          ),
+                          FiltroHistorial.porSubir => Textos.filtroPorSubir(
+                            resumen?.porSubir ?? 0,
+                          ),
+                        },
+                        punto: switch (filtro) {
+                          FiltroHistorial.todo => null,
+                          FiltroHistorial.entro => Colores.ingreso,
+                          FiltroHistorial.salio => Colores.egreso,
+                          FiltroHistorial.pendientes => Colores.pendiente,
+                          FiltroHistorial.porSubir => Colores.neutro,
+                        },
+                        elegido: filtro == _filtro,
+                        alTocar: () => setState(() => _filtro = filtro),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Medidas.e2),
             // Lo encontrado, con su suma, y cómo volver a ver todo.
             if (buscando && filas.isNotEmpty)
               Padding(
@@ -273,7 +336,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                   Medidas.margenLateral,
                   0,
                   Medidas.margenLateral,
-                  4,
+                  Medidas.e1,
                 ),
                 child: Row(
                   children: [
@@ -302,7 +365,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                   Medidas.margenLateral,
                   0,
                   Medidas.margenLateral,
-                  12,
+                  Medidas.e3,
                 ),
                 child: Text(
                   Textos.soloLoDeHoyAyudante,
@@ -311,34 +374,25 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
               ),
             if (resumen != null && filas.isEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Medidas.margenLateral,
-                  8,
-                  Medidas.margenLateral,
-                  0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Medidas.margenLateral,
                 ),
-                child: Tarjeta(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        buscando ? Textos.sinResultados : _vacio(_filtro),
-                        style: Tipografia.texto,
-                      ),
-                      if (buscando)
-                        TextButton(
+                child: EstadoVacio(
+                  icono: buscando
+                      ? Icons.search_off_rounded
+                      : Icons.receipt_long_rounded,
+                  titulo: buscando ? Textos.sinResultados : _vacio(_filtro),
+                  accion: buscando
+                      ? TextButton(
                           onPressed: _quitarFiltros,
                           child: const Text(Textos.quitarFiltros),
                         )
-                      else if (_filtro == FiltroHistorial.todo) ...[
-                        const SizedBox(height: 12),
-                        FilledButton(
+                      : _filtro == FiltroHistorial.todo
+                      ? FilledButton(
                           onPressed: () => context.push(Rutas.registrar),
                           child: const Text(Textos.registrar),
-                        ),
-                      ],
-                    ],
-                  ),
+                        )
+                      : null,
                 ),
               ),
             for (final MapEntry(key: dia, value: delDia) in dias.entries)
@@ -350,15 +404,15 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
-                      child: Semantics(
-                        header: true,
-                        child: Text(
-                          formatearDiaHistorial(dia, hoy),
-                          style: Tipografia.secundario.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      padding: const EdgeInsets.fromLTRB(
+                        0,
+                        Medidas.e3,
+                        0,
+                        Medidas.e2,
+                      ),
+                      child: _EncabezadoDelDia(
+                        titulo: formatearDiaHistorial(dia, hoy),
+                        filas: delDia,
                       ),
                     ),
                     Tarjeta(
@@ -387,6 +441,35 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                   ],
                 ),
               ),
+            // El final de la lista: no hay más (mejora 01). El ayudante ve
+            // solo lo de hoy, y eso ya se lo dice su aviso.
+            if (filas.isNotEmpty &&
+                !buscando &&
+                _filtro == FiltroHistorial.todo &&
+                !soloHoy)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  Medidas.e6,
+                  Medidas.margenLateral,
+                  0,
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 32,
+                      color: Colores.grisAzulado,
+                    ),
+                    SizedBox(height: Medidas.e2),
+                    Text(
+                      Textos.esoEsTodo,
+                      textAlign: TextAlign.center,
+                      style: Tipografia.secundario,
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -394,32 +477,102 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
   }
 }
 
-/// Filtro del mockup: azul oscuro cuando está elegido.
+/// El día y, a la derecha, lo que entró y salió ese día. Solo la plata que
+/// se movió: lo fiado, los pases y los ajustes del arqueo no suman, como en
+/// «Esta semana» (decisiones.md, 10-11-2026).
+class _EncabezadoDelDia extends StatelessWidget {
+  const _EncabezadoDelDia({required this.titulo, required this.filas});
+
+  final String titulo;
+  final List<FilaHistorial> filas;
+
+  @override
+  Widget build(BuildContext context) {
+    final movio = filas.where(
+      (f) => !f.loDebes && !f.ajusteArqueo && !f.tipo.esPase,
+    );
+    final entro = movio
+        .where((f) => f.tipo.entraPlata)
+        .fold(0, (s, f) => s + f.montoCentimos);
+    final salio = movio
+        .where((f) => !f.tipo.entraPlata)
+        .fold(0, (s, f) => s + f.montoCentimos);
+    final estilo = Tipografia.apoyo.copyWith(fontWeight: FontWeight.w700);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              titulo,
+              style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+            ),
+          ),
+        ),
+        // Con letra grande, el total se achica antes que desbordarse.
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (entro > 0)
+                  MontoText(
+                    entro,
+                    estilo: estilo,
+                    tono: Tono.ingreso,
+                    conSigno: true,
+                    conCentimos: true,
+                  ),
+                if (entro > 0 && salio > 0) Text(' · ', style: estilo),
+                if (salio > 0)
+                  MontoText(
+                    salio,
+                    estilo: estilo,
+                    tono: Tono.egreso,
+                    conSigno: true,
+                    conCentimos: true,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Un filtro rápido (mejora 01): azul de marca cuando está elegido y, si
+/// tiene, el punto de su color.
 class _Filtro extends StatelessWidget {
   const _Filtro({
     required this.texto,
     required this.elegido,
     required this.alTocar,
+    this.punto,
   });
 
   final String texto;
   final bool elegido;
   final VoidCallback alTocar;
+  final Color? punto;
 
   @override
   Widget build(BuildContext context) {
     final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(Medidas.radioPildora),
       side: elegido
           ? BorderSide.none
-          : const BorderSide(color: Colores.bordeBotonSecundario),
+          : const BorderSide(color: Colores.bordeTarjeta),
     );
     return Semantics(
       selected: elegido,
       button: true,
       inMutuallyExclusiveGroup: true,
       child: Material(
-        color: elegido ? Colores.textoPrincipal : Colores.superficie,
+        color: elegido ? Colores.marca : Colores.superficie,
         shape: forma,
         child: InkWell(
           customBorder: forma,
@@ -429,20 +582,31 @@ class _Filtro extends StatelessWidget {
               minHeight: Medidas.objetivoTactilMinimo,
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    fontFamily: Tipografia.familia,
-                    fontSize: 14,
-                    fontWeight: elegido ? FontWeight.w700 : FontWeight.w600,
-                    color: elegido
-                        ? Colores.sobreMarca
-                        : Colores.textoPrincipal,
+              padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (punto case final color?) ...[
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: elegido ? Colores.sobreMarca : color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: Medidas.e2),
+                  ],
+                  Text(
+                    texto,
+                    style: Tipografia.etiquetaBarra.copyWith(
+                      fontWeight: elegido ? FontWeight.w700 : FontWeight.w600,
+                      color: elegido
+                          ? Colores.sobreMarca
+                          : Colores.textoPrincipal,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),

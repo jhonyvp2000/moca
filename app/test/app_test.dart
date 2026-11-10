@@ -2270,6 +2270,37 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
     }
 
+    testWidgets('Mejora 01: «Pendientes», el total del día sin lo fiado y '
+        '«Eso es todo»', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.entro).first);
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.todaviaMeDebe));
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Doña Rosa',
+      );
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      await abrirHistorial(tester);
+
+      // El total de hoy cuenta la venta (S/ 350), no lo fiado.
+      expect(find.text('+ S/ 350'), findsNWidgets(2));
+      expect(find.text('+ S/ 430'), findsNothing);
+      expect(find.text(Textos.teDebe), findsOneWidget);
+      expect(find.text(Textos.esoEsTodo), findsOneWidget);
+
+      await tocar(tester, find.text(Textos.filtroPendientes(1)));
+      expect(find.text('Doña Rosa'), findsOneWidget);
+      // La venta pagada no está, y el día no suma lo fiado.
+      expect(find.text('+ S/ 350'), findsNothing);
+      expect(find.text(Textos.esoEsTodo), findsNothing);
+    });
+
     testWidgets('Muestra lo anotado por día, con filtros', (tester) async {
       await abrirApp(tester, listo: true);
       await anotarGasto(tester, '80');
@@ -2277,10 +2308,11 @@ void main() {
 
       expect(find.text('Hoy · lunes 12'), findsOneWidget);
       expect(find.text('Venta del día'), findsOneWidget);
-      expect(find.text('+ S/ 350'), findsOneWidget);
+      // La fila y el total del día (mejora 01).
+      expect(find.text('+ S/ 350'), findsNWidgets(2));
       expect(find.text('Bolsas'), findsOneWidget);
       expect(find.text('Otros · Efectivo'), findsOneWidget);
-      expect(find.text('− S/ 80'), findsOneWidget);
+      expect(find.text('− S/ 80'), findsNWidgets(2));
 
       await tocar(tester, find.text(Textos.entro));
       expect(find.text('Bolsas'), findsNothing);
@@ -2352,7 +2384,7 @@ void main() {
       );
 
       await tocar(tester, find.byType(BotonVolver));
-      expect(find.text('+ S/ 400'), findsOneWidget);
+      expect(find.text('+ S/ 400'), findsNWidgets(2));
       expect(find.text('+ S/ 350'), findsNothing);
     });
 
@@ -5989,11 +6021,12 @@ void main() {
       '«Filtrar» por categoría; sin «Quién lo anotó» si es uno solo',
       (tester) async {
         await conGasto(tester);
-        await tocar(tester, find.text(Textos.filtrar));
+        // «Filtrar» es el botón del encabezado (mejora 01).
+        await tocar(tester, find.byTooltip(Textos.filtrar));
         expect(find.text(Textos.quienAnoto), findsNothing);
         await tocar(tester, find.text('Mercadería').last);
         await tocar(tester, find.text(Textos.verResultados));
-        expect(find.text(Textos.filtrarCon(1)), findsOneWidget);
+        expect(find.byTooltip(Textos.filtrarCon(1)), findsOneWidget);
         expect(find.text('Jhony Salar Vela'), findsOneWidget);
         expect(find.text('Venta del día'), findsNothing);
       },

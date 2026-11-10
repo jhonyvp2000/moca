@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../comun/badge_estado.dart';
+import '../../comun/iconos.dart';
+import '../../comun/monto_text.dart';
+import '../../comun/tono.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
 import '../../pais/peru/formato.dart';
+import '../../pais/peru/iconos_categorias.dart';
 import '../../tema/colores.dart';
+import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
@@ -40,7 +46,7 @@ String tituloDeFila(FilaHistorial f) {
 
 /// La línea de abajo: categoría y cuenta, sin repetir lo que ya dice el
 /// título. Lo que se debe no ha salido de ninguna cuenta.
-List<String> _partes(FilaHistorial f) {
+List<String> _partes(FilaHistorial f, {bool conPorSubir = true}) {
   final cuenta = Textos.nombreCuenta(f.cuenta);
   if (f.ajusteArqueo) return [Textos.ajusteNoCuenta, cuenta];
   if (f.tipo == TipoMovimiento.retiro) return [Textos.retiroNoCuenta, cuenta];
@@ -49,7 +55,7 @@ List<String> _partes(FilaHistorial f) {
   if (f.cuentaDestino case final destino? when f.tipo.esPase) {
     return [
       Textos.pase(cuenta, Textos.nombreCuenta(destino)),
-      if (f.porSubir) Textos.marcaPorSubir,
+      if (conPorSubir && f.porSubir) Textos.marcaPorSubir,
       if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
     ];
   }
@@ -72,18 +78,22 @@ List<String> _partes(FilaHistorial f) {
 }
 
 class DetalleDeFila extends StatelessWidget {
-  const DetalleDeFila({super.key, required this.fila});
+  const DetalleDeFila({super.key, required this.fila, this.conEstado = true});
 
   final FilaHistorial fila;
 
+  /// Con «Te debe» y «por subir» en el texto; la fila del Historial los
+  /// muestra como etiquetas (mejora 01).
+  final bool conEstado;
+
   @override
   Widget build(BuildContext context) {
-    final partes = _partes(fila);
+    final partes = _partes(fila, conPorSubir: conEstado);
     return Text.rich(
       TextSpan(
         children: [
           TextSpan(text: partes.join(' · ')),
-          if (fila.loDebes) ...[
+          if (conEstado && fila.loDebes) ...[
             if (partes.isNotEmpty) const TextSpan(text: ' · '),
             TextSpan(
               text: fila.teDeben ? Textos.teDebe : Textos.loDebes,
@@ -100,7 +110,9 @@ class DetalleDeFila extends StatelessWidget {
   }
 }
 
-/// Una fila del Historial (S10).
+/// Una fila del Historial (S10), rediseñada en la mejora 01: la inicial
+/// de la persona o el icono de la categoría, el título, su línea, las
+/// etiquetas de estado y el monto con signo y color.
 class FilaMovimiento extends StatelessWidget {
   const FilaMovimiento({
     super.key,
@@ -113,13 +125,25 @@ class FilaMovimiento extends StatelessWidget {
   final VoidCallback alTocar;
   final bool conSeparador;
 
+  /// Entró, salió o se movió adentro.
+  Tono get _tono => fila.tipo.esPase || fila.ajusteArqueo
+      ? Tono.neutro
+      : fila.tipo.entraPlata
+      ? Tono.ingreso
+      : Tono.egreso;
+
   @override
   Widget build(BuildContext context) {
+    final quien = fila.proveedor?.trim();
+    final conPersona = quien != null && quien.isNotEmpty;
     return InkWell(
       onTap: alTocar,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 60),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 64),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Medidas.e4,
+          vertical: Medidas.e3,
+        ),
         decoration: conSeparador
             ? const BoxDecoration(
                 border: Border(bottom: BorderSide(color: Colores.separador)),
@@ -127,6 +151,37 @@ class FilaMovimiento extends StatelessWidget {
             : null,
         child: Row(
           children: [
+            ExcludeSemantics(
+              child: Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: conPersona ? Colores.azul100 : _tono.fondo(context),
+                  shape: conPersona ? BoxShape.circle : BoxShape.rectangle,
+                  borderRadius: conPersona
+                      ? null
+                      : BorderRadius.circular(Medidas.radioMedio),
+                ),
+                child: conPersona
+                    ? Text(
+                        quien.characters.first.toUpperCase(),
+                        style: Tipografia.tituloSeccion.copyWith(
+                          fontSize: 19,
+                          color: Colores.marca,
+                        ),
+                      )
+                    : Icon(
+                        fila.tipo == TipoMovimiento.ingreso ||
+                                fila.tipo == TipoMovimiento.egreso
+                            ? iconoDeCategoria(fila.categoria)
+                            : Iconos.deTipo(fila.tipo),
+                        size: 24,
+                        color: _tono.color(context),
+                      ),
+              ),
+            ),
+            const SizedBox(width: Medidas.e3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,18 +191,35 @@ class FilaMovimiento extends StatelessWidget {
                     style: Tipografia.textoFuerte.copyWith(height: 1.3),
                   ),
                   const SizedBox(height: 2),
-                  DetalleDeFila(fila: fila),
+                  DetalleDeFila(fila: fila, conEstado: false),
+                  if (fila.loDebes || fila.porSubir) ...[
+                    const SizedBox(height: Medidas.e1),
+                    Wrap(
+                      spacing: Medidas.e1,
+                      runSpacing: Medidas.e1,
+                      children: [
+                        if (fila.loDebes)
+                          BadgeEstado(
+                            fila.teDeben ? Textos.teDebe : Textos.loDebes,
+                          ),
+                        if (fila.porSubir)
+                          const BadgeEstado(
+                            Textos.porSubirEtiqueta,
+                            tono: Tono.neutro,
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              montoConSigno(fila.tipo, fila.montoCentimos),
-              style: Tipografia.cifra(
-                Tipografia.tituloTarjeta.copyWith(
-                  color: colorDelMonto(fila.tipo),
-                ),
-              ),
+            const SizedBox(width: Medidas.e3),
+            MontoText(
+              fila.montoCentimos,
+              estilo: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+              tono: _tono == Tono.neutro ? null : _tono,
+              conSigno: true,
+              conCentimos: true,
             ),
           ],
         ),

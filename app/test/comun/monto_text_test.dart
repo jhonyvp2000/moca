@@ -34,10 +34,10 @@ void main() {
     );
     expect(find.text('S/ 1,250'), findsOneWidget);
     expect(find.text('+ S/ 80'), findsOneWidget);
-    expect(find.text('– S/ 100'), findsOneWidget);
+    expect(find.text('− S/ 100'), findsOneWidget);
     expect(find.text('S/ 3.40'), findsOneWidget);
     expect(_colorDe(tester, '+ S/ 80'), Colores.ingreso);
-    expect(_colorDe(tester, '– S/ 100'), Colores.egreso);
+    expect(_colorDe(tester, '− S/ 100'), Colores.egreso);
   });
 
   testWidgets('El cero va en gris neutro y sin signo, nunca en rojo', (

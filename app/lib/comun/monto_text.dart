@@ -8,7 +8,7 @@ import 'tono.dart';
 
 /// Un monto con el «S/» más pequeño y liviano que la cifra, cifras
 /// tabulares y, si se pide, signo y color con significado: «+ S/ 80»,
-/// «– S/ 100». El cero va siempre en gris neutro, nunca en rojo.
+/// «− S/ 100». El cero va siempre en gris neutro, nunca en rojo.
 class MontoText extends StatelessWidget {
   const MontoText(
     this.centimos, {
@@ -58,9 +58,10 @@ class MontoText extends StatelessWidget {
     final signo = !conSigno || esCero
         ? ''
         : switch (tono) {
-            Tono.ingreso => '+ ',
-            Tono.egreso => '– ',
-            _ => centimos < 0 ? '– ' : '',
+            // Como en el Historial: «+ S/ 80», «− S/ 100» (mejora 01).
+            Tono.ingreso => '+\u00A0',
+            Tono.egreso => '−\u00A0',
+            _ => centimos < 0 ? '−\u00A0' : '',
           };
     final tamano = base.fontSize ?? 15;
     return Text.rich(

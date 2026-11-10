@@ -768,7 +768,13 @@ abstract final class Textos {
   // S10 · Historial
   static const filtroTodo = 'Todo';
   static String filtroPorSubir(int n) => n > 0 ? 'Por subir · $n' : 'Por subir';
+  static String filtroPendientes(int n) =>
+      n > 0 ? 'Pendientes · $n' : 'Pendientes';
+  static const esoEsTodo = 'Eso es todo desde que empezaste con Moca';
+  static const sinPendientes =
+      'No hay nada pendiente: nadie te debe y no debes nada.';
   static const marcaPorSubir = 'por subir';
+  static const porSubirEtiqueta = 'Por subir';
   static const loDebes = 'Lo debes';
   static const retiroNoCuenta = 'No cuenta como gasto del negocio';
   static const aporteNoCuenta = 'No cuenta como venta';
@@ -1204,7 +1210,7 @@ abstract final class Textos {
   static const noDebesNada = 'No debes nada.';
 
   // Buscar y filtrar en el Historial (entrega 39).
-  static const buscarEnTuHistorial = 'Buscar en tu historial';
+  static const buscarEnTuHistorial = 'Buscar por nombre, monto o categoría';
   static const filtrar = 'Filtrar';
   static String filtrarCon(int n) => 'Filtrar ($n)';
   static const quitarFiltros = 'Quitar filtros';

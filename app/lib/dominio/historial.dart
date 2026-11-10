@@ -1,7 +1,9 @@
 import 'modelos.dart';
 import 'movimientos.dart';
 
-enum FiltroHistorial { todo, entro, salio, porSubir }
+/// Los filtros rápidos del Historial. «Pendientes»: lo que te deben y lo
+/// que debes (mejora 01).
+enum FiltroHistorial { todo, entro, salio, pendientes, porSubir }
 
 /// Una fila del Historial (S10). Solo registros vigentes: lo deshecho o
 /// reemplazado por una corrección no aparece.
@@ -107,6 +109,7 @@ class FilaHistorial {
     // Un pase no entra ni sale del negocio: solo en «Todo».
     FiltroHistorial.entro => !ajusteArqueo && tipo.entraPlata,
     FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata && !tipo.esPase,
+    FiltroHistorial.pendientes => loDebes,
     FiltroHistorial.porSubir => porSubir,
   };
 }
@@ -217,6 +220,9 @@ class ResumenHistorial {
   final List<FilaHistorial> filas;
 
   int get porSubir => filas.where((f) => f.porSubir).length;
+
+  /// Lo que te deben y lo que debes (mejora 01).
+  int get pendientes => filas.where((f) => f.loDebes).length;
 }
 
 /// Los datos del comprobante de una compra.
