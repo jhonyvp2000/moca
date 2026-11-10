@@ -102,6 +102,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     _cuenta = borrador?.cuenta ?? _cuenta;
     _destino = borrador?.cuentaDestino;
     _categoriaId = borrador?.categoriaId;
+    // Desde la voz, lo que se debe y quién (entrega 49).
+    _pagado = borrador?.pagado ?? true;
+    _contraparte.text = borrador?.contraparte ?? '';
     if (borrador?.montoCentimos case final centimos?) {
       _monto.text = separarMiles(centimos ~/ 100);
     }

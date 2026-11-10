@@ -43,6 +43,8 @@ class LecturaVoz {
     this.categoria,
     this.prestamo = false,
     this.cuentaDestino,
+    this.debe = false,
+    this.contraparte,
   });
 
   static const vacia = LecturaVoz(textoDicho: '');
@@ -65,6 +67,20 @@ class LecturaVoz {
 
   /// En un pase («pasé 500 de la caja a Yape»), a dónde va (entrega 21.1).
   final TipoCuenta? cuentaDestino;
+
+  /// Todavía se debe (entrega 49): una venta a crédito («le fié 50 a doña
+  /// Rosa») o una compra que se debe («me fiaron 150»). No mueve la plata,
+  /// así que no se pregunta la cuenta.
+  final bool debe;
+
+  /// Quién debe o a quién se le debe, si se entendió («Doña Rosa»).
+  final String? contraparte;
+
+  /// Una venta a crédito sin nombre: Moca lo pregunta.
+  bool get faltaQuienDebe =>
+      debe &&
+      tipo == TipoMovimiento.ingreso &&
+      (contraparte?.trim().isEmpty ?? true);
 
   bool get montoDudoso => montosPosibles.isNotEmpty;
   bool get entendida => partidas.isNotEmpty || montoDudoso;
@@ -152,6 +168,11 @@ class PreguntaDestino extends PreguntaVoz {
   const PreguntaDestino();
 }
 
+/// En una venta a crédito sin nombre: quién debe (entrega 49).
+class PreguntaQuienDebe extends PreguntaVoz {
+  const PreguntaQuienDebe();
+}
+
 /// Qué falta preguntar. Nulo si ya está todo. [categoriasValidas] y
 /// [cuentasValidas] son las del negocio: una categoría o una cuenta
 /// reconocida que el negocio no tiene se pregunta («por Plin» sin Plin).
@@ -165,7 +186,11 @@ PreguntaVoz? siguientePregunta(
   if (lectura.tipo == null) return const PreguntaTipo();
   final variosBancos = cuentasValidas.where((c) => c.esBanco).length > 1;
   final variosPlin = cuentasValidas.where((c) => c.esPlin).length > 1;
-  for (final (i, partida) in lectura.partidas.indexed) {
+  // Lo que se debe no mueve ninguna cuenta: no se pregunta (entrega 49).
+  for (final (i, partida)
+      in lectura.debe
+          ? const <(int, PartidaVoz)>[]
+          : lectura.partidas.indexed) {
     if (!cuentasValidas.contains(partida.cuenta) ||
         (partida.bancoSinNombre && variosBancos) ||
         (partida.plinSinBanco && variosPlin)) {
@@ -186,6 +211,7 @@ PreguntaVoz? siguientePregunta(
       !categoriasValidas.contains(lectura.categoria)) {
     return const PreguntaCategoria();
   }
+  if (lectura.faltaQuienDebe) return const PreguntaQuienDebe();
   return null;
 }
 
@@ -204,6 +230,21 @@ extension RespuestasVoz on LecturaVoz {
     categoria: categoria ?? this.categoria,
     prestamo: prestamo,
     cuentaDestino: cuentaDestino ?? this.cuentaDestino,
+    debe: debe,
+    contraparte: contraparte,
+  );
+
+  /// El nombre de quien debe, escrito o corregido (entrega 49).
+  LecturaVoz conContraparte(String nombre) => LecturaVoz(
+    textoDicho: textoDicho,
+    tipo: tipo,
+    partidas: partidas,
+    montosPosibles: montosPosibles,
+    categoria: categoria,
+    prestamo: prestamo,
+    cuentaDestino: cuentaDestino,
+    debe: debe,
+    contraparte: nombre.trim().isEmpty ? null : nombre.trim(),
   );
 
   /// El dueño eligió o escribió el monto: queda una sola partida, con la
@@ -224,6 +265,8 @@ extension RespuestasVoz on LecturaVoz {
     partidas: partidas,
     montosPosibles: montosPosibles,
     categoria: categoria,
+    debe: debe,
+    contraparte: contraparte,
   );
 
   LecturaVoz conCuenta(int indicePartida, TipoCuenta cuenta) => _con(

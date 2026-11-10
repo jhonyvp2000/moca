@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/pais/peru/interprete_voz.dart';
+import 'package:moca/pais/peru/categorias.dart';
 
 LecturaVoz leer(
   String texto, {
@@ -388,6 +389,92 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  group('Vender y comprar al crédito (entrega 49)', () {
+    test('«Le fié 50 a doña Rosa» es una venta que todavía me debe', () {
+      final l = leer('le fié 50 a doña rosa');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 5000);
+      expect(l.categoria, categoriaVentaDelDia);
+      expect(l.contraparte, 'Doña Rosa');
+      // No se pregunta la cuenta: no entró plata.
+      expect(
+        siguientePregunta(l, categoriasValidas: {categoriaVentaDelDia}),
+        isNull,
+      );
+    });
+
+    test('«Vendí 80 al crédito a Juan»', () {
+      final l = leer('vendí 80 al crédito a juan');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 8000);
+      expect(l.contraparte, 'Juan');
+    });
+
+    test('«Doña Rosa me quedó debiendo 30»', () {
+      final l = leer('doña rosa me quedó debiendo 30');
+      expect(l.debe, isTrue);
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.contraparte, 'Doña Rosa');
+    });
+
+    test('Sin nombre, Moca pregunta quién debe', () {
+      final l = leer('vendí 40 al fiado');
+      expect(l.debe, isTrue);
+      expect(l.contraparte, isNull);
+      expect(
+        siguientePregunta(l, categoriasValidas: {categoriaVentaDelDia}),
+        isA<PreguntaQuienDebe>(),
+      );
+      expect(
+        siguientePregunta(
+          l.conContraparte('Pedro'),
+          categoriasValidas: {categoriaVentaDelDia},
+        ),
+        isNull,
+      );
+    });
+
+    test('Una compra al crédito todavía se debe; el nombre es opcional', () {
+      final l = leer('compré 200 de mercadería al crédito');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 20000);
+      expect(l.contraparte, isNull);
+      expect(l.faltaQuienDebe, isFalse);
+    });
+
+    test('«Me fiaron 150 en la distribuidora»', () {
+      final l = leer('me fiaron 150 en la distribuidora');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.contraparte, 'Distribuidora');
+    });
+
+    test('«Le debo 100 a don Pepe»', () {
+      final l = leer('le debo 100 a don pepe');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.contraparte, 'Don Pepe');
+    });
+
+    test('Cobrar el fiado, pedir prestado o vender sigue igual', () {
+      final cobro = leer('cobré 50 del fiado en efectivo');
+      expect(cobro.debe, isFalse);
+      expect(cobro.categoria, 'Cobro de fiado');
+      expect(leer('me pagaron 30 que me debían').debe, isFalse);
+      expect(leer('me prestaron 2000 en efectivo').debe, isFalse);
+      final venta = leer('vendí 120 en efectivo');
+      expect(venta.debe, isFalse);
+      expect(venta.contraparte, isNull);
+    });
+
+    test('En «Anotar la venta de hoy» no se fía', () {
+      expect(leer('le fié 50 a doña rosa', soloVenta: true).debe, isFalse);
     });
   });
 }

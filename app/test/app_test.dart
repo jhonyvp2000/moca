@@ -1647,6 +1647,63 @@ void main() {
       expect(find.text('200'), findsOneWidget);
     });
 
+    testWidgets('Entrega 49: «Le fié 50 a doña Rosa» queda como lo que te '
+        'deben, sin preguntar la cuenta', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('Le fié 50 a doña Rosa')]);
+
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+      expect(find.text(Textos.todaviaMeDebe), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Doña Rosa'), findsOneWidget);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      final fiado = movimientos!.singleWhere((m) => m.montoCentimos == 5000);
+      expect(fiado.estadoPago, EstadoPago.pendiente);
+      expect(fiado.fuente, Fuente.voz);
+      final quien = await tester.runAsync(
+        () => (base.select(
+          base.contrapartes,
+        )..where((c) => c.id.equals(fiado.contraparteId!))).getSingle(),
+      );
+      expect(quien!.nombre, 'Doña Rosa');
+    });
+
+    testWidgets('Entrega 49: si no dijo a quién le fió, Moca lo pregunta', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [const AlternativaVoz('Vendí 80 al fiado')]);
+
+      expect(find.text(Textos.quienTeDebe), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Juan');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.continuar));
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+      expect(find.text(Textos.todaviaMeDebe), findsOneWidget);
+    });
+
+    testWidgets('Entrega 49: una compra al crédito queda como lo que debes; '
+        '«Corregir un dato» la abre igual', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [
+        const AlternativaVoz('Le debo 100 a don Pepe de mercadería'),
+      ]);
+
+      expect(find.text(Textos.mocaEntendio), findsOneWidget);
+      expect(find.text(Textos.todaviaLoDebo), findsOneWidget);
+      await tocar(tester, find.text(Textos.corregirUnDato));
+      expect(find.text(Textos.queFue), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Don Pepe'), findsOneWidget);
+      expect(find.text('100'), findsOneWidget);
+    });
+
     testWidgets('«Saqué 100 para mí» se guarda como retiro', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirVozLibre(tester);

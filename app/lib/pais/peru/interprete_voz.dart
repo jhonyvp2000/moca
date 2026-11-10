@@ -42,7 +42,12 @@ LecturaVoz interpretarVoz(
     }
   }
 
+  // Una venta a crédito o una compra que se debe (entrega 49). En la
+  // venta de hoy no: esa es siempre al contado.
+  final debe = !soloVenta && frase.debe;
   return LecturaVoz(
+    debe: debe,
+    contraparte: debe ? quienDebe(principal.texto) : null,
     textoDicho: principal.texto.trim(),
     tipo: tipo,
     // Con duda, la partida conserva la cuenta dicha; el monto se confirma.
@@ -62,7 +67,11 @@ class _Frase {
     this.cortada, {
     this.prestamo = false,
     this.destino,
+    this.debe = false,
   });
+
+  /// Todavía se debe (entrega 49).
+  final bool debe;
 
   final TipoMovimiento? tipo;
   final List<PartidaVoz> partidas;
@@ -95,6 +104,29 @@ _Frase _leerFrase(String original) {
       null,
       cortada,
       destino: destino,
+    );
+  }
+  // «Me fiaron 150», «le debo 100 a don Pepe»: una compra que se debe.
+  // «Le fié 50 a doña Rosa», «me quedó debiendo 30»: una venta a crédito
+  // (entrega 49). «Cobré el fiado» sigue siendo un cobro.
+  if (!prestamo && _compraQueSeDebe.hasMatch(texto)) {
+    return _Frase(
+      TipoMovimiento.egreso,
+      _partidas(fichas),
+      _categoria(texto, TipoMovimiento.egreso),
+      cortada,
+      debe: true,
+    );
+  }
+  if (!prestamo &&
+      _ventaACredito.hasMatch(texto) &&
+      !_cobroDeDeuda.hasMatch(texto)) {
+    return _Frase(
+      TipoMovimiento.ingreso,
+      _partidas(fichas),
+      categoriaVentaDelDia,
+      cortada,
+      debe: true,
     );
   }
   final tipo = prestamo ? TipoMovimiento.aporte : _tipo(texto);
@@ -176,6 +208,146 @@ final _pase = RegExp(
     origen = TipoCuenta.efectivo;
   }
   return (origen, destino == origen ? null : destino);
+}
+
+// --- Lo que se debe (entrega 49) ------------------------------------------------
+
+/// «Le fié 50», «vendí 80 al crédito», «me quedó debiendo 30», «me debe 20».
+final _ventaACredito = RegExp(
+  r'\b(le |les )?fie\b|\bfiamos\b|\b(di|deje|dejamos|vendi|vendimos)\b.*\b(al fiado|fiado|al credito|a credito)\b|'
+  r'\b(me|nos) (quedo|quedaron) debiendo\b|\bquedo debiendo\b|\b(me|nos) debe(n)?\b',
+);
+
+/// «Me fiaron 150», «le debo 100», «quedé debiendo», «compré al crédito».
+final _compraQueSeDebe = RegExp(
+  r'\bme fiaron\b|\bnos fiaron\b|\b(le|les) debo\b|\bquede debiendo\b|'
+  r'\b(compre|compramos|saque|sacamos|traje)\b.*\b(al credito|a credito|al fiado|fiado)\b',
+);
+
+/// «Cobré lo que me debía»: es un cobro, no una venta a crédito.
+final _cobroDeDeuda = RegExp(
+  r'\b(cobre|cobramos|me pago|me pagaron|me yapeo|me yapearon|me debia|me debian)\b',
+);
+
+/// Palabras que no son nombres de personas ni de negocios.
+const _noSonNombre = {
+  'credito',
+  'fiado',
+  'cuenta',
+  'yape',
+  'plin',
+  'efectivo',
+  'banco',
+  'caja',
+  'por',
+  'con',
+  'en',
+  'de',
+  'y',
+  'que',
+  'hoy',
+  'ayer',
+  'el',
+  'la',
+  'los',
+  'las',
+  'mi',
+  'su',
+  'del',
+  'al',
+  'a',
+  'lo',
+  'le',
+  'me',
+  'nos',
+  'un',
+  'una',
+  'para',
+  'sabado',
+  'domingo',
+  'lunes',
+  'martes',
+  'miercoles',
+  'jueves',
+  'viernes',
+  'semana',
+  'mes',
+  'manana',
+  'pagar',
+  'paga',
+  'pague',
+  'debiendo',
+  'debe',
+  'debo',
+  'soles',
+  'sol',
+  'fie',
+  'vendi',
+  'compre',
+  'mercaderia',
+  'productos',
+  'medio',
+  'mil',
+  'cien',
+};
+
+/// Quién debe o a quién se le debe, si se dijo (entrega 49): «a doña
+/// Rosa», «en la distribuidora», «Doña Rosa me quedó debiendo». Nulo si no
+/// se entendió; Moca lo pregunta o el dueño lo escribe.
+String? quienDebe(String original) {
+  final t = original.trim();
+  String? limpio(String crudo) {
+    final palabras = [
+      for (final p in crudo.split(RegExp(r'\s+')))
+        if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) p,
+    ];
+    final nombre = <String>[];
+    for (final p in palabras) {
+      final n = normalizar(p).trim();
+      final titulo = RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+          .hasMatch(n);
+      if (nombre.isEmpty && titulo) {
+        nombre.add(p);
+        continue;
+      }
+      // «a la señora María»: el artículo no es parte del nombre.
+      if (nombre.isEmpty && (n == 'la' || n == 'el')) continue;
+      if (n.isEmpty || _noSonNombre.contains(n)) break;
+      nombre.add(p);
+      if (nombre.length >= (titulo ? 2 : 3)) break;
+    }
+    // Solo un título («a don») no es un nombre.
+    final sinTitulo = nombre.where(
+      (p) =>
+          !RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+              .hasMatch(normalizar(p).trim()),
+    );
+    if (sinTitulo.isEmpty) return null;
+    return nombre
+        .map(
+          (p) =>
+              p.isEmpty ? p : p[0].toUpperCase() + p.substring(1).toLowerCase(),
+        )
+        .join(' ');
+  }
+
+  // «Doña Rosa me quedó debiendo 30».
+  final antes = RegExp(
+    r'^(.+?)\s+(me|nos)\s+(qued[oó]|quedaron)\s+debiendo',
+    caseSensitive: false,
+  ).firstMatch(t);
+  if (antes != null) return limpio(antes.group(1)!);
+  // «a doña Rosa», «al señor Juan», «en la distribuidora», «donde Pepe».
+  // Se prueba desde cada «a», «al», «en la»…: «vendí 80 al crédito a
+  // Juan» encuentra «Juan» después de descartar «crédito».
+  for (final m in RegExp(
+    r'\b(?:a|al|en la|en el|donde|de)\s+',
+    caseSensitive: false,
+  ).allMatches(t)) {
+    final nombre = limpio(t.substring(m.end));
+    if (nombre != null) return nombre;
+  }
+  return null;
 }
 
 /// «Me prestaron 2,000», «saqué un préstamo».

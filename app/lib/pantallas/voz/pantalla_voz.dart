@@ -68,6 +68,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   ReconocedorVoz? _reconocedor;
   bool _guardando = false;
   final _otroMonto = TextEditingController();
+
+  /// Quién debe, en lo que se debe (entrega 49): se puede corregir.
+  final _quien = TextEditingController();
   bool _escribiendoMonto = false;
 
   bool get _esVenta => widget.modo != ModoVoz.libre;
@@ -91,6 +94,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     _escucha?.cancel();
     _reconocedor?.detener();
     _otroMonto.dispose();
+    _quien.dispose();
     super.dispose();
   }
 
@@ -163,6 +167,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               ? lectura.conTipo(TipoMovimiento.ingreso)
               : lectura;
           _parcial = lectura.textoDicho;
+          _quien.text = lectura.contraparte ?? '';
           _fase = lectura.entendida ? _Fase.revisando : _Fase.noEntendio;
         });
       case VozFallida(:final motivo):
@@ -212,6 +217,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   }
 
   bool get _esVentaDelDia =>
+      !_lectura.debe &&
       _lectura.tipo == TipoMovimiento.ingreso &&
       _lectura.categoria == categoriaVentaDelDia;
 
@@ -226,12 +232,22 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       borrador: BorradorMovimiento(
         tipo: _lectura.tipo,
         cuentaDestino: _lectura.cuentaDestino,
-        montoCentimos: partida?.centimos,
-        cuenta: partida?.cuenta,
+        montoCentimos: _lectura.debe ? _total : partida?.centimos,
+        cuenta: _lectura.debe ? null : partida?.cuenta,
         categoriaId: _idCategoria(categorias),
+        pagado: !_lectura.debe,
+        contraparte: _lectura.debe ? _quien.text.trim() : null,
       ),
     );
   }
+
+  /// Una venta a crédito no se guarda sin saber quién debe (entrega 49).
+  bool get _faltaElNombre =>
+      _lectura.debe &&
+      _lectura.tipo == TipoMovimiento.ingreso &&
+      _quien.text.trim().isEmpty;
+
+  int get _total => _lectura.partidas.fold(0, (s, p) => s + p.centimos);
 
   String? _idCategoria(List<CategoriaVista> categorias) {
     for (final c in categorias) {
@@ -266,6 +282,26 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
           'modo': 'voz',
         });
+      } else if (_lectura.debe) {
+        // Lo que se debe (entrega 49): una sola deuda, sin mover la plata.
+        // Como al escribirlo: la caja, o la de quien anota.
+        final permisos = ref.read(permisosProvider).value;
+        final cuenta =
+            permisos == null || permisos.puedeUsar(TipoCuenta.efectivo)
+            ? TipoCuenta.efectivo
+            : permisos.misCajas!.first;
+        final quien = _quien.text.trim();
+        guardado = await repo.registrar(
+          NuevoMovimiento(
+            tipo: _lectura.tipo!,
+            montoCentimos: _total,
+            cuenta: cuenta,
+            categoriaId: _idCategoria(categorias),
+            fuente: Fuente.voz,
+            pagado: false,
+            contraparte: quien.isEmpty ? null : quien,
+          ),
+        );
       } else {
         final movimientos = [
           for (final p in _lectura.partidas)
@@ -382,7 +418,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
         if (completo)
           FilledButton(
-            onPressed: _guardando ? null : () => _guardar(categorias),
+            onPressed: _guardando || _faltaElNombre
+                ? null
+                : () => _guardar(categorias),
             child: const Text(Textos.guardar),
           ),
         if (completo)
@@ -548,6 +586,33 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             alElegir: (c) => setState(() => _lectura = _lectura.conDestino(c)),
           ),
         );
+      case PreguntaQuienDebe():
+        return _TarjetaPregunta(
+          texto: Textos.quienTeDebe,
+          hijo: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _quien,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: Textos.quienTeDebeEjemplo,
+                ),
+              ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _quien.text.trim().isEmpty
+                    ? null
+                    : () => setState(
+                        () => _lectura = _lectura.conContraparte(_quien.text),
+                      ),
+                child: const Text(Textos.continuar),
+              ),
+            ],
+          ),
+        );
       case PreguntaCategoria():
         return _TarjetaPregunta(
           texto: _lectura.tipo == TipoMovimiento.ingreso
@@ -584,21 +649,50 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         ],
       ),
       const SizedBox(height: 8),
-      for (final p in _lectura.partidas) ...[
+      // Lo que se debe (entrega 49): un total, sin cuenta, con quién.
+      if (_lectura.debe) ...[
         _TarjetaPartida(
           icono: tipo.entraPlata ? Icono.entro : Icono.salio,
           titulo: titulo,
-          detalle: switch (_lectura.cuentaDestino) {
-            // «Efectivo → BCP» (entrega 21.1).
-            final destino? when tipo.esPase =>
-              '${Textos.pase(Textos.nombreCuenta(p.cuenta!), Textos.nombreCuenta(destino))}'
-                  ' · ${Textos.loQueDijiste}',
-            _ => '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
-          },
-          monto: formatearSolesComprobante(p.centimos),
+          detalle: tipo == TipoMovimiento.ingreso
+              ? Textos.todaviaMeDebe
+              : Textos.todaviaLoDebo,
+          monto: formatearSolesComprobante(_total),
         ),
-        const SizedBox(height: 8),
-      ],
+        const SizedBox(height: 12),
+        Text(
+          tipo == TipoMovimiento.ingreso
+              ? Textos.quienTeDebe
+              : Textos.aQuienLeDebes,
+          style: Tipografia.textoFuerte,
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _quien,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: tipo == TipoMovimiento.ingreso
+                ? Textos.quienTeDebeEjemplo
+                : Textos.aQuienLeDebesEjemplo,
+          ),
+        ),
+      ] else
+        for (final p in _lectura.partidas) ...[
+          _TarjetaPartida(
+            icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+            titulo: titulo,
+            detalle: switch (_lectura.cuentaDestino) {
+              // «Efectivo → BCP» (entrega 21.1).
+              final destino? when tipo.esPase =>
+                '${Textos.pase(Textos.nombreCuenta(p.cuenta!), Textos.nombreCuenta(destino))}'
+                    ' · ${Textos.loQueDijiste}',
+              _ => '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
+            },
+            monto: formatearSolesComprobante(p.centimos),
+          ),
+          const SizedBox(height: 8),
+        ],
       if (_lectura.partidas.length > 1)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),

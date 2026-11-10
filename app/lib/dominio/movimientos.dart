@@ -57,6 +57,8 @@ class BorradorMovimiento {
     this.cuenta,
     this.cuentaDestino,
     this.categoriaId,
+    this.pagado = true,
+    this.contraparte,
   });
 
   final TipoMovimiento? tipo;
@@ -64,6 +66,10 @@ class BorradorMovimiento {
   final TipoCuenta? cuenta;
   final TipoCuenta? cuentaDestino;
   final String? categoriaId;
+
+  /// Falso: todavía se debe; y quién (entrega 49, desde la voz).
+  final bool pagado;
+  final String? contraparte;
 }
 
 class CategoriaVista {
