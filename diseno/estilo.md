@@ -71,7 +71,8 @@ Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026 
 
 ## Estructura de la app
 
-- Barra inferior con cuatro pestañas: Inicio, Historial, Informes, Moca. Botón central para registrar.
+- Barra inferior con cuatro pestañas: Inicio, Historial, Informes, Asistente (antes «Moca»), y el + en el centro, que abre la hoja «Dilo o muéstralo» con voz, foto, QR, escribirlo y los atajos «Venta del día» y «Un gasto» (mejora 01).
+- Ajustes se abre con el ⚙ del encabezado del Inicio, en todas sus versiones; la 🔔 lleva a los avisos del Asistente.
 - Lienzo de diseño: 390 × 844 px para el teléfono; 1280 px de ancho para el panel web.
 
 ## Redacción

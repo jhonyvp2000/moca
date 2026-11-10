@@ -16,7 +16,7 @@ abstract final class Textos {
   static const pestanaInicio = 'Inicio';
   static const pestanaHistorial = 'Historial';
   static const pestanaInformes = 'Informes';
-  static const pestanaMoca = 'Moca';
+  static const pestanaMoca = 'Asistente';
   static const registrar = 'Registrar';
 
   // Pantallas que llegan en entregas siguientes
@@ -712,6 +712,10 @@ abstract final class Textos {
   static const leerQrDetalle = 'Lectura exacta de comprobantes electrónicos';
   static const escribirlo = 'Escribirlo';
   static const escribirloDetalle = 'Entró o salió, monto y cuenta';
+  // La hoja del + (mejora 01)
+  static const atajos = 'Atajos';
+  static const atajoVentaDelDia = 'Venta del día';
+  static const atajoUnGasto = 'Un gasto';
   static String llegaEnLaEntrega(int n) => 'Llega en la entrega $n';
 
   // «Escribirlo» (no dibujado)

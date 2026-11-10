@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../comun/boton_redondo.dart';
+
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
@@ -14,6 +16,7 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../moca/avisos.dart';
 import 'desglose_cuentas.dart';
+import 'encabezado_negocio.dart';
 
 /// S04 · Inicio. Sin la franja de planes ni «Lo que viene» (ajustes respecto
 /// al mockup), y sin la flecha para cambiar de empresa.
@@ -75,33 +78,15 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 16),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Medidas.margenLateral,
-              16,
-              Medidas.margenLateral,
-              8,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        r.nombreNegocio,
-                        style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-                      ),
-                      if (widget.actualizado case final texto?)
-                        Text(texto, style: Tipografia.secundario),
-                    ],
-                  ),
-                ),
-                _BotonOjo(
-                  ocultando: _ocultar,
-                  alTocar: () => setState(() => _ocultar = !_ocultar),
-                ),
-              ],
+          EncabezadoNegocio(
+            nombre: r.nombreNegocio,
+            detalle: widget.actualizado,
+            extra: BotonRedondo(
+              icono: _ocultar
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              nombre: _ocultar ? Textos.mostrarMontos : Textos.ocultarMontos,
+              alTocar: () => setState(() => _ocultar = !_ocultar),
             ),
           ),
           ?widget.tarjetaAvisos,
@@ -337,40 +322,4 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
     padding: const EdgeInsets.symmetric(horizontal: Medidas.margenLateral),
     child: hijo,
   );
-}
-
-class _BotonOjo extends StatelessWidget {
-  const _BotonOjo({required this.ocultando, required this.alTocar});
-
-  final bool ocultando;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Medidas.radioBoton),
-      side: const BorderSide(color: Colores.bordeTarjeta),
-    );
-    return Tooltip(
-      message: ocultando ? Textos.mostrarMontos : Textos.ocultarMontos,
-      child: Material(
-        color: Colores.superficie,
-        shape: forma,
-        child: InkWell(
-          customBorder: forma,
-          onTap: alTocar,
-          child: SizedBox.square(
-            dimension: Medidas.objetivoTactilMinimo,
-            child: Center(
-              child: IconoTrazo(
-                ocultando ? Icono.ojoTachado : Icono.ojo,
-                color: Colores.textoPrincipal,
-                tamano: 20,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

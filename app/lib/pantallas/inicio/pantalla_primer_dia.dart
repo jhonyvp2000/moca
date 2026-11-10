@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
+import 'encabezado_negocio.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
 import '../../dominio/primer_dia.dart';
@@ -70,31 +71,9 @@ class PantallaPrimerDia extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 16),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Medidas.margenLateral,
-              16,
-              Medidas.margenLateral,
-              8,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        resumen.nombreNegocio,
-                        style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(Textos.tuPrimerDia, style: Tipografia.secundario),
-              ],
-            ),
+          EncabezadoNegocio(
+            nombre: resumen.nombreNegocio,
+            detalle: Textos.tuPrimerDia,
           ),
           ?tarjetaAvisos,
           _conMargen(

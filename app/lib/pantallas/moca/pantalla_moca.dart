@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../cobro/cobro.dart';
-import '../../comun/enlace.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/tarjeta.dart';
@@ -171,14 +170,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                       ),
                     ),
           ],
+          // Ajustes se abre desde el ⚙ del Inicio (mejora 01).
           const SeccionAprende(),
-          // Lo que se toca una vez va en «Ajustes» (entrega 29).
-          const SizedBox(height: 18),
-          const TarjetaEnlace(
-            titulo: Textos.ajustes,
-            detalle: Textos.ajustesDetalle,
-            ruta: Rutas.ajustes,
-          ),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/tarjeta.dart';
+import '../inicio/encabezado_negocio.dart';
 import '../../dominio/cobro.dart';
 import '../informe/excel_informe.dart';
 import '../../dominio/equipo.dart';
@@ -590,13 +591,14 @@ class InicioSoloAnotar extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
           Medidas.margenLateral,
-          16,
+          0,
           Medidas.margenLateral,
-          16,
+          Medidas.e4,
         ),
         children: [
-          Text(nombre, style: Tipografia.tituloPantalla),
-          const SizedBox(height: 16),
+          // Con la prueba vencida también se llega a Ajustes (mejora 01).
+          EncabezadoNegocio(nombre: nombre, conMargen: false),
+          const SizedBox(height: Medidas.e2),
           Tarjeta(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

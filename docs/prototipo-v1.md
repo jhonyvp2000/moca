@@ -92,6 +92,7 @@ Decidido el 12 de octubre de 2026 (ver `decisiones.md`). Lo que dice un mockup y
 
 ### Registrar
 
+- **Desde la mejora 01** (rama `mejora-ui-01`), el + de la barra abre una hoja inferior en lugar de una pantalla: «Dilo o muéstralo», con voz, foto, QR y escribirlo, y los atajos «Venta del día» y «Un gasto» (abre «Escribirlo» con «Salió»). Se cierra con «Cancelar» o deslizando hacia abajo. Con una versión obligatoria vencida, el + sigue llevando a actualizar. Los avisos y el Historial vacío todavía abren «Registrar» como pantalla, con lo mismo.
 - **Texto:** es un formulario corto: entró, salió o «Retiro para mí»; monto (teclado numérico); cuenta; categoría; nota opcional. Es el camino más rápido y el que no falla sin señal.
 - **Voz:** Moca deduce entró o salió del verbo («vendí», «pagué», «saqué para mí»). Si no está segura del monto, abre S18; si falta la cuenta o el tipo, pregunta con opciones. Nunca adivina. Si el reconocimiento de Android se corta sin dar el resultado final, se usa la última frase que oyó, que el dueño revisa antes de guardar.
 - **Retiro para mí:** se anota desde Registrar, por voz («saqué 100 para mí») o en el formulario de texto.
@@ -203,7 +204,7 @@ Estados aprobados el 13-10-2026 (entrega 6):
 
 ### Ajustes y datos del negocio (entregas 29 y 29.1)
 
-- La pestaña Moca muestra lo del día: «Guarda tu avance», el cobro, la pregunta del precio, el resumen de la semana, los avisos y «Aprende en 3 minutos». Al final, «Ajustes» lleva a lo que se toca de vez en cuando.
+- La pestaña Moca muestra lo del día: «Guarda tu avance», el cobro, la pregunta del precio, el resumen de la semana, los avisos y «Aprende en 3 minutos». Al final, «Ajustes» lleva a lo que se toca de vez en cuando. Desde la mejora 01 la pestaña se llama «Asistente» y Ajustes sale de ahí: se abre con el ⚙ del encabezado del Inicio (en sus tres versiones: primer día, completo y «solo anotar»), al lado de la 🔔, que lleva a los avisos del Asistente para quien los ve.
 - El cobro, solo para dueños: en la prueba, a 3 días de vencer y ya vencido, «Cómo pagar» (Mercado Pago arriba y el Yape debajo, entrega 32). Ya pagada, el enlace «Pagar otro mes» (entrega 32.2) abre lo mismo con «Ya está pagada hasta el… Este pago suma un mes: del… al…», mientras lo pagado dure menos de 60 días. «Mis pagos de Moca» (entrega 33), en «Ajustes» y con «Ver mis pagos» en la tarjeta, lista cada pago con lo que cubrió y el medio.
 - «Ajustes» tiene tres secciones: **Tu negocio** («Datos del negocio», «Mis cuentas» y, desde la entrega 31, «Mis categorías», solo dueños), **Tu equipo** («Mi equipo» y «Mis negocios», con la cuenta guardada) y **Seguridad** («Pedir huella al abrir Moca», «Borrar mi negocio y mis datos» para el titular y «Salir de este negocio» para los demás). Al final, la versión de Moca.
 - «Datos del negocio» cambia el nombre (hasta 40 letras) y la hora de cierre. Al guardar dice «Listo. Guardado.», queda en la bitácora, se sube y el aviso de cierre pasa a la hora nueva. El tipo de negocio no se cambia.

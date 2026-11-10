@@ -900,15 +900,10 @@ Future<void> tocarEnAjuste(WidgetTester tester, String opcion) async {
   await tocar(tester, find.text(opcion));
 }
 
-/// La pestaña Moca y, al final, «Ajustes» (entrega 29).
+/// «Ajustes», desde el ⚙ del encabezado del Inicio (mejora 01).
 Future<void> abrirAjustes(WidgetTester tester) async {
-  await tocar(tester, find.text(Textos.pestanaMoca).last);
-  await tester.scrollUntilVisible(
-    find.text(Textos.ajustes),
-    200,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tocar(tester, find.text(Textos.ajustes));
+  await tocar(tester, find.text(Textos.pestanaInicio).last);
+  await tocar(tester, find.byTooltip(Textos.ajustes));
 }
 
 /// Desde la Bienvenida, la primera venta escrita en lugar de dicha.
@@ -1153,6 +1148,41 @@ void main() {
       expect(find.text(Textos.leerQrDetalle), findsOneWidget);
       await tocar(tester, find.text(Textos.escribirlo));
       expect(find.text(Textos.queFue), findsOneWidget);
+    });
+
+    testWidgets('Mejora 01: el + abre la hoja con atajos; «Un gasto» abre '
+        'Escribirlo con «Salió» y «Venta del día», la venta', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.text(Textos.atajos), findsOneWidget);
+      await tocar(tester, find.text(Textos.atajoUnGasto));
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text(Textos.yaLoPagaste), findsOneWidget);
+      await tocar(tester, find.byType(BotonVolver).first);
+
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
+      await tocar(tester, find.byType(BotonVolver).first);
+
+      // «Cancelar» la cierra sin abrir nada.
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+    });
+
+    testWidgets('Mejora 01: Ajustes desde el ⚙ del Inicio; la campana lleva '
+        'a los avisos del Asistente', (tester) async {
+      await abrirApp(tester, listo: true);
+      expect(find.text(Textos.pestanaMoca), findsWidgets);
+      await tocar(tester, find.byTooltip(Textos.avisos));
+      expect(find.text(Textos.avisos), findsWidgets);
+      expect(find.text(Textos.ajustes), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaInicio).last);
+      await tocar(tester, find.byTooltip(Textos.ajustes));
+      expect(find.text(Textos.ajustes), findsWidgets);
     });
 
     Future<void> abrirEscribir(WidgetTester tester) async {
@@ -4378,7 +4408,8 @@ void main() {
         expect(find.text(Textos.tienesHoy), findsOneWidget);
         await tocar(tester, find.bySemanticsLabel(Textos.registrar));
         expect(find.text(Textos.escribirlo), findsOneWidget);
-        await tocar(tester, find.byType(BotonVolver).first);
+        // La hoja del + se cierra con «Cancelar» (mejora 01).
+        await tocar(tester, find.text(Textos.cancelar));
 
         // Al día siguiente, lo que anota lleva a actualizar.
         await otroDia(tester, await baseDe(tester));

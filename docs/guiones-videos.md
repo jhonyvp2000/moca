@@ -14,7 +14,7 @@ Siete videos de 15 a 30 segundos, uno por función, con la voz de Jhony. Se ven 
 | 6. Informe del mes | Tarjeta «¿Primera vez?» en Informes |
 | 7. Guardar tu avance | «▶ Ver cómo» en «Guarda tu avance» |
 
-Todos están en «Aprende en 3 minutos», en la pestaña Moca, con un ✓ en los que ya se vieron. El «▶ Ver cómo» de un paso desaparece cuando el paso está hecho. La tarjeta «¿Primera vez?» sale una sola vez: «Ver video» o «Ahora no» la cierran para siempre.
+Todos están en «Aprende en 3 minutos», en la pestaña Asistente, con un ✓ en los que ya se vieron. El «▶ Ver cómo» de un paso desaparece cuando el paso está hecho. La tarjeta «¿Primera vez?» sale una sola vez: «Ver video» o «Ahora no» la cierran para siempre.
 
 Un video sin enlace no aparece en ningún lado. Los enlaces se ponen en `app/lib/dominio/tutoria.dart` (`enlacesDeVideos`) y llegan con el siguiente APK. Para probar los botones antes, en los ajustes de la prueba está «Ver los videos sin enlace».
 
@@ -32,7 +32,7 @@ Cada video abierto se anota (número, desde dónde y cuándo) y sube al servidor
 
 ## Cómo grabar
 
-1. Prepara la demo: Bienvenida → «Ver una demo». Para los videos 4 y 5, abre los ajustes de la prueba (mantén apretado el logo en la pestaña Moca) y usa «Probar el aviso de cierre ahora» o «Pedir el arqueo ahora». Esa parte no se graba.
+1. Prepara la demo: Bienvenida → «Ver una demo». Para los videos 4 y 5, abre los ajustes de la prueba (mantén apretado el logo en la pestaña Asistente) y usa «Probar el aviso de cierre ahora» o «Pedir el arqueo ahora». Esa parte no se graba.
 2. Activa «No molestar» y quita las notificaciones de otras apps. Batería y hora visibles no importan.
 3. Graba la pantalla con el grabador de Android (baja la barra de arriba → «Grabar pantalla», sin audio). Toca despacio: deja 1 segundo quieto después de cada toque.
 4. Graba la voz aparte, en un cuarto sin eco, con el celular a un palmo de la boca (app de grabadora). Lee el guion; si te equivocas, repite la frase entera.

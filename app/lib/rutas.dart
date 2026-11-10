@@ -50,6 +50,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dominio/equipo.dart';
 import 'dominio/medicion.dart';
+import 'dominio/version.dart';
 import 'inyeccion.dart';
 
 abstract final class Rutas {
@@ -525,7 +526,12 @@ class _ConBarraInferior extends ConsumerWidget {
           }
           ramas.goBranch(indice, initialLocation: indice == ramas.currentIndex);
         },
-        alRegistrar: () => context.push(Rutas.registrar),
+        // El + abre la hoja «¿Cómo lo anotas?» (mejora 01). Con una versión
+        // obligatoria vencida, la ruta lleva a actualizar (entrega 34).
+        alRegistrar: () =>
+            ref.read(bloqueoPorVersionProvider) == BloqueoPorVersion.bloqueado
+            ? context.push(Rutas.registrar)
+            : mostrarHojaRegistrar(context),
       ),
     );
   }
