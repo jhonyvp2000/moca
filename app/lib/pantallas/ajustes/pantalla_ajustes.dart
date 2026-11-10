@@ -105,6 +105,16 @@ class PantallaAjustes extends ConsumerWidget {
           // Una salida que siempre existe para quien no es titular (entrega
           // 37): solo este teléfono, sin tocar el negocio.
           if (guardada && permisos.saleDelNegocio) const SalirDeMocaAqui(),
+          // Sin la cuenta unida, siempre hay salida desde la app (entrega
+          // 45.1): entrar con el número, o empezar como recién instalada.
+          if (!guardada && estadoCuenta != null) ...[
+            const TarjetaEnlace(
+              titulo: Textos.entrarConMiCelular,
+              detalle: Textos.entrarConMiCelularDetalle,
+              ruta: Rutas.cuenta,
+            ),
+            const BorrarEsteTelefono(),
+          ],
         ]),
         // Qué versión es, para reportar un problema (entrega 26.3).
         const VersionDeMoca(),
@@ -307,6 +317,62 @@ class SalirDeMocaAqui extends ConsumerWidget {
                 Text(Textos.salirDeMocaAqui, style: Tipografia.textoFuerte),
                 Text(
                   Textos.salirDeMocaAquiDetalle,
+                  style: Tipografia.secundario,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Borrar todo en este teléfono» (entrega 45.1): para un teléfono sin la
+/// cuenta unida. Moca vuelve a la bienvenida; el servidor no se toca.
+class BorrarEsteTelefono extends ConsumerWidget {
+  const BorrarEsteTelefono({super.key});
+
+  Future<void> _borrar(BuildContext context, WidgetRef ref) async {
+    final si = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        title: const Text(Textos.borrarEsteTelefonoPregunta),
+        content: const Text(Textos.borrarEsteTelefonoTexto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            child: const Text(Textos.borrar),
+          ),
+        ],
+      ),
+    );
+    if (si != true) return;
+    await ref.read(repositorioOperadorProvider).borrarTodo();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Tarjeta(
+      relleno: EdgeInsets.zero,
+      child: Material(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          onTap: () => _borrar(context, ref),
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(Textos.borrarEsteTelefono, style: Tipografia.textoFuerte),
+                Text(
+                  Textos.borrarEsteTelefonoDetalle,
                   style: Tipografia.secundario,
                 ),
               ],

@@ -1757,6 +1757,20 @@ abstract final class Textos {
   static const volverAEntrarConMiNumero = 'Volver a entrar con mi número';
   static const empezarDeCeroAqui = 'Empezar de cero';
   static const salirDeMocaAqui = 'Salir de Moca en este teléfono';
+
+  // Un teléfono sin la cuenta unida (entrega 45.1): siempre hay salida.
+  static const entrarConMiCelular = 'Entrar con mi celular';
+  static const entrarConMiCelularDetalle =
+      'Une este teléfono a tu cuenta, o guarda lo anotado con tu número.';
+  static const borrarEsteTelefono = 'Borrar todo en este teléfono';
+  static const borrarEsteTelefonoDetalle =
+      'Moca vuelve a empezar, como recién instalada.';
+  static const borrarEsteTelefonoPregunta = '¿Borrar todo en este teléfono?';
+  static const borrarEsteTelefonoTexto =
+      'Se borra lo anotado en este teléfono y Moca vuelve a la bienvenida, '
+      'donde puedes tocar «Ya tengo cuenta» o empezar de nuevo. No toca lo '
+      'guardado en el servidor.';
+  static const borrar = 'Borrar';
   static const salirDeMocaAquiDetalle =
       'Tu lugar en el negocio sigue; vuelves a entrar con tu número';
   static const salirDeMocaAquiPregunta = '¿Salir de Moca en este teléfono?';

@@ -3423,6 +3423,32 @@ void main() {
       expect(find.text(Textos.miEquipo), findsNothing);
     });
 
+    testWidgets('Entrega 45.1: sin la cuenta unida, entrar o borrar desde '
+        'Ajustes', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.entrarConMiCelular), findsOneWidget);
+      // «Entrar con mi celular» lleva a poner el número.
+      await tocar(tester, find.text(Textos.entrarConMiCelular));
+      expect(find.text(Textos.tuNumeroDeCelular), findsWidgets);
+      await tocar(tester, find.byType(BotonVolver).first);
+      // «Borrar todo» vuelve a la bienvenida, con «Ya tengo cuenta».
+      await tocar(tester, find.text(Textos.borrarEsteTelefono));
+      expect(find.text(Textos.borrarEsteTelefonoPregunta), findsOneWidget);
+      await tocar(tester, find.text(Textos.borrar));
+      await esperar(tester);
+      expect(find.text(Textos.yaTengoCuenta), findsOneWidget);
+    });
+
+    testWidgets('Entrega 45.1: con la cuenta unida no aparecen', (
+      tester,
+    ) async {
+      await conCuentaGuardada(tester);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.entrarConMiCelular), findsNothing);
+      expect(find.text(Textos.borrarEsteTelefono), findsNothing);
+    });
+
     testWidgets('Entrega 43: invitar a alguien que el plan no incluye', (
       tester,
     ) async {
