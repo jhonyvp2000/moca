@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../comun/boton_redondo.dart';
 
-import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
 import '../../dominio/equipo.dart';
@@ -10,13 +10,14 @@ import '../../dominio/moca.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
-import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
-import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../moca/avisos.dart';
 import 'desglose_cuentas.dart';
+import 'bloque_pendientes.dart';
 import 'encabezado_negocio.dart';
+import 'tarjeta_semana.dart';
+import 'tarjeta_tienes_hoy.dart';
 
 /// S04 · Inicio. Sin la franja de planes ni «Lo que viene» (ajustes respecto
 /// al mockup), y sin la flecha para cambiar de empresa.
@@ -55,148 +56,106 @@ class PantallaInicioCompleta extends StatefulWidget {
 class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
   bool _ocultar = false;
 
-  String _soles(int centimos) =>
-      _ocultar ? Textos.montoOculto : formatearSoles(centimos);
-
-  /// Filas de tres; la última se completa con huecos para que las columnas
-  /// queden alineadas.
   @override
   Widget build(BuildContext context) {
     final r = widget.resumen;
+    final permisos = widget.permisos;
     // El encargado y el ayudante ven solo sus cajas (entrega 21).
-    final misCajas = widget.permisos.misCajas;
+    final misCajas = permisos.misCajas;
     final saldos = misCajas == null
         ? r.saldosPorCuenta
         : {
             for (final e in r.saldosPorCuenta.entries)
               if (misCajas.contains(e.key)) e.key: e.value,
           };
+    final total = misCajas == null
+        ? r.tienesHoyCentimos
+        : saldos.values.fold(0, (s, v) => s + v);
+    final hoy = _ocultar
+        ? Textos.montoOculto
+        : formatearSoles(r.ventaDeHoyCentimos);
 
     return SafeArea(
       bottom: false,
-      child: ListView(
+      // Todo armado de una vez: el Inicio es corto, y así lo de abajo
+      // (los pasos, la tarjeta de Moca) existe aunque no se vea todavía.
+      child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          EncabezadoNegocio(
-            nombre: r.nombreNegocio,
-            detalle: widget.actualizado,
-            extra: BotonRedondo(
-              icono: _ocultar
-                  ? Icons.visibility_off_outlined
-                  : Icons.visibility_outlined,
-              nombre: _ocultar ? Textos.mostrarMontos : Textos.ocultarMontos,
-              alTocar: () => setState(() => _ocultar = !_ocultar),
-            ),
-          ),
-          ?widget.tarjetaAvisos,
-          _conMargen(
-            Tarjeta(
-              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    switch (misCajas?.length) {
-                      null => Textos.tienesHoy,
-                      1 => Textos.enTuCaja,
-                      _ => Textos.enTusCajas,
-                    },
-                    style: Tipografia.textoFuerte.copyWith(
-                      color: Colores.textoSecundario,
-                    ),
-                  ),
-                  // De qué periodo es (entrega 36): no se reinicia.
-                  const Text(
-                    Textos.desdeQueEmpezaste,
-                    style: Tipografia.secundario,
-                  ),
-                  const SizedBox(height: 2),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _soles(
-                        misCajas == null
-                            ? r.tienesHoyCentimos
-                            : saldos.values.fold(0, (s, v) => s + v),
-                      ),
-                      maxLines: 1,
-                      style: Tipografia.cifra(
-                        const TextStyle(
-                          fontFamily: Tipografia.familia,
-                          fontSize: 46,
-                          height: 1.05,
-                          fontWeight: FontWeight.w700,
-                          color: Colores.textoPrincipal,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  if (misCajas == null || saldos.length > 1)
-                    DesgloseDeCuentas(saldos: saldos, formato: _soles),
-                  // El ayudante ve también lo que vendió hoy (entrega 20).
-                  if (widget.permisos.rol == Rol.ayudante)
-                    Text(
-                      '${Textos.hoyAnotaste}: ${_soles(r.ventaDeHoyCentimos)}',
-                      style: Tipografia.secundario,
-                    ),
-                  if (widget.permisos.haceArqueo)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: widget.alHacerArqueo,
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(
-                            0,
-                            Medidas.objetivoTactilMinimo,
-                          ),
-                          foregroundColor: Colores.marca,
-                          textStyle: Tipografia.textoFuerte,
-                        ),
-                        child: const Text(Textos.hacerArqueo),
-                      ),
-                    ),
-                  // La semana es de todo el negocio: la ven el dueño y el
-                  // contador.
-                  if (misCajas == null) ...[
-                    const Divider(),
-                    const SizedBox(height: 12),
-                    ..._semana(r),
-                  ],
-                ],
+        // Espacio para el + que sobresale de la barra.
+        padding: const EdgeInsets.only(bottom: Medidas.e8 + Medidas.e4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            EncabezadoNegocio(
+              nombre: r.nombreNegocio,
+              detalle: widget.actualizado,
+              extra: BotonRedondo(
+                icono: _ocultar
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                nombre: _ocultar ? Textos.mostrarMontos : Textos.ocultarMontos,
+                alTocar: () => setState(() => _ocultar = !_ocultar),
               ),
             ),
-          ),
-          if (widget.permisos.anota) ...[
-            const SizedBox(height: Medidas.separacionTarjetas),
+            ?widget.tarjetaAvisos,
             _conMargen(
-              FilledButton.icon(
-                onPressed: widget.alAnotarVenta,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                  ),
-                ),
-                icon: const IconoTrazo(
-                  Icono.microfono,
-                  color: Colores.sobreMarca,
-                ),
-                label: const Text(Textos.anotarVentaDeHoy),
+              TarjetaTienesHoy(
+                etiqueta: switch (misCajas?.length) {
+                  null => Textos.tienesHoy,
+                  1 => Textos.enTuCaja,
+                  _ => Textos.enTusCajas,
+                },
+                centimos: total,
+                ocultar: _ocultar,
+                explicacion: Textos.notaConMovimientos,
+                // El ayudante ve siempre lo que anotó hoy (entrega 20).
+                pildora: permisos.rol == Rol.ayudante
+                    ? '${Textos.hoyAnotaste}: $hoy'
+                    : r.ventaDeHoyCentimos > 0
+                    ? Textos.vendisteHoy(hoy)
+                    : null,
               ),
             ),
-            const SizedBox(height: Medidas.separacionTarjetas),
-            // El aviso más importante; si no hay, la venta de hoy y el arqueo.
-            _conMargen(_tarjetaMoca(r)),
+            if (misCajas == null || saldos.length > 1) ...[
+              const SizedBox(height: Medidas.e5),
+              DesgloseDeCuentas(
+                saldos: saldos,
+                ocultar: _ocultar,
+                conVerTodas: permisos.cambiaCuentas,
+              ),
+            ],
+            if (permisos.haceArqueo)
+              _conMargen(
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: widget.alHacerArqueo,
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text(Textos.hacerArqueo),
+                  ),
+                ),
+              ),
+            // Lo pendiente, para quien ve los informes (mejora 01).
+            if (permisos.veInformes) BloquePendientes(ocultar: _ocultar),
+            // La semana es de todo el negocio: la ven el dueño y el contador.
+            if (misCajas == null) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              _conMargen(TarjetaSemana(resumen: r, ocultar: _ocultar)),
+            ],
+            if (permisos.anota) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              // El aviso más importante; si no hay, la venta de hoy y el arqueo.
+              _conMargen(_tarjetaMoca(r)),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
+  /// La tarjeta de Moca no repite el +: la venta de hoy mientras falta (es
+  /// el hábito que se mide), el arqueo cuando toca y, con todo hecho,
+  /// «Escuchar mi semana» (mejora 01).
   Widget _tarjetaMoca(ResumenInicio r) {
     if (widget.aviso case final aviso?) {
       return TarjetaMoca(
@@ -207,115 +166,62 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
         ),
       );
     }
-    final venta = r.ventaDeHoyCentimos > 0
+    final ventaHecha = r.ventaDeHoyCentimos > 0;
+    final venta = ventaHecha
         ? Textos.mocaYaAnotasteHoy
         : Textos.mocaFaltaVentaDeHoy;
-    // Sin arqueo para su rol, solo la venta de hoy (entrega 20).
-    if (!widget.permisos.haceArqueo) return TarjetaMoca(texto: venta);
-    final boton = FilledButton(
+    final anotarVenta = FilledButton.icon(
+      onPressed: widget.alAnotarVenta,
+      icon: const Icon(Icons.mic_rounded),
+      label: const Text(Textos.anotarVentaDeHoy),
+    );
+    final escucharSemana = widget.permisos.veAvisos
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () =>
+                  StatefulNavigationShell.maybeOf(context)?.goBranch(3),
+              iconAlignment: IconAlignment.end,
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: const Text(Textos.escucharMiSemana),
+            ),
+          )
+        : null;
+    final arqueo = FilledButton(
       onPressed: widget.alHacerArqueo,
       child: const Text(Textos.hacerArqueo),
     );
-    return switch (r.estadoArqueo) {
-      EstadoArqueo.falta => TarjetaMoca(
-        texto: Textos.mocaFaltaArqueo,
-        accion: boton,
+    // Sin arqueo para su rol, solo la venta de hoy (entrega 20).
+    final estado = widget.permisos.haceArqueo
+        ? r.estadoArqueo
+        : EstadoArqueo.nada;
+    return switch (estado) {
+      EstadoArqueo.falta || EstadoArqueo.toca => TarjetaMoca(
+        texto: estado == EstadoArqueo.falta
+            ? Textos.mocaFaltaArqueo
+            : Textos.mocaTocaArqueo,
+        accion: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            arqueo,
+            if (!ventaHecha) ...[
+              const SizedBox(height: Medidas.e2),
+              OutlinedButton(
+                onPressed: widget.alAnotarVenta,
+                child: const Text(Textos.anotarVentaDeHoy),
+              ),
+            ],
+          ],
+        ),
       ),
-      EstadoArqueo.toca => TarjetaMoca(
-        texto: Textos.mocaTocaArqueo,
-        accion: boton,
+      EstadoArqueo.hecho || EstadoArqueo.nada => TarjetaMoca(
+        texto: estado == EstadoArqueo.hecho
+            ? '$venta ${Textos.mocaArqueoHecho}'
+            : venta,
+        accion: ventaHecha ? escucharSemana : anotarVenta,
       ),
-      EstadoArqueo.hecho => TarjetaMoca(
-        texto: '$venta ${Textos.mocaArqueoHecho}',
-      ),
-      EstadoArqueo.nada => TarjetaMoca(texto: venta),
     };
-  }
-
-  List<Widget> _semana(ResumenInicio r) => [
-    ..._lineaDeLaSemana(r),
-    // De qué periodo es (entrega 36).
-    const Text(Textos.deLunesAHoy, style: Tipografia.secundario),
-  ];
-
-  List<Widget> _lineaDeLaSemana(ResumenInicio r) {
-    if (!r.semanaConMovimientos) {
-      return const [Text(Textos.semanaSinMovimientos, style: Tipografia.texto)];
-    }
-    final diferencia = r.diferenciaConSemanaAnteriorCentimos;
-    return [
-      Text.rich(
-        TextSpan(
-          style: Tipografia.texto,
-          children: [
-            const TextSpan(text: Textos.estaSemanaTeQuedo),
-            TextSpan(
-              text: _soles(r.semanaQuedoCentimos),
-              style: Tipografia.cifra(
-                const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-      ),
-      if (diferencia != null) ...[
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            if (diferencia != 0) ...[
-              IconoTrazo(
-                diferencia > 0 ? Icono.entro : Icono.salio,
-                color: Colores.azulOscuro,
-                tamano: 16,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Expanded(
-              child: Text(
-                diferencia > 0
-                    ? Textos.masQueLaSemanaPasada(_soles(diferencia))
-                    : diferencia < 0
-                    ? Textos.menosQueLaSemanaPasada(_soles(-diferencia))
-                    : Textos.igualQueLaSemanaPasada,
-                style: Tipografia.cifra(
-                  Tipografia.secundario.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colores.azulOscuro,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-      const SizedBox(height: 4),
-      // Los montos de salida en rojo sobrio (entrega 14.9.2). Con retiros,
-      // también lo que sacaste: así cuadra con la plata (entrega 14.9).
-      Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(text: Textos.semanaEntro(_soles(r.semanaEntroCentimos))),
-            const TextSpan(text: Textos.semanaSalio),
-            TextSpan(
-              text: _soles(r.semanaSalioCentimos),
-              style: const TextStyle(color: Colores.salida),
-            ),
-            if (r.semanaAportesCentimos > 0) ...[
-              const TextSpan(text: Textos.semanaPusiste),
-              TextSpan(text: _soles(r.semanaAportesCentimos)),
-            ],
-            if (r.semanaRetirosCentimos > 0) ...[
-              const TextSpan(text: Textos.semanaRetiraste),
-              TextSpan(
-                text: _soles(r.semanaRetirosCentimos),
-                style: const TextStyle(color: Colores.salida),
-              ),
-            ],
-          ],
-        ),
-        style: Tipografia.cifra(Tipografia.secundario),
-      ),
-    ];
   }
 
   Widget _conMargen(Widget hijo) => Padding(

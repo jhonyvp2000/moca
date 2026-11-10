@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../comun/actualizar.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
-import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
@@ -87,12 +86,6 @@ class PantallaInicio extends ConsumerWidget {
       child: PantallaPrimerDia(
         resumen: primerDia,
         alAnotarVenta: anotarVenta,
-        alAnotarGasto: () => context.push(
-          Uri(
-            path: Rutas.escribir,
-            queryParameters: {'tipo': TipoMovimiento.egreso.name},
-          ).toString(),
-        ),
         alDeclararSaldo: () => mostrarHojaSaldo(context),
         alHacerArqueo: () => context.push(Rutas.arqueo),
         tarjetaAvisos: arriba(true),

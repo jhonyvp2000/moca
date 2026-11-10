@@ -72,7 +72,7 @@ class EncabezadoNegocio extends ConsumerWidget {
               children: [
                 Text(
                   nombre,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Tipografia.tituloSeccion.copyWith(fontSize: 19),
                 ),

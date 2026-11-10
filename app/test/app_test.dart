@@ -900,6 +900,14 @@ Future<void> tocarEnAjuste(WidgetTester tester, String opcion) async {
   await tocar(tester, find.text(opcion));
 }
 
+/// La explicación de «Tienes hoy» está detrás del ⓘ (mejora 01): la abre,
+/// comprueba que diga [nota] y la cierra.
+Future<void> verNotaDeTienesHoy(WidgetTester tester, String nota) async {
+  await tocar(tester, find.byTooltip(Textos.queEsEstaCifra));
+  expect(find.text(nota), findsOneWidget);
+  await tocar(tester, find.text(Textos.entendido).last);
+}
+
 /// «Ajustes», desde el ⚙ del encabezado del Inicio (mejora 01).
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
@@ -1022,7 +1030,7 @@ void main() {
       );
       await tocar(tester, find.text(Textos.noSeCuantoTengo));
 
-      expect(find.text(Textos.notaSaldoPendiente), findsOneWidget);
+      await verNotaDeTienesHoy(tester, Textos.notaSaldoPendiente);
       // El total y el desglose de Efectivo (entrega 14.9).
       expect(find.text('S/ 350'), findsNWidgets(2));
 
@@ -1033,7 +1041,7 @@ void main() {
         tester,
         find.widgetWithText(FilledButton, Textos.guardarSaldo),
       );
-      expect(find.text(Textos.notaSaldoMasVenta), findsOneWidget);
+      await verNotaDeTienesHoy(tester, Textos.notaSaldoMasVenta);
       // El total y el desglose de Efectivo (entrega 14.9).
       expect(find.text('S/ 850'), findsNWidgets(2));
     });
@@ -1173,6 +1181,37 @@ void main() {
       expect(find.text(Textos.tienesHoy), findsOneWidget);
     });
 
+    testWidgets('Mejora 01: el Inicio muestra lo pendiente con nombres y, '
+        'con la venta anotada, «Escuchar mi semana»', (tester) async {
+      await abrirApp(tester, listo: true);
+      // Sin nada pendiente, no hay bloque.
+      expect(find.textContaining('Te deben ·'), findsNothing);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.entro).first);
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.todaviaMeDebe));
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Doña Rosa',
+      );
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+
+      expect(find.text(Textos.teDebenCuantos(1)), findsOneWidget);
+      expect(find.text('Doña Rosa'), findsOneWidget);
+      expect(find.text(Textos.escucharMiSemana), findsOneWidget);
+      await tocar(tester, find.text(Textos.teDebenCuantos(1)));
+      expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
+      await tocar(tester, find.byType(BotonVolver).first);
+
+      await tocar(tester, find.text(Textos.escucharMiSemana));
+      expect(find.text(Textos.avisos), findsWidgets);
+    });
+
     testWidgets('Mejora 01: Ajustes desde el ⚙ del Inicio; la campana lleva '
         'a los avisos del Asistente', (tester) async {
       await abrirApp(tester, listo: true);
@@ -1213,7 +1252,7 @@ void main() {
       expect(find.text('S/ 1,270'), findsNWidgets(2));
 
       // «Tienes hoy» ya no es solo saldo más venta.
-      expect(find.text(Textos.notaConMovimientos), findsOneWidget);
+      await verNotaDeTienesHoy(tester, Textos.notaConMovimientos);
 
       await tocar(tester, find.text(Textos.deshacer));
       expect(find.text(Textos.seDeshizo), findsOneWidget);
@@ -1451,11 +1490,11 @@ void main() {
       expect(find.text(Textos.guardadoAhoraTienes('S/ 1,250')), findsOneWidget);
     });
 
-    testWidgets('«Anotar un gasto» del Primer día abre «Salió» elegido', (
-      tester,
-    ) async {
+    testWidgets('«Un gasto» del + abre «Salió» elegido (mejora 01: el Primer '
+        'día ya no repite el +)', (tester) async {
       await abrirApp(tester, listo: true);
-      await tocar(tester, find.text(Textos.anotarUnGasto));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.atajoUnGasto));
       expect(find.text(Textos.enQue), findsOneWidget);
       expect(find.text('Mercadería'), findsOneWidget);
     });
@@ -1522,10 +1561,9 @@ void main() {
       // Toda la plata está en efectivo: el total y Efectivo coinciden.
       expect(find.text('S/\u00A01,350'), findsNWidgets(2));
       expect(find.text(Textos.efectivo), findsOneWidget);
-      expect(
-        find.text(Textos.entroSalio('S/ 350', 'S/ 0'), findRichText: true),
-        findsOneWidget,
-      );
+      // «Esta semana», cada monto con su signo (mejora 01).
+      expect(find.text(Textos.estaSemana), findsOneWidget);
+      expect(find.text('+\u00A0S/\u00A0350'), findsOneWidget);
       expect(find.text(Textos.mocaYaAnotasteHoy), findsOneWidget);
 
       // El ojo oculta los montos.
@@ -1534,8 +1572,10 @@ void main() {
       expect(find.text(Textos.montoOculto), findsWidgets);
       await tocar(tester, find.byTooltip(Textos.mostrarMontos));
 
-      await tocar(tester, find.text(Textos.anotarVentaDeHoy));
-      await tocar(tester, find.text(Textos.prefieroEscribirlo));
+      // Con la venta de hoy ya anotada, otra más va por el + (mejora 01).
+      expect(find.text(Textos.anotarVentaDeHoy), findsNothing);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.atajoVentaDelDia));
       expect(find.text(Textos.hoyYaAnotaste('S/ 350')), findsOneWidget);
       await tester.enterText(find.byType(TextField).at(1), '120');
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -2979,7 +3019,8 @@ void main() {
         },
       );
 
-      // En el Inicio completo, cinco cuentas van en dos filas.
+      // En el Inicio completo, las cinco cuentas van en una fila que se
+      // desliza (mejora 01).
       await abrirAjusteOculto(tester);
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
@@ -2988,7 +3029,8 @@ void main() {
       final plin = tester.getTopLeft(find.text(Textos.plin));
       final bim = tester.getTopLeft(find.text('Bim'));
       expect(plin.dy, efectivo.dy);
-      expect(bim.dy, greaterThan(efectivo.dy));
+      expect(bim.dy, efectivo.dy);
+      expect(bim.dx, greaterThan(plin.dx));
     });
 
     testWidgets('«Mis cuentas» agrega una billetera que aparece al anotar', (

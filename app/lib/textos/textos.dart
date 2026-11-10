@@ -536,8 +536,26 @@ abstract final class Textos {
       'Ya anotaste la venta de hoy. Te recuerdo la siguiente a tu hora de '
       'cierre.';
   static const anotarVentaDeHoy = 'Anotar la venta de hoy';
-  static const anotarUnGasto = 'Anotar un gasto';
   static const tusPrimerosPasos = 'Tus primeros pasos';
+
+  // Inicio rediseñado (mejora 01)
+  static const tusCuentas = 'Tus cuentas';
+  static const verTodas = 'Ver todas';
+  static const estaSemana = 'Esta semana';
+  static const escucharMiSemana = 'Escuchar mi semana';
+  static const queEsEstaCifra = '¿Qué es esta cifra?';
+  static String vendisteHoy(String monto) => 'Vendiste hoy $monto';
+  static String teDebenCuantos(int personas) => 'Te deben · $personas';
+  static String debesCuantos(int personas) => 'Debes · $personas';
+  static String pasosHechos(int hechos, int total) => '$hechos de $total';
+
+  /// «Marcos y Rosa», «Marcos, Rosa y 2 más».
+  static String nombresPendientes(List<String> nombres) => switch (nombres) {
+    [] => '',
+    [final uno] => uno,
+    [final a, final b] => '$a y $b',
+    [final a, final b, ...final resto] => '$a, $b y ${resto.length} más',
+  };
   static const pasoDecirPlata = 'Decir cuánta plata tienes';
   static String pasoVentaCincoDias(int llevas) =>
       'Anotar la venta 5 días · llevas $llevas';
@@ -564,12 +582,6 @@ abstract final class Textos {
   static const igualQueLaSemanaPasada = 'Lo mismo que la semana pasada';
   static String entroSalio(String entro, String salio) =>
       'Entró $entro · Salió $salio';
-  // La línea de la semana en el Inicio, por partes: los montos de salida
-  // van en rojo sobrio.
-  static String semanaEntro(String entro) => 'Entró $entro';
-  static const semanaSalio = ' · Salió ';
-  static const semanaRetiraste = ' · Retiraste ';
-  static const semanaPusiste = ' · Pusiste ';
   static const semanaSinMovimientos = 'Esta semana todavía no anotas nada.';
   static const mocaFaltaVentaDeHoy = 'Aún no anotas la venta de hoy.';
   static const mocaYaAnotasteHoy = 'Ya anotaste la venta de hoy.';

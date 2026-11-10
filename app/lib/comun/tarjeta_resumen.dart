@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../tema/medidas.dart';
 import '../tema/tipografia.dart';
+import '../textos/textos.dart';
 import 'monto_text.dart';
 import 'tono.dart';
 
@@ -15,7 +16,11 @@ class TarjetaResumen extends StatelessWidget {
     this.detalle,
     this.tono = Tono.marca,
     this.alTocar,
+    this.ocultar = false,
   });
+
+  /// Con los montos ocultos (el ojo del Inicio).
+  final bool ocultar;
 
   final String etiqueta;
   final int centimos;
@@ -42,7 +47,12 @@ class TarjetaResumen extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: MontoText(centimos),
+                child: ocultar
+                    ? const Text(
+                        Textos.montoOculto,
+                        style: Tipografia.montoTarjeta,
+                      )
+                    : MontoText(centimos),
               ),
               if (detalle != null) ...[
                 const SizedBox(height: Medidas.e1),
