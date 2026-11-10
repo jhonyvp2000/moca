@@ -32,7 +32,7 @@ on:
   workflow_dispatch:
     inputs:
       entrega:
-        description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M, entrega-N.M.K o piloto-N). Vacío: solo arma el APK."
+        description: "Nombre de la entrega a publicar (entrega-N, entrega-N.M, entrega-N.M.K, piloto-N o mejora-NN-x). Vacío: solo arma el APK."
         required: false
         default: ""
       obligatoria:
@@ -176,9 +176,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # entrega-N, entrega-N.M o entrega-N.M.K (correcciones) o piloto-N.
-          if [[ ! "$ENTREGA" =~ ^(entrega|piloto)-[0-9]+(\.[0-9]+){0,2}$ ]]; then
-            echo "::error::El nombre debe ser entrega-N, entrega-N.M, entrega-N.M.K o piloto-N (por ejemplo entrega-14.9.2)."
+          # entrega-N, entrega-N.M o entrega-N.M.K (correcciones), piloto-N, o
+          # mejora-NN-x: un APK de prueba de una rama de mejora (mejora-01-a).
+          # El servidor no mira las «mejora-»: no avisa a nadie ni cambia
+          # /descargar.
+          if [[ ! "$ENTREGA" =~ ^(entrega|piloto)-[0-9]+(\.[0-9]+){0,2}$ && ! "$ENTREGA" =~ ^mejora-[0-9]{2}-[a-z]$ ]]; then
+            echo "::error::El nombre debe ser entrega-N, entrega-N.M, entrega-N.M.K, piloto-N o mejora-NN-x (por ejemplo entrega-14.9.2 o mejora-01-a)."
             exit 1
           fi
           notas="APK de la $ENTREGA del prototipo V1. Firma: $FIRMA.
@@ -193,7 +196,7 @@ jobs:
           fi
           # La versión de los pilotos no es de prueba interna.
           prueba=""
-          if [[ "$ENTREGA" == entrega-* ]]; then prueba="--prerelease"; fi
+          if [[ "$ENTREGA" == entrega-* || "$ENTREGA" == mejora-* ]]; then prueba="--prerelease"; fi
           gh release create "$ENTREGA" app/publicar/*.apk \
             --target "$GITHUB_SHA" \
             --title "Moca · $ENTREGA" \
