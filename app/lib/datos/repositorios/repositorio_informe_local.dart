@@ -431,7 +431,38 @@ class RepositorioInformeLocal implements RepositorioInforme {
       advertenciaMercaderia: advertencia,
       mesPrevio: esPrimero ? null : DateTime(mes.year, mes.month - 1),
       mesSiguiente: enCurso ? null : DateTime(mes.year, mes.month + 1),
+      semanas: _semanas(mes, delMes, enCurso ? ahora : null),
     );
+  }
+
+  /// Lo que entró y salió por semana (mejora 01): 1–7, 8–14, 15–21 y del
+  /// 22 al fin del mes, con las mismas reglas que el resto del informe.
+  static List<SemanaDelMes> _semanas(
+    DateTime mes,
+    List<Movimiento> delMes,
+    DateTime? hoy,
+  ) {
+    final ultimo = DateTime(mes.year, mes.month + 1, 0).day;
+    return [
+      for (final (desde, hasta) in [(1, 7), (8, 14), (15, 21), (22, ultimo)])
+        () {
+          bool enLaSemana(Movimiento m) {
+            final dia = _fecha(m).day;
+            return dia >= desde && dia <= hasta;
+          }
+
+          int suma(TipoMovimiento tipo) => delMes
+              .where((m) => m.tipo == tipo && enLaSemana(m))
+              .fold(0, (s, m) => s + m.montoCentimos);
+          return SemanaDelMes(
+            desde: desde,
+            hasta: hasta,
+            entroCentimos: suma(TipoMovimiento.ingreso),
+            salioCentimos: suma(TipoMovimiento.egreso),
+            futura: hoy != null && desde > hoy.day,
+          );
+        }(),
+    ];
   }
 
   @override

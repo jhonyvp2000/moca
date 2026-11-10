@@ -125,7 +125,7 @@ Para la foto en la demo: la demo usa comprobantes de ejemplo, así que cualquier
 | 0–6 s | Pestaña «Informes»: «Ganaste» o «Perdiste» arriba | Arriba ves si este mes ganaste o perdiste, y cómo vas frente al mes pasado. | ¿Ganaste o perdiste este mes? |
 | 6–12 s | Bajar a «Lo que ganaste y lo que retiraste» | Aquí ves lo que ganó el negocio, lo que sacaste para ti y lo que quedó. | Lo que ganó, lo que sacaste |
 | 12–19 s | Bajar a «En qué se fue la plata» | Y en qué se fue la plata: mercadería, luz, alquiler. | En qué se fue la plata |
-| 19–25 s | Tocar «Compartir PDF» → pantalla final | Si tu contador o el banco te lo pide, compártelo en PDF. | Compártelo en PDF |
+| 19–25 s | Tocar «Compartir» → «Compartir PDF» (desde la mejora 01) → pantalla final | Si tu contador o el banco te lo pide, compártelo en PDF. | Compártelo en PDF |
 
 ---
 

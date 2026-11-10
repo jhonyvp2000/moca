@@ -151,7 +151,7 @@ class _Linea extends StatelessWidget {
           ? const Text(Textos.montoOculto, style: Tipografia.textoFuerte)
           : MontoText(
               centimos,
-              estilo: Tipografia.textoFuerte.copyWith(fontSize: 17),
+              estilo: Tipografia.tituloFila,
               tono: tono,
               conSigno: true,
             ),

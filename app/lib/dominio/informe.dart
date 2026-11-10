@@ -37,6 +37,25 @@ class ConfianzaDelMes {
 /// movió. Moca no muestra ganancia: no sabe cuánta mercadería queda. Las
 /// cifras vienen calculadas de la capa de datos; la pantalla y el PDF solo
 /// las muestran.
+/// Una semana del mes en el gráfico de Informes (mejora 01): del día
+/// [desde] al [hasta], con lo que entró y salió del negocio. Futura si el
+/// mes está en curso y todavía no llega.
+class SemanaDelMes {
+  const SemanaDelMes({
+    required this.desde,
+    required this.hasta,
+    required this.entroCentimos,
+    required this.salioCentimos,
+    this.futura = false,
+  });
+
+  final int desde;
+  final int hasta;
+  final int entroCentimos;
+  final int salioCentimos;
+  final bool futura;
+}
+
 class InformeMes {
   const InformeMes({
     required this.mes,
@@ -59,7 +78,12 @@ class InformeMes {
     this.confianza,
     this.mesPrevio,
     this.mesSiguiente,
+    this.semanas = const [],
   });
+
+  /// Lo que entró y salió en cada semana del mes (1–7, 8–14, 15–21 y 22 al
+  /// fin), para el gráfico de Informes (mejora 01).
+  final List<SemanaDelMes> semanas;
 
   /// El primer día del mes.
   final DateTime mes;

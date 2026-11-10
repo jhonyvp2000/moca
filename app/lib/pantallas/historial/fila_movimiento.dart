@@ -166,8 +166,7 @@ class FilaMovimiento extends StatelessWidget {
                 child: conPersona
                     ? Text(
                         quien.characters.first.toUpperCase(),
-                        style: Tipografia.tituloSeccion.copyWith(
-                          fontSize: 19,
+                        style: Tipografia.tituloDestacado.copyWith(
                           color: Colores.marca,
                         ),
                       )
@@ -216,7 +215,7 @@ class FilaMovimiento extends StatelessWidget {
             const SizedBox(width: Medidas.e3),
             MontoText(
               fila.montoCentimos,
-              estilo: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+              estilo: Tipografia.tituloFila,
               tono: _tono == Tono.neutro ? null : _tono,
               conSigno: true,
               conCentimos: true,

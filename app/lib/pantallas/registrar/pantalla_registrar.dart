@@ -275,10 +275,7 @@ class _Entrada extends StatelessWidget {
                         children: [
                           Text(
                             titulo,
-                            style: Tipografia.tituloSeccion.copyWith(
-                              fontSize: 17,
-                              color: texto,
-                            ),
+                            style: Tipografia.tituloFila.copyWith(color: texto),
                           ),
                           const SizedBox(height: 2),
                           Text(

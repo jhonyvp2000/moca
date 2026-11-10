@@ -504,10 +504,7 @@ class _EncabezadoDelDia extends StatelessWidget {
         Expanded(
           child: Semantics(
             header: true,
-            child: Text(
-              titulo,
-              style: Tipografia.textoFuerte.copyWith(fontSize: 16),
-            ),
+            child: Text(titulo, style: Tipografia.tituloTarjeta),
           ),
         ),
         // Con letra grande, el total se achica antes que desbordarse.

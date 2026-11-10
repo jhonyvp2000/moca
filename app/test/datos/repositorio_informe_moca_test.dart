@@ -243,6 +243,30 @@ void main() {
     });
   });
 
+  test('Mejora 01: lo que entró y salió por semana, con las semanas que '
+      'faltan', () async {
+    // Lunes 12 de octubre: la venta del alta (S/ 350) cae en 8–14.
+    await anotar(TipoMovimiento.egreso, 80, categoria: 'Otros');
+    await anotar(
+      TipoMovimiento.ingreso,
+      100,
+      categoria: 'Venta del día',
+      el: DateTime(2026, 10, 3, 10),
+    );
+    ahora = DateTime(2026, 10, 12, 21);
+    final i = await informe.observarMes(null).first;
+    expect(
+      [for (final s in i.semanas) (s.desde, s.hasta)],
+      [(1, 7), (8, 14), (15, 21), (22, 31)],
+    );
+    expect(i.semanas[1].entroCentimos, 35000);
+    expect(i.semanas[1].salioCentimos, 8000);
+    expect(i.semanas[2].futura, isTrue);
+    expect(i.semanas[1].futura, isFalse);
+    // Lo de la semana suma lo mismo que el mes.
+    expect(i.semanas.fold(0, (s, w) => s + w.entroCentimos), i.entroCentimos);
+  });
+
   group('Flujo para la caja (entrega 14.15)', () {
     test(
       'Seis meses completos, filas por categoría y cuotas por entidad',

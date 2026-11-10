@@ -585,7 +585,7 @@ class _Comprobante extends StatelessWidget {
       height: 84,
       decoration: BoxDecoration(
         color: Colores.fondo,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Medidas.e2),
         border: Border.all(color: Colores.bordeCampo),
       ),
       clipBehavior: Clip.antiAlias,

@@ -121,10 +121,7 @@ class _TarjetaCuenta extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: ocultar
                 ? const Text(Textos.montoOculto, style: Tipografia.montoTarjeta)
-                : MontoText(
-                    centimos,
-                    estilo: Tipografia.montoTarjeta.copyWith(fontSize: 20),
-                  ),
+                : MontoText(centimos, estilo: Tipografia.montoMediano),
           ),
         ],
       ),

@@ -116,3 +116,17 @@ const filaDelFlujo = {
   'Impuestos y trámites': FilaFlujo.otrosGastosFijos,
   'Otros': FilaFlujo.otrosGastosFijos,
 };
+
+/// El nombre corto de una categoría, solo para mostrarla en «Escribirlo»
+/// (mejora 01). Lo guardado no cambia.
+const _nombresCortos = {
+  'Servicios (luz, agua, internet, teléfono)': 'Servicios',
+  'Sueldos del personal': 'Sueldos',
+  'Movilidad del negocio': 'Movilidad',
+  'Contador o gestoría': 'Contador',
+  'Mantenimiento y reparaciones': 'Mantenimiento',
+  'Impuestos y trámites': 'Impuestos',
+};
+
+String nombreCortoDeCategoria(String nombre) =>
+    _nombresCortos[nombre] ?? nombre;

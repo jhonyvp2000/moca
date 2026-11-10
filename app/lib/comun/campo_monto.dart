@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../pais/peru/formato.dart';
 import '../tema/colores.dart';
+import '../tema/medidas.dart';
 import '../tema/tipografia.dart';
 
 /// Soles enteros con separador de miles mientras se escribe («1,200»).
@@ -115,7 +116,7 @@ class GrupoMontos extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colores.superficie,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(Medidas.radioMedio),
         border: Border.all(color: Colores.bordeTarjeta),
       ),
       child: Column(

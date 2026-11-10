@@ -263,9 +263,7 @@ class _Paso extends StatelessWidget {
         child: Center(
           child: Text(
             '$numero',
-            style: TextStyle(
-              fontFamily: Tipografia.familia,
-              fontSize: 14,
+            style: Tipografia.apoyo.copyWith(
               fontWeight: FontWeight.w700,
               color: estado == _EstadoPaso.actual
                   ? Colores.azulOscuro

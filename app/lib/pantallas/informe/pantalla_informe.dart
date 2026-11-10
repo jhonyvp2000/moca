@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/icono_trazo.dart';
+import '../../comun/monto_text.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/tarjeta_resumen.dart';
+import '../../comun/tono.dart';
+import 'grafico_semanas.dart';
 import '../../comun/videos.dart';
 import '../../dominio/informe.dart';
 import '../../dominio/tutoria.dart';
@@ -82,10 +86,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               // «Para pedir un crédito» es del plan Full (entrega 43); en la
               // prueba y sin cobro, funciona igual.
               trailing: destino == DestinoInforme.credito
-                  ? Text(
-                      Textos.planFull,
-                      style: Tipografia.etiquetaMoca.copyWith(fontSize: 14),
-                    )
+                  ? Text(Textos.planFull, style: Tipografia.etiquetaMoca)
                   : null,
               subtitle: Text(detalle, style: Tipografia.secundario),
               onTap: () => Navigator.of(context).pop(destino),
@@ -239,6 +240,64 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     }
   }
 
+  /// «Compartir» (mejora 01): el PDF del mes o el Excel de las operaciones.
+  Future<void> _elegirQueCompartir(InformeMes informe) async {
+    final cual = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (hoja) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: Medidas.e4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  0,
+                  Medidas.margenLateral,
+                  Medidas.e2,
+                ),
+                child: Text(Textos.compartir, style: Tipografia.tituloPantalla),
+              ),
+              for (final (pdf, icono, titulo, detalle) in const [
+                (
+                  true,
+                  Icons.picture_as_pdf_rounded,
+                  Textos.compartirPdf,
+                  Textos.compartirPdfDetalle,
+                ),
+                (
+                  false,
+                  Icons.table_chart_rounded,
+                  Textos.compartirExcel,
+                  Textos.compartirExcelDetalle,
+                ),
+              ])
+                ListTile(
+                  minTileHeight: Medidas.objetivoTactilMinimo + Medidas.e3,
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colores.azul100,
+                      borderRadius: BorderRadius.circular(Medidas.radioChico),
+                    ),
+                    child: Icon(icono, color: Colores.marca),
+                  ),
+                  title: Text(titulo, style: Tipografia.textoFuerte),
+                  subtitle: Text(detalle, style: Tipografia.secundario),
+                  onTap: () => Navigator.of(hoja).pop(pdf),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (cual == null || !mounted) return;
+    await (cual ? _compartir(informe) : _compartirExcel(informe));
+  }
+
   /// «Mes · Año» (entrega 40).
   Widget _selector() => Align(
     alignment: Alignment.centerLeft,
@@ -277,102 +336,123 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     if (informe == null) return const SizedBox.shrink();
     final i = informe;
 
+    // Todo armado de una vez: así cada sección existe aunque no se vea.
     return SafeArea(
       bottom: false,
-      child: ListView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           Medidas.margenLateral,
-          12,
+          Medidas.e4,
           Medidas.margenLateral,
-          16,
+          Medidas.e8 + Medidas.e4,
         ),
-        children: [
-          _selector(),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _Flecha(
-                icono: Icono.volver,
-                etiqueta: Textos.mesAnterior,
-                alTocar: i.mesPrevio == null
-                    ? null
-                    : () => setState(() => _mes = i.mesPrevio),
-              ),
-              // Con letra grande se achica antes que desbordarse.
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // «Informes» y un solo «Compartir» que abre PDF o Excel
+            // (mejora 01): el resultado queda arriba.
+            Row(
+              children: [
+                Expanded(
                   child: Semantics(
                     header: true,
-                    child: Text(
-                      nombreDelMesConMayuscula(i.mes),
+                    child: const Text(
+                      Textos.pestanaInformes,
                       style: Tipografia.tituloPantalla,
                     ),
                   ),
                 ),
-              ),
-              _Flecha(
-                icono: Icono.derecha,
-                etiqueta: Textos.mesSiguiente,
-                alTocar: i.mesSiguiente == null
-                    ? null
-                    : () => setState(() => _mes = i.mesSiguiente),
-              ),
-            ],
-          ),
-          if (_periodo(i) case final periodo?)
-            Padding(
-              padding: const EdgeInsets.only(left: 44, top: 2),
-              child: Text(periodo, style: Tipografia.secundario),
-            ),
-          // El PDF y el Excel de las operaciones (entrega 14.13).
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _BotonCompartir(
-                  texto: _armandoPdf ? Textos.armandoPdf : Textos.compartirPdf,
-                  alTocar: i.sinRegistros || _armandoPdf
+                OutlinedButton.icon(
+                  onPressed: i.sinRegistros || _armandoPdf || _armandoExcel
                       ? null
-                      : () => _compartir(i),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _BotonCompartir(
-                  texto: _armandoExcel
-                      ? Textos.armandoExcel
-                      : Textos.compartirExcel,
-                  alTocar: i.sinRegistros || _armandoExcel
-                      ? null
-                      : () => _compartirExcel(i),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const TarjetaPrimeraVez(
-            video: VideoTutoria.informe,
-            margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
-          ),
-          if (i.sinRegistros)
-            Tarjeta(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(Textos.mesSinRegistros, style: Tipografia.texto),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () => context.push(Rutas.registrar),
-                    child: const Text(Textos.registrar),
+                      : () => _elegirQueCompartir(i),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
+                    side: BorderSide.none,
+                    shape: const StadiumBorder(),
                   ),
-                ],
+                  icon: const Icon(Icons.ios_share_rounded, size: 20),
+                  label: Text(
+                    _armandoPdf
+                        ? Textos.armandoPdf
+                        : _armandoExcel
+                        ? Textos.armandoExcel
+                        : Textos.compartir,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Medidas.e3),
+            // «Mes · Año» y las flechas del mes, en una fila.
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              runSpacing: Medidas.e2,
+              children: [
+                _selector(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Flecha(
+                      icono: Icono.volver,
+                      etiqueta: Textos.mesAnterior,
+                      alTocar: i.mesPrevio == null
+                          ? null
+                          : () => setState(() => _mes = i.mesPrevio),
+                    ),
+                    // Con letra grande se achica antes que desbordarse.
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            nombreDelMesConMayuscula(i.mes),
+                            style: Tipografia.tituloDestacado,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _Flecha(
+                      icono: Icono.derecha,
+                      etiqueta: Textos.mesSiguiente,
+                      alTocar: i.mesSiguiente == null
+                          ? null
+                          : () => setState(() => _mes = i.mesSiguiente),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (_periodo(i) case final periodo?)
+              Padding(
+                padding: const EdgeInsets.only(top: Medidas.e1),
+                child: Text(periodo, style: Tipografia.secundario),
               ),
-            )
-          else
-            ..._contenido(i),
-        ],
+            const SizedBox(height: 12),
+            const TarjetaPrimeraVez(
+              video: VideoTutoria.informe,
+              margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
+            ),
+            if (i.sinRegistros)
+              Tarjeta(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(Textos.mesSinRegistros, style: Tipografia.texto),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => context.push(Rutas.registrar),
+                      child: const Text(Textos.registrar),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ..._contenido(i),
+          ],
+        ),
       ),
     );
   }
@@ -400,9 +480,10 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     const separacion = SizedBox(height: Medidas.separacionTarjetas);
 
     return [
-      // Cuánto creció o bajó la plata (entrega 14.9)
+      // Cuánto creció o bajó la plata (entrega 14.9). Subió: azul con su
+      // flecha; bajó: gris, sin rojo (decisiones.md, 10-11-2026).
       Tarjeta(
-        relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        relleno: const EdgeInsets.all(Medidas.e5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -416,67 +497,122 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                 color: Colores.textoSecundario,
               ),
             ),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                formatearSoles(crecio.abs()),
-                maxLines: 1,
-                style: Tipografia.cifra(
-                  const TextStyle(
-                    fontFamily: Tipografia.familia,
-                    fontSize: 46,
-                    height: 1.1,
-                    fontWeight: FontWeight.w700,
-                    color: Colores.textoPrincipal,
+            const SizedBox(height: Medidas.e1),
+            Row(
+              children: [
+                if (crecio != 0) ...[
+                  Icon(
+                    crecio > 0
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
+                    size: 32,
+                    color: crecio > 0 ? Colores.marca : Colores.neutro,
+                  ),
+                  const SizedBox(width: Medidas.e2),
+                ],
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: MontoText(
+                      crecio,
+                      estilo: Tipografia.montoGrande.copyWith(
+                        color: crecio < 0 ? Colores.neutro : null,
+                      ),
+                      tono: crecio > 0 ? Tono.ingreso : null,
+                      conSigno: true,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: Medidas.e2),
             if (diferencia == null)
               const Text(Textos.primerMesConMoca, style: Tipografia.secundario)
             else
-              Row(
-                children: [
-                  if (diferencia != 0) ...[
-                    IconoTrazo(
-                      diferencia > 0 ? Icono.entro : Icono.salio,
-                      color: Colores.textoPrincipal,
-                      tamano: 18,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Medidas.e3,
+                  vertical: Medidas.e1,
+                ),
+                decoration: BoxDecoration(
+                  color: diferencia > 0 ? Colores.azul100 : Colores.neutroFondo,
+                  borderRadius: BorderRadius.circular(Medidas.radioPildora),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (diferencia != 0) ...[
+                      Icon(
+                        diferencia > 0
+                            ? Icons.north_east_rounded
+                            : Icons.south_east_rounded,
+                        size: 16,
+                        color: diferencia > 0 ? Colores.marca : Colores.neutro,
+                      ),
+                      const SizedBox(width: Medidas.e1),
+                    ],
+                    Flexible(
+                      child: Text(
+                        diferencia > 0
+                            ? Textos.masQueEn(
+                                formatearSoles(diferencia),
+                                anterior,
+                              )
+                            : diferencia < 0
+                            ? Textos.menosQueEn(
+                                formatearSoles(-diferencia),
+                                anterior,
+                              )
+                            : Textos.igualQueEn(anterior),
+                        style: Tipografia.cifra(
+                          Tipografia.apoyo.copyWith(
+                            color: diferencia > 0
+                                ? Colores.azul900
+                                : Colores.neutro,
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 6),
                   ],
+                ),
+              ),
+            const SizedBox(height: Medidas.e4),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   Expanded(
-                    child: Text(
-                      diferencia > 0
-                          ? Textos.masQueEn(
-                              formatearSoles(diferencia),
-                              anterior,
-                            )
-                          : diferencia < 0
-                          ? Textos.menosQueEn(
-                              formatearSoles(-diferencia),
-                              anterior,
-                            )
-                          : Textos.igualQueEn(anterior),
-                      style: Tipografia.cifra(Tipografia.textoFuerte),
+                    child: TarjetaResumen(
+                      etiqueta: Textos.entro,
+                      centimos: i.entroCentimos,
+                      tono: i.entroCentimos == 0 ? Tono.neutro : Tono.ingreso,
+                    ),
+                  ),
+                  const SizedBox(width: Medidas.e3),
+                  Expanded(
+                    child: TarjetaResumen(
+                      etiqueta: Textos.salio,
+                      centimos: i.salioCentimos,
+                      tono: i.salioCentimos == 0 ? Tono.neutro : Tono.egreso,
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: 4),
-            Text(
-              Textos.entroSalio(
-                formatearSoles(i.entroCentimos),
-                formatearSoles(i.salioCentimos),
-              ),
-              style: Tipografia.cifra(Tipografia.secundario),
             ),
           ],
         ),
       ),
       separacion,
+
+      // Por semana (mejora 01)
+      if (i.semanas.isNotEmpty) ...[
+        Tarjeta(
+          relleno: const EdgeInsets.all(Medidas.e5),
+          child: GraficoSemanas(semanas: i.semanas),
+        ),
+        separacion,
+      ],
 
       // Cómo se movió la plata: cuadra con el saldo
       Tarjeta(
@@ -491,36 +627,37 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               i.desdeDia == null
                   ? Textos.empezasteElMesCon
                   : Textos.empezasteCon,
-              formatearSoles(i.inicioCentimos),
+              i.inicioCentimos,
             ),
-            _Fila(Textos.masEntro, formatearSoles(i.entroCentimos)),
+            _Fila(Textos.masEntro, i.entroCentimos, tono: Tono.ingreso),
             if (i.aportesCentimos > 0)
               _Fila(
                 Textos.masPusisteDeTuBolsillo,
-                formatearSoles(i.aportesCentimos),
+                i.aportesCentimos,
+                tono: Tono.ingreso,
               ),
             _Fila(
               Textos.menosSalioDelNegocio,
-              formatearSoles(i.salioCentimos),
-              salida: true,
+              i.salioCentimos,
+              tono: Tono.egreso,
             ),
             _Fila(
               Textos.menosRetirasteParaTi,
-              formatearSoles(i.retirosCentimos),
-              salida: true,
+              i.retirosCentimos,
+              tono: Tono.egreso,
             ),
             if (i.ajustesCentimos != 0)
               _Fila(
                 i.ajustesCentimos > 0
                     ? Textos.masSobroEnElArqueo
                     : Textos.menosFaltoEnElArqueo,
-                formatearSoles(i.ajustesCentimos.abs()),
-                salida: i.ajustesCentimos < 0,
+                i.ajustesCentimos.abs(),
+                tono: i.ajustesCentimos < 0 ? Tono.egreso : Tono.ingreso,
               ),
             const Divider(),
             _Fila(
               i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,
-              formatearSoles(i.finCentimos),
+              i.finCentimos,
               fuerte: true,
             ),
             const SizedBox(height: 8),
@@ -694,9 +831,7 @@ class _TarjetaDeuda extends StatelessWidget {
                     Text(nota, style: Tipografia.secundario),
                     Text(
                       formatearSoles(centimos),
-                      style: Tipografia.cifra(
-                        Tipografia.tituloPantalla.copyWith(fontSize: 24),
-                      ),
+                      style: Tipografia.cifra(Tipografia.encabezado),
                     ),
                   ],
                 ),
@@ -844,41 +979,30 @@ class _VistaAnio extends ConsumerWidget {
                 child: Text(
                   formatearSoles(crecio.abs()),
                   maxLines: 1,
-                  style: Tipografia.cifra(
-                    const TextStyle(
-                      fontFamily: Tipografia.familia,
-                      fontSize: 46,
-                      height: 1.1,
-                      fontWeight: FontWeight.w700,
-                      color: Colores.textoPrincipal,
-                    ),
-                  ),
+                  style: Tipografia.montoGrande,
                 ),
               ),
               const SizedBox(height: 8),
-              _Fila(Textos.entro, formatearSoles(r.entroCentimos)),
+              _Fila(Textos.entro, r.entroCentimos, tono: Tono.ingreso),
               if (r.aportesCentimos > 0)
                 _Fila(
                   Textos.pusisteDeTuBolsillo,
-                  formatearSoles(r.aportesCentimos),
+                  r.aportesCentimos,
+                  tono: Tono.ingreso,
                 ),
-              _Fila(
-                Textos.salioDelNegocio,
-                formatearSoles(r.salioCentimos),
-                salida: true,
-              ),
+              _Fila(Textos.salioDelNegocio, r.salioCentimos, tono: Tono.egreso),
               _Fila(
                 Textos.retirasteParaTi,
-                formatearSoles(r.retirosCentimos),
-                salida: true,
+                r.retirosCentimos,
+                tono: Tono.egreso,
               ),
               if (r.ajustesCentimos != 0)
                 _Fila(
                   r.ajustesCentimos > 0
                       ? Textos.sobroEnLosArqueos
                       : Textos.faltoEnLosArqueos,
-                  formatearSoles(r.ajustesCentimos.abs()),
-                  salida: r.ajustesCentimos < 0,
+                  r.ajustesCentimos.abs(),
+                  tono: r.ajustesCentimos < 0 ? Tono.egreso : Tono.ingreso,
                 ),
             ],
           ),
@@ -1050,7 +1174,7 @@ class _FilaDeMes extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               ClipRRect(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(Medidas.radioMini),
                 child: LinearProgressIndicator(
                   value: proporcion.clamp(0, 1),
                   minHeight: 6,
@@ -1096,42 +1220,35 @@ class _Flecha extends StatelessWidget {
   }
 }
 
+/// Una fila de «Cómo se movió tu plata»: lo que entró en azul, lo que salió
+/// en coral y el cero siempre en gris (mejora 01).
 class _Fila extends StatelessWidget {
-  const _Fila(
-    this.etiqueta,
-    this.monto, {
-    this.fuerte = false,
-    this.salida = false,
-  });
+  const _Fila(this.etiqueta, this.centimos, {this.fuerte = false, this.tono});
 
   final String etiqueta;
-  final String monto;
+  final int centimos;
   final bool fuerte;
-
-  /// El monto de una salida va en rojo sobrio (entrega 14.9.2).
-  final bool salida;
+  final Tono? tono;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: Medidas.e2),
       child: Row(
         children: [
           Expanded(
             child: Text(
               etiqueta,
-              style: fuerte ? Tipografia.textoFuerte : Tipografia.secundario,
+              style: fuerte ? Tipografia.tituloSeccion : Tipografia.secundario,
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            monto,
-            style: Tipografia.cifra(
-              Tipografia.textoFuerte.copyWith(
-                fontWeight: FontWeight.w700,
-                color: salida ? Colores.salida : null,
-              ),
-            ),
+          const SizedBox(width: Medidas.e3),
+          MontoText(
+            centimos,
+            estilo: fuerte
+                ? Tipografia.montoMediano
+                : Tipografia.textoFuerte.copyWith(fontWeight: FontWeight.w700),
+            tono: tono,
           ),
         ],
       ),
@@ -1185,7 +1302,7 @@ class _Barra extends StatelessWidget {
           Expanded(
             flex: 3,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(Medidas.radioMini),
               child: LinearProgressIndicator(
                 value: proporcion.clamp(0.04, 1),
                 minHeight: 12,
@@ -1240,7 +1357,7 @@ class _Confianza extends StatelessWidget {
         const Text(Textos.queTanSeguras, style: Tipografia.tituloTarjeta),
         const SizedBox(height: 12),
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(Medidas.radioMini),
           child: SizedBox(
             height: 12,
             child: Row(
@@ -1269,7 +1386,7 @@ class _Confianza extends StatelessWidget {
                   height: 14,
                   decoration: BoxDecoration(
                     color: colores[n],
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(Medidas.radioMini),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1282,26 +1399,4 @@ class _Confianza extends StatelessWidget {
       ],
     );
   }
-}
-
-class _BotonCompartir extends StatelessWidget {
-  const _BotonCompartir({required this.texto, required this.alTocar});
-
-  final String texto;
-  final VoidCallback? alTocar;
-
-  @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: alTocar,
-    style: OutlinedButton.styleFrom(
-      minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-    ),
-    icon: const IconoTrazo(
-      Icono.compartir,
-      color: Colores.textoPrincipal,
-      tamano: 20,
-    ),
-    label: Text(texto),
-  );
 }

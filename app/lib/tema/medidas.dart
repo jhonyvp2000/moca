@@ -16,6 +16,8 @@ abstract final class Medidas {
   static const e8 = 32.0;
 
   // --- Radios -------------------------------------------------------------------
+  /// Detalles chicos: la leyenda y las barras del gráfico.
+  static const radioMini = 4.0;
   static const radioChico = 12.0;
   static const radioMedio = 16.0;
   static const radioGrande = 20.0;

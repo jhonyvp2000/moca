@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../cobro/cobro.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
+import '../../comun/monto_text.dart';
+import '../../comun/seccion_titulo.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
 import '../../dominio/equipo.dart';
@@ -108,16 +110,17 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                 },
                 child: const Isotipo(
                   key: PantallaMoca.claveIsotipo,
-                  tamano: 40,
+                  tamano: 52,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: Medidas.e3),
+              // «Asistente» y el eslogan (mejora 01).
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(Textos.pestanaMoca, style: Tipografia.tituloPantalla),
-                    Text(Textos.subtituloMoca, style: Tipografia.secundario),
+                    Text(Textos.eslogan, style: Tipografia.secundario),
                   ],
                 ),
               ),
@@ -128,23 +131,40 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
           // La prueba o el pago, y la pregunta del día 10 (entrega 25).
           const TarjetaCobro(),
           const PreguntaDelPrecio(),
-          if (resumen != null) _tarjetaSemana(resumenEnTexto(resumen)),
+          if (resumen != null) _tarjetaSemana(resumen, resumenEnTexto(resumen)),
           if (permisos.veAvisos) ...[
-            const SizedBox(height: 18),
-            Semantics(
-              header: true,
-              child: Text(
-                Textos.avisos,
-                style: Tipografia.secundario.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Medidas.e5),
+            Semantics(header: true, child: const SeccionTitulo(Textos.avisos)),
             if (avisos != null)
               avisos.isEmpty
+                  // Sin avisos, un estado amable (mejora 01).
                   ? const Tarjeta(
-                      child: Text(Textos.sinAvisos, style: Tipografia.texto),
+                      child: Row(
+                        children: [
+                          _Circulo(
+                            icono: Icons.check_rounded,
+                            color: Colores.marca,
+                            fondo: Colores.azul100,
+                          ),
+                          SizedBox(width: Medidas.e4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  Textos.todoEnOrden,
+                                  style: Tipografia.tituloSeccion,
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  Textos.sinAvisos,
+                                  style: Tipografia.secundario,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   : Tarjeta(
                       relleno: EdgeInsets.zero,
@@ -177,69 +197,148 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
     );
   }
 
-  Widget _tarjetaSemana(String texto) {
+  /// «Tu semana» (mejora 01): tarjeta azul con lo que te quedó en grande y
+  /// «Escuchar resumen» como acción.
+  Widget _tarjetaSemana(ResumenSemana resumen, String texto) {
     return Container(
-      padding: const EdgeInsets.all(Medidas.rellenoTarjeta),
+      padding: const EdgeInsets.all(Medidas.e5),
       decoration: BoxDecoration(
-        color: Colores.tinteAzul,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        borderRadius: BorderRadius.circular(Medidas.radioMayor),
+        gradient: const LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [Colores.marca, Colores.azul400],
+        ),
+        boxShadow: Sombras.nivel2,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             Textos.tuSemanaEn(segundosDeLectura(texto)),
-            style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+            style: Tipografia.tituloDestacado.copyWith(
+              color: Colores.sobreMarca,
+            ),
           ),
           // De qué periodo es (entrega 36).
-          const Text(Textos.deLunesAHoy, style: Tipografia.secundario),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Semantics(
-                button: true,
-                label: _hablando ? Textos.detener : Textos.escuchar,
-                child: Material(
-                  key: PantallaMoca.claveEscuchar,
-                  color: Colores.marca,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => _escuchar(texto),
-                    child: SizedBox.square(
-                      dimension: 52,
-                      child: Center(
-                        child: IconoTrazo(
-                          _hablando ? Icono.detener : Icono.reproducir,
-                          color: Colores.sobreMarca,
-                          tamano: 24,
+          Text(
+            Textos.deLunesAHoy,
+            style: Tipografia.secundario.copyWith(
+              color: Colores.sobreMarcaSuave,
+            ),
+          ),
+          if (resumen.conMovimientos) ...[
+            const SizedBox(height: Medidas.e4),
+            Text(
+              Textos.estaSemanaTeQuedo.trim(),
+              style: Tipografia.texto.copyWith(color: Colores.sobreMarcaSuave),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: MontoText(
+                resumen.quedoCentimos,
+                estilo: Tipografia.montoGrande,
+                color: Colores.sobreMarca,
+              ),
+            ),
+          ],
+          const SizedBox(height: Medidas.e4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Semantics(
+              button: true,
+              label: _hablando ? Textos.detener : Textos.escuchar,
+              child: Material(
+                key: PantallaMoca.claveEscuchar,
+                color: Colores.superficie,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => _escuchar(texto),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Medidas.e2,
+                      Medidas.e2,
+                      Medidas.e5,
+                      Medidas.e2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Colores.marca,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _hablando
+                                ? Icons.stop_rounded
+                                : Icons.play_arrow_rounded,
+                            color: Colores.sobreMarca,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: Medidas.e3),
+                        Flexible(
+                          child: ExcludeSemantics(
+                            child: Text(
+                              _hablando
+                                  ? Textos.detener
+                                  : Textos.escucharResumen,
+                              style: Tipografia.textoFuerte.copyWith(
+                                color: Colores.marca,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              ExcludeSemantics(
-                child: Text(
-                  _hablando ? Textos.detener : Textos.escuchar,
-                  style: Tipografia.textoFuerte.copyWith(
-                    color: Colores.textoSecundario,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(texto, style: Tipografia.cifra(Tipografia.texto)),
+          const SizedBox(height: Medidas.e3),
+          Text(
+            texto,
+            style: Tipografia.cifra(
+              Tipografia.secundario.copyWith(color: Colores.sobreMarcaSuave),
+            ),
+          ),
           if (_sinVoz) ...[
-            const SizedBox(height: 8),
-            const Text(Textos.sinVozEnEspanol, style: Tipografia.secundario),
+            const SizedBox(height: Medidas.e2),
+            Text(
+              Textos.sinVozEnEspanol,
+              style: Tipografia.secundario.copyWith(color: Colores.sobreMarca),
+            ),
           ],
         ],
       ),
     );
   }
+}
+
+/// Un icono en un círculo de color suave.
+class _Circulo extends StatelessWidget {
+  const _Circulo({
+    required this.icono,
+    required this.color,
+    required this.fondo,
+  });
+
+  final IconData icono;
+  final Color color;
+  final Color fondo;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 48,
+    height: 48,
+    decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+    child: Icon(icono, color: color),
+  );
 }
 
 class _FilaAviso extends StatelessWidget {
@@ -267,23 +366,16 @@ class _FilaAviso extends StatelessWidget {
             : null,
         child: Row(
           children: [
-            importante
-                ? Transform.rotate(
-                    angle: 0.785398,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      color: Colores.avisoMarca,
-                    ),
-                  )
-                : Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: Colores.bordeCampo,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+            // La prioridad con icono y color (mejora 01).
+            ExcludeSemantics(
+              child: _Circulo(
+                icono: importante
+                    ? Icons.priority_high_rounded
+                    : Icons.info_outline_rounded,
+                color: importante ? Colores.pendienteTexto : Colores.marca,
+                fondo: importante ? Colores.pendienteFondo : Colores.azul100,
+              ),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -291,9 +383,7 @@ class _FilaAviso extends StatelessWidget {
                 children: [
                   Text(
                     textoAviso(aviso),
-                    style: Tipografia.cifra(
-                      Tipografia.textoFuerte.copyWith(fontSize: 16),
-                    ),
+                    style: Tipografia.cifra(Tipografia.tituloTarjeta),
                   ),
                   const SizedBox(height: 2),
                   Text(

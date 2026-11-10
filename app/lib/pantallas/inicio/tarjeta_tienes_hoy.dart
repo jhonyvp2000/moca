@@ -75,9 +75,8 @@ class TarjetaTienesHoy extends StatelessWidget {
                         children: [
                           Text(
                             etiqueta,
-                            style: Tipografia.textoFuerte.copyWith(
+                            style: Tipografia.tituloFila.copyWith(
                               color: Colores.sobreMarca,
-                              fontSize: 17,
                             ),
                           ),
                           // De qué periodo es (entrega 36): no se reinicia.

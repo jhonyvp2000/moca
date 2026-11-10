@@ -118,7 +118,7 @@ class _Opcion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(Medidas.radioPildora),
       side: elegida
           ? const BorderSide(color: Colores.marca, width: 2)
           : const BorderSide(color: Colores.bordeBotonSecundario),

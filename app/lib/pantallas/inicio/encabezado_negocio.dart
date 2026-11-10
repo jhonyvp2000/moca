@@ -58,8 +58,7 @@ class EncabezadoNegocio extends ConsumerWidget {
               ),
               child: Text(
                 inicial,
-                style: Tipografia.tituloSeccion.copyWith(
-                  fontSize: 20,
+                style: Tipografia.tituloDestacado.copyWith(
                   color: Colores.sobreMarca,
                 ),
               ),
@@ -74,7 +73,7 @@ class EncabezadoNegocio extends ConsumerWidget {
                   nombre,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Tipografia.tituloSeccion.copyWith(fontSize: 19),
+                  style: Tipografia.tituloDestacado,
                 ),
                 if (detalle case final d?)
                   Text(d, style: Tipografia.secundario),

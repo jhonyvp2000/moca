@@ -219,6 +219,12 @@ ThemeData temaMoca() {
     ),
     switchTheme: SwitchThemeData(
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      thumbColor: WidgetStateProperty.all(Colores.superficie),
+      trackColor: WidgetStateProperty.resolveWith(
+        (estado) => estado.contains(WidgetState.selected)
+            ? Colores.marca
+            : Colores.grisAzulado,
+      ),
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: Colores.marca,

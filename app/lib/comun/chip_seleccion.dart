@@ -16,7 +16,15 @@ class ChipSeleccion extends StatelessWidget {
     required this.alTocar,
     this.icono,
     this.tono = Tono.marca,
+    this.detalle,
+    this.grande = false,
   });
+
+  /// Al lado del nombre, en su propio texto («S/ 200»).
+  final String? detalle;
+
+  /// «Entró» y «Salió» en Escribirlo: el icono en su cuadro de color.
+  final bool grande;
 
   final String etiqueta;
   final bool elegida;
@@ -54,7 +62,22 @@ class ChipSeleccion extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (icono != null) ...[
+                  if (icono != null && grande) ...[
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: elegida ? color : tono.fondo(context),
+                        borderRadius: BorderRadius.circular(Medidas.e2 + 2),
+                      ),
+                      child: Icon(
+                        icono,
+                        size: 20,
+                        color: elegida ? Colores.sobreMarca : color,
+                      ),
+                    ),
+                    const SizedBox(width: Medidas.e3),
+                  ] else if (icono != null) ...[
                     Icon(icono, size: 20, color: color),
                     const SizedBox(width: Medidas.e2),
                   ],
@@ -62,11 +85,21 @@ class ChipSeleccion extends StatelessWidget {
                     child: Text(
                       etiqueta,
                       style: Tipografia.textoFuerte.copyWith(
+                        fontSize: grande ? 17 : null,
                         color: elegida ? color : Colores.textoPrincipal,
                       ),
                     ),
                   ),
-                  if (elegida) ...[
+                  if (detalle case final d?)
+                    Text(
+                      ' · $d',
+                      style: Tipografia.cifra(
+                        Tipografia.textoFuerte.copyWith(
+                          color: elegida ? color : Colores.textoSecundario,
+                        ),
+                      ),
+                    ),
+                  if (elegida && !grande) ...[
                     const SizedBox(width: Medidas.e2),
                     Icon(Icons.check_rounded, size: 20, color: color),
                   ],

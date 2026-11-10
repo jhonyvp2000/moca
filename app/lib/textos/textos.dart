@@ -23,7 +23,6 @@ abstract final class Textos {
   static const tituloInicio = 'Inicio';
   static const tituloHistorial = 'Historial';
   static const tituloInforme = 'Informe del mes';
-  static const subtituloMoca = 'Tu asistente de cuentas';
   static String llegaEnEntrega(int n) => 'Esta parte llega en la entrega $n.';
   static const entendido = 'Entendido';
 
@@ -747,6 +746,22 @@ abstract final class Textos {
       'Plata que pones de tu bolsillo en el negocio: sube tu plata, pero no '
       'cuenta como venta. Si te la prestaron, no es esto.';
   static const cuanto = '¿Cuánto?';
+  // «Escribirlo» rediseñado (mejora 01)
+  static const verMas = 'Ver más';
+  static const faltaElMonto = 'el monto';
+  static const faltaQueFue = 'qué fue';
+  static const faltaEnQueFue = 'en qué fue';
+  static const faltaDeQueFue = 'de qué fue';
+  static const faltaADondeVa = 'a dónde va';
+  static const faltaQuienTeDebe = 'quién te debe';
+
+  /// «Falta: el monto y en qué fue».
+  static String falta(List<String> que) =>
+      'Falta: ${switch (que) {
+        [] => '',
+        [final uno] => uno,
+        [...final antes, final ultimo] => '${antes.join(', ')} y $ultimo',
+      }}';
   static const deDondeSalio = '¿De dónde salió la plata?';
   static const aDondeEntro = '¿A dónde entró la plata?';
   static const enQue = '¿En qué?';
@@ -1267,6 +1282,11 @@ abstract final class Textos {
 
   // Excel de las operaciones (entrega 14.13)
   static const compartirExcel = 'Compartir Excel';
+  // La hoja «Compartir» de Informes (mejora 01)
+  static const compartirPdfDetalle =
+      'El resumen del mes: para ti, tu contador o un crédito';
+  static const compartirExcelDetalle = 'Cada operación del mes, una por fila';
+  static const porSemana = 'Por semana';
   static const armandoExcel = 'Armando el Excel…';
   static const excelNoSeArmo = 'No se pudo armar el Excel. Intenta otra vez.';
   static String operacionesDe(String mes, int anio) =>
@@ -1334,8 +1354,8 @@ abstract final class Textos {
   static const avisos = 'Avisos';
   static const importante = 'Importante';
   static const paraTenerEnCuenta = 'Para tener en cuenta';
-  static const sinAvisos =
-      'No tienes avisos. Moca te avisa cuando algo necesite tu atención.';
+  static const todoEnOrden = 'Todo en orden';
+  static const sinAvisos = 'Moca te avisa cuando algo necesite tu atención.';
   static const avisoFaltaArqueo = 'Falta el arqueo de esta semana';
   static String avisoDiferencia(String monto, String cuenta) =>
       'Quedaron $monto sin explicar en ${cuenta.toLowerCase()}';
@@ -1490,6 +1510,16 @@ abstract final class Textos {
   static const datosDelNegocio = 'Datos del negocio';
   static const datosDelNegocioDetalle = 'El nombre y la hora de cierre';
   static const datosGuardados = 'Listo. Guardado.';
+
+  // La prueba en el Asistente (mejora 01)
+  static const pruebaGratisEtiqueta = 'PRUEBA GRATIS';
+  static String hastaEl(String fecha) => 'Hasta el $fecha';
+  static String cuantosDias(int dias) => dias == 1 ? '1 día' : '$dias días';
+  static String teQuedanDias(int dias) => dias == 1 ? 'te queda' : 'te quedan';
+  static const activarMiPlan = 'Activar mi plan';
+  static String pruebaGratisDias(int dias) =>
+      'Prueba gratis · ${dias == 1 ? '1 día' : '$dias días'}';
+  static const escucharResumen = 'Escuchar resumen';
 
   // El cobro (entrega 25).
   static String pruebaTeQuedan(int dias, String hasta) => switch (dias) {

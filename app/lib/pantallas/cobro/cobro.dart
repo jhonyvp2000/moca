@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/badge_estado.dart';
 import '../../comun/tarjeta.dart';
 import '../inicio/encabezado_negocio.dart';
 import '../../dominio/cobro.dart';
@@ -44,6 +45,18 @@ class TarjetaCobro extends ConsumerWidget {
         cobro.estado == EstadoDelCobro.prueba ||
         cobro.estado == EstadoDelCobro.vencido ||
         cobro.porVencer;
+    // La prueba en curso (mejora 01): los días en grande, su barra y
+    // «Activar mi plan».
+    if (cobro.estado == EstadoDelCobro.prueba && cobro.hasta != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: Medidas.separacionTarjetas),
+        child: _TarjetaPrueba(
+          dias: cobro.dias ?? 0,
+          hasta: hasta,
+          alActivar: () => mostrarComoPagar(context, ref, cobro),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(bottom: Medidas.separacionTarjetas),
       child: Tarjeta(
@@ -80,6 +93,90 @@ class TarjetaCobro extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// La prueba gratis en el Asistente (mejora 01): «PRUEBA GRATIS», hasta
+/// cuándo, los días que quedan con su barra y «Activar mi plan».
+class _TarjetaPrueba extends StatelessWidget {
+  const _TarjetaPrueba({
+    required this.dias,
+    required this.hasta,
+    required this.alActivar,
+  });
+
+  final int dias;
+  final String hasta;
+  final VoidCallback alActivar;
+
+  /// La prueba es de 14 días (decisiones.md); con días de regalo, la barra
+  /// empieza llena.
+  static const _diasDePrueba = 14;
+
+  @override
+  Widget build(BuildContext context) {
+    final usados = (_diasDePrueba - dias).clamp(0, _diasDePrueba);
+    return Container(
+      padding: const EdgeInsets.all(Medidas.e5),
+      decoration: BoxDecoration(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioMayor),
+        border: Border.all(color: Colores.pendiente.withValues(alpha: 0.4)),
+        boxShadow: Sombras.nivel1,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: Medidas.e2,
+            children: [
+              const BadgeEstado(Textos.pruebaGratisEtiqueta),
+              Text(Textos.hastaEl(hasta), style: Tipografia.secundario),
+            ],
+          ),
+          const SizedBox(height: Medidas.e3),
+          if (dias == 0)
+            Text(
+              Textos.pruebaTeQuedan(0, hasta),
+              style: Tipografia.tituloSeccion,
+            )
+          else
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: Textos.cuantosDias(dias),
+                    style: Tipografia.montoGrande,
+                  ),
+                  TextSpan(
+                    text: '  ${Textos.teQuedanDias(dias)}',
+                    style: Tipografia.texto.copyWith(
+                      color: Colores.textoSecundario,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: Medidas.e3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Medidas.radioPildora),
+            child: LinearProgressIndicator(
+              value: usados / _diasDePrueba,
+              minHeight: 8,
+              color: Colores.pendiente,
+              backgroundColor: Colores.pendienteFondo,
+            ),
+          ),
+          const SizedBox(height: Medidas.e4),
+          FilledButton(
+            onPressed: alActivar,
+            child: const Text(Textos.activarMiPlan),
+          ),
+        ],
       ),
     );
   }

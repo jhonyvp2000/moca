@@ -15,6 +15,7 @@ import '../dominio/modelos.dart';
 import '../dominio/servicios.dart';
 import '../pais/peru/formato.dart';
 import '../textos/textos.dart';
+import '../tema/colores.dart';
 
 // El aviso de cierre (S05) con las notificaciones del teléfono. La venta se
 // contesta escribiendo en la misma notificación; si la app no está abierta,
@@ -23,7 +24,8 @@ import '../textos/textos.dart';
 final _plugin = FlutterLocalNotificationsPlugin();
 
 const _icono = 'ic_notificacion';
-const _azul = Color(0xFF1D4ED8);
+// El azul de marca, del sistema de diseño (mejora 01).
+const _azul = Colores.marca;
 
 /// La notificación que va cambiando mientras se contesta.
 const _idConversacion = 900;

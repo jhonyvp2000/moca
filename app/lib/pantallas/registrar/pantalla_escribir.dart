@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
+import '../../comun/chip_seleccion.dart';
+import '../../comun/iconos.dart';
 import '../../comun/opciones.dart';
+import '../../comun/tono.dart';
+import 'cuadros_de_categoria.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/cuentas.dart';
@@ -264,6 +268,196 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     return seguir == true;
   }
 
+  /// Lo que falta para poder guardar (mejora 01).
+  List<String> get _loQueFalta => [
+    if (_montoCentimos <= 0) Textos.faltaElMonto,
+    if (_tipo == null) Textos.faltaQueFue,
+    if (_tipo case final t?
+        when !t.delDueno && !t.esPase && _categoriaId == null)
+      t == TipoMovimiento.ingreso ? Textos.faltaDeQueFue : Textos.faltaEnQueFue,
+    if (_tipo?.esPase == true && (_destino == null || _destino == _cuenta))
+      Textos.faltaADondeVa,
+    if (_teDeben && _nombreContraparte == null) Textos.faltaQuienTeDebe,
+  ];
+
+  /// Lo que se pregunta después de elegir qué fue: si ya se pagó, la
+  /// cuenta, la categoría y la nota.
+  List<Widget> _resto(
+    TipoMovimiento tipo,
+    List<CategoriaVista>? categorias,
+    Permisos permisos,
+    TextStyle etiqueta,
+  ) {
+    final saldos = permisos.veSaldos
+        ? ref.watch(resumenInicioProvider).value?.saldosPorCuenta
+        : null;
+    final tono = tipo == TipoMovimiento.ingreso ? Tono.ingreso : Tono.egreso;
+    return [
+      // Una compra puede quedar debiéndose (entrega 41), y una venta, a
+      // crédito (entrega 42).
+      if (_sePuedeDeber) ...[
+        const SizedBox(height: Medidas.e5),
+        Text(
+          tipo == TipoMovimiento.ingreso
+              ? Textos.yaTePagaron
+              : Textos.yaLoPagaste,
+          style: etiqueta,
+        ),
+        const SizedBox(height: Medidas.e2),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: true,
+                label: Text(
+                  tipo == TipoMovimiento.ingreso
+                      ? Textos.siMePago
+                      : Textos.siPagado,
+                ),
+              ),
+              ButtonSegment(
+                value: false,
+                label: Text(
+                  tipo == TipoMovimiento.ingreso
+                      ? Textos.todaviaMeDebe
+                      : Textos.todaviaLoDebo,
+                ),
+              ),
+            ],
+            selected: {_pagado},
+            onSelectionChanged: (p) => setState(() => _pagado = p.first),
+          ),
+        ),
+      ],
+      if (_loDebe) ...[
+        const SizedBox(height: Medidas.e2),
+        Text(
+          _teDeben ? Textos.cuentaAlCobrar : Textos.cuentaAlPagar,
+          style: Tipografia.secundario,
+        ),
+        const SizedBox(height: Medidas.e5),
+        Text(
+          _teDeben ? Textos.quienTeDebe : Textos.aQuienLeDebes,
+          style: etiqueta,
+        ),
+        const SizedBox(height: Medidas.e2),
+        TextField(
+          controller: _contraparte,
+          maxLength: 60,
+          textCapitalization: TextCapitalization.words,
+          style: Tipografia.texto,
+          // Una venta a crédito no se guarda sin nombre.
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: _teDeben
+                ? Textos.quienTeDebeEjemplo
+                : Textos.aQuienLeDebesEjemplo,
+            counterText: '',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Medidas.e4,
+              vertical: Medidas.e3,
+            ),
+          ),
+        ),
+      ] else ...[
+        const SizedBox(height: Medidas.e5),
+        Text(switch (tipo) {
+          TipoMovimiento.transferencia => Textos.deDondeSalePase,
+          final t when t.entraPlata => Textos.aDondeEntro,
+          _ => Textos.deDondeSalio,
+        }, style: etiqueta),
+        const SizedBox(height: Medidas.e2),
+        // Cada cuenta con su saldo, para quien lo ve (mejora 01).
+        Wrap(
+          spacing: Medidas.e2,
+          runSpacing: Medidas.e2,
+          children: [
+            for (final cuenta in ref.watch(tiposDeCuentaProvider))
+              // El encargado y el ayudante pasan plata solo desde su caja.
+              if (tipo != TipoMovimiento.transferencia ||
+                  (permisos.misCajas?.contains(cuenta) ?? true))
+                ChipSeleccion(
+                  etiqueta: Textos.nombreCuenta(cuenta),
+                  detalle: switch (saldos?[cuenta]) {
+                    final s? => formatearSoles(s),
+                    null => null,
+                  },
+                  elegida: _cuenta == cuenta,
+                  alTocar: () => setState(() {
+                    _cuenta = cuenta;
+                    if (_destino == cuenta) _destino = null;
+                  }),
+                ),
+          ],
+        ),
+      ],
+      // A cualquier cuenta del negocio, también a otra caja (entrega 21.1).
+      if (tipo == TipoMovimiento.transferencia) ...[
+        const SizedBox(height: Medidas.e5),
+        Text(Textos.aDondeVaPase, style: etiqueta),
+        const SizedBox(height: Medidas.e2),
+        Opciones<TipoCuenta>(
+          opciones: {
+            for (final c
+                in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+              if (c.tipo != _cuenta) c.tipo: Textos.nombreCuenta(c.tipo),
+          },
+          elegida: _destino,
+          alElegir: (cuenta) => setState(() => _destino = cuenta),
+        ),
+      ],
+      if (categorias != null) ...[
+        const SizedBox(height: Medidas.e5),
+        Text(
+          tipo == TipoMovimiento.ingreso ? Textos.deQue : Textos.enQue,
+          style: etiqueta,
+        ),
+        const SizedBox(height: Medidas.e2),
+        CuadrosDeCategoria(
+          categorias: categorias,
+          elegida: _categoriaId,
+          tono: tono,
+          alElegir: (id) => setState(() => _categoriaId = id),
+        ),
+        // Una categoría propia, que queda elegida (entrega 31).
+        if (permisos.cambiaCategorias)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () async {
+                final id = await context.push<String>(
+                  Rutas.categoriaNueva(tipo),
+                );
+                if (id != null && mounted) {
+                  setState(() => _categoriaId = id);
+                }
+              },
+              child: const Text(Textos.otraCategoria),
+            ),
+          ),
+      ],
+      const SizedBox(height: Medidas.e5),
+      Text(Textos.nota, style: etiqueta),
+      const SizedBox(height: Medidas.e2),
+      TextField(
+        controller: _nota,
+        maxLength: 80,
+        textCapitalization: TextCapitalization.sentences,
+        style: Tipografia.texto,
+        decoration: const InputDecoration(
+          hintText: Textos.notaEjemplo,
+          counterText: '',
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: Medidas.e4,
+            vertical: Medidas.e3,
+          ),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final tipo = _tipo;
@@ -279,12 +473,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       if (venta.isNotEmpty) _categoriaId = venta.first.id;
     }
 
-    const etiqueta = TextStyle(
-      fontFamily: Tipografia.familia,
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: Colores.textoPrincipal,
-    );
+    const etiqueta = Tipografia.tituloSeccion;
 
     final corrigiendo = widget.corrigiendo;
     final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
@@ -317,179 +506,98 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             ),
           ),
         ] else ...[
+          // El monto, lo principal, arriba y grande (mejora 01).
+          _CampoMonto(
+            controlador: _monto,
+            autofocus: corrigiendo == null,
+            alCambiar: (_) => setState(() => _montoOriginal = null),
+          ),
+          const SizedBox(height: Medidas.e5),
           const Text(Textos.queFue, style: etiqueta),
-          const SizedBox(height: 8),
-          Opciones<TipoMovimiento>(
-            // Retiros y aportes, solo los dueños (entrega 20).
-            opciones: permisos.anotaLoDelDueno
-                ? _nombresTipo
-                : {
-                    for (final e in _nombresTipo.entries)
-                      if (!e.key.delDueno) e.key: e.value,
-                  },
-            elegida: tipo,
-            alElegir: _elegirTipo,
+          const SizedBox(height: Medidas.e2),
+          // «Entró» y «Salió», grandes y con su color; lo interno, aparte.
+          Row(
+            children: [
+              for (final (i, t) in const [
+                TipoMovimiento.ingreso,
+                TipoMovimiento.egreso,
+              ].indexed) ...[
+                if (i > 0) const SizedBox(width: Medidas.e3),
+                Expanded(
+                  child: ChipSeleccion(
+                    etiqueta: _nombresTipo[t]!,
+                    icono: Iconos.deTipo(t),
+                    tono: t == TipoMovimiento.ingreso
+                        ? Tono.ingreso
+                        : Tono.egreso,
+                    grande: true,
+                    elegida: tipo == t,
+                    alTocar: () => _elegirTipo(t),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: Medidas.e2),
+          Wrap(
+            spacing: Medidas.e2,
+            runSpacing: Medidas.e2,
+            children: [
+              for (final t in const [
+                TipoMovimiento.retiro,
+                TipoMovimiento.aporte,
+                TipoMovimiento.transferencia,
+              ])
+                // Retiros y aportes, solo los dueños (entrega 20).
+                if (permisos.anotaLoDelDueno || !t.delDueno)
+                  ChipSeleccion(
+                    etiqueta: _nombresTipo[t]!,
+                    tono: Tono.marca,
+                    elegida: tipo == t,
+                    alTocar: () => _elegirTipo(t),
+                  ),
+            ],
           ),
           if (tipo == TipoMovimiento.retiro) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: Medidas.e2),
             const Text(Textos.retiroDetalle, style: Tipografia.secundario),
           ],
           if (tipo == TipoMovimiento.aporte) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: Medidas.e2),
             const Text(Textos.aporteDetalle, style: Tipografia.secundario),
           ],
           if (tipo == TipoMovimiento.transferencia) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: Medidas.e2),
             const Text(Textos.pasePlataDetalle, style: Tipografia.secundario),
           ],
-          const SizedBox(height: 18),
-          GrupoMontos(
-            filas: [
-              FilaMonto(
-                etiqueta: Textos.cuanto,
-                controlador: _monto,
-                autofocus: corrigiendo == null,
-                alCambiar: (_) => setState(() => _montoOriginal = null),
-                accionTeclado: TextInputAction.done,
-              ),
-            ],
-          ),
         ],
-        // Una compra puede quedar debiéndose, como con la foto (entrega 41),
-        // y una venta, a crédito (entrega 42).
-        if (_sePuedeDeber) ...[
-          const SizedBox(height: 18),
-          Text(
-            tipo == TipoMovimiento.ingreso
-                ? Textos.yaTePagaron
-                : Textos.yaLoPagaste,
-            style: etiqueta,
-          ),
-          const SizedBox(height: 8),
-          Opciones<bool>(
-            opciones: tipo == TipoMovimiento.ingreso
-                ? const {true: Textos.siMePago, false: Textos.todaviaMeDebe}
-                : const {true: Textos.siPagado, false: Textos.todaviaLoDebo},
-            elegida: _pagado,
-            alElegir: (p) => setState(() => _pagado = p),
-          ),
-        ],
-        if (_loDebe) ...[
-          const SizedBox(height: 8),
-          Text(
-            _teDeben ? Textos.cuentaAlCobrar : Textos.cuentaAlPagar,
-            style: Tipografia.secundario,
-          ),
-          const SizedBox(height: 18),
-          Text(
-            _teDeben ? Textos.quienTeDebe : Textos.aQuienLeDebes,
-            style: etiqueta,
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _contraparte,
-            maxLength: 60,
-            textCapitalization: TextCapitalization.words,
-            style: Tipografia.texto,
-            // Una venta a crédito no se guarda sin nombre.
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: _teDeben
-                  ? Textos.quienTeDebeEjemplo
-                  : Textos.aQuienLeDebesEjemplo,
-              counterText: '',
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: Medidas.separacionTarjetas,
-              ),
-            ),
-          ),
-        ] else ...[
-          const SizedBox(height: 18),
-          Text(switch (tipo) {
-            TipoMovimiento.transferencia => Textos.deDondeSalePase,
-            final t? when t.entraPlata => Textos.aDondeEntro,
-            _ => Textos.deDondeSalio,
-          }, style: etiqueta),
-          const SizedBox(height: 8),
-          Opciones<TipoCuenta>(
-            opciones: {
-              for (final cuenta in ref.watch(tiposDeCuentaProvider))
-                // El encargado y el ayudante pasan plata solo desde su caja.
-                if (tipo != TipoMovimiento.transferencia ||
-                    (permisos.misCajas?.contains(cuenta) ?? true))
-                  cuenta: Textos.nombreCuenta(cuenta),
-            },
-            elegida: _cuenta,
-            alElegir: (cuenta) => setState(() {
-              _cuenta = cuenta;
-              if (_destino == cuenta) _destino = null;
-            }),
-          ),
-        ],
-        // A cualquier cuenta del negocio, también a otra caja (entrega 21.1).
-        if (tipo == TipoMovimiento.transferencia) ...[
-          const SizedBox(height: 18),
-          const Text(Textos.aDondeVaPase, style: etiqueta),
-          const SizedBox(height: 8),
-          Opciones<TipoCuenta>(
-            opciones: {
-              for (final c
-                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
-                if (c.tipo != _cuenta) c.tipo: Textos.nombreCuenta(c.tipo),
-            },
-            elegida: _destino,
-            alElegir: (cuenta) => setState(() => _destino = cuenta),
-          ),
-        ],
-        if (categorias != null) ...[
-          const SizedBox(height: 18),
-          Text(
-            tipo == TipoMovimiento.ingreso ? Textos.deQue : Textos.enQue,
-            style: etiqueta,
-          ),
-          const SizedBox(height: 8),
-          Opciones<String>(
-            opciones: {for (final c in categorias) c.id: c.nombre},
-            elegida: _categoriaId,
-            alElegir: (id) => setState(() => _categoriaId = id),
-          ),
-          // Una categoría propia, que queda elegida (entrega 31).
-          if (permisos.cambiaCategorias)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () async {
-                  final id = await context.push<String>(
-                    Rutas.categoriaNueva(tipo),
-                  );
-                  if (id != null && mounted) {
-                    setState(() => _categoriaId = id);
-                  }
-                },
-                child: const Text(Textos.otraCategoria),
-              ),
-            ),
-        ],
-        const SizedBox(height: 18),
-        const Text(Textos.nota, style: etiqueta),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _nota,
-          maxLength: 80,
-          textCapitalization: TextCapitalization.sentences,
-          style: Tipografia.texto,
-          decoration: const InputDecoration(
-            hintText: Textos.notaEjemplo,
-            counterText: '',
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: Medidas.separacionTarjetas,
-            ),
-          ),
-        ),
+        // Lo demás aparece al elegir qué fue (mejora 01).
+        if (tipo != null) ..._resto(tipo, categorias, permisos, etiqueta),
       ],
       acciones: [
+        // Qué falta para guardar, en vez de un botón gris mudo (mejora 01).
+        if (!_completo && !_conComprobante)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Medidas.e2),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 20,
+                  color: Colores.pendienteTexto,
+                ),
+                const SizedBox(width: Medidas.e2),
+                Expanded(
+                  child: Text(
+                    Textos.falta(_loQueFalta),
+                    style: Tipografia.apoyo.copyWith(
+                      color: Colores.pendienteTexto,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         FilledButton(
           onPressed: _completo && !_guardando ? _guardar : null,
           child: Text(
@@ -497,6 +605,82 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// El monto de «Escribirlo» (mejora 01): en su tarjeta, grande, con «S/»
+/// fijo y teclado numérico.
+class _CampoMonto extends StatelessWidget {
+  const _CampoMonto({
+    required this.controlador,
+    required this.autofocus,
+    required this.alCambiar,
+  });
+
+  final TextEditingController controlador;
+  final bool autofocus;
+  final ValueChanged<String> alCambiar;
+
+  @override
+  Widget build(BuildContext context) {
+    final estilo = Tipografia.montoGrande;
+    return Tarjeta(
+      relleno: const EdgeInsets.fromLTRB(
+        Medidas.e5,
+        Medidas.e4,
+        Medidas.e5,
+        Medidas.e5,
+      ),
+      child: Column(
+        children: [
+          const Text(Textos.cuanto, style: Tipografia.apoyo),
+          const SizedBox(height: Medidas.e2),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                'S/',
+                style: Tipografia.montoTarjeta.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colores.textoSecundario,
+                ),
+              ),
+              const SizedBox(width: Medidas.e3),
+              Expanded(
+                child: TextField(
+                  controller: controlador,
+                  autofocus: autofocus,
+                  onChanged: alCambiar,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [FormateadorSoles()],
+                  style: estilo,
+                  decoration: InputDecoration(
+                    hintText: '0',
+                    hintStyle: estilo.copyWith(color: Colores.grisAzulado),
+                    filled: false,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: Medidas.e1,
+                    ),
+                    border: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colores.bordeCampo),
+                    ),
+                    enabledBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colores.bordeCampo),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colores.marca, width: 3),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

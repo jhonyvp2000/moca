@@ -47,6 +47,14 @@ abstract final class Tipografia {
     color: Colores.textoPrincipal,
   );
 
+  /// Los tamaños intermedios con nombre (mejora 01): ninguna pantalla los
+  /// escribe a mano.
+  static final montoGrande = montoPrincipal.copyWith(fontSize: 44);
+  static final montoMediano = montoTarjeta.copyWith(fontSize: 20);
+  static final encabezado = tituloPantalla.copyWith(fontSize: 24);
+  static final tituloDestacado = tituloSeccion.copyWith(fontSize: 19);
+  static final tituloFila = tituloSeccion.copyWith(fontSize: 17);
+
   static const tituloTarjeta = TextStyle(
     fontFamily: familia,
     fontSize: 16,

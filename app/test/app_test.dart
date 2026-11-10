@@ -1141,9 +1141,9 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.filtroTodo), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      expect(find.text(Textos.compartirPdf), findsOneWidget);
+      expect(find.text(Textos.compartir), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
-      expect(find.text(Textos.subtituloMoca), findsOneWidget);
+      expect(find.text(Textos.eslogan), findsOneWidget);
     });
 
     testWidgets('El botón central abre Registrar; voz, foto y QR dicen en qué '
@@ -1231,6 +1231,30 @@ void main() {
 
     FilledButton botonGuardar(WidgetTester tester) =>
         tester.widget(find.widgetWithText(FilledButton, Textos.guardar));
+
+    testWidgets('Mejora 01: «Escribirlo» dice qué falta para guardar y '
+        'muestra las categorías con nombre corto', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      expect(
+        find.text(Textos.falta([Textos.faltaElMonto, Textos.faltaQueFue])),
+        findsOneWidget,
+      );
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tester.pump();
+      expect(find.text(Textos.falta([Textos.faltaQueFue])), findsOneWidget);
+      await tocar(tester, find.text(Textos.salio));
+      expect(find.text(Textos.falta([Textos.faltaEnQueFue])), findsOneWidget);
+      await tocar(tester, find.text(Textos.verMas));
+      expect(find.text('Servicios'), findsOneWidget);
+      expect(
+        find.text('Servicios (luz, agua, internet, teléfono)'),
+        findsNothing,
+      );
+      await tocar(tester, find.text('Servicios'));
+      expect(find.textContaining('Falta:'), findsNothing);
+      expect(botonGuardar(tester).onPressed, isNotNull);
+    });
 
     testWidgets('«Escribirlo» guarda un gasto, avisa cuánto tienes y se '
         'puede deshacer', (tester) async {
@@ -2773,7 +2797,7 @@ void main() {
         ),
       );
       expect(anterior.onPressed, isNull);
-      expect(find.text(Textos.compartirPdf), findsOneWidget);
+      expect(find.text(Textos.compartir), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text(Textos.sinPapel(100)),
         200,
@@ -2811,8 +2835,9 @@ void main() {
         'Moca-Bodega-Don-Lucho-octubre-2026.pdf',
       );
 
-      // «Compartir PDF» pregunta para quién es.
+      // «Compartir» → «Compartir PDF» pregunta para quién es (mejora 01).
       await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.compartir));
       await tocar(tester, find.text(Textos.compartirPdf));
       expect(find.text(Textos.paraQuienEsPdf), findsOneWidget);
       expect(find.text(Textos.pdfParaMi), findsOneWidget);
@@ -2831,7 +2856,8 @@ void main() {
         findsNothing,
       );
       await esperar(tester);
-      // Y al lado, el Excel de las operaciones (entrega 14.13).
+      // Y en la misma hoja, el Excel de las operaciones (entrega 14.13).
+      await tocar(tester, find.text(Textos.compartir));
       expect(find.text(Textos.compartirExcel), findsOneWidget);
     });
 
@@ -3088,6 +3114,8 @@ void main() {
       await tocar(tester, find.byType(BotonVolver));
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       await tocar(tester, find.text(Textos.escribirlo));
+      // Las cuentas aparecen al elegir qué fue (mejora 01).
+      await tocar(tester, find.text(Textos.salio));
       expect(find.text(Textos.sip), findsOneWidget);
       expect(find.text(Textos.plin), findsNothing);
     });
@@ -3147,6 +3175,8 @@ void main() {
       await tocar(tester, find.byType(BotonVolver));
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
       await tocar(tester, find.text(Textos.escribirlo));
+      // Las cuentas aparecen al elegir qué fue (mejora 01).
+      await tocar(tester, find.text(Textos.salio));
       expect(find.text('Caja Maynas'), findsOneWidget);
       expect(find.text(Textos.banco), findsOneWidget);
     });
@@ -3351,7 +3381,7 @@ void main() {
       // título.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, 3000));
       await esperar(tester);
-      expect(find.text(Textos.subtituloMoca), findsOneWidget);
+      expect(find.text(Textos.eslogan), findsOneWidget);
       expect(find.text(Textos.guardarMiAvance), findsNothing);
       expect(_servidor.subidas, hasLength(1));
       expect(
@@ -3402,7 +3432,9 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '80');
       await tester.pump();
       await tocar(tester, find.text(Textos.efectivo));
-      await tocar(tester, find.text('Movilidad del negocio'));
+      // Nombre corto, detrás de «Ver más» (mejora 01).
+      await tocar(tester, find.text(Textos.verMas));
+      await tocar(tester, find.text('Movilidad'));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.pump(const Duration(seconds: 6));
       await esperar(tester);
@@ -4522,7 +4554,7 @@ void main() {
       await abrirApp(tester, listo: true, admin: false);
       await abrirAjusteOculto(tester);
       expect(find.text(Textos.tituloOperador), findsNothing);
-      expect(find.text(Textos.subtituloMoca), findsOneWidget);
+      expect(find.text(Textos.eslogan), findsOneWidget);
     });
 
     testWidgets('En el de Jhony, sí', (tester) async {
@@ -4793,16 +4825,22 @@ void main() {
       // Sin aviso en el Inicio: todavía no está por vencer.
       expect(find.text(Textos.comoPagar), findsNothing);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
+      // Los días en grande y hasta cuándo (mejora 01).
+      expect(
+        find.text(Textos.cuantosDias(9), findRichText: true),
+        findsNothing,
+      );
+      expect(
+        find.textContaining(Textos.cuantosDias(9), findRichText: true),
+        findsOneWidget,
+      );
       expect(
         find.text(
-          Textos.pruebaTeQuedan(
-            9,
-            formatearDiaYMes(_ahora.add(const Duration(days: 9))),
-          ),
+          Textos.hastaEl(formatearDiaYMes(_ahora.add(const Duration(days: 9)))),
         ),
         findsOneWidget,
       );
-      await tocar(tester, find.text(Textos.comoPagar));
+      await tocar(tester, find.text(Textos.activarMiPlan));
       expect(
         find.text(Textos.yapeaA('S/\u00A014.90', '911 111 111', 'Moca')),
         findsOneWidget,
@@ -4850,7 +4888,7 @@ void main() {
         },
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
-      await tocar(tester, find.text(Textos.comoPagar).first);
+      await tocar(tester, find.text(Textos.activarMiPlan).first);
       expect(find.text(Textos.eligeTuPlan), findsOneWidget);
       // Viene el Full: tiene 2 personas, el Full incluye 3.
       expect(
@@ -4953,6 +4991,7 @@ void main() {
         },
       });
       await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.compartir));
       await tocar(tester, find.text(Textos.compartirPdf));
       await tocar(tester, find.text(Textos.pdfParaCredito));
       expect(find.text(Textos.creditoEsDelFull), findsOneWidget);
@@ -4983,7 +5022,7 @@ void main() {
         'mercadopago': true,
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
-      await tocar(tester, find.text(Textos.comoPagar));
+      await tocar(tester, find.text(Textos.activarMiPlan));
       // El fundador no ve el Básico: solo la cuenta del Full (entrega 43).
       expect(find.text(Textos.eligeTuPlan), findsNothing);
       expect(
@@ -5050,7 +5089,7 @@ void main() {
         'mercadopago': true,
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
-      await tocar(tester, find.text(Textos.comoPagar));
+      await tocar(tester, find.text(Textos.activarMiPlan));
       await tocarSinEsperar(tester, find.text(Textos.pagarConMercadoPago));
       await tocarSinEsperar(tester, find.text(Textos.seguirSinEsperar));
       await avanzar(tester, const Duration(seconds: 10));
@@ -5293,7 +5332,7 @@ void main() {
 
     testWidgets('El titular borra; no sale', (tester) async {
       await conCuenta(tester, titular: true);
-      expect(find.text(Textos.seguridad), findsOneWidget);
+      expect(find.text(Textos.seguridad.toUpperCase()), findsOneWidget);
       expect(find.text(Textos.borrarMiNegocio), findsOneWidget);
       expect(find.text(Textos.salirDelNegocio), findsNothing);
     });
@@ -5373,10 +5412,7 @@ void main() {
       await tocar(tester, find.text(Textos.pedirHuella));
       expect(_huellasPedidas, 1);
       expect(find.text(Textos.huellaActivada), findsOneWidget);
-      expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isTrue,
-      );
+      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
       // Ya encendida, al volver a los 6 minutos la pide.
       _pasaLaHuella = false;
       await salirYVolver(tester, const Duration(minutes: 6));
@@ -5391,10 +5427,7 @@ void main() {
       await tocar(tester, find.text(Textos.pedirHuella));
       expect(find.text(Textos.sinBloqueoEnElTelefono), findsOneWidget);
       expect(_huellasPedidas, 0);
-      expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isFalse,
-      );
+      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
     });
 
     testWidgets('Encendida, la pide al abrir; si falla, no se ve nada', (
@@ -5577,10 +5610,10 @@ void main() {
         expect(find.text(texto), findsNothing, reason: texto);
       }
       await abrirAjustes(tester);
-      expect(find.text(Textos.tuNegocio), findsOneWidget);
+      expect(find.text(Textos.tuNegocio.toUpperCase()), findsOneWidget);
       expect(find.text(Textos.datosDelNegocio), findsOneWidget);
       expect(find.text(Textos.misCuentas), findsOneWidget);
-      expect(find.text(Textos.tuEquipoAjustes), findsOneWidget);
+      expect(find.text(Textos.tuEquipoAjustes.toUpperCase()), findsOneWidget);
       expect(find.text(Textos.miEquipo), findsOneWidget);
       expect(find.text(Textos.misNegocios), findsOneWidget);
       await tester.scrollUntilVisible(
@@ -5596,7 +5629,7 @@ void main() {
     ) async {
       await conCuenta(tester, rol: Rol.ayudante);
       await abrirAjustes(tester);
-      expect(find.text(Textos.tuNegocio), findsNothing);
+      expect(find.text(Textos.tuNegocio.toUpperCase()), findsNothing);
       expect(find.text(Textos.datosDelNegocio), findsNothing);
       expect(find.text(Textos.misCuentas), findsNothing);
       expect(find.text(Textos.miEquipo), findsOneWidget);
@@ -5641,7 +5674,7 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
       await tocar(tester, guardar);
       expect(find.text(Textos.datosGuardados), findsOneWidget);
-      expect(find.text(Textos.tuNegocio), findsOneWidget);
+      expect(find.text(Textos.tuNegocio.toUpperCase()), findsOneWidget);
 
       final empresa = await tester.runAsync(
         () => base.select(base.empresas).getSingle(),

@@ -45,12 +45,14 @@ Plus Jakarta Sans, pesos 400 a 800 (`app/lib/tema/tipografia.dart`).
 | Texto | 15 / 500, interlineado 1.4 |
 | Texto secundario | 14 / 500 |
 | Texto de apoyo y etiquetas | 14 / 600 |
+| Con nombre, para no escribirlos a mano | `montoGrande` 44, `montoMediano` 20, `encabezado` 24, `tituloDestacado` 19, `tituloFila` 17 |
 
 Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026 y confirmado el 10-11-2026: el «13 px» del sistema de diseño queda en 14). Todos los montos van con cifras tabulares. Se prueba con la letra del sistema al 130 % y al 150 %.
 
 ## Forma
 
-- Espaciado en múltiplos de 4 y 8. Radios de 12, 16, 20 y 24 px (`app/lib/tema/medidas.dart`).
+- Espaciado en múltiplos de 4 y 8. Radios de 12, 16, 20 y 24 px, y 4 px para detalles chicos (`app/lib/tema/medidas.dart`).
+- Botón atrás: la flecha sola, sin caja (Material 3), en toda la app; el título de esas pantallas, grande.
 - Tarjetas: radio 20 px, sin borde gris, con sombra azul suave en dos niveles (`0 1 2` y `0 4 14`).
 - Botones: radio 16 px. Principal de 52 px, relleno azul y texto blanco; secundario de 48 px, fondo azul suave y texto azul.
 - Campos de texto: 48 px de alto, radio 12 px.
