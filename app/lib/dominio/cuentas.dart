@@ -10,6 +10,7 @@ class CuentaVista {
     this.inicialCentimos,
     this.desde,
     this.arqueada = false,
+    this.enUso = true,
   });
 
   /// Para asignar cajas a una persona del equipo (entrega 21).
@@ -27,6 +28,9 @@ class CuentaVista {
 
   /// Si ya entró en un arqueo: desde entonces el arqueo es el que corrige.
   final bool arqueada;
+
+  /// Falso si el dueño la dejó de usar (entrega 58).
+  final bool enUso;
 
   /// «Corregir el saldo con el que empecé»: solo antes de su primer arqueo
   /// (decisiones.md, 29-10-2026).
@@ -53,4 +57,14 @@ abstract interface class RepositorioCuentas {
   /// (entrega 16.2). Falso si la cuenta ya entró en un arqueo o su saldo
   /// sigue pendiente: no cambia nada.
   Future<bool> corregirSaldoInicial(String cuentaId, int centimos);
+
+  /// Deja de usar una cuenta (entrega 58): ninguna se borra. Solo con saldo
+  /// S/ 0 y nunca Efectivo. Que no sea la caja de nadie lo revisa la
+  /// pantalla, que sabe del equipo.
+  Future<ResultadoDejarDeUsar> dejarDeUsar(String cuentaId);
+
+  /// La vuelve a usar, con todo su historial.
+  Future<void> volverAUsar(String cuentaId);
 }
+
+enum ResultadoDejarDeUsar { listo, esEfectivo, conSaldo }

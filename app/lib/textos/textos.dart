@@ -1101,6 +1101,28 @@ abstract final class Textos {
   static String arqueoGuardado(String monto) =>
       'Arqueo guardado. Ahora tienes $monto';
   static const hacerArqueo = 'Hacer arqueo';
+  // Dejar de usar una cuenta (entrega 58).
+  static const dejarDeUsarEstaCuenta = 'Dejar de usar esta cuenta';
+  static const dejarDeUsar = 'Dejar de usar';
+  static const volverAUsar = 'Volver a usar';
+  static const yaNoUsas = 'Ya no usas';
+  static const yaNoUsasDetalle =
+      'No salen para anotar ni en el Inicio. Sus registros siguen en tu '
+      'Historial y en tus informes.';
+  static String preguntaDejarDeUsar(String cuenta) => '¿Dejar de usar $cuenta?';
+  static const dejarDeUsarDetalle =
+      'Sus registros se quedan en tu Historial y en tus informes. Puedes '
+      'volver a usarla cuando quieras, desde aquí.';
+  static String cuentaConSaldo(String cuenta, String monto) =>
+      '$cuenta tiene $monto. Pásalos a otra cuenta antes de dejar de usarla.';
+  static const pasarLaPlata = 'Pasar la plata';
+  static String esLaCajaDe(String quien) =>
+      'Esta cuenta es la caja de $quien. Cámbiala primero en «Mi equipo».';
+  static const sinSenalParaRevisarCaja =
+      'Para dejar de usar una caja, Moca revisa que no sea la de alguien de '
+      'tu equipo. Hace falta señal.';
+  static String dejasteDeUsar(String cuenta) => 'Dejaste de usar $cuenta.';
+  static String volvisteAUsar(String cuenta) => 'Volviste a usar $cuenta.';
   static const mocaTocaArqueo =
       'Hoy toca el arqueo de la semana. Son dos minutos.';
   static const mocaFaltaArqueo =

@@ -3381,6 +3381,47 @@ void main() {
       expect(bim.dx, greaterThan(plin.dx));
     });
 
+    testWidgets('Entrega 58: dejar de usar una billetera y volver a usarla', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      // Efectivo no se deja de usar.
+      await tocar(tester, find.text('Efectivo'));
+      expect(find.text(Textos.dejarDeUsarEstaCuenta), findsNothing);
+      await tester.tapAt(const Offset(20, 20));
+      await esperar(tester);
+      // Sip, recién agregado, en S/ 0.
+      await tocar(tester, find.text(Textos.sip));
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.agregar));
+      await tocar(tester, find.text(Textos.sip));
+      await tocar(tester, find.text(Textos.dejarDeUsarEstaCuenta));
+      expect(find.text(Textos.preguntaDejarDeUsar('Sip')), findsOneWidget);
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.dejarDeUsar),
+      );
+      expect(find.text(Textos.dejasteDeUsar('Sip')), findsOneWidget);
+      expect(find.text(Textos.yaNoUsas), findsOneWidget);
+      // No se ofrece para agregar: se vuelve a usar desde «Ya no usas».
+      expect(find.text(Textos.sip), findsOneWidget);
+      // Al anotar ya no sale.
+      await tocar(tester, find.byType(BotonVolver));
+      await tocar(tester, find.byType(BotonVolver));
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tocar(tester, find.text(Textos.entro).first);
+      expect(find.text(Textos.sip), findsNothing);
+      await tocar(tester, find.byType(BotonVolver));
+      // Vuelve, con «Volver a usar».
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text(Textos.volverAUsar));
+      expect(find.text(Textos.volvisteAUsar('Sip')), findsOneWidget);
+      expect(find.text(Textos.yaNoUsas), findsNothing);
+    });
+
     testWidgets('«Mis cuentas» agrega una billetera que aparece al anotar', (
       tester,
     ) async {

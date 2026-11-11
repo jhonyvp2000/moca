@@ -9,6 +9,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
+import 'package:moca/dominio/cuentas.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 
@@ -293,5 +294,72 @@ void main() {
         expect(await repo.corregirSaldoInicial(efectivo.id, 5000), isFalse);
       },
     );
+  });
+
+  group('Entrega 58: dejar de usar una cuenta', () {
+    Future<String> idDe(TipoCuenta tipo) async =>
+        (await repo.observar().first).firstWhere((c) => c.tipo == tipo).id;
+
+    test('Efectivo nunca; con saldo, no; en S/ 0, sí, y vuelve', () async {
+      await alta(billeteras: {TipoCuenta.plin: 'Plin'});
+      expect(
+        await repo.dejarDeUsar(await idDe(TipoCuenta.efectivo)),
+        ResultadoDejarDeUsar.esEfectivo,
+      );
+      await RepositorioMovimientosLocal(
+        base,
+        ahora: () => ahora,
+      ).anotarVentaDelDia({TipoCuenta.plin: 3000});
+      final plin = await idDe(TipoCuenta.plin);
+      expect(await repo.dejarDeUsar(plin), ResultadoDejarDeUsar.conSaldo);
+      // Yape, en S/ 0: sí.
+      final yape = await idDe(TipoCuenta.yape);
+      expect(await repo.dejarDeUsar(yape), ResultadoDejarDeUsar.listo);
+      var cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape).enUso,
+        isFalse,
+      );
+      // Sigue estando: ninguna se borra.
+      expect(cuentas.where((c) => c.tipo == TipoCuenta.yape), hasLength(1));
+      await repo.volverAUsar(yape);
+      cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape).enUso,
+        isTrue,
+      );
+    });
+
+    test(
+      'Agregar la billetera que se dejó de usar la reactiva, sin otra',
+      () async {
+        await alta(billeteras: {TipoCuenta.plin: 'Plin'});
+        final plin = await idDe(TipoCuenta.plin);
+        await repo.dejarDeUsar(plin);
+        await repo.agregarBilletera(TipoCuenta.plin);
+        final plines = (await repo.observar().first).where(
+          (c) => c.tipo == TipoCuenta.plin,
+        );
+        expect(plines.single.id, plin);
+        expect(plines.single.enUso, isTrue);
+      },
+    );
+
+    test('No sale en el arqueo ni en la pregunta del cierre', () async {
+      await alta();
+      await repo.dejarDeUsar(await idDe(TipoCuenta.yape));
+      final arqueo = await RepositorioArqueoLocal(
+        base,
+        ahora: () => ahora,
+      ).preparar();
+      expect(arqueo.map((c) => c.cuenta), isNot(contains(TipoCuenta.yape)));
+      ahora = DateTime(2026, 10, 13, 21, 5);
+      final aviso = RepositorioAvisoCierreLocal(base, ahora: () => ahora);
+      // Sin Yape, después del efectivo ya no pregunta «¿Y por Yape?».
+      expect(
+        await aviso.responderVenta(TipoCuenta.efectivo, '300'),
+        isA<VentaLista>(),
+      );
+    });
   });
 }

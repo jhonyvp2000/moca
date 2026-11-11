@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/boton_redondo.dart';
@@ -17,11 +18,12 @@ import 'desglose_cuentas.dart';
 import 'bloque_pendientes.dart';
 import 'encabezado_negocio.dart';
 import 'tarjeta_semana.dart';
+import '../../inyeccion.dart';
 import 'tarjeta_tienes_hoy.dart';
 
 /// S04 · Inicio. Sin la franja de planes ni «Lo que viene» (ajustes respecto
 /// al mockup), y sin la flecha para cambiar de empresa.
-class PantallaInicioCompleta extends StatefulWidget {
+class PantallaInicioCompleta extends ConsumerStatefulWidget {
   const PantallaInicioCompleta({
     super.key,
     required this.resumen,
@@ -50,10 +52,11 @@ class PantallaInicioCompleta extends StatefulWidget {
   final Permisos permisos;
 
   @override
-  State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
+  ConsumerState<PantallaInicioCompleta> createState() =>
+      _EstadoInicioCompleta();
 }
 
-class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
+class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
   bool _ocultar = false;
 
   @override
@@ -62,12 +65,14 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
     final permisos = widget.permisos;
     // El encargado y el ayudante ven solo sus cajas (entrega 21).
     final misCajas = permisos.misCajas;
-    final saldos = misCajas == null
-        ? r.saldosPorCuenta
-        : {
-            for (final e in r.saldosPorCuenta.entries)
-              if (misCajas.contains(e.key)) e.key: e.value,
-          };
+    // Las que se dejaron de usar no salen (entrega 58).
+    final enDesuso = ref.watch(cuentasEnDesusoProvider);
+    final saldos = {
+      for (final e in r.saldosPorCuenta.entries)
+        if ((misCajas == null || misCajas.contains(e.key)) &&
+            !enDesuso.contains(e.key))
+          e.key: e.value,
+    };
     final total = misCajas == null
         ? r.tienesHoyCentimos
         : saldos.values.fold(0, (s, v) => s + v);

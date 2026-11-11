@@ -462,9 +462,18 @@ final tiposDeCuentaProvider = Provider<List<TipoCuenta>>((ref) {
   final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
   return [
     for (final c in cuentas)
-      if (permisos.puedeUsar(c.tipo)) c.tipo,
+      if (c.enUso && permisos.puedeUsar(c.tipo)) c.tipo,
   ];
 });
+
+/// Las cuentas que el dueño dejó de usar (entrega 58): no salen para anotar,
+/// en el Inicio, el cierre ni el arqueo.
+final cuentasEnDesusoProvider = Provider<Set<TipoCuenta>>(
+  (ref) => {
+    for (final c in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+      if (!c.enUso) c.tipo,
+  },
+);
 
 // --- Cuenta real (entrega 11) ------------------------------------------------
 

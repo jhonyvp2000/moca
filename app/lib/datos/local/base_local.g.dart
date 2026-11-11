@@ -1339,6 +1339,19 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _enUsoMeta = const VerificationMeta('enUso');
+  @override
+  late final GeneratedColumn<bool> enUso = GeneratedColumn<bool>(
+    'en_uso',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("en_uso" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1348,6 +1361,7 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     saldoInicialCentimos,
     fechaSaldoInicial,
     orden,
+    enUso,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1408,6 +1422,12 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     } else if (isInserting) {
       context.missing(_ordenMeta);
     }
+    if (data.containsKey('en_uso')) {
+      context.handle(
+        _enUsoMeta,
+        enUso.isAcceptableOrUnknown(data['en_uso']!, _enUsoMeta),
+      );
+    }
     return context;
   }
 
@@ -1447,6 +1467,10 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
         DriftSqlType.int,
         data['${effectivePrefix}orden'],
       )!,
+      enUso: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}en_uso'],
+      )!,
     );
   }
 
@@ -1469,6 +1493,10 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
   final int? saldoInicialCentimos;
   final DateTime? fechaSaldoInicial;
   final int orden;
+
+  /// Falso si el dueño la dejó de usar (entrega 58): no sale para anotar,
+  /// en el Inicio, el cierre ni el arqueo; sus registros se quedan.
+  final bool enUso;
   const Cuenta({
     required this.id,
     required this.empresaId,
@@ -1477,6 +1505,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     this.saldoInicialCentimos,
     this.fechaSaldoInicial,
     required this.orden,
+    required this.enUso,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1494,6 +1523,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
       map['fecha_saldo_inicial'] = Variable<DateTime>(fechaSaldoInicial);
     }
     map['orden'] = Variable<int>(orden);
+    map['en_uso'] = Variable<bool>(enUso);
     return map;
   }
 
@@ -1510,6 +1540,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ? const Value.absent()
           : Value(fechaSaldoInicial),
       orden: Value(orden),
+      enUso: Value(enUso),
     );
   }
 
@@ -1532,6 +1563,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
         json['fechaSaldoInicial'],
       ),
       orden: serializer.fromJson<int>(json['orden']),
+      enUso: serializer.fromJson<bool>(json['enUso']),
     );
   }
   @override
@@ -1547,6 +1579,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
       'saldoInicialCentimos': serializer.toJson<int?>(saldoInicialCentimos),
       'fechaSaldoInicial': serializer.toJson<DateTime?>(fechaSaldoInicial),
       'orden': serializer.toJson<int>(orden),
+      'enUso': serializer.toJson<bool>(enUso),
     };
   }
 
@@ -1558,6 +1591,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     Value<int?> saldoInicialCentimos = const Value.absent(),
     Value<DateTime?> fechaSaldoInicial = const Value.absent(),
     int? orden,
+    bool? enUso,
   }) => Cuenta(
     id: id ?? this.id,
     empresaId: empresaId ?? this.empresaId,
@@ -1570,6 +1604,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
         ? fechaSaldoInicial.value
         : this.fechaSaldoInicial,
     orden: orden ?? this.orden,
+    enUso: enUso ?? this.enUso,
   );
   Cuenta copyWithCompanion(CuentasCompanion data) {
     return Cuenta(
@@ -1584,6 +1619,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ? data.fechaSaldoInicial.value
           : this.fechaSaldoInicial,
       orden: data.orden.present ? data.orden.value : this.orden,
+      enUso: data.enUso.present ? data.enUso.value : this.enUso,
     );
   }
 
@@ -1596,7 +1632,8 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ..write('nombre: $nombre, ')
           ..write('saldoInicialCentimos: $saldoInicialCentimos, ')
           ..write('fechaSaldoInicial: $fechaSaldoInicial, ')
-          ..write('orden: $orden')
+          ..write('orden: $orden, ')
+          ..write('enUso: $enUso')
           ..write(')'))
         .toString();
   }
@@ -1610,6 +1647,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     saldoInicialCentimos,
     fechaSaldoInicial,
     orden,
+    enUso,
   );
   @override
   bool operator ==(Object other) =>
@@ -1621,7 +1659,8 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           other.nombre == this.nombre &&
           other.saldoInicialCentimos == this.saldoInicialCentimos &&
           other.fechaSaldoInicial == this.fechaSaldoInicial &&
-          other.orden == this.orden);
+          other.orden == this.orden &&
+          other.enUso == this.enUso);
 }
 
 class CuentasCompanion extends UpdateCompanion<Cuenta> {
@@ -1632,6 +1671,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
   final Value<int?> saldoInicialCentimos;
   final Value<DateTime?> fechaSaldoInicial;
   final Value<int> orden;
+  final Value<bool> enUso;
   final Value<int> rowid;
   const CuentasCompanion({
     this.id = const Value.absent(),
@@ -1641,6 +1681,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     this.saldoInicialCentimos = const Value.absent(),
     this.fechaSaldoInicial = const Value.absent(),
     this.orden = const Value.absent(),
+    this.enUso = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CuentasCompanion.insert({
@@ -1651,6 +1692,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     this.saldoInicialCentimos = const Value.absent(),
     this.fechaSaldoInicial = const Value.absent(),
     required int orden,
+    this.enUso = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        empresaId = Value(empresaId),
@@ -1665,6 +1707,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     Expression<int>? saldoInicialCentimos,
     Expression<DateTime>? fechaSaldoInicial,
     Expression<int>? orden,
+    Expression<bool>? enUso,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1676,6 +1719,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
         'saldo_inicial_centimos': saldoInicialCentimos,
       if (fechaSaldoInicial != null) 'fecha_saldo_inicial': fechaSaldoInicial,
       if (orden != null) 'orden': orden,
+      if (enUso != null) 'en_uso': enUso,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1688,6 +1732,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     Value<int?>? saldoInicialCentimos,
     Value<DateTime?>? fechaSaldoInicial,
     Value<int>? orden,
+    Value<bool>? enUso,
     Value<int>? rowid,
   }) {
     return CuentasCompanion(
@@ -1698,6 +1743,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
       saldoInicialCentimos: saldoInicialCentimos ?? this.saldoInicialCentimos,
       fechaSaldoInicial: fechaSaldoInicial ?? this.fechaSaldoInicial,
       orden: orden ?? this.orden,
+      enUso: enUso ?? this.enUso,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1728,6 +1774,9 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     if (orden.present) {
       map['orden'] = Variable<int>(orden.value);
     }
+    if (enUso.present) {
+      map['en_uso'] = Variable<bool>(enUso.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1744,6 +1793,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
           ..write('saldoInicialCentimos: $saldoInicialCentimos, ')
           ..write('fechaSaldoInicial: $fechaSaldoInicial, ')
           ..write('orden: $orden, ')
+          ..write('enUso: $enUso, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10715,6 +10765,7 @@ typedef $$CuentasTableCreateCompanionBuilder = CuentasCompanion Function({
   Value<int?> saldoInicialCentimos,
   Value<DateTime?> fechaSaldoInicial,
   required int orden,
+  Value<bool> enUso,
   Value<int> rowid,
 });
 typedef $$CuentasTableUpdateCompanionBuilder = CuentasCompanion Function({
@@ -10725,6 +10776,7 @@ typedef $$CuentasTableUpdateCompanionBuilder = CuentasCompanion Function({
   Value<int?> saldoInicialCentimos,
   Value<DateTime?> fechaSaldoInicial,
   Value<int> orden,
+  Value<bool> enUso,
   Value<int> rowid,
 });
 
@@ -10805,6 +10857,11 @@ class $$CuentasTableFilterComposer
 
   ColumnFilters<int> get orden => $composableBuilder(
     column: $table.orden,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enUso => $composableBuilder(
+    column: $table.enUso,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10896,6 +10953,11 @@ class $$CuentasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get enUso => $composableBuilder(
+    column: $table.enUso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EmpresasTableOrderingComposer get empresaId {
     final $$EmpresasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -10950,6 +11012,9 @@ class $$CuentasTableAnnotationComposer
 
   GeneratedColumn<int> get orden =>
       $composableBuilder(column: $table.orden, builder: (column) => column);
+
+  GeneratedColumn<bool> get enUso =>
+      $composableBuilder(column: $table.enUso, builder: (column) => column);
 
   $$EmpresasTableAnnotationComposer get empresaId {
     final $$EmpresasTableAnnotationComposer composer = $composerBuilder(
@@ -11035,6 +11100,7 @@ class $$CuentasTableTableManager
                 Value<int?> saldoInicialCentimos = const Value.absent(),
                 Value<DateTime?> fechaSaldoInicial = const Value.absent(),
                 Value<int> orden = const Value.absent(),
+                Value<bool> enUso = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CuentasCompanion(
                 id: id,
@@ -11044,6 +11110,7 @@ class $$CuentasTableTableManager
                 saldoInicialCentimos: saldoInicialCentimos,
                 fechaSaldoInicial: fechaSaldoInicial,
                 orden: orden,
+                enUso: enUso,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11055,6 +11122,7 @@ class $$CuentasTableTableManager
                 Value<int?> saldoInicialCentimos = const Value.absent(),
                 Value<DateTime?> fechaSaldoInicial = const Value.absent(),
                 required int orden,
+                Value<bool> enUso = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CuentasCompanion.insert(
                 id: id,
@@ -11064,6 +11132,7 @@ class $$CuentasTableTableManager
                 saldoInicialCentimos: saldoInicialCentimos,
                 fechaSaldoInicial: fechaSaldoInicial,
                 orden: orden,
+                enUso: enUso,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

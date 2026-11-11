@@ -217,6 +217,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
+**«No me sale Yape (o Plin, o el banco) al anotar»** · **«Quiero quitar una billetera»** (entrega 58): las cuentas no se borran, se **dejan de usar**. En ⚙ → Mis cuentas, toca la cuenta → «Dejar de usar esta cuenta» (solo con saldo S/ 0; si tiene plata, primero «Pasar la plata»). Si alguien no la ve al anotar, revisa si está abajo en «Ya no usas».
+
+> Ve a ⚙ → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.

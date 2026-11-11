@@ -50,6 +50,10 @@ class Cuentas extends Table with _ConId {
   IntColumn get saldoInicialCentimos => integer().nullable()();
   DateTimeColumn get fechaSaldoInicial => dateTime().nullable()();
   IntColumn get orden => integer()();
+
+  /// Falso si el dueño la dejó de usar (entrega 58): no sale para anotar,
+  /// en el Inicio, el cierre ni el arqueo; sus registros se quedan.
+  BoolColumn get enUso => boolean().withDefault(const Constant(true))();
 }
 
 class Contrapartes extends Table with _ConId {

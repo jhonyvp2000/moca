@@ -444,7 +444,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           opciones: {
             for (final c
                 in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
-              if (c.tipo != _cuenta) c.tipo: Textos.nombreCuenta(c.tipo),
+              if (c.enUso && c.tipo != _cuenta)
+                c.tipo: Textos.nombreCuenta(c.tipo),
           },
           elegida: _destino,
           alElegir: (cuenta) => setState(() => _destino = cuenta),

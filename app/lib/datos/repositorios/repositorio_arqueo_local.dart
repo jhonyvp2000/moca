@@ -26,12 +26,14 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
     final empresa = (await _a.empresa())!;
     final saldos = await _a.saldos(empresa.id);
     return [
+      // La que se dejó de usar no se cuenta (entrega 58): está en S/ 0.
       for (final c in await _a.cuentas(empresa.id))
-        CuentaArqueo(
-          cuenta: c.tipo,
-          calculadoCentimos: saldos[c.tipo] ?? 0,
-          puntoDePartida: c.saldoInicialCentimos == null,
-        ),
+        if (c.enUso)
+          CuentaArqueo(
+            cuenta: c.tipo,
+            calculadoCentimos: saldos[c.tipo] ?? 0,
+            puntoDePartida: c.saldoInicialCentimos == null,
+          ),
     ];
   }
 

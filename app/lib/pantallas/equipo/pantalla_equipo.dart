@@ -78,7 +78,8 @@ class _EstadoEquipo extends ConsumerState<PantallaEquipo> {
   Future<void> _elegirCajas(PersonaDelEquipo persona) async {
     final cajas = [
       for (final c in ref.read(cuentasProvider).value ?? const <CuentaVista>[])
-        if (c.tipo.esCaja) c,
+        // Ni las que se dejaron de usar (entrega 58).
+        if (c.tipo.esCaja && (c.enUso || persona.cajas.contains(c.id))) c,
     ];
     final elegidas = {...persona.cajas};
     final listo = await showModalBottomSheet<bool>(

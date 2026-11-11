@@ -321,6 +321,41 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     // La contadora tampoco lo ve.
     expect(delCliente(await bajar(carmen))?.celular).toBeNull();
   });
+  it('Entrega 58: una cuenta se deja de usar; un teléfono viejo, sin la columna, no la cambia', async () => {
+    const plin = randomUUID();
+    const cuenta = (extra: object) => ({
+      empresa: lucy.datos.empresa,
+      cuentas: [
+        {
+          id: plin,
+          tipo: 'plin',
+          nombre: 'Plin',
+          orden: 5,
+          saldo_inicial_centimos: 0,
+          fecha_saldo_inicial: hoy,
+            ...extra,
+        },
+      ],
+    });
+    const enUso = async (quien: typeof lucho) =>
+      (
+        (await bajar(quien)).datos.cuentas.find((c: { id: string }) => c.id === plin) as
+          | { en_uso: boolean }
+          | undefined
+      )?.en_uso;
+    // Sin la columna (una versión anterior de Moca): nace en uso.
+    expect((await pedir(lucho, 'POST', '/datos/subir', cuenta({}))).statusCode).toBe(200);
+    expect(await enUso(lucho)).toBe(true);
+    expect((await pedir(lucho, 'POST', '/datos/subir', cuenta({ en_uso: false }))).statusCode).toBe(200);
+    expect(await enUso(lucho)).toBe(false);
+    // El encargado la recibe así, para no ofrecerla al anotar.
+    expect(await enUso(pepe)).toBe(false);
+    // Otra dueña con la versión anterior sube la cuenta sin la columna: no la
+    // vuelve a poner en uso.
+    expect((await pedir(rosa, 'POST', '/datos/subir', cuenta({ orden: 6 }))).statusCode).toBe(200);
+    expect(await enUso(lucho)).toBe(false);
+  });
+
   it('el ayudante anota lo suyo y solo deshace lo suyo del día', async () => {
     const { empresa, efectivo, venta, ventaDelDueno } = lucy.ids;
     const deHoy = randomUUID();

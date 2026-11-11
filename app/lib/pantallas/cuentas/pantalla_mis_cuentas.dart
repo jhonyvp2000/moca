@@ -9,6 +9,7 @@ import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/cuentas.dart';
 import '../../dominio/modelos.dart';
+import '../../dominio/movimientos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -64,13 +65,129 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
     }
   }
 
-  /// Corregir el saldo con el que empezó, o por qué ya no (entrega 16.2).
+  /// Volver a usar una cuenta, con su historial (entrega 58).
+  Future<void> _volverAUsar(CuentaVista cuenta) async {
+    await ref.read(repositorioCuentasProvider).volverAUsar(cuenta.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(Textos.volvisteAUsar(cuenta.nombre))),
+    );
+  }
+
+  /// Dejar de usar una cuenta (entrega 58): nunca Efectivo, solo con S/ 0 y
+  /// si no es la caja de nadie del equipo.
+  Future<void> _dejarDeUsar(CuentaVista cuenta) async {
+    final mensajes = ScaffoldMessenger.of(context);
+    if (cuenta.tipo.esCaja) {
+      final equipo = await ref.read(servicioEquipoProvider).equipo();
+      if (!mounted) return;
+      if (equipo == null) {
+        await _avisar(Textos.sinSenalParaRevisarCaja);
+        return;
+      }
+      final duena = equipo.personas
+          .where((p) => p.cajas.contains(cuenta.id))
+          .firstOrNull;
+      if (duena != null) {
+        await _avisar(Textos.esLaCajaDe(duena.nombre ?? Textos.otraPersona));
+        return;
+      }
+    }
+    final saldo = cuenta.saldoCentimos ?? 0;
+    if (saldo != 0) {
+      await _ofrecerPase(cuenta, saldo);
+      return;
+    }
+    final seguro = await showDialog<bool>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: Text(Textos.preguntaDejarDeUsar(cuenta.nombre)),
+        content: const Text(Textos.dejarDeUsarDetalle, style: Tipografia.texto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogo).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogo).pop(true),
+            child: const Text(Textos.dejarDeUsar),
+          ),
+        ],
+      ),
+    );
+    if (seguro != true || !mounted) return;
+    final resultado = await ref
+        .read(repositorioCuentasProvider)
+        .dejarDeUsar(cuenta.id);
+    if (resultado == ResultadoDejarDeUsar.listo) {
+      mensajes.showSnackBar(
+        SnackBar(content: Text(Textos.dejasteDeUsar(cuenta.nombre))),
+      );
+    }
+  }
+
+  Future<void> _avisar(String texto) => showDialog<void>(
+    context: context,
+    builder: (dialogo) => AlertDialog(
+      content: Text(texto, style: Tipografia.texto),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(dialogo).pop(),
+          child: const Text(Textos.entendido),
+        ),
+      ],
+    ),
+  );
+
+  /// Con plata, primero se pasa a otra cuenta: el pase ya armado.
+  Future<void> _ofrecerPase(CuentaVista cuenta, int saldo) async {
+    final pasar = await showDialog<bool>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        content: Text(
+          Textos.cuentaConSaldo(
+            cuenta.nombre,
+            formatearSolesComprobante(saldo),
+          ),
+          style: Tipografia.texto,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogo).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          if (saldo > 0)
+            FilledButton(
+              onPressed: () => Navigator.of(dialogo).pop(true),
+              child: const Text(Textos.pasarLaPlata),
+            ),
+        ],
+      ),
+    );
+    if (pasar != true || !mounted) return;
+    await context.push(
+      Rutas.escribir,
+      extra: BorradorMovimiento(
+        tipo: TipoMovimiento.transferencia,
+        cuenta: cuenta.tipo,
+        // Sin céntimos, el monto ya va puesto; con céntimos, se escribe.
+        montoCentimos: saldo % 100 == 0 ? saldo : null,
+      ),
+    );
+  }
+
+  /// Corregir el saldo con el que empezó, o por qué ya no (entrega 16.2),
+  /// y dejar de usarla (entrega 58).
   Future<void> _abrirCuenta(CuentaVista cuenta) async {
-    final corregida = await showModalBottomSheet<bool>(
+    final corregida = await showModalBottomSheet<Object>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _HojaSaldoInicial(cuenta: cuenta),
     );
+    if (corregida == _HojaSaldoInicial.dejarDeUsar && mounted) {
+      await _dejarDeUsar(cuenta);
+      return;
+    }
     if (corregida == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(Textos.saldoInicialCorregido(cuenta.nombre))),
@@ -80,10 +197,19 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
 
   @override
   Widget build(BuildContext context) {
-    final cuentas = ref.watch(cuentasProvider).value ?? const <CuentaVista>[];
+    final todas = ref.watch(cuentasProvider).value ?? const <CuentaVista>[];
+    // Las que se dejaron de usar van aparte, abajo (entrega 58).
+    final cuentas = [
+      for (final c in todas)
+        if (c.enUso) c,
+    ];
+    final enDesuso = [
+      for (final c in todas)
+        if (!c.enUso) c,
+    ];
     Map<TipoCuenta, String> faltan(List<TipoCuenta> tipos) => {
       for (final t in tipos)
-        if (!cuentas.any((c) => c.tipo == t))
+        if (!todas.any((c) => c.tipo == t))
           t: switch (t) {
             TipoCuenta.otra => Textos.otra,
             TipoCuenta.otroBanco => Textos.otroBanco,
@@ -96,7 +222,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
     final siguienteCaja = [
       TipoCuenta.caja2,
       TipoCuenta.caja3,
-    ].where((t) => !cuentas.any((c) => c.tipo == t)).firstOrNull;
+    ].where((t) => !todas.any((c) => c.tipo == t)).firstOrNull;
     final cajas = {?siguienteCaja: Textos.otraCaja};
     final hayQueAgregar =
         billeteras.isNotEmpty || bancos.isNotEmpty || cajas.isNotEmpty;
@@ -122,8 +248,10 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             children: [
               for (final (i, c) in cuentas.indexed)
                 InkWell(
-                  // El saldo pendiente se pone como siempre, en el Inicio.
-                  onTap: c.inicialCentimos == null
+                  // El saldo pendiente se pone como siempre, en el Inicio;
+                  // la hoja sirve también para dejar de usarla (entrega 58).
+                  onTap:
+                      c.inicialCentimos == null && c.tipo == TipoCuenta.efectivo
                       ? null
                       : () => _abrirCuenta(c),
                   child: Container(
@@ -180,6 +308,39 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             ],
           ),
         ),
+        // «Ya no usas», con «Volver a usar» (entrega 58).
+        if (enDesuso.isNotEmpty) ...[
+          const SizedBox(height: Medidas.e5),
+          const Text(Textos.yaNoUsas, style: Tipografia.tituloSeccion),
+          const SizedBox(height: Medidas.e1),
+          const Text(Textos.yaNoUsasDetalle, style: Tipografia.secundario),
+          const SizedBox(height: Medidas.e2),
+          Tarjeta(
+            relleno: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (final c in enDesuso)
+                  ListTile(
+                    minTileHeight: Medidas.objetivoTactilMinimo,
+                    leading: Icon(
+                      Iconos.deCuenta(c.tipo),
+                      color: Colores.neutro,
+                    ),
+                    title: Text(
+                      c.nombre,
+                      style: Tipografia.textoFuerte.copyWith(
+                        color: Colores.textoSecundario,
+                      ),
+                    ),
+                    trailing: TextButton(
+                      onPressed: () => _volverAUsar(c),
+                      child: const Text(Textos.volverAUsar),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (hayQueAgregar) ...[
           const SizedBox(height: 8),
           const Text(
@@ -243,6 +404,9 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
 class _HojaSaldoInicial extends ConsumerStatefulWidget {
   const _HojaSaldoInicial({required this.cuenta});
 
+  /// Lo que devuelve la hoja al tocar «Dejar de usar esta cuenta».
+  static const dejarDeUsar = 'dejar_de_usar';
+
   final CuentaVista cuenta;
 
   @override
@@ -290,7 +454,9 @@ class _EstadoHojaSaldo extends ConsumerState<_HojaSaldoInicial> {
           children: [
             Text(cuenta.nombre, style: Tipografia.tituloPantalla),
             const SizedBox(height: 12),
-            if (cuenta.seCorrigeElInicial) ...[
+            if (cuenta.inicialCentimos == null)
+              const SizedBox.shrink()
+            else if (cuenta.seCorrigeElInicial) ...[
               const Text(
                 Textos.corregirSaldoInicial,
                 style: Tipografia.textoFuerte,
@@ -337,6 +503,19 @@ class _EstadoHojaSaldo extends ConsumerState<_HojaSaldoInicial> {
                   context.push(Rutas.arqueo);
                 },
                 child: const Text(Textos.hacerArqueo),
+              ),
+            ],
+            // Efectivo no se deja de usar: todo negocio tiene caja.
+            if (cuenta.tipo != TipoCuenta.efectivo) ...[
+              const SizedBox(height: Medidas.e3),
+              const Divider(),
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(_HojaSaldoInicial.dejarDeUsar),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colores.textoSecundario,
+                ),
+                child: const Text(Textos.dejarDeUsarEstaCuenta),
               ),
             ],
           ],

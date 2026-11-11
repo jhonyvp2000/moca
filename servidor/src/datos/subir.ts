@@ -17,7 +17,10 @@ import {
  * 002), así el orden no importa para la base.
  */
 export const tablas = {
-  cuentas: ['id', 'empresa_id', 'tipo', 'nombre', 'orden', 'saldo_inicial_centimos', 'fecha_saldo_inicial'],
+  cuentas: [
+    'id', 'empresa_id', 'tipo', 'nombre', 'orden', 'saldo_inicial_centimos', 'fecha_saldo_inicial',
+    'en_uso',
+  ],
   categorias: ['id', 'empresa_id', 'nombre', 'tipo_movimiento', 'orden', 'activa'],
   contrapartes: [
     'id', 'empresa_id', 'nombre', 'identificacion_fiscal', 'tipo', 'celular', 'recordado_en',
@@ -70,9 +73,15 @@ export function columnasPara(
   tabla: Tabla,
   columnas: readonly string[],
   rol: Miembro['rol'],
+  filas: readonly Fila[] = [],
 ): readonly string[] {
-  const ocultas = soloDelDueno[tabla];
-  return rol === 'dueno' || !ocultas ? columnas : columnas.filter((c) => !ocultas.includes(c));
+  const ocultas = rol === 'dueno' ? undefined : soloDelDueno[tabla];
+  // Una columna que el teléfono no manda (una versión anterior de Moca, sin
+  // esa columna) no se toca: ni se borra lo guardado ni se rompe un NOT NULL
+  // (entrega 58).
+  const enviadas = (c: string) =>
+    c === 'id' || c === 'empresa_id' || filas.length === 0 || filas.some((f) => c in f);
+  return columnas.filter((c) => !ocultas?.includes(c) && enviadas(c));
 }
 
 /** La bitácora y los videos vistos no se modifican: lo que ya está, se deja. */
@@ -217,7 +226,7 @@ async function revisarPermisos(
     for (const fila of await filasQueCambian(
       cliente,
       tabla,
-      columnasPara(tabla, columnas, miembro.rol),
+      columnasPara(tabla, columnas, miembro.rol, filas),
       filas,
     )) {
       if (cajaAjena(fila.cuenta)) throw new ErrorDeSubida(403, 'sin_permiso');
@@ -316,7 +325,7 @@ export async function subir(
       recibidos[tabla] = await guardar(
         cliente,
         tabla,
-        columnasPara(tabla, columnas, rol),
+        columnasPara(tabla, columnas, rol, filas),
         filas,
         soloAgregar.has(tabla),
       );

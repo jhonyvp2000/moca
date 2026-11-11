@@ -1814,6 +1814,8 @@ class ServicioCuentaRemoto
           orden: c['orden']! as int,
           saldoInicialCentimos: Value(c['saldo_inicial_centimos'] as int?),
           fechaSaldoInicial: Value(_desdeFechaONulo(c['fecha_saldo_inicial'])),
+          // Un servidor anterior a la entrega 58 no la manda: en uso.
+          enUso: Value(c['en_uso'] as bool? ?? true),
         ),
     ]);
     poner(_base.categorias, [
@@ -2135,6 +2137,7 @@ class ServicioCuentaRemoto
             'orden': c.orden,
             'saldo_inicial_centimos': c.saldoInicialCentimos,
             'fecha_saldo_inicial': _fecha(c.fechaSaldoInicial),
+            'en_uso': c.enUso,
           },
       ],
       'categorias': [

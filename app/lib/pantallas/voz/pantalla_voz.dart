@@ -459,7 +459,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             destinosValidos: {
               for (final c
                   in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
-                c.tipo,
+                if (c.enUso) c.tipo,
             },
             deudasPosibles: deudasPosibles(_lectura, deudas),
           )
@@ -676,7 +676,8 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             opciones: {
               for (final c
                   in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
-                if (c.tipo != origen) c.tipo: Textos.nombreCuenta(c.tipo),
+                if (c.enUso && c.tipo != origen)
+                  c.tipo: Textos.nombreCuenta(c.tipo),
             },
             elegida: null,
             alElegir: (c) => setState(() => _lectura = _lectura.conDestino(c)),
