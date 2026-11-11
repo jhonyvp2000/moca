@@ -54,6 +54,8 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven más adelante
 
+- **Modo personal** (idea de Jhony, 11-11-2026; para después de la V1): Moca para personas sin negocio que quieren ordenar sus cuentas. Ningún tipo de negocio sirve hoy («Otro» supone un negocio). Sería un modo aparte, no un tipo más: sin «¿Cuánto vendiste hoy?» ni «Venta del día»; sin «Retiro para mí» ni «Pusiste de tu bolsillo»; categorías del hogar (alimentación, educación, salud, transporte, servicios, vivienda); textos sin «tu negocio» (alta, informes, PDF, cobro); sin fiado, equipo ni arqueo semanal, o con otro sentido; y su propio precio. Se analiza si los pilotos o la Fase 0 muestran demanda. Lo cercano que sí sirve al dueño de hoy es el rubro del hogar en «Retiro para mí» (más abajo).
+
 - ~~El tiempo fuera de Moca antes de pedir la huella~~: 5 minutos (entrega 16.3.1, 03-11-2026).
 - Para la versión final: ocultar la pantalla de Moca en las apps recientes, que también bloquea las capturas de pantalla (por eso no va durante la prueba).
 - Textos legales (Ley 29733): el dueño todavía no tiene un texto de consentimiento propio (solo lo tiene el invitado). Debe decir, entre otras cosas, que Moca recibe los errores de la app (entrega 27) y, con la entrega 28, datos de uso, sin lo que anota. Para revisar con el abogado (04-11-2026).
