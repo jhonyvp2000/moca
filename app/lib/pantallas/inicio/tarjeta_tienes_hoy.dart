@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../comun/monto_text.dart';
+import '../../dominio/medicion.dart';
+import '../../inyeccion.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
@@ -154,7 +157,15 @@ class TarjetaTienesHoy extends StatelessWidget {
     );
   }
 
-  void _explicar(BuildContext context) => showModalBottomSheet<void>(
+  void _explicar(BuildContext context) {
+    // Se mide cuánto se abre la explicación (entrega 59).
+    ProviderScope.containerOf(context, listen: false)
+        .read(medicionProvider)
+        .anotar(EventoMedicion.seccionAbierta, {'seccion': 'tienes_hoy_info'});
+    _mostrarExplicacion(context);
+  }
+
+  void _mostrarExplicacion(BuildContext context) => showModalBottomSheet<void>(
     context: context,
     builder: (hoja) => SafeArea(
       child: Padding(

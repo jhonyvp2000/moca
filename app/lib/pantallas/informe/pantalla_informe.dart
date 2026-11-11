@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/icono_trazo.dart';
 import '../../comun/monto_text.dart';
+import '../../comun/seccion_plegable.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/tarjeta_resumen.dart';
 import '../../comun/tono.dart';
+import '../inicio/bloque_pendientes.dart';
 import 'grafico_semanas.dart';
 import '../../comun/videos.dart';
 import '../../dominio/informe.dart';
@@ -614,261 +616,219 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      separacion,
-
-      // Por semana (mejora 01)
-      if (i.semanas.isNotEmpty) ...[
-        Tarjeta(
-          relleno: const EdgeInsets.all(Medidas.e5),
-          child: GraficoSemanas(semanas: i.semanas),
-        ),
-        separacion,
-      ],
-
-      // Cómo se movió la plata: cuadra con el saldo
-      Tarjeta(
-        relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(Textos.comoSeMovio, style: Tipografia.tituloTarjeta),
-            Text(periodo, style: Tipografia.secundario),
-            const SizedBox(height: 8),
-            _Fila(
-              i.desdeDia == null
-                  ? Textos.empezasteElMesCon
-                  : Textos.empezasteCon,
-              i.inicioCentimos,
-            ),
-            _Fila(Textos.masEntro, i.entroCentimos, tono: Tono.ingreso),
-            if (i.aportesCentimos > 0)
-              _Fila(
-                Textos.masPusisteDeTuBolsillo,
-                i.aportesCentimos,
-                tono: Tono.ingreso,
-              ),
-            _Fila(
-              Textos.menosSalioDelNegocio,
-              i.salioCentimos,
-              tono: Tono.egreso,
-            ),
-            _Fila(
-              Textos.menosRetirasteParaTi,
-              i.retirosCentimos,
-              tono: Tono.egreso,
-            ),
-            if (i.ajustesCentimos != 0)
-              _Fila(
-                i.ajustesCentimos > 0
-                    ? Textos.masSobroEnElArqueo
-                    : Textos.menosFaltoEnElArqueo,
-                i.ajustesCentimos.abs(),
-                tono: i.ajustesCentimos < 0 ? Tono.egreso : Tono.ingreso,
-              ),
-            const Divider(),
-            _Fila(
-              i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,
-              i.finCentimos,
-              fuerte: true,
-            ),
-            const SizedBox(height: 8),
-            const Text(Textos.cuentasDePlata, style: Tipografia.secundario),
-          ],
-        ),
-      ),
-      separacion,
-
-      // Con qué entró la plata (entrega 35)
-      Tarjeta(
-        relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(Textos.conQueEntro, style: Tipografia.tituloTarjeta),
-            Text(periodo, style: Tipografia.secundario),
-            const SizedBox(height: 8),
-            if (i.ingresos.isEmpty)
-              const Text(Textos.sinIngresosDelMes, style: Tipografia.secundario)
-            else
-              for (final (n, g) in i.ingresos.indexed)
-                _Barra(
-                  nombre: g.nombre ?? Textos.loDemas,
-                  centimos: g.centimos,
-                  proporcion: g.centimos / i.ingresos.first.centimos,
-                  primera: n == 0,
-                  alTocar: () => context.push(
-                    Rutas.deCategoria,
-                    extra: ConsultaDeCategoria(
-                      mes: i.mes,
-                      tipo: TipoMovimiento.ingreso,
-                      titulo: g.nombre ?? Textos.loDemas,
-                      nombres: g.nombre == null ? null : {g.nombre!},
-                      salvo: {
-                        for (final o in i.ingresos)
-                          if (o.nombre != null) o.nombre!,
-                      },
-                    ),
-                  ),
-                ),
-          ],
-        ),
-      ),
-      separacion,
-
-      // En qué se fue la plata
-      Tarjeta(
-        relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(Textos.enQueSeFue, style: Tipografia.tituloTarjeta),
-            Text(periodo, style: Tipografia.secundario),
-            const SizedBox(height: 8),
-            if (i.gastos.isEmpty)
-              const Text(Textos.sinGastos, style: Tipografia.secundario)
-            else
-              for (final (n, g) in i.gastos.indexed)
-                _Barra(
-                  nombre: g.nombre ?? Textos.loDemas,
-                  centimos: g.centimos,
-                  proporcion: g.centimos / i.gastos.first.centimos,
-                  primera: n == 0,
-                  alTocar: () => context.push(
-                    Rutas.deCategoria,
-                    extra: ConsultaDeCategoria(
-                      mes: i.mes,
-                      tipo: TipoMovimiento.egreso,
-                      titulo: g.nombre ?? Textos.loDemas,
-                      nombres: g.nombre == null ? null : {g.nombre!},
-                      salvo: {
-                        for (final o in i.gastos)
-                          if (o.nombre != null) o.nombre!,
-                      },
-                    ),
-                  ),
-                ),
-            if (i.mesAnterior != null && i.gastos.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                switch (i.cambio) {
-                  final c? when c.centimos > 0 => Textos.subioFrente(
-                    c.nombre,
-                    formatearSoles(c.centimos),
-                    anterior,
-                  ),
-                  final c? => Textos.bajoFrente(
-                    c.nombre,
-                    formatearSoles(-c.centimos),
-                    anterior,
-                  ),
-                  null => Textos.casiNadaCambio(anterior),
-                },
-                style: Tipografia.cifra(
-                  Tipografia.textoFuerte.copyWith(color: Colores.azulOscuro),
-                ),
-              ),
+            // Lo que también movió la plata, para que el número se entienda
+            // sin bajar (entrega 59).
+            if (_tambien(i) case final texto?) ...[
+              const SizedBox(height: Medidas.e3),
+              Text(texto, style: Tipografia.cifra(Tipografia.secundario)),
             ],
           ],
         ),
       ),
       separacion,
 
-      // Lo que debes: se toca y abre el detalle (entrega 38).
-      _TarjetaDeuda(
-        titulo: Textos.loQueDebesTitulo,
-        nota: Textos.todoLoQueDebes,
-        tono: Tono.egreso,
-        centimos: i.loQueDebesCentimos,
-        ruta: Rutas.loQueDebes,
+      // Lo que se debe, en dos fichas como en el Inicio (entrega 59).
+      const BloquePendientes(
+        margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
       ),
-      separacion,
-      // Lo que te deben: las ventas a crédito (entrega 42).
-      _TarjetaDeuda(
-        titulo: Textos.loQueTeDebenTitulo,
-        nota: Textos.todoLoQueTeDeben,
-        tono: Tono.pendiente,
-        centimos: (ref.watch(loQueTeDebenProvider).value ?? const []).fold(
-          0,
-          (s, f) => s + f.montoCentimos,
-        ),
-        ruta: Rutas.loQueTeDeben,
-      ),
-      if (i.confianza case final c?) ...[
-        separacion,
-        Tarjeta(
-          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: _Confianza(confianza: c),
-        ),
-      ],
-      if (i.advertenciaMercaderia) ...[
-        separacion,
-        const TarjetaMoca(texto: Textos.advertenciaMercaderia),
-      ],
-    ];
-  }
-}
+      // El resto del mes, a un toque (entrega 59).
+      SeccionPlegable(
+        clave: 'informe_mes',
+        titulo: Textos.verDetalleDelMes,
+        hijo: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Por semana (mejora 01)
+            if (i.semanas.isNotEmpty) ...[
+              Tarjeta(
+                relleno: const EdgeInsets.all(Medidas.e5),
+                child: GraficoSemanas(semanas: i.semanas),
+              ),
+              separacion,
+            ],
 
-/// Una tarjeta con un total que se toca y abre su lista: «Lo que debes»
-/// (entrega 38) y «Lo que te deben» (entrega 42).
-class _TarjetaDeuda extends StatelessWidget {
-  const _TarjetaDeuda({
-    required this.titulo,
-    required this.nota,
-    required this.centimos,
-    required this.ruta,
-    required this.tono,
-  });
+            // Cómo se movió la plata: cuadra con el saldo
+            Tarjeta(
+              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    Textos.comoSeMovio,
+                    style: Tipografia.tituloTarjeta,
+                  ),
+                  Text(periodo, style: Tipografia.secundario),
+                  const SizedBox(height: 8),
+                  _Fila(
+                    i.desdeDia == null
+                        ? Textos.empezasteElMesCon
+                        : Textos.empezasteCon,
+                    i.inicioCentimos,
+                  ),
+                  _Fila(Textos.masEntro, i.entroCentimos, tono: Tono.ingreso),
+                  if (i.aportesCentimos > 0)
+                    _Fila(
+                      Textos.masPusisteDeTuBolsillo,
+                      i.aportesCentimos,
+                      tono: Tono.ingreso,
+                    ),
+                  _Fila(
+                    Textos.menosSalioDelNegocio,
+                    i.salioCentimos,
+                    tono: Tono.egreso,
+                  ),
+                  _Fila(
+                    Textos.menosRetirasteParaTi,
+                    i.retirosCentimos,
+                    tono: Tono.egreso,
+                  ),
+                  if (i.ajustesCentimos != 0)
+                    _Fila(
+                      i.ajustesCentimos > 0
+                          ? Textos.masSobroEnElArqueo
+                          : Textos.menosFaltoEnElArqueo,
+                      i.ajustesCentimos.abs(),
+                      tono: i.ajustesCentimos < 0 ? Tono.egreso : Tono.ingreso,
+                    ),
+                  const Divider(),
+                  _Fila(
+                    i.enCurso ? Textos.tienesHoy : Textos.terminasteElMesCon,
+                    i.finCentimos,
+                    fuerte: true,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    Textos.cuentasDePlata,
+                    style: Tipografia.secundario,
+                  ),
+                ],
+              ),
+            ),
+            separacion,
 
-  final String titulo;
-  final String nota;
-  final int centimos;
-  final String ruta;
+            // Con qué entró la plata (entrega 35)
+            Tarjeta(
+              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    Textos.conQueEntro,
+                    style: Tipografia.tituloTarjeta,
+                  ),
+                  Text(periodo, style: Tipografia.secundario),
+                  const SizedBox(height: 8),
+                  if (i.ingresos.isEmpty)
+                    const Text(
+                      Textos.sinIngresosDelMes,
+                      style: Tipografia.secundario,
+                    )
+                  else
+                    for (final (n, g) in i.ingresos.indexed)
+                      _Barra(
+                        nombre: g.nombre ?? Textos.loDemas,
+                        centimos: g.centimos,
+                        proporcion: g.centimos / i.ingresos.first.centimos,
+                        primera: n == 0,
+                        alTocar: () => context.push(
+                          Rutas.deCategoria,
+                          extra: ConsultaDeCategoria(
+                            mes: i.mes,
+                            tipo: TipoMovimiento.ingreso,
+                            titulo: g.nombre ?? Textos.loDemas,
+                            nombres: g.nombre == null ? null : {g.nombre!},
+                            salvo: {
+                              for (final o in i.ingresos)
+                                if (o.nombre != null) o.nombre!,
+                            },
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+            separacion,
 
-  /// Coral lo que debes, ámbar lo que te deben; el cero, gris (mejora 01).
-  final Tono tono;
-
-  @override
-  Widget build(BuildContext context) => Tarjeta(
-    relleno: EdgeInsets.zero,
-    child: Material(
-      color: Colores.superficie,
-      borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-        onTap: () => context.push(ruta),
-        child: Padding(
-          padding: const EdgeInsets.all(Medidas.e5),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(titulo, style: Tipografia.tituloFila),
-                    Text(nota, style: Tipografia.secundario),
-                    const SizedBox(height: Medidas.e1),
-                    MontoText(
-                      centimos,
-                      estilo: Tipografia.encabezado,
-                      tono: tono,
+            // En qué se fue la plata
+            Tarjeta(
+              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    Textos.enQueSeFue,
+                    style: Tipografia.tituloTarjeta,
+                  ),
+                  Text(periodo, style: Tipografia.secundario),
+                  const SizedBox(height: 8),
+                  if (i.gastos.isEmpty)
+                    const Text(Textos.sinGastos, style: Tipografia.secundario)
+                  else
+                    for (final (n, g) in i.gastos.indexed)
+                      _Barra(
+                        nombre: g.nombre ?? Textos.loDemas,
+                        centimos: g.centimos,
+                        proporcion: g.centimos / i.gastos.first.centimos,
+                        primera: n == 0,
+                        alTocar: () => context.push(
+                          Rutas.deCategoria,
+                          extra: ConsultaDeCategoria(
+                            mes: i.mes,
+                            tipo: TipoMovimiento.egreso,
+                            titulo: g.nombre ?? Textos.loDemas,
+                            nombres: g.nombre == null ? null : {g.nombre!},
+                            salvo: {
+                              for (final o in i.gastos)
+                                if (o.nombre != null) o.nombre!,
+                            },
+                          ),
+                        ),
+                      ),
+                  if (i.mesAnterior != null && i.gastos.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      switch (i.cambio) {
+                        final c? when c.centimos > 0 => Textos.subioFrente(
+                          c.nombre,
+                          formatearSoles(c.centimos),
+                          anterior,
+                        ),
+                        final c? => Textos.bajoFrente(
+                          c.nombre,
+                          formatearSoles(-c.centimos),
+                          anterior,
+                        ),
+                        null => Textos.casiNadaCambio(anterior),
+                      },
+                      style: Tipografia.cifra(
+                        Tipografia.textoFuerte.copyWith(
+                          color: Colores.azulOscuro,
+                        ),
+                      ),
                     ),
                   ],
-                ),
+                ],
               ),
-              if (centimos > 0)
-                Text(
-                  Textos.verDetalle,
-                  style: Tipografia.textoFuerte.copyWith(color: Colores.marca),
+            ),
+            if (i.confianza case final c?) ...[
+              separacion,
+              Tarjeta(
+                relleno: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
                 ),
+                child: _Confianza(confianza: c),
+              ),
             ],
-          ),
+            if (i.advertenciaMercaderia) ...[
+              separacion,
+              const TarjetaMoca(texto: Textos.advertenciaMercaderia),
+            ],
+          ],
         ),
       ),
-    ),
-  );
+    ];
+  }
 }
 
 /// El resumen del año calendario (entrega 40): cuánto creció la plata, los
@@ -1055,41 +1015,57 @@ class _VistaAnio extends ConsumerWidget {
         ),
         separacion,
 
-        // Mes por mes: cada uno abre su informe.
-        Tarjeta(
-          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
+        // Mes por mes y en qué entró y se fue, a un toque (entrega 59).
+        SeccionPlegable(
+          clave: 'informe_anio',
+          titulo: Textos.verDetalleDelAnio,
+          hijo: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(Textos.mesPorMes, style: Tipografia.tituloTarjeta),
-              const Text(Textos.tocaUnMes, style: Tipografia.secundario),
-              const SizedBox(height: 8),
-              const _FilaDeMes.encabezado(),
-              for (final m in r.meses)
-                if (m.estado != EstadoMesDelAnio.porVenir)
-                  _FilaDeMes(
-                    mes: m,
-                    proporcion: mayorEntrada == 0
-                        ? 0
-                        : m.entroCentimos / mayorEntrada,
-                    alTocar: m.cuenta ? () => alElegirMes(m.mes) : null,
-                  ),
+              // Mes por mes: cada uno abre su informe.
+              Tarjeta(
+                relleno: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      Textos.mesPorMes,
+                      style: Tipografia.tituloTarjeta,
+                    ),
+                    const Text(Textos.tocaUnMes, style: Tipografia.secundario),
+                    const SizedBox(height: 8),
+                    const _FilaDeMes.encabezado(),
+                    for (final m in r.meses)
+                      if (m.estado != EstadoMesDelAnio.porVenir)
+                        _FilaDeMes(
+                          mes: m,
+                          proporcion: mayorEntrada == 0
+                              ? 0
+                              : m.entroCentimos / mayorEntrada,
+                          alTocar: m.cuenta ? () => alElegirMes(m.mes) : null,
+                        ),
+                  ],
+                ),
+              ),
+              separacion,
+              categorias(
+                Textos.conQueEntro,
+                Textos.sinIngresosDelAnio,
+                r.ingresos,
+                TipoMovimiento.ingreso,
+              ),
+              separacion,
+              categorias(
+                Textos.enQueSeFue,
+                Textos.sinGastosDelAnio,
+                r.gastos,
+                TipoMovimiento.egreso,
+              ),
             ],
           ),
-        ),
-        separacion,
-        categorias(
-          Textos.conQueEntro,
-          Textos.sinIngresosDelAnio,
-          r.ingresos,
-          TipoMovimiento.ingreso,
-        ),
-        separacion,
-        categorias(
-          Textos.enQueSeFue,
-          Textos.sinGastosDelAnio,
-          r.gastos,
-          TipoMovimiento.egreso,
         ),
       ],
     );
@@ -1447,4 +1423,21 @@ class _Confianza extends StatelessWidget {
       ],
     );
   }
+}
+
+/// «También retiraste S/ 3,030 para ti y pusiste S/ 500 de tu bolsillo.»:
+/// lo que movió la plata además de lo que entró y salió (entrega 59). Nulo
+/// si no hubo nada de eso.
+String? _tambien(InformeMes i) {
+  final partes = [
+    if (i.retirosCentimos > 0)
+      Textos.retirastePara(formatearSoles(i.retirosCentimos)),
+    if (i.aportesCentimos > 0)
+      Textos.pusisteDeTuBolsilloMonto(formatearSoles(i.aportesCentimos)),
+    if (i.ajustesCentimos > 0)
+      Textos.enElArqueoSobro(formatearSoles(i.ajustesCentimos)),
+    if (i.ajustesCentimos < 0)
+      Textos.enElArqueoFalto(formatearSoles(-i.ajustesCentimos)),
+  ];
+  return partes.isEmpty ? null : Textos.tambien(partes);
 }

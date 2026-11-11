@@ -221,6 +221,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a ⚙ → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».
 
+**«No veo cuánto tengo en cada cuenta»** · **«¿Dónde está En qué se fue?»** · **«Ya no veo mi semana en el Inicio»** (entrega 59): no se borró nada, quedó a un toque.
+
+> En el Inicio, toca «Ver por cuenta» para ver cuánto hay en efectivo, Yape y banco. En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.

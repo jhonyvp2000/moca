@@ -17,7 +17,7 @@ import '../moca/avisos.dart';
 import 'desglose_cuentas.dart';
 import 'bloque_pendientes.dart';
 import 'encabezado_negocio.dart';
-import 'tarjeta_semana.dart';
+import '../../comun/seccion_plegable.dart';
 import '../../inyeccion.dart';
 import 'tarjeta_tienes_hoy.dart';
 
@@ -117,23 +117,30 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 pildora: _pildora(r, permisos, hoy),
               ),
             ),
+            // Las cuentas, plegadas (entrega 59): «Ver por cuenta».
             if (misCajas == null || saldos.length > 1) ...[
-              const SizedBox(height: Medidas.e5),
-              DesgloseDeCuentas(
-                saldos: saldos,
-                ocultar: _ocultar,
-                conVerTodas: permisos.cambiaCuentas,
+              const SizedBox(height: Medidas.separacionTarjetas),
+              SeccionPlegable(
+                clave: 'inicio_cuentas',
+                titulo: Textos.verPorCuenta,
+                resumen: Textos.resumenDeCuentas([
+                  for (final c in saldos.keys) Textos.nombreCuenta(c),
+                ]),
+                margenEncabezado: const EdgeInsets.symmetric(
+                  horizontal: Medidas.margenLateral,
+                ),
+                hijo: DesgloseDeCuentas(
+                  saldos: saldos,
+                  ocultar: _ocultar,
+                  conVerTodas: permisos.cambiaCuentas,
+                ),
               ),
             ],
             // «Hacer arqueo» vive en el + (entrega 57); aquí, solo cuando
             // toca, en la tarjeta de Moca.
             // Lo pendiente, para quien ve los informes (mejora 01).
             if (permisos.veInformes) BloquePendientes(ocultar: _ocultar),
-            // La semana es de todo el negocio: la ven el dueño y el contador.
-            if (misCajas == null) ...[
-              const SizedBox(height: Medidas.separacionTarjetas),
-              _conMargen(TarjetaSemana(resumen: r, ocultar: _ocultar)),
-            ],
+            // «Esta semana» vive en el Asistente (entrega 59).
             if (permisos.anota) ...[
               const SizedBox(height: Medidas.separacionTarjetas),
               // El aviso más importante; si no hay, la venta de hoy y el arqueo.

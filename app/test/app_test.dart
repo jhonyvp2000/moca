@@ -39,6 +39,7 @@ import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
 import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/dominio/historial.dart';
+import 'package:moca/dominio/medicion.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/historial/fila_movimiento.dart';
 import 'package:moca/pantallas/historial/hoja_filtros.dart';
@@ -911,6 +912,17 @@ Future<void> verNotaDeTienesHoy(WidgetTester tester, String nota) async {
 }
 
 /// «Ajustes», desde el ⚙ del encabezado del Inicio (mejora 01).
+/// Despliega una sección plegada (entrega 59): «Ver por cuenta», «Ver el
+/// detalle del mes».
+Future<void> desplegar(WidgetTester tester, String titulo) async {
+  await tester.scrollUntilVisible(
+    find.text(titulo),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tocar(tester, find.text(titulo));
+}
+
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
   await tocar(tester, find.byTooltip(Textos.ajustes));
@@ -1315,8 +1327,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
 
-      expect(find.text(Textos.teDebenCuantos(1)), findsOneWidget);
-      expect(find.text('Doña Rosa'), findsOneWidget);
+      // Desde la entrega 59, en una ficha, sin los nombres.
+      expect(find.text(Textos.fichaTeDeben), findsOneWidget);
       expect(find.text(Textos.escucharMiSemana), findsOneWidget);
       // Entrega 51: cuánto de lo vendido hoy se fió, y el ⓘ no cuenta lo
       // fiado como plata en la mano.
@@ -1328,7 +1340,7 @@ void main() {
         findsOneWidget,
       );
       await verNotaDeTienesHoy(tester, Textos.notaConMovimientos);
-      await tocar(tester, find.text(Textos.teDebenCuantos(1)));
+      await tocar(tester, find.text(Textos.fichaTeDeben));
       expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
       await tocar(tester, find.byType(BotonVolver).first);
 
@@ -1379,7 +1391,7 @@ void main() {
         (m) => m.estadoPago == EstadoPago.pendiente,
       );
       expect(fiado.montoCentimos, 8000);
-      expect(find.text(Textos.teDebenCuantos(1)), findsOneWidget);
+      expect(find.text(Textos.fichaTeDeben), findsOneWidget);
     });
 
     testWidgets('Mejora 01: Ajustes desde el ⚙ del Inicio; la campana lleva '
@@ -1523,13 +1535,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      await tester.scrollUntilVisible(
-        find.text(Textos.loQueTeDebenTitulo),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text(Textos.todoLoQueTeDeben), findsOneWidget);
-      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      // Las deudas, en fichas (entrega 59).
+      await tocar(tester, find.text(Textos.fichaTeDeben).first);
       expect(
         find.text(Textos.teDebenTotal(formatearSoles(20000), 1)),
         findsOneWidget,
@@ -1599,12 +1606,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      await tester.scrollUntilVisible(
-        find.text(Textos.loQueTeDebenTitulo),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      // Las deudas, en fichas (entrega 59).
+      await tocar(tester, find.text(Textos.fichaTeDeben).first);
       expect(find.text('987 000 053'), findsOneWidget);
       expect(find.text(Textos.cambiarCelular), findsOneWidget);
       // Con su número, WhatsApp abre su chat; queda cuándo se le recordó.
@@ -1661,12 +1664,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      await tester.scrollUntilVisible(
-        find.text(Textos.loQueTeDebenTitulo),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      // Las deudas, en fichas (entrega 59).
+      await tocar(tester, find.text(Textos.fichaTeDeben).first);
       // Entrega 45: recordarle por WhatsApp, sin su número.
       await tocar(tester, find.text(Textos.recordarPorWhatsApp));
       expect(_abiertos.single, startsWith('https://wa.me/?text='));
@@ -1821,12 +1820,14 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInicio));
 
       expect(find.text(Textos.tuPrimerDia), findsNothing);
-      // Toda la plata está en efectivo: el total y Efectivo coinciden.
+      // Las cuentas, plegadas (entrega 59); al desplegarlas, toda la plata
+      // está en efectivo: el total y Efectivo coinciden.
+      expect(find.text('S/\u00A01,350'), findsOneWidget);
+      await desplegar(tester, Textos.verPorCuenta);
       expect(find.text('S/\u00A01,350'), findsNWidgets(2));
-      expect(find.text(Textos.efectivo), findsOneWidget);
-      // «Esta semana», cada monto con su signo (mejora 01).
-      expect(find.text(Textos.estaSemana), findsOneWidget);
-      expect(find.text('+\u00A0S/\u00A0350'), findsOneWidget);
+      expect(find.text(Textos.efectivo), findsWidgets);
+      // «Esta semana» vive en el Asistente (entrega 59).
+      expect(find.text(Textos.estaSemana), findsNothing);
       expect(find.text(Textos.mocaYaAnotasteHoy), findsOneWidget);
 
       // El ojo oculta los montos.
@@ -2910,6 +2911,7 @@ void main() {
     ) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.text(Textos.pestanaInformes));
+      await desplegar(tester, Textos.verDetalleDelMes);
       await tester.scrollUntilVisible(
         find.text(Textos.conQueEntro),
         200,
@@ -2921,13 +2923,9 @@ void main() {
         findsOneWidget,
       );
       await tocar(tester, find.byType(BotonVolver));
-      await tester.scrollUntilVisible(
-        find.text(Textos.loQueDebesTitulo),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tocar(tester, find.text(Textos.loQueDebesTitulo));
-      expect(find.text(Textos.noDebesNada), findsOneWidget);
+      // Sin deudas no hay fichas (entrega 59).
+      expect(find.text(Textos.fichaDebes), findsNothing);
+      expect(find.text(Textos.fichaTeDeben), findsNothing);
     });
 
     testWidgets('Entrega 40: el resumen del año, sus meses y categorías', (
@@ -2960,6 +2958,7 @@ void main() {
         expect(flecha.onPressed, isNull, reason: etiqueta);
       }
       // Los meses de antes salen en gris; el actual, hasta hoy.
+      await desplegar(tester, Textos.verDetalleDelAnio);
       await tester.scrollUntilVisible(
         find.text(Textos.hastaHoyMinuscula),
         200,
@@ -2988,8 +2987,46 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tocar(tester, find.text(Textos.hastaHoyMinuscula));
+      await desplegar(tester, Textos.verDetalleDelMes);
       expect(find.text(Textos.comoSeMovio), findsOneWidget);
       expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
+    });
+
+    testWidgets('Entrega 59: el detalle del mes se pliega y se recuerda; '
+        'el titular dice lo que retiraste', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(
+        () => RepositorioMovimientosLocal(base, ahora: () => _ahora).registrar(
+          const NuevoMovimiento(
+            tipo: TipoMovimiento.retiro,
+            montoCentimos: 5000,
+            cuenta: TipoCuenta.efectivo,
+          ),
+        ),
+      );
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      expect(
+        find.text(Textos.tambien([Textos.retirastePara(formatearSoles(5000))])),
+        findsOneWidget,
+      );
+      // Plegado de entrada.
+      expect(find.text(Textos.comoSeMovio), findsNothing);
+      await desplegar(tester, Textos.verDetalleDelMes);
+      expect(find.text(Textos.comoSeMovio), findsOneWidget);
+      // Al volver, sigue abierto.
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await esperar(tester);
+      expect(find.text(Textos.comoSeMovio), findsOneWidget);
+      // Y abrirlo quedó en la medición.
+      final eventos = await tester.runAsync(
+        () => base.select(base.eventosMedicion).get(),
+      );
+      expect(
+        eventos!.where((e) => e.nombre == EventoMedicion.seccionAbierta.name),
+        isNotEmpty,
+      );
     });
 
     testWidgets('El informe del primer mes', (tester) async {
@@ -3003,6 +3040,7 @@ void main() {
       // S/ 1,000 y la venta de S/ 350 lo deja en lo que tiene hoy.
       expect(find.text(Textos.tuPlataCrecio), findsOneWidget);
       expect(find.text(Textos.primerMesConMoca), findsOneWidget);
+      await desplegar(tester, Textos.verDetalleDelMes);
       expect(find.text(Textos.comoSeMovio), findsOneWidget);
       // La nota del periodo bajo cada título (entrega 36).
       expect(
@@ -3373,6 +3411,7 @@ void main() {
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
+      await desplegar(tester, Textos.verPorCuenta);
       final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
       final plin = tester.getTopLeft(find.text(Textos.plin));
       final bim = tester.getTopLeft(find.text('Bim'));
@@ -4499,12 +4538,8 @@ void main() {
       });
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaInformes));
-      await tester.scrollUntilVisible(
-        find.text(Textos.loQueTeDebenTitulo),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      // Las deudas, en fichas (entrega 59).
+      await tocar(tester, find.text(Textos.fichaTeDeben).first);
       expect(find.textContaining('Don Pepe'), findsWidgets);
       expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });

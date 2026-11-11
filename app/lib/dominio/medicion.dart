@@ -34,6 +34,10 @@ enum EventoMedicion {
   /// Se comprobó el código de la cuenta; lleva si llegó solo del SMS
   /// (entrega 14.7).
   codigoComprobado,
+
+  /// Se abrió una sección plegada o una explicación; lleva cuál (entrega
+  /// 59), sin montos.
+  seccionAbierta,
 }
 
 abstract interface class Medicion {

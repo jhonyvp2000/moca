@@ -545,6 +545,31 @@ abstract final class Textos {
   // Inicio rediseñado (mejora 01)
   static const tusCuentas = 'Tus cuentas';
   static const verTodas = 'Ver todas';
+  // Menos ruido (entrega 59): lo que se ve a un toque.
+  static const ocultarSeccion = 'Ocultar';
+  static const verPorCuenta = 'Ver por cuenta';
+  static String resumenDeCuentas(List<String> nombres) => switch (nombres) {
+    [] => '',
+    [final una] => una,
+    [final a, final b] => '$a y $b',
+    [final a, final b, final c] => '$a, $b y $c',
+    [final a, final b, ...final resto] => '$a, $b y ${resto.length} más',
+  };
+  static const verDetalleDelMes = 'Ver el detalle del mes';
+  static const verDetalleDelAnio = 'Ver el detalle del año';
+  static const fichaTeDeben = 'Te deben';
+  static const fichaDebes = 'Debes';
+  static String retirastePara(String monto) => 'retiraste $monto para ti';
+  static String pusisteDeTuBolsilloMonto(String monto) =>
+      'pusiste $monto de tu bolsillo';
+  static String enElArqueoSobro(String monto) => 'en el arqueo sobraron $monto';
+  static String enElArqueoFalto(String monto) => 'en el arqueo faltaron $monto';
+  static String tambien(List<String> partes) =>
+      'También ${switch (partes) {
+        [final una] => una,
+        [...final antes, final ultima] => '${antes.join(', ')} y $ultima',
+        _ => '',
+      }}.';
   static const estaSemana = 'Esta semana';
   static const escucharMiSemana = 'Escuchar mi semana';
   static const queEsEstaCifra = '¿Qué es esta cifra?';
