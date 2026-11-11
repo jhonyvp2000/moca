@@ -54,6 +54,8 @@ Ver `fase-0.md`. En resumen:
 
 ## Se resuelven más adelante
 
+- **«Pregúntale», el chat con Moca solo para dueños** (Fase 2 de `producto.md`; analizado el 11-11-2026, Jhony lo deja para después): una ruta del servidor solo para dueños con ~6 herramientas de solo lectura que devuelven cifras ya calculadas (saldos, informe del mes o del año, lo que te deben y debes, buscar registros, gasto por categoría, comparar meses); la IA solo explica. Necesita señal. Estimado: unos 2.5 a 3 días (una primera versión, 1 día), más 40 preguntas de prueba con respuestas exactas. Costo estimado con Claude Haiku 5.5: ~S/ 0.25 al mes por dueño con 3 preguntas al día, ~S/ 0.80 con 10; con Claude Sonnet 5.5, unas 20 veces más. Recomendado: Haiku 5.5 con tope de 20 preguntas al día por negocio, y antes de abrirlo, Moca en su propio espacio de Anthropic con límite de gasto.
+
 - **Modo personal** (idea de Jhony, 11-11-2026; para después de la V1): Moca para personas sin negocio que quieren ordenar sus cuentas. Ningún tipo de negocio sirve hoy («Otro» supone un negocio). Sería un modo aparte, no un tipo más: sin «¿Cuánto vendiste hoy?» ni «Venta del día»; sin «Retiro para mí» ni «Pusiste de tu bolsillo»; categorías del hogar (alimentación, educación, salud, transporte, servicios, vivienda); textos sin «tu negocio» (alta, informes, PDF, cobro); sin fiado, equipo ni arqueo semanal, o con otro sentido; y su propio precio. Se analiza si los pilotos o la Fase 0 muestran demanda. Lo cercano que sí sirve al dueño de hoy es el rubro del hogar en «Retiro para mí» (más abajo).
 
 - ~~El tiempo fuera de Moca antes de pedir la huella~~: 5 minutos (entrega 16.3.1, 03-11-2026).
