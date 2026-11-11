@@ -7,12 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../comun/boton_redondo.dart';
 import '../../comun/estado_vacio.dart';
 import '../../comun/monto_text.dart';
-import '../../comun/opciones.dart';
 import '../../comun/tono.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
-import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -21,6 +19,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'fila_movimiento.dart';
+import 'hoja_filtros.dart';
 
 /// S10 · Historial, con buscar y filtrar (entrega 39). Sin el fiado.
 class PantallaHistorial extends ConsumerStatefulWidget {
@@ -48,106 +47,31 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
     _filtros = const FiltrosDelHistorial();
   });
 
-  /// La hoja «Filtrar»: cuenta, categoría y persona, con lo que hay.
-  Future<void> _abrirFiltros(List<FilaHistorial> todas) async {
-    final cuentas = {for (final f in todas) f.cuenta}.toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-    final categorias = {for (final f in todas) ?f.categoria}.toList()..sort();
-    final personas = <String, String>{
-      for (final f in todas)
-        FiltrosDelHistorial.personaDe(f): f.deOtro
-            ? (f.autorNombre ?? Textos.otraPersona)
-            : Textos.tu,
-    };
-    var elegidas = _filtros;
+  /// La hoja «Filtrar» (entregas 39 y 56): periodo, cuenta, categoría y
+  /// persona, con lo que hay.
+  Future<void> _abrirFiltros(
+    List<FilaHistorial> todas, {
+    required DateTime hoy,
+    required bool conPeriodo,
+  }) async {
     final aplicar = await showModalBottomSheet<FiltrosDelHistorial>(
       context: context,
       isScrollControlled: true,
-      builder: (hoja) => StatefulBuilder(
-        builder: (hoja, cambiar) => SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(Medidas.margenLateral),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(Textos.filtrar, style: Tipografia.tituloPantalla),
-                const SizedBox(height: 16),
-                const Text(Textos.filtroCuenta, style: Tipografia.textoFuerte),
-                const SizedBox(height: 8),
-                OpcionesVarias<TipoCuenta>(
-                  opciones: {
-                    for (final c in cuentas) c: Textos.nombreCuenta(c),
-                  },
-                  elegidas: elegidas.cuentas,
-                  alTocar: (c) => cambiar(
-                    () => elegidas = FiltrosDelHistorial(
-                      texto: elegidas.texto,
-                      cuentas: _alternar(elegidas.cuentas, c),
-                      categorias: elegidas.categorias,
-                      personas: elegidas.personas,
-                    ),
-                  ),
-                ),
-                if (categorias.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text(
-                    Textos.filtroCategoria,
-                    style: Tipografia.textoFuerte,
-                  ),
-                  const SizedBox(height: 8),
-                  OpcionesVarias<String>(
-                    opciones: {for (final c in categorias) c: c},
-                    elegidas: elegidas.categorias,
-                    alTocar: (c) => cambiar(
-                      () => elegidas = FiltrosDelHistorial(
-                        texto: elegidas.texto,
-                        cuentas: elegidas.cuentas,
-                        categorias: _alternar(elegidas.categorias, c),
-                        personas: elegidas.personas,
-                      ),
-                    ),
-                  ),
-                ],
-                // Solo si en el negocio anota más de una persona.
-                if (personas.length > 1) ...[
-                  const SizedBox(height: 16),
-                  const Text(Textos.quienAnoto, style: Tipografia.textoFuerte),
-                  const SizedBox(height: 8),
-                  OpcionesVarias<String>(
-                    opciones: personas,
-                    elegidas: elegidas.personas,
-                    alTocar: (p) => cambiar(
-                      () => elegidas = FiltrosDelHistorial(
-                        texto: elegidas.texto,
-                        cuentas: elegidas.cuentas,
-                        categorias: elegidas.categorias,
-                        personas: _alternar(elegidas.personas, p),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: () => Navigator.of(hoja).pop(elegidas),
-                  child: const Text(Textos.verResultados),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(hoja).pop(elegidas.sinHoja()),
-                  child: const Text(Textos.quitarFiltros),
-                ),
-              ],
-            ),
-          ),
-        ),
+      builder: (hoja) => HojaFiltros(
+        todas: todas,
+        inicial: _filtros,
+        hoy: hoy,
+        conPeriodo: conPeriodo,
+        contar: (f) => todas
+            .where(
+              (x) =>
+                  x.cumple(_filtro) && f.cumple(x, cuenta: Textos.nombreCuenta),
+            )
+            .length,
       ),
     );
     if (aplicar != null) setState(() => _filtros = aplicar);
   }
-
-  static Set<T> _alternar<T>(Set<T> conjunto, T valor) =>
-      conjunto.contains(valor)
-      ? ({...conjunto}..remove(valor))
-      : {...conjunto, valor};
 
   static String _vacio(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => Textos.historialVacio,
@@ -181,8 +105,12 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
         )
         .toList();
     final buscando = !_filtros.vacios;
+    // Con la regla del total del día (entrega 56): sin lo que se debe, y lo
+    // cobrado otro día una sola vez, en el día del pago.
     int suma(bool Function(FilaHistorial) cual) => filas
-        .where((f) => !f.ajusteArqueo && cual(f))
+        .where(
+          (f) => !f.ajusteArqueo && !f.loDebes && !f.pagadoOtroDia && cual(f),
+        )
         .fold(0, (s, f) => s + f.montoCentimos);
 
     // Agrupadas por el día en que se anotaron.
@@ -234,7 +162,11 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                       nombre: _filtros.puestos == 0
                           ? Textos.filtrar
                           : Textos.filtrarCon(_filtros.puestos),
-                      alTocar: () => _abrirFiltros(visibles),
+                      alTocar: () => _abrirFiltros(
+                        visibles,
+                        hoy: hoy,
+                        conPeriodo: !soloHoy,
+                      ),
                     ),
                   ),
                 ],

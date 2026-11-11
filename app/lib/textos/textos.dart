@@ -1258,6 +1258,30 @@ abstract final class Textos {
   static String filtrarCon(int n) => 'Filtrar ($n)';
   static const quitarFiltros = 'Quitar filtros';
   static const verResultados = 'Ver resultados';
+  // Filtrar por fechas (entrega 56).
+  static const periodoTodo = 'Todo';
+  static const unDia = 'Un día';
+  static const unMes = 'Un mes';
+  static const unAnio = 'Un año';
+  static const entreFechas = 'Entre fechas';
+  static const diaAnterior = 'Día anterior';
+  static const diaSiguiente = 'Día siguiente';
+  static const elegirFechas = 'Elegir las fechas';
+  static String verRegistros(int n) =>
+      n == 1 ? 'Ver 1 registro' : 'Ver $n registros';
+  static const ningunRegistroConFiltros = 'No hay registros con estos filtros';
+  static String nMas(int n) => '+ $n más';
+  static const verMenos = 'Ver menos';
+  static String delAl(DateTime desde, DateTime hasta) {
+    String fecha(DateTime d, {bool conMes = true, bool conAnio = false}) =>
+        '${d.day}${conMes ? ' de ${_mes(d)}' : ''}${conAnio ? ' de ${d.year}' : ''}';
+    if (desde == hasta) return 'El ${fecha(desde)}';
+    final otroAnio = desde.year != hasta.year;
+    final mismoMes = !otroAnio && desde.month == hasta.month;
+    return 'Del ${fecha(desde, conMes: !mismoMes, conAnio: otroAnio)} '
+        'al ${fecha(hasta, conAnio: otroAnio)}';
+  }
+
   static const quienAnoto = 'Quién lo anotó';
   static const filtroCuenta = 'Cuenta';
   static const filtroCategoria = 'Categoría';

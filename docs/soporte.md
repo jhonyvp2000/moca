@@ -171,6 +171,10 @@ Si la prueba o el mes vencieron, todos pasan a «solo anotar»: se puede anotar 
 
 El total del día («= S/ 350») es lo que entró menos lo que salió ese día; no cuenta lo que te deben ni lo que debes.
 
+**Buscar por fechas (entrega 56):** Historial → **Filtrar** → **Periodo**: un día, un mes, un año o «Entre fechas». El botón azul de abajo dice cuántos registros va a mostrar; si dice «No hay registros con estos filtros», hay que quitar alguno.
+
+> En el Historial toca «Filtrar», elige «Un mes» y muévete con las flechas al mes que buscas. Luego toca el botón azul de abajo, «Ver N registros».
+
 
 Todo se arregla desde el **Historial**: toca el registro.
 - **«Corregir»:** cambia el monto, la cuenta, la categoría o la nota. Una venta o compra escrita también puede pasar a «todavía me debe» o «todavía lo debo».

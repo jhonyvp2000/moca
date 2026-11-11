@@ -158,12 +158,80 @@ class FilaHistorial {
 /// orden y sin importar mayúsculas ni tildes: en la nota, el proveedor, la
 /// categoría, quién lo anotó o la cuenta. Una palabra con cifras también
 /// encuentra el monto: «80» trae S/ 80 y S/ 80.50; «80.50», solo S/ 80.50.
+/// El periodo del Historial (entrega 56): un día, un mes, un año o entre
+/// dos fechas. [desde] incluido, [hasta] excluido, los dos a medianoche.
+enum TipoPeriodo { dia, mes, anio, rango }
+
+class PeriodoHistorial {
+  const PeriodoHistorial._(this.tipo, this.desde, this.hasta);
+
+  factory PeriodoHistorial.dia(DateTime dia) {
+    final d = DateTime(dia.year, dia.month, dia.day);
+    return PeriodoHistorial._(
+      TipoPeriodo.dia,
+      d,
+      DateTime(d.year, d.month, d.day + 1),
+    );
+  }
+
+  factory PeriodoHistorial.mes(DateTime mes) => PeriodoHistorial._(
+    TipoPeriodo.mes,
+    DateTime(mes.year, mes.month),
+    DateTime(mes.year, mes.month + 1),
+  );
+
+  factory PeriodoHistorial.anio(int anio) =>
+      PeriodoHistorial._(TipoPeriodo.anio, DateTime(anio), DateTime(anio + 1));
+
+  /// Del día [primero] al día [ultimo], los dos incluidos.
+  factory PeriodoHistorial.rango(DateTime primero, DateTime ultimo) =>
+      PeriodoHistorial._(
+        TipoPeriodo.rango,
+        DateTime(primero.year, primero.month, primero.day),
+        DateTime(ultimo.year, ultimo.month, ultimo.day + 1),
+      );
+
+  final TipoPeriodo tipo;
+  final DateTime desde;
+  final DateTime hasta;
+
+  /// El último día incluido.
+  DateTime get ultimoDia => DateTime(hasta.year, hasta.month, hasta.day - 1);
+
+  bool contiene(DateTime fecha) =>
+      !fecha.isBefore(desde) && fecha.isBefore(hasta);
+
+  /// El mismo tipo de periodo, uno antes (-1) o uno después (1). Un rango
+  /// no se mueve.
+  PeriodoHistorial mover(int paso) => switch (tipo) {
+    TipoPeriodo.dia => PeriodoHistorial.dia(
+      DateTime(desde.year, desde.month, desde.day + paso),
+    ),
+    TipoPeriodo.mes => PeriodoHistorial.mes(
+      DateTime(desde.year, desde.month + paso),
+    ),
+    TipoPeriodo.anio => PeriodoHistorial.anio(desde.year + paso),
+    TipoPeriodo.rango => this,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is PeriodoHistorial &&
+      other.tipo == tipo &&
+      other.desde == desde &&
+      other.hasta == hasta;
+
+  @override
+  int get hashCode => Object.hash(tipo, desde, hasta);
+}
+
 class FiltrosDelHistorial {
   const FiltrosDelHistorial({
     this.texto = '',
     this.cuentas = const {},
     this.categorias = const {},
     this.personas = const {},
+    this.periodo,
   });
 
   final String texto;
@@ -173,25 +241,41 @@ class FiltrosDelHistorial {
   /// Quién lo anotó, por [personaDe].
   final Set<String> personas;
 
+  /// Nulo: todo (entrega 56).
+  final PeriodoHistorial? periodo;
+
   static const _sinFiltro = FiltrosDelHistorial();
 
   bool get vacios =>
       texto.trim().isEmpty &&
       cuentas.isEmpty &&
       categorias.isEmpty &&
-      personas.isEmpty;
+      personas.isEmpty &&
+      periodo == null;
 
   /// Cuántos de los filtros de la hoja «Filtrar» están puestos.
   int get puestos =>
+      (periodo == null ? 0 : 1) +
       (cuentas.isEmpty ? 0 : 1) +
       (categorias.isEmpty ? 0 : 1) +
       (personas.isEmpty ? 0 : 1);
 
-  FiltrosDelHistorial conTexto(String nuevo) => FiltrosDelHistorial(
-    texto: nuevo,
-    cuentas: cuentas,
-    categorias: categorias,
-    personas: personas,
+  FiltrosDelHistorial conTexto(String nuevo) => con(texto: nuevo);
+
+  /// Los mismos filtros con lo que se cambie. [sinPeriodo] vuelve a «Todo».
+  FiltrosDelHistorial con({
+    String? texto,
+    Set<TipoCuenta>? cuentas,
+    Set<String>? categorias,
+    Set<String>? personas,
+    PeriodoHistorial? periodo,
+    bool sinPeriodo = false,
+  }) => FiltrosDelHistorial(
+    texto: texto ?? this.texto,
+    cuentas: cuentas ?? this.cuentas,
+    categorias: categorias ?? this.categorias,
+    personas: personas ?? this.personas,
+    periodo: sinPeriodo ? null : periodo ?? this.periodo,
   );
 
   FiltrosDelHistorial sinHoja() => FiltrosDelHistorial(texto: texto);
@@ -202,6 +286,7 @@ class FiltrosDelHistorial {
 
   bool cumple(FilaHistorial f, {required String Function(TipoCuenta) cuenta}) {
     if (identical(this, _sinFiltro)) return true;
+    if (periodo case final p? when !p.contiene(f.fecha)) return false;
     if (cuentas.isNotEmpty &&
         !cuentas.contains(f.cuenta) &&
         !(f.cuentaDestino != null && cuentas.contains(f.cuentaDestino))) {

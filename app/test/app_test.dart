@@ -41,6 +41,7 @@ import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/dominio/historial.dart';
 import 'package:moca/dominio/informe.dart';
 import 'package:moca/pantallas/historial/fila_movimiento.dart';
+import 'package:moca/pantallas/historial/hoja_filtros.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pais/peru/categorias.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
@@ -1216,6 +1217,15 @@ void main() {
         findsOneWidget,
       );
       expect(totales, hasLength(1));
+      // Al buscarla, las dos filas suman una sola vez (entrega 56).
+      await tester.enterText(find.byType(TextField), 'rosa');
+      await tester.pump();
+      expect(
+        find.text(
+          Textos.resumenDeBusqueda(2, formatearSoles(5000), formatearSoles(0)),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Cada pestaña dice en qué entrega llega', (tester) async {
@@ -6322,6 +6332,129 @@ void main() {
       expect(find.text(Textos.sinResultados), findsOneWidget);
     });
 
+    Finder enLaHoja(Finder f) =>
+        find.descendant(of: find.byType(HojaFiltros), matching: f);
+
+    testWidgets('Entrega 56: filtrar por un día, un mes o un año', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      // Un gasto el sábado 10; hoy es lunes 12.
+      final antes = RepositorioMovimientosLocal(
+        base,
+        ahora: () => DateTime(2026, 10, 10, 18),
+      );
+      await tester.runAsync(() async {
+        final gastos = await antes.categorias(TipoMovimiento.egreso);
+        await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 4000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+            nota: 'Gasto del sábado',
+          ),
+        );
+      });
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tocar(tester, find.byTooltip(Textos.filtrar));
+      await tocar(tester, enLaHoja(find.text(Textos.unDia)));
+      expect(enLaHoja(find.text('Lunes 12 de octubre')), findsOneWidget);
+      // Mañana todavía no existe.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tocar(tester, find.byTooltip(Textos.diaAnterior));
+      await tocar(tester, find.byTooltip(Textos.diaAnterior));
+      expect(enLaHoja(find.text('Sábado 10 de octubre')), findsOneWidget);
+      // El botón dice cuántos va a mostrar.
+      await tocar(tester, find.text(Textos.verRegistros(1)));
+      expect(find.byTooltip(Textos.filtrarCon(1)), findsOneWidget);
+      expect(find.text('Gasto del sábado'), findsOneWidget);
+      expect(find.text('Venta del día'), findsNothing);
+      // Un mes: octubre entero.
+      await tocar(tester, find.byTooltip(Textos.filtrarCon(1)));
+      await tocar(tester, enLaHoja(find.text(Textos.unMes)));
+      expect(enLaHoja(find.text('Octubre 2026')), findsOneWidget);
+      await tocar(tester, find.byKey(const ValueKey('verRegistros')));
+      expect(find.text('Gasto del sábado'), findsOneWidget);
+      expect(find.text('Venta del día'), findsOneWidget);
+      // Septiembre: antes del primer registro, no se puede.
+      await tocar(tester, find.byTooltip(Textos.filtrarCon(1)));
+      expect(
+        tester
+            .widget<IconButton>(
+              find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
+            )
+            .onPressed,
+        isNull,
+      );
+      // «Todo» quita el periodo.
+      await tocar(tester, enLaHoja(find.text(Textos.periodoTodo)));
+      await tocar(tester, find.byKey(const ValueKey('verRegistros')));
+      expect(find.byTooltip(Textos.filtrar), findsOneWidget);
+    });
+
+    testWidgets('Entrega 56: con muchas categorías, los botones se ven sin '
+        'bajar y el resto sale con «+ N más»', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final base = await abrirApp(tester, listo: true);
+      final repo = RepositorioMovimientosLocal(base, ahora: () => _ahora);
+      final cuantas = await tester.runAsync(() async {
+        final gastos = await repo.categorias(TipoMovimiento.egreso);
+        for (final c in gastos) {
+          await repo.registrar(
+            NuevoMovimiento(
+              tipo: TipoMovimiento.egreso,
+              montoCentimos: 1000,
+              cuenta: TipoCuenta.efectivo,
+              categoriaId: c.id,
+            ),
+          );
+        }
+        // Más «Venta del día», de la primera venta.
+        return gastos.length + 1;
+      });
+      expect(cuantas, greaterThan(HojaFiltros.categoriasALaVista));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tocar(tester, find.byTooltip(Textos.filtrar));
+      final pantalla = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final boton = tester.getRect(find.byKey(const ValueKey('verRegistros')));
+      expect(boton.bottom, lessThanOrEqualTo(pantalla.height));
+      expect(
+        tester.getRect(find.text(Textos.quitarFiltros).last).bottom,
+        lessThanOrEqualTo(pantalla.height),
+      );
+      final mas = find.textContaining(RegExp(r'^\+ \d+ más$'));
+      await tester.ensureVisible(mas);
+      await tocar(tester, mas);
+      expect(find.text(Textos.verMenos), findsOneWidget);
+      // Sin resultados: el botón lo dice y no se puede tocar.
+      await tocar(tester, find.byTooltip(Textos.cerrar));
+      await tocar(tester, find.textContaining('Entró').first);
+      await tocar(tester, find.byTooltip(Textos.filtrar));
+      await tester.ensureVisible(mas);
+      await tocar(tester, mas);
+      final mercaderia = enLaHoja(find.text('Mercadería'));
+      await tester.ensureVisible(mercaderia);
+      await tocar(tester, mercaderia);
+      expect(find.text(Textos.ningunRegistroConFiltros), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('verRegistros')))
+            .onPressed,
+        isNull,
+      );
+    });
+
     testWidgets(
       '«Filtrar» por categoría; sin «Quién lo anotó» si es uno solo',
       (tester) async {
@@ -6330,7 +6463,7 @@ void main() {
         await tocar(tester, find.byTooltip(Textos.filtrar));
         expect(find.text(Textos.quienAnoto), findsNothing);
         await tocar(tester, find.text('Mercadería').last);
-        await tocar(tester, find.text(Textos.verResultados));
+        await tocar(tester, find.text(Textos.verRegistros(1)));
         expect(find.byTooltip(Textos.filtrarCon(1)), findsOneWidget);
         expect(find.text('Jhony Salar Vela'), findsOneWidget);
         expect(find.text('Venta del día'), findsNothing);
