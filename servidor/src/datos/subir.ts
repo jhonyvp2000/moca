@@ -19,7 +19,9 @@ import {
 export const tablas = {
   cuentas: ['id', 'empresa_id', 'tipo', 'nombre', 'orden', 'saldo_inicial_centimos', 'fecha_saldo_inicial'],
   categorias: ['id', 'empresa_id', 'nombre', 'tipo_movimiento', 'orden', 'activa'],
-  contrapartes: ['id', 'empresa_id', 'nombre', 'identificacion_fiscal', 'tipo'],
+  contrapartes: [
+    'id', 'empresa_id', 'nombre', 'identificacion_fiscal', 'tipo', 'celular', 'recordado_en',
+  ],
   comprobantes: [
     'id', 'empresa_id', 'emisor_identificacion', 'emisor_nombre', 'tipo', 'serie',
     'numero', 'fecha_emision', 'subtotal_centimos', 'impuesto_centimos',
@@ -54,6 +56,24 @@ export const tablas = {
 
 type Tabla = keyof typeof tablas;
 type Fila = Record<string, unknown>;
+
+/**
+ * El celular del cliente (entrega 53) es solo de los dueños: lo que suba otro
+ * rol en esas columnas no cuenta, ni para comparar ni para guardar. Así su
+ * teléfono, que lo recibe vacío, no lo borra.
+ */
+const soloDelDueno: Partial<Record<Tabla, readonly string[]>> = {
+  contrapartes: ['celular', 'recordado_en'],
+};
+
+export function columnasPara(
+  tabla: Tabla,
+  columnas: readonly string[],
+  rol: Miembro['rol'],
+): readonly string[] {
+  const ocultas = soloDelDueno[tabla];
+  return rol === 'dueno' || !ocultas ? columnas : columnas.filter((c) => !ocultas.includes(c));
+}
 
 /** La bitácora y los videos vistos no se modifican: lo que ya está, se deja. */
 const soloAgregar = new Set<Tabla>(['bitacora', 'videos_vistos']);
@@ -194,7 +214,12 @@ async function revisarPermisos(
       ...f,
       empresa_id: miembro.empresaId,
     }));
-    for (const fila of await filasQueCambian(cliente, tabla, columnas, filas)) {
+    for (const fila of await filasQueCambian(
+      cliente,
+      tabla,
+      columnasPara(tabla, columnas, miembro.rol),
+      filas,
+    )) {
       if (cajaAjena(fila.cuenta)) throw new ErrorDeSubida(403, 'sin_permiso');
       if (fila.nueva && fila.autor != null && fila.autor !== usuarioId) {
         throw new ErrorDeSubida(400, 'autor_distinto');
@@ -247,6 +272,8 @@ export async function subir(
     ]);
     // Solo los dueños cambian la empresa; lo demás se revisa fila por fila.
     let tocaLaEmpresa = true;
+    // Quien crea el negocio es su dueño.
+    let rol: Miembro['rol'] = 'dueno';
     if (existe.rowCount) {
       const miembro = await miembroDe(cliente, usuarioId, empresaId);
       if (!miembro) {
@@ -257,6 +284,7 @@ export async function subir(
       }
       await revisarPermisos(cliente, miembro, usuarioId, datos, ahora);
       tocaLaEmpresa = miembro.rol === 'dueno';
+      rol = miembro.rol;
     }
     if (tocaLaEmpresa) {
       await guardar(cliente, 'empresas', columnasEmpresa, [datos.empresa], false);
@@ -285,7 +313,13 @@ export async function subir(
       if (!existe.rowCount && filas.some((f) => 'autor_id' in f && f.autor_id !== usuarioId)) {
         throw new ErrorDeSubida(400, 'autor_distinto');
       }
-      recibidos[tabla] = await guardar(cliente, tabla, columnas, filas, soloAgregar.has(tabla));
+      recibidos[tabla] = await guardar(
+        cliente,
+        tabla,
+        columnasPara(tabla, columnas, rol),
+        filas,
+        soloAgregar.has(tabla),
+      );
     }
     await cliente.query('COMMIT');
     return recibidos;

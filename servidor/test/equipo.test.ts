@@ -279,6 +279,48 @@ describe('Varias personas en un mismo negocio (entrega 17)', () => {
     expect(r.json()).toEqual({ error: 'sin_permiso' });
   });
 
+
+  it('Entrega 53: el celular del cliente es solo de los dueños; otro rol no lo ve ni lo borra', async () => {
+    const cliente = randomUUID();
+    const conCelular = {
+      empresa: lucy.datos.empresa,
+      contrapartes: [
+        {
+          id: cliente,
+          nombre: 'Doña Rosa',
+          tipo: 'cliente',
+          celular: '987654321',
+          recordado_en: hoy,
+        },
+      ],
+    };
+    expect((await pedir(lucho, 'POST', '/datos/subir', conCelular)).statusCode).toBe(200);
+    const delCliente = (lo: { datos: { contrapartes: { id: string }[] } }) =>
+      lo.datos.contrapartes.find((c) => c.id === cliente) as
+        | { celular: string | null; recordado_en: string | null }
+        | undefined;
+    expect(delCliente(await bajar(lucho))?.celular).toBe('987654321');
+    // Al ayudante le llega sin el celular.
+    const delAyudante = delCliente(await bajar(pepe));
+    expect(delAyudante).toBeDefined();
+    expect(delAyudante?.celular).toBeNull();
+    // Y lo que sube su teléfono, sin celular, no lo borra ni lo rechaza.
+    const sinCelular = {
+      empresa: lucy.datos.empresa,
+      contrapartes: [{ ...conCelular.contrapartes[0], celular: null, recordado_en: null }],
+    };
+    expect((await pedir(pepe, 'POST', '/datos/subir', sinCelular)).statusCode).toBe(200);
+    expect(delCliente(await bajar(lucho))?.celular).toBe('987654321');
+    // Otra dueña sí lo cambia.
+    const cambiado = {
+      empresa: lucy.datos.empresa,
+      contrapartes: [{ ...conCelular.contrapartes[0], celular: '912345678' }],
+    };
+    expect((await pedir(rosa, 'POST', '/datos/subir', cambiado)).statusCode).toBe(200);
+    expect(delCliente(await bajar(lucho))?.celular).toBe('912345678');
+    // La contadora tampoco lo ve.
+    expect(delCliente(await bajar(carmen))?.celular).toBeNull();
+  });
   it('el ayudante anota lo suyo y solo deshace lo suyo del día', async () => {
     const { empresa, efectivo, venta, ventaDelDueno } = lucy.ids;
     const deHoy = randomUUID();

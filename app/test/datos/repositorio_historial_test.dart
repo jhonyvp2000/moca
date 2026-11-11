@@ -545,6 +545,40 @@ void main() {
       expect(await repo.observarLoQueTeDeben().first, hasLength(1));
     });
 
+    test(
+      'el celular del cliente y cuándo se le recordó (entrega 53)',
+      () async {
+        final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+        await movimientos.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 4000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ingresos.first.id,
+            pagado: false,
+            contraparte: 'Doña Rosa',
+            celularContraparte: '987000053',
+          ),
+        );
+        var fila = (await repo.observarLoQueTeDeben().first).single;
+        expect(fila.celular, '987000053');
+        expect(fila.recordadoEn, isNull);
+        // Otra venta sin celular no lo borra; una con otro número lo cambia.
+        await venta(10, cliente: 'doña rosa');
+        expect(
+          (await base.select(base.contrapartes).getSingle()).celular,
+          '987000053',
+        );
+        await repo.guardarCelular(fila.contraparteId!, '987000054');
+        await repo.marcarRecordado(fila.contraparteId!);
+        fila = (await repo.observarLoQueTeDeben().first).first;
+        expect(fila.celular, '987000054');
+        expect(fila.recordadoEn, ahora);
+        await repo.guardarCelular(fila.contraparteId!, null);
+        expect((await repo.observarLoQueTeDeben().first).first.celular, isNull);
+      },
+    );
+
     test('no se guarda sin nombre', () async {
       expect(() => venta(30), throwsArgumentError);
       expect(() => venta(30, cliente: '  '), throwsArgumentError);

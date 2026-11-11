@@ -13,6 +13,7 @@ class NuevoMovimiento {
     this.fuente = Fuente.texto,
     this.pagado = true,
     this.contraparte,
+    this.celularContraparte,
   });
 
   final TipoMovimiento tipo;
@@ -36,6 +37,9 @@ class NuevoMovimiento {
 
   /// A quién se le debe (el proveedor) o quién te debe (el cliente).
   final String? contraparte;
+
+  /// El celular de quien te debe, si el dueño lo puso (entrega 53).
+  final String? celularContraparte;
 
   bool get pendiente =>
       (tipo == TipoMovimiento.egreso || tipo == TipoMovimiento.ingreso) &&
@@ -79,11 +83,15 @@ class FiadoDelDia {
     required this.montoCentimos,
     required this.quien,
     this.cuenta = TipoCuenta.efectivo,
+    this.celular,
   });
 
   final int montoCentimos;
   final String quien;
   final TipoCuenta cuenta;
+
+  /// El celular de quien te debe (entrega 53).
+  final String? celular;
 }
 
 class CategoriaVista {

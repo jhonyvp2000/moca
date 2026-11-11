@@ -28,7 +28,16 @@ class FilaHistorial {
     this.vence,
     this.parteDe,
     this.pagadoEnPartesCentimos = 0,
+    this.contraparteId,
+    this.celular,
+    this.recordadoEn,
   });
+
+  /// El cliente o proveedor, su celular y cuándo se le recordó por WhatsApp
+  /// (entrega 53). El celular solo llega a los teléfonos de los dueños.
+  final String? contraparteId;
+  final String? celular;
+  final DateTime? recordadoEn;
 
   final String id;
   final TipoMovimiento tipo;
@@ -102,6 +111,9 @@ class FilaHistorial {
     vence: vence,
     parteDe: parteDe,
     pagadoEnPartesCentimos: pagadoEnPartesCentimos,
+    contraparteId: contraparteId,
+    celular: celular,
+    recordadoEn: recordadoEn,
   );
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
@@ -507,4 +519,10 @@ abstract interface class RepositorioHistorial {
   /// «Deshacer el cobro» o «Deshacer el pago» (entrega 44.2): una deuda
   /// pagada completa vuelve a deberse. Devuelve el saldo de su cuenta.
   Future<int> deshacerPago(String id);
+
+  /// El celular de un cliente, o nulo para quitarlo (entrega 53).
+  Future<void> guardarCelular(String contraparteId, String? celular);
+
+  /// Que se le recordó hoy por WhatsApp (entrega 53).
+  Future<void> marcarRecordado(String contraparteId);
 }

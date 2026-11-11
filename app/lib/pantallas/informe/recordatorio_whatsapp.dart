@@ -28,8 +28,9 @@ String mensajeDeRecordatorio({
   );
 }
 
-/// Abre WhatsApp con el mensaje listo; el dueño elige el contacto. Moca no
-/// guarda el celular del cliente (entrega 45).
+/// Abre WhatsApp con el mensaje listo. Con el celular del cliente va
+/// directo a su chat; sin él, el dueño elige el contacto (entrega 45). Al
+/// abrirse queda la fecha del recordatorio, solo para mostrarla (entrega 53).
 Future<void> recordarPorWhatsApp(
   BuildContext context,
   WidgetRef ref, {
@@ -37,17 +38,25 @@ Future<void> recordarPorWhatsApp(
   required List<FilaHistorial> ventas,
 }) async {
   final mensajes = ScaffoldMessenger.of(context);
+  final repo = ref.read(repositorioHistorialProvider);
   final texto = mensajeDeRecordatorio(
     negocio:
         ref.read(resumenInicioProvider).value?.nombreNegocio ?? 'mi negocio',
     cliente: cliente,
     ventas: ventas,
   );
-  // Sin número: WhatsApp pide el contacto. Con %20 y no «+».
-  final enlace = 'https://wa.me/?text=${Uri.encodeComponent(texto)}';
+  final celular = ventas.map((f) => f.celular).nonNulls.firstOrNull;
+  // Con %20 y no «+».
+  final enlace =
+      'https://wa.me/${celular == null ? '' : celularParaWhatsApp(celular)}'
+      '?text=${Uri.encodeComponent(texto)}';
   if (!await ref.read(abridorProvider).abrir(enlace)) {
     mensajes.showSnackBar(
       const SnackBar(content: Text(Textos.noSeAbrioWhatsApp)),
     );
+    return;
+  }
+  for (final id in {...ventas.map((f) => f.contraparteId).nonNulls}) {
+    await repo.marcarRecordado(id);
   }
 }

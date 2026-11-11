@@ -131,3 +131,17 @@ int? leerSolesConCentimos(String texto) {
   return int.parse(m.group(1)!) * 100 +
       int.parse((m.group(2) ?? '').padRight(2, '0'));
 }
+
+/// El celular de un cliente (entrega 53), escrito como venga: «987 654 321»,
+/// «+51 987654321». Nulo si no es un celular de Perú (9 cifras que empiezan
+/// con 9).
+String? celularDeCliente(String texto) {
+  var cifras = texto.replaceAll(RegExp(r'[^0-9]'), '');
+  if (cifras.length == 11 && cifras.startsWith('51')) {
+    cifras = cifras.substring(2);
+  }
+  return RegExp(r'^9\d{8}$').hasMatch(cifras) ? cifras : null;
+}
+
+/// El número para el enlace de WhatsApp, con el código de Perú.
+String celularParaWhatsApp(String celular) => '51$celular';

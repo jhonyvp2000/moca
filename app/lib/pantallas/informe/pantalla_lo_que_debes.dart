@@ -134,20 +134,9 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                   ),
                   style: Tipografia.cifra(Tipografia.tituloTarjeta),
                 ),
-                // Recordarle por WhatsApp, solo los dueños (entrega 45).
-                if (widget.teDeben && dueno)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => recordarPorWhatsApp(
-                        context,
-                        ref,
-                        cliente: filas.first.proveedor,
-                        ventas: filas,
-                      ),
-                      child: const Text(Textos.recordarPorWhatsApp),
-                    ),
-                  ),
+                // Recordarle por WhatsApp y su celular, solo los dueños
+                // (entregas 45 y 53).
+                if (widget.teDeben && dueno) _Cliente(filas: filas),
                 const SizedBox(height: Medidas.e2),
                 Tarjeta(
                   relleno: EdgeInsets.zero,
@@ -188,6 +177,150 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
           acciones: const [],
         );
       },
+    );
+  }
+}
+
+/// Lo de un cliente que solo ven los dueños: su celular, cuándo se le
+/// recordó y los botones para recordarle o cambiar el número (entrega 53).
+class _Cliente extends ConsumerWidget {
+  const _Cliente({required this.filas});
+
+  final List<FilaHistorial> filas;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final id = filas.map((f) => f.contraparteId).nonNulls.firstOrNull;
+    final celular = filas.map((f) => f.celular).nonNulls.firstOrNull;
+    final recordado = filas
+        .map((f) => f.recordadoEn)
+        .nonNulls
+        .fold<DateTime?>(null, (a, b) => a == null || b.isAfter(a) ? b : a);
+    final datos = [
+      if (celular != null) formatearCelular(celular),
+      if (recordado != null) Textos.leRecordasteEl(formatearDiaYMes(recordado)),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (datos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: Medidas.e1),
+            child: Text(datos.join(' · '), style: Tipografia.secundario),
+          ),
+        Wrap(
+          spacing: Medidas.e2,
+          children: [
+            TextButton(
+              onPressed: () => recordarPorWhatsApp(
+                context,
+                ref,
+                cliente: filas.first.proveedor,
+                ventas: filas,
+              ),
+              child: const Text(Textos.recordarPorWhatsApp),
+            ),
+            if (id != null)
+              TextButton(
+                onPressed: () => _cambiarCelular(context, ref, id, celular),
+                child: Text(
+                  celular == null
+                      ? Textos.agregarCelular
+                      : Textos.cambiarCelular,
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _cambiarCelular(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    String? actual,
+  ) async {
+    final repo = ref.read(repositorioHistorialProvider);
+    final nuevo = await showDialog<({String? celular})>(
+      context: context,
+      builder: (_) => _DialogoCelular(
+        cliente: filas.first.proveedor ?? Textos.sinCliente,
+        actual: actual,
+      ),
+    );
+    if (nuevo != null && nuevo.celular != actual) {
+      await repo.guardarCelular(id, nuevo.celular);
+    }
+  }
+}
+
+/// Escribir, cambiar o borrar el celular de un cliente. Vacío lo borra.
+class _DialogoCelular extends StatefulWidget {
+  const _DialogoCelular({required this.cliente, required this.actual});
+
+  final String cliente;
+  final String? actual;
+
+  @override
+  State<_DialogoCelular> createState() => _EstadoDialogoCelular();
+}
+
+class _EstadoDialogoCelular extends State<_DialogoCelular> {
+  late final _celular = TextEditingController(
+    text: widget.actual == null ? '' : formatearCelular(widget.actual!),
+  );
+  bool _intento = false;
+
+  @override
+  void dispose() {
+    _celular.dispose();
+    super.dispose();
+  }
+
+  bool get _vacio => _celular.text.trim().isEmpty;
+  String? get _valido => celularDeCliente(_celular.text);
+
+  void _guardar() {
+    if (!_vacio && _valido == null) {
+      setState(() => _intento = true);
+      return;
+    }
+    Navigator.of(context).pop((celular: _vacio ? null : _valido));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      scrollable: true,
+      title: Text(Textos.celularDe(widget.cliente)),
+      content: TextField(
+        controller: _celular,
+        autofocus: true,
+        maxLength: 15,
+        keyboardType: TextInputType.phone,
+        style: Tipografia.texto,
+        onChanged: (_) {
+          if (_intento) setState(() {});
+        },
+        onSubmitted: (_) => _guardar(),
+        decoration: InputDecoration(
+          hintText: Textos.celularEjemplo,
+          helperText: Textos.celularDelClienteAyuda,
+          helperMaxLines: 2,
+          errorText: _intento && !_vacio && _valido == null
+              ? Textos.revisaElNumero
+              : null,
+          counterText: '',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(Textos.cancelar),
+        ),
+        FilledButton(onPressed: _guardar, child: const Text(Textos.guardar)),
+      ],
     );
   }
 }

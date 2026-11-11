@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -48,6 +49,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   bool _conFiado = false;
   final _fiado = TextEditingController();
   final _quien = TextEditingController();
+  final _celular = TextEditingController();
 
   @override
   void initState() {
@@ -73,6 +75,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     }
     _fiado.dispose();
     _quien.dispose();
+    _celular.dispose();
     super.dispose();
   }
 
@@ -95,8 +98,21 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   /// Lo fiado lleva a quién, como en «Escribirlo» (entrega 42).
   bool get _faltaQuien => _fiadoCentimos > 0 && _quien.text.trim().isEmpty;
 
+  /// El celular del cliente, solo los dueños (entrega 53).
+  bool get _pideCelular =>
+      (ref.read(permisosProvider).value ?? Permisos.delDueno).rol == Rol.dueno;
+
+  bool get _celularMal =>
+      _conFiado &&
+      _pideCelular &&
+      _celular.text.trim().isNotEmpty &&
+      celularDeCliente(_celular.text) == null;
+
   bool get _sePuedeGuardar =>
-      (_total > 0 || _fiadoCentimos > 0) && !_faltaQuien && !_guardando;
+      (_total > 0 || _fiadoCentimos > 0) &&
+      !_faltaQuien &&
+      !_celularMal &&
+      !_guardando;
 
   Future<void> _guardar() async {
     setState(() => _guardando = true);
@@ -124,6 +140,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
                 montoCentimos: _fiadoCentimos,
                 quien: _quien.text.trim(),
                 cuenta: caja,
+                celular: _pideCelular ? celularDeCliente(_celular.text) : null,
               )
             : null,
       );
@@ -213,6 +230,24 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
               counterText: '',
             ),
           ),
+          if (_pideCelular) ...[
+            const SizedBox(height: Medidas.e3),
+            Text(Textos.suCelularOpcional, style: Tipografia.tituloSeccion),
+            const SizedBox(height: Medidas.e2),
+            TextField(
+              controller: _celular,
+              maxLength: 15,
+              keyboardType: TextInputType.phone,
+              style: Tipografia.texto,
+              onChanged: actualizar,
+              decoration: InputDecoration(
+                hintText: Textos.celularEjemplo,
+                helperText: Textos.celularDelClienteAyuda,
+                errorText: _celularMal ? Textos.revisaElNumero : null,
+                counterText: '',
+              ),
+            ),
+          ],
         ],
         Wrap(
           spacing: Medidas.e2,
@@ -258,11 +293,14 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
         ],
       ],
       acciones: [
-        if (_faltaQuien)
+        if (_faltaQuien || _celularMal)
           Padding(
             padding: const EdgeInsets.only(bottom: Medidas.e2),
             child: Text(
-              Textos.falta([Textos.faltaQuienTeDebe]),
+              Textos.falta([
+                if (_faltaQuien) Textos.faltaQuienTeDebe,
+                if (_celularMal) Textos.faltaRevisarElNumero,
+              ]),
               style: Tipografia.apoyo.copyWith(color: Colores.pendienteTexto),
             ),
           ),

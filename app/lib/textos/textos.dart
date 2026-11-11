@@ -851,6 +851,16 @@ abstract final class Textos {
       'Eliges a dónde entró la plata cuando te pague.';
   static const quienTeDebe = '¿Quién te debe?';
   static const quienTeDebeEjemplo = 'Su nombre';
+  // El celular del cliente, para recordarle por WhatsApp (entrega 53).
+  static const suCelularOpcional = 'Su celular (opcional)';
+  static const agregarCelular = 'Agregar celular';
+  static const cambiarCelular = 'Cambiar celular';
+  static const revisaElNumero = 'Revisa el número';
+  static const faltaRevisarElNumero = 'revisar el número';
+  static const celularDelClienteAyuda =
+      'Solo lo ven los dueños. Sirve para recordarle por WhatsApp.';
+  static String celularDe(String cliente) => 'Celular de $cliente';
+  static String leRecordasteEl(String fecha) => 'Le recordaste el $fecha';
   static const todaviaTeDebe =
       'Todavía te deben esta venta. No sube tu saldo hasta que te paguen.';
   static const yaMePago = 'Ya me pagó';

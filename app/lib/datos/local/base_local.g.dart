@@ -1808,6 +1808,28 @@ class $ContrapartesTable extends Contrapartes
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TipoContraparte>($ContrapartesTable.$convertertipo);
+  static const VerificationMeta _celularMeta = const VerificationMeta(
+    'celular',
+  );
+  @override
+  late final GeneratedColumn<String> celular = GeneratedColumn<String>(
+    'celular',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recordadoEnMeta = const VerificationMeta(
+    'recordadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recordadoEn = GeneratedColumn<DateTime>(
+    'recordado_en',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1815,6 +1837,8 @@ class $ContrapartesTable extends Contrapartes
     nombre,
     identificacionFiscal,
     tipo,
+    celular,
+    recordadoEn,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1858,6 +1882,21 @@ class $ContrapartesTable extends Contrapartes
         ),
       );
     }
+    if (data.containsKey('celular')) {
+      context.handle(
+        _celularMeta,
+        celular.isAcceptableOrUnknown(data['celular']!, _celularMeta),
+      );
+    }
+    if (data.containsKey('recordado_en')) {
+      context.handle(
+        _recordadoEnMeta,
+        recordadoEn.isAcceptableOrUnknown(
+          data['recordado_en']!,
+          _recordadoEnMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1889,6 +1928,14 @@ class $ContrapartesTable extends Contrapartes
           data['${effectivePrefix}tipo'],
         )!,
       ),
+      celular: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}celular'],
+      ),
+      recordadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recordado_en'],
+      ),
     );
   }
 
@@ -1907,12 +1954,20 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
   final String nombre;
   final String? identificacionFiscal;
   final TipoContraparte tipo;
+
+  /// El celular del cliente, para recordarle por WhatsApp, y cuándo se le
+  /// recordó por última vez (entrega 53). Solo los dueños lo tienen: a los
+  /// demás roles el servidor se lo manda vacío.
+  final String? celular;
+  final DateTime? recordadoEn;
   const Contraparte({
     required this.id,
     required this.empresaId,
     required this.nombre,
     this.identificacionFiscal,
     required this.tipo,
+    this.celular,
+    this.recordadoEn,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1928,6 +1983,12 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
         $ContrapartesTable.$convertertipo.toSql(tipo),
       );
     }
+    if (!nullToAbsent || celular != null) {
+      map['celular'] = Variable<String>(celular);
+    }
+    if (!nullToAbsent || recordadoEn != null) {
+      map['recordado_en'] = Variable<DateTime>(recordadoEn);
+    }
     return map;
   }
 
@@ -1940,6 +2001,12 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ? const Value.absent()
           : Value(identificacionFiscal),
       tipo: Value(tipo),
+      celular: celular == null && nullToAbsent
+          ? const Value.absent()
+          : Value(celular),
+      recordadoEn: recordadoEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordadoEn),
     );
   }
 
@@ -1958,6 +2025,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
       tipo: $ContrapartesTable.$convertertipo.fromJson(
         serializer.fromJson<String>(json['tipo']),
       ),
+      celular: serializer.fromJson<String?>(json['celular']),
+      recordadoEn: serializer.fromJson<DateTime?>(json['recordadoEn']),
     );
   }
   @override
@@ -1971,6 +2040,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
       'tipo': serializer.toJson<String>(
         $ContrapartesTable.$convertertipo.toJson(tipo),
       ),
+      'celular': serializer.toJson<String?>(celular),
+      'recordadoEn': serializer.toJson<DateTime?>(recordadoEn),
     };
   }
 
@@ -1980,6 +2051,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
     String? nombre,
     Value<String?> identificacionFiscal = const Value.absent(),
     TipoContraparte? tipo,
+    Value<String?> celular = const Value.absent(),
+    Value<DateTime?> recordadoEn = const Value.absent(),
   }) => Contraparte(
     id: id ?? this.id,
     empresaId: empresaId ?? this.empresaId,
@@ -1988,6 +2061,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
         ? identificacionFiscal.value
         : this.identificacionFiscal,
     tipo: tipo ?? this.tipo,
+    celular: celular.present ? celular.value : this.celular,
+    recordadoEn: recordadoEn.present ? recordadoEn.value : this.recordadoEn,
   );
   Contraparte copyWithCompanion(ContrapartesCompanion data) {
     return Contraparte(
@@ -1998,6 +2073,10 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ? data.identificacionFiscal.value
           : this.identificacionFiscal,
       tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      celular: data.celular.present ? data.celular.value : this.celular,
+      recordadoEn: data.recordadoEn.present
+          ? data.recordadoEn.value
+          : this.recordadoEn,
     );
   }
 
@@ -2008,14 +2087,23 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ..write('empresaId: $empresaId, ')
           ..write('nombre: $nombre, ')
           ..write('identificacionFiscal: $identificacionFiscal, ')
-          ..write('tipo: $tipo')
+          ..write('tipo: $tipo, ')
+          ..write('celular: $celular, ')
+          ..write('recordadoEn: $recordadoEn')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, empresaId, nombre, identificacionFiscal, tipo);
+  int get hashCode => Object.hash(
+    id,
+    empresaId,
+    nombre,
+    identificacionFiscal,
+    tipo,
+    celular,
+    recordadoEn,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2024,7 +2112,9 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           other.empresaId == this.empresaId &&
           other.nombre == this.nombre &&
           other.identificacionFiscal == this.identificacionFiscal &&
-          other.tipo == this.tipo);
+          other.tipo == this.tipo &&
+          other.celular == this.celular &&
+          other.recordadoEn == this.recordadoEn);
 }
 
 class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
@@ -2033,6 +2123,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
   final Value<String> nombre;
   final Value<String?> identificacionFiscal;
   final Value<TipoContraparte> tipo;
+  final Value<String?> celular;
+  final Value<DateTime?> recordadoEn;
   final Value<int> rowid;
   const ContrapartesCompanion({
     this.id = const Value.absent(),
@@ -2040,6 +2132,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     this.nombre = const Value.absent(),
     this.identificacionFiscal = const Value.absent(),
     this.tipo = const Value.absent(),
+    this.celular = const Value.absent(),
+    this.recordadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ContrapartesCompanion.insert({
@@ -2048,6 +2142,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     required String nombre,
     this.identificacionFiscal = const Value.absent(),
     required TipoContraparte tipo,
+    this.celular = const Value.absent(),
+    this.recordadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        empresaId = Value(empresaId),
@@ -2059,6 +2155,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     Expression<String>? nombre,
     Expression<String>? identificacionFiscal,
     Expression<String>? tipo,
+    Expression<String>? celular,
+    Expression<DateTime>? recordadoEn,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2068,6 +2166,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
       if (identificacionFiscal != null)
         'identificacion_fiscal': identificacionFiscal,
       if (tipo != null) 'tipo': tipo,
+      if (celular != null) 'celular': celular,
+      if (recordadoEn != null) 'recordado_en': recordadoEn,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2078,6 +2178,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     Value<String>? nombre,
     Value<String?>? identificacionFiscal,
     Value<TipoContraparte>? tipo,
+    Value<String?>? celular,
+    Value<DateTime?>? recordadoEn,
     Value<int>? rowid,
   }) {
     return ContrapartesCompanion(
@@ -2086,6 +2188,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
       nombre: nombre ?? this.nombre,
       identificacionFiscal: identificacionFiscal ?? this.identificacionFiscal,
       tipo: tipo ?? this.tipo,
+      celular: celular ?? this.celular,
+      recordadoEn: recordadoEn ?? this.recordadoEn,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2112,6 +2216,12 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
         $ContrapartesTable.$convertertipo.toSql(tipo.value),
       );
     }
+    if (celular.present) {
+      map['celular'] = Variable<String>(celular.value);
+    }
+    if (recordadoEn.present) {
+      map['recordado_en'] = Variable<DateTime>(recordadoEn.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2126,6 +2236,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
           ..write('nombre: $nombre, ')
           ..write('identificacionFiscal: $identificacionFiscal, ')
           ..write('tipo: $tipo, ')
+          ..write('celular: $celular, ')
+          ..write('recordadoEn: $recordadoEn, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11051,6 +11163,8 @@ typedef $$ContrapartesTableCreateCompanionBuilder =
       required String nombre,
       Value<String?> identificacionFiscal,
       required TipoContraparte tipo,
+      Value<String?> celular,
+      Value<DateTime?> recordadoEn,
       Value<int> rowid,
     });
 typedef $$ContrapartesTableUpdateCompanionBuilder =
@@ -11060,6 +11174,8 @@ typedef $$ContrapartesTableUpdateCompanionBuilder =
       Value<String> nombre,
       Value<String?> identificacionFiscal,
       Value<TipoContraparte> tipo,
+      Value<String?> celular,
+      Value<DateTime?> recordadoEn,
       Value<int> rowid,
     });
 
@@ -11131,6 +11247,16 @@ class $$ContrapartesTableFilterComposer
   get tipo => $composableBuilder(
     column: $table.tipo,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get celular => $composableBuilder(
+    column: $table.celular,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => ColumnFilters(column),
   );
 
   $$EmpresasTableFilterComposer get empresaId {
@@ -11211,6 +11337,16 @@ class $$ContrapartesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get celular => $composableBuilder(
+    column: $table.celular,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EmpresasTableOrderingComposer get empresaId {
     final $$EmpresasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11257,6 +11393,14 @@ class $$ContrapartesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<TipoContraparte, String> get tipo =>
       $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<String> get celular =>
+      $composableBuilder(column: $table.celular, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => column,
+  );
 
   $$EmpresasTableAnnotationComposer get empresaId {
     final $$EmpresasTableAnnotationComposer composer = $composerBuilder(
@@ -11340,6 +11484,8 @@ class $$ContrapartesTableTableManager
                 Value<String> nombre = const Value.absent(),
                 Value<String?> identificacionFiscal = const Value.absent(),
                 Value<TipoContraparte> tipo = const Value.absent(),
+                Value<String?> celular = const Value.absent(),
+                Value<DateTime?> recordadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContrapartesCompanion(
                 id: id,
@@ -11347,6 +11493,8 @@ class $$ContrapartesTableTableManager
                 nombre: nombre,
                 identificacionFiscal: identificacionFiscal,
                 tipo: tipo,
+                celular: celular,
+                recordadoEn: recordadoEn,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11356,6 +11504,8 @@ class $$ContrapartesTableTableManager
                 required String nombre,
                 Value<String?> identificacionFiscal = const Value.absent(),
                 required TipoContraparte tipo,
+                Value<String?> celular = const Value.absent(),
+                Value<DateTime?> recordadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContrapartesCompanion.insert(
                 id: id,
@@ -11363,6 +11513,8 @@ class $$ContrapartesTableTableManager
                 nombre: nombre,
                 identificacionFiscal: identificacionFiscal,
                 tipo: tipo,
+                celular: celular,
+                recordadoEn: recordadoEn,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -227,6 +227,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         fuente: m.fuente,
         pendiente: m.pendiente,
         contraparte: m.pendiente ? m.contraparte : null,
+        celular: m.pendiente ? m.celularContraparte : null,
       );
       return Guardado(ids: [id], tienesHoyCentimos: await _tienesHoy());
     });
@@ -273,6 +274,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             fuente: fuente,
             pendiente: true,
             contraparte: fiado.quien.trim(),
+            celular: fiado.celular,
           ),
         );
       }
@@ -290,6 +292,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     Fuente fuente = Fuente.texto,
     bool pendiente = false,
     String? contraparte,
+    String? celular,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
@@ -307,6 +310,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
                 ? TipoContraparte.cliente
                 : TipoContraparte.proveedor,
             nombre: contraparte,
+            celular: celular,
           )
         : null;
     await _base

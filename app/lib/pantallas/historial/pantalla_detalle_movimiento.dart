@@ -380,6 +380,20 @@ class _EstadoDetalleMovimiento
             onPressed: activo ? () => _pagar(d) : null,
             child: Text(f.teDeben ? Textos.yaMePago : Textos.yaLoPague),
           ),
+        // Cuándo se le recordó, solo para que el dueño lo vea (entrega 53).
+        if (d.vigente &&
+            f.teDeben &&
+            f.recordadoEn != null &&
+            (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
+                Rol.dueno)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Medidas.e1),
+            child: Text(
+              Textos.leRecordasteEl(formatearDiaYMes(f.recordadoEn!)),
+              textAlign: TextAlign.center,
+              style: Tipografia.secundario,
+            ),
+          ),
         // Una venta a crédito: recordarle al cliente (entrega 45).
         if (d.vigente &&
             f.teDeben &&

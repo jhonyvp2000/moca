@@ -29,7 +29,7 @@ Desde la entrega 17. Un dueño invita a un número de celular con un rol y un no
 Dónde está la plata. Campos: tipo (efectivo, Yape, BCP —el tipo `banco`— y, si el dueño los usa, Plin, Sip u otra billetera, e Interbank, BBVA, Scotiabank u otro banco o caja; la otra billetera y el otro banco llevan el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta. Desde la entrega 21 puede haber varias cajas de efectivo con nombre, cada una con una o varias personas responsables; Yape, Plin y banco son del negocio. Pasar plata de una caja o cuenta a otra es un movimiento propio, ni venta ni gasto.
 
 ### Contraparte
-Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo. Su saldo pendiente se calcula a partir de los movimientos.
+Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo, celular (opcional, entrega 53) y cuándo se le recordó por WhatsApp (`recordado_en`). Su saldo pendiente se calcula a partir de los movimientos. Solo los dueños cambian el celular y `recordado_en`: el servidor ignora lo que los demás roles suban en esas columnas, y el celular se lo manda vacío.
 
 ### Comprobante
 Documento que sustenta uno o más movimientos. Campos: emisor, tipo, serie, número, fecha de emisión, subtotal, impuesto, total, imagen, origen de la lectura (QR, foto, SIRE) y resultado de las validaciones. Llave única por empresa: emisor + tipo + serie + número. Cuando un comprobante llega por SIRE y por foto, la foto enriquece el registro; no crea otro.

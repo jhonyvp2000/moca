@@ -175,6 +175,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a Informes → **Lo que te deben**. Ahí está cada cliente con lo que falta. Toca **Recordar por WhatsApp** y elige el contacto del cliente: el mensaje ya va escrito.
 
+**Con el celular del cliente (entrega 53):** si el dueño guardó su número (al fiar, «Su celular (opcional)», o en «Lo que te deben» → **Agregar celular**), WhatsApp abre directo el chat del cliente. Debajo del nombre sale el número y «Le recordaste el …». Si dice **«Revisa el número»**: son 9 cifras y empieza con 9 (el +51 puede ir o no). Si un encargado o ayudante dice que no ve el celular ni el botón, es así a propósito: solo los dueños.
+
+> Para que WhatsApp abra directo su chat: Informes → Lo que te deben → **Agregar celular** debajo del nombre del cliente, escribe su número y toca Guardar.
+
 **Cómo se fía:** desde **«Escribirlo»** (Entró → «Todavía me debe» → el nombre), **por voz** («Le fié 50 a doña Rosa») o, desde la entrega 52, en **«Anotar la venta de hoy»** → **«+ Al fiado»**: el monto fiado y el nombre, junto con lo cobrado. Lo fiado no sube «Tienes hoy» hasta que te paguen; se ve en la píldora del Inicio («· S/ 80 al fiado») y en Informes → «Lo que te deben».
 
 > Para anotar lo que fiaste hoy junto con la venta: + → «Venta del día» → «+ Al fiado», pon cuánto y quién te debe, y guarda.

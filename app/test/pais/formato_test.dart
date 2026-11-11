@@ -74,4 +74,18 @@ void main() {
       'Ayer · sábado 31',
     );
   });
+
+  test(
+    'El celular de un cliente: 9 cifras que empiezan con 9 (entrega 53)',
+    () {
+      expect(celularDeCliente('987 654 321'), '987654321');
+      expect(celularDeCliente('+51 987-654-321'), '987654321');
+      expect(celularDeCliente('51987654321'), '987654321');
+      expect(celularDeCliente('87654321'), isNull);
+      expect(celularDeCliente('887654321'), isNull);
+      expect(celularDeCliente('9876543210'), isNull);
+      expect(celularDeCliente(''), isNull);
+      expect(celularParaWhatsApp('987654321'), '51987654321');
+    },
+  );
 }

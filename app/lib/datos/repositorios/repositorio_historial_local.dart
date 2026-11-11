@@ -46,6 +46,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       movimientos: await _a.movimientos(empresa.id),
       categorias: {for (final c in categorias) c.id: c.nombre},
       contrapartes: {for (final c in contrapartes) c.id: c.nombre},
+      clientes: {for (final c in contrapartes) c.id: c},
       comprobantes: {for (final c in comprobantes) c.id: c},
       ajustes: await _a.ajustes(empresa.id),
     );
@@ -91,6 +92,9 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       pagadoEnPartesCentimos: d
           .partesDe(m.id)
           .fold(0, (s, p) => s + p.montoCentimos),
+      contraparteId: m.contraparteId,
+      celular: d.clientes[m.contraparteId]?.celular,
+      recordadoEn: d.clientes[m.contraparteId]?.recordadoEn,
     );
   }
 
@@ -298,6 +302,18 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     montoPagadoCentimos: 0,
     fechaPago: const Value(null),
   );
+
+  @override
+  Future<void> guardarCelular(String contraparteId, String? celular) =>
+      (_base.update(_base.contrapartes)
+            ..where((c) => c.id.equals(contraparteId)))
+          .write(ContrapartesCompanion(celular: Value(celular)));
+
+  @override
+  Future<void> marcarRecordado(String contraparteId) =>
+      (_base.update(_base.contrapartes)
+            ..where((c) => c.id.equals(contraparteId)))
+          .write(ContrapartesCompanion(recordadoEn: Value(_a.ahora())));
 
   @override
   Future<int> deshacerPago(String id) => _base.transaction(() async {
@@ -895,6 +911,7 @@ class _Datos {
     required this.movimientos,
     required this.categorias,
     required this.contrapartes,
+    required this.clientes,
     required this.comprobantes,
     required this.ajustes,
   });
@@ -907,6 +924,9 @@ class _Datos {
   final List<Movimiento> movimientos;
   final Map<String, String> categorias;
   final Map<String, String> contrapartes;
+
+  /// Las filas completas, con el celular y el último recordatorio (53).
+  final Map<String, Contraparte> clientes;
   final Map<String, Comprobante> comprobantes;
   final List<AjusteArqueo> ajustes;
 

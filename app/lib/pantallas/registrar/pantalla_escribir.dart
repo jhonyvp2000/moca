@@ -57,6 +57,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   final _monto = TextEditingController();
   final _nota = TextEditingController();
   final _contraparte = TextEditingController();
+  final _celular = TextEditingController();
 
   /// Falso: «Todavía lo debo» en «Salió» (entrega 41) o «Todavía me debe»
   /// en «Entró» (entrega 42).
@@ -119,6 +120,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     _monto.dispose();
     _nota.dispose();
     _contraparte.dispose();
+    _celular.dispose();
     super.dispose();
   }
 
@@ -136,6 +138,21 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   String? get _nombreContraparte =>
       _contraparte.text.trim().isEmpty ? null : _contraparte.text.trim();
 
+  /// El celular del cliente, solo para los dueños y al anotar (entrega 53).
+  bool get _pideCelular =>
+      _teDeben &&
+      widget.corrigiendo == null &&
+      (ref.read(permisosProvider).value ?? Permisos.delDueno).rol == Rol.dueno;
+
+  String? get _celularCliente =>
+      _pideCelular ? celularDeCliente(_celular.text) : null;
+
+  /// Escribió algo que no es un celular: no se guarda hasta corregirlo.
+  bool get _celularMal =>
+      _pideCelular &&
+      _celular.text.trim().isNotEmpty &&
+      celularDeCliente(_celular.text) == null;
+
   int get _montoCentimos =>
       _montoOriginal ?? leerSolesEnCentimos(_monto.text) ?? 0;
 
@@ -147,7 +164,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         final t => t.delDueno || _categoriaId != null,
       } &&
       // Una venta a crédito lleva quién te debe (entrega 42).
-      !(_teDeben && _nombreContraparte == null);
+      !(_teDeben && _nombreContraparte == null) &&
+      !_celularMal;
 
   /// Al corregir, si no cambió nada no se guarda nada.
   bool get _sinCambios {
@@ -214,6 +232,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       nota: _nota.text,
       pagado: !_loDebe,
       contraparte: _loDebe ? _nombreContraparte : null,
+      celularContraparte: _celularCliente,
     );
     final repo = ref.read(repositorioMovimientosProvider);
     setState(() => _guardando = true);
@@ -278,6 +297,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     if (_tipo?.esPase == true && (_destino == null || _destino == _cuenta))
       Textos.faltaADondeVa,
     if (_teDeben && _nombreContraparte == null) Textos.faltaQuienTeDebe,
+    if (_celularMal) Textos.faltaRevisarElNumero,
   ];
 
   /// Lo que se pregunta después de elegir qué fue: si ya se pagó, la
@@ -361,6 +381,28 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
             ),
           ),
         ),
+        if (_pideCelular) ...[
+          const SizedBox(height: Medidas.e5),
+          Text(Textos.suCelularOpcional, style: etiqueta),
+          const SizedBox(height: Medidas.e2),
+          TextField(
+            controller: _celular,
+            maxLength: 15,
+            keyboardType: TextInputType.phone,
+            style: Tipografia.texto,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: Textos.celularEjemplo,
+              helperText: Textos.celularDelClienteAyuda,
+              errorText: _celularMal ? Textos.revisaElNumero : null,
+              counterText: '',
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: Medidas.e4,
+                vertical: Medidas.e3,
+              ),
+            ),
+          ),
+        ],
       ] else ...[
         const SizedBox(height: Medidas.e5),
         Text(switch (tipo) {

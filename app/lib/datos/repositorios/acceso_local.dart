@@ -32,6 +32,7 @@ class AccesoLocal {
     TipoContraparte tipo = TipoContraparte.proveedor,
     String? nombre,
     String? ruc,
+    String? celular,
   }) async {
     final n = nombre?.trim();
     final conNombre = n != null && n.isNotEmpty;
@@ -45,7 +46,15 @@ class AccesoLocal {
           ((ruc != null && c.identificacionFiscal == ruc) ||
               (conNombre && c.nombre.toLowerCase() == n.toLowerCase())),
     );
-    if (mismo.isNotEmpty) return mismo.first.id;
+    if (mismo.isNotEmpty) {
+      // Un celular nuevo para un cliente que ya estaba (entrega 53).
+      if (celular != null && mismo.first.celular != celular) {
+        await (base.update(base.contrapartes)
+              ..where((c) => c.id.equals(mismo.first.id)))
+            .write(ContrapartesCompanion(celular: Value(celular)));
+      }
+      return mismo.first.id;
+    }
     final id = nuevoId();
     await base
         .into(base.contrapartes)
@@ -56,6 +65,7 @@ class AccesoLocal {
             nombre: conNombre ? n : 'RUC $ruc',
             identificacionFiscal: Value(ruc),
             tipo: tipo,
+            celular: Value(celular),
           ),
         );
     return id;
@@ -547,6 +557,8 @@ class AccesoLocal {
           base.empresas,
           base.cuentas,
           base.movimientos,
+          // El celular del cliente (entrega 53) también se sube y se ve.
+          base.contrapartes,
           base.categorias,
           base.arqueos,
           base.ajustes,

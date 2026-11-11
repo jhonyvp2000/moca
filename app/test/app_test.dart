@@ -1482,6 +1482,75 @@ void main() {
       expect(find.text(Textos.deshicisteCobro), findsOneWidget);
     });
 
+    testWidgets('Entrega 53: el celular del cliente lleva el recordatorio '
+        'directo a su chat', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.entro).first);
+      await tester.enterText(find.byType(TextField).first, '150');
+      await tester.pump();
+      await tocar(tester, find.text(Textos.todaviaMeDebe));
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Don Pablo',
+      );
+      // Un número que no es de celular no se guarda.
+      final campo = find.widgetWithText(TextField, Textos.celularEjemplo);
+      await tester.enterText(campo, '98 76');
+      await tester.pump();
+      expect(find.text(Textos.revisaElNumero), findsOneWidget);
+      expect(botonGuardar(tester).onPressed, isNull);
+      await tester.enterText(campo, '+51 987 000 053');
+      await tester.pump();
+      expect(find.text(Textos.revisaElNumero), findsNothing);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tester.scrollUntilVisible(
+        find.text(Textos.loQueTeDebenTitulo),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tocar(tester, find.text(Textos.loQueTeDebenTitulo));
+      expect(find.text('987 000 053'), findsOneWidget);
+      expect(find.text(Textos.cambiarCelular), findsOneWidget);
+      // Con su número, WhatsApp abre su chat; queda cuándo se le recordó.
+      await tocar(tester, find.text(Textos.recordarPorWhatsApp));
+      expect(_abiertos.single, startsWith('https://wa.me/51987000053?text='));
+      await esperar(tester);
+      expect(find.textContaining(Textos.leRecordasteEl('')), findsOneWidget);
+      // Cambiarlo: un número mal escrito no se guarda; vacío lo borra.
+      await tocar(tester, find.text(Textos.cambiarCelular));
+      final dialogo = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(dialogo, '123');
+      await tocar(
+        tester,
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(Textos.guardar),
+        ),
+      );
+      expect(find.text(Textos.revisaElNumero), findsOneWidget);
+      await tester.enterText(dialogo, '');
+      await tocar(
+        tester,
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text(Textos.guardar),
+        ),
+      );
+      await esperar(tester);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text(Textos.agregarCelular), findsOneWidget);
+      _abiertos.clear();
+      await tocar(tester, find.text(Textos.recordarPorWhatsApp));
+      expect(_abiertos.single, startsWith('https://wa.me/?text='));
+    });
+
     testWidgets('Entrega 44: cobrar una venta a crédito en partes', (
       tester,
     ) async {

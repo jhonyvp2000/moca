@@ -1835,6 +1835,9 @@ class ServicioCuentaRemoto
           nombre: c['nombre']! as String,
           identificacionFiscal: Value(c['identificacion_fiscal'] as String?),
           tipo: _enum(TipoContraparte.values, c['tipo']),
+          // Entrega 53: a quien no es dueño le llega vacío.
+          celular: Value(c['celular'] as String?),
+          recordadoEn: Value(_desdeFechaONulo(c['recordado_en'])),
         ),
     ]);
     poner(_base.comprobantes, [
@@ -2155,6 +2158,8 @@ class ServicioCuentaRemoto
             'nombre': c.nombre,
             'identificacion_fiscal': c.identificacionFiscal,
             'tipo': c.tipo.name,
+            'celular': c.celular,
+            'recordado_en': c.recordadoEn?.toUtc().toIso8601String(),
           },
       ],
       'comprobantes': [

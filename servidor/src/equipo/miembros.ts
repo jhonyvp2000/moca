@@ -142,6 +142,10 @@ export function columnaParaRol(tabla: string, columna: string, rol: Rol): string
   ) {
     return 'CASE WHEN id = ANY($3::uuid[]) THEN saldo_inicial_centimos END AS saldo_inicial_centimos';
   }
+  // El celular del cliente, solo para los dueños (entrega 53).
+  if (rol !== 'dueno' && tabla === 'contrapartes' && columna === 'celular') {
+    return 'NULL::text AS celular';
+  }
   return columna;
 }
 

@@ -57,6 +57,12 @@ class Contrapartes extends Table with _ConId {
   TextColumn get nombre => text()();
   TextColumn get identificacionFiscal => text().nullable()();
   TextColumn get tipo => textEnum<TipoContraparte>()();
+
+  /// El celular del cliente, para recordarle por WhatsApp, y cuándo se le
+  /// recordó por última vez (entrega 53). Solo los dueños lo tienen: a los
+  /// demás roles el servidor se lo manda vacío.
+  TextColumn get celular => text().nullable()();
+  DateTimeColumn get recordadoEn => dateTime().nullable()();
 }
 
 class Comprobantes extends Table with _ConId {
