@@ -176,6 +176,7 @@ Estados aprobados el 13-10-2026 (entrega 8):
 - Desde la entrega 39, el Historial tiene un buscador por palabras («Jhony Vela» trae «Jhony Salar Vela»; «80» trae los de S/ 80) y «Filtrar» por cuenta, categoría y persona, con la suma de lo encontrado.
 
 - Desde la entrega 48, «¿Qué tipo de negocio es?» tiene 16 opciones (de Bodega a Transporte), una por fila, cada una con sus categorías de gasto propias.
+- Desde la entrega 52, «Anotar la venta de hoy» tiene «+ Al fiado»: el monto fiado y a quién, guardados junto con lo cobrado (sin sumar a «Total que entró hoy»); va a «Lo que te deben» y a la píldora del Inicio.
 - Desde la entrega 51, la píldora de «Tienes hoy» dice cuánto de lo vendido hoy se fió («Vendiste hoy S/ 480 · S/ 130 al fiado»), y el ⓘ explica que lo fiado se suma cuando te paguen.
 - Desde la mejora 01 (Fase 4), las pantallas sin diseño propio toman el mismo estilo, sin cambiar textos ni lógica: los iconos con nombre pasan a los Material Icons del resto; las opciones elegibles, con borde suave y ✓; los botones secundarios, azul suave sin borde; el detalle de un registro arriba con la inicial o el icono, el monto grande con signo y color y su etiqueta; «Lo que te deben / Lo que debes» con el total en su color; la voz con lo entendido en azul o coral; los montos por cuenta (venta de hoy, alta, arqueo, Mis cuentas) con el icono de la cuenta; y el espaciado en la grilla de 4 y 8. La tarjeta de preguntas de la voz vuelve a decir «Moca» (decía el nombre de la pestaña).
 - Desde la mejora 01 (Fase 3, Informes, Asistente, Escribirlo y Ajustes):

@@ -78,6 +78,40 @@ void main() {
     expect(primerDia.fiadoDeHoyCentimos, 13000);
   });
 
+  test('Entrega 52: la venta de hoy con lo fiado, en un paso; «Deshacer» '
+      'anula todo', () async {
+    final guardado = await repo.anotarVentaDelDia({
+      TipoCuenta.efectivo: 20000,
+    }, fiado: const FiadoDelDia(montoCentimos: 8000, quien: 'Doña Rosa'));
+    expect(guardado.ids, hasLength(2));
+    var r = await inicio();
+    expect(r.ventaDeHoyCentimos, 35000 + 20000 + 8000);
+    expect(r.fiadoDeHoyCentimos, 8000);
+    // Lo fiado no sube el saldo.
+    expect(r.tienesHoyCentimos, 155000 + 20000);
+
+    await repo.deshacer(guardado);
+    r = await inicio();
+    expect(r.ventaDeHoyCentimos, 35000);
+    expect(r.fiadoDeHoyCentimos, 0);
+  });
+
+  test('Entrega 52: solo lo fiado también se guarda; sin nombre, no', () async {
+    final solo = await repo.anotarVentaDelDia(
+      const {},
+      fiado: const FiadoDelDia(montoCentimos: 5000, quien: 'Juan'),
+    );
+    expect(solo.ids, hasLength(1));
+    expect((await inicio()).fiadoDeHoyCentimos, 5000);
+    expect(
+      () => repo.anotarVentaDelDia(
+        const {},
+        fiado: const FiadoDelDia(montoCentimos: 5000, quien: ' '),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('Las categorías dependen de si entró o salió', () async {
     final entro = await repo.categorias(TipoMovimiento.ingreso);
     expect(entro.map((c) => c.nombre), categoriasComunesIngreso);

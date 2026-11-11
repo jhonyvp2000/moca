@@ -58,6 +58,11 @@ abstract final class Textos {
   static const scotiabank = 'Scotiabank';
   static const otroBanco = 'Otro banco o caja';
   static const agregarBanco = '+ Banco';
+  // Fiar en la venta de hoy (entrega 52)
+  static const agregarFiado = '+ Al fiado';
+  static const alFiadoEtiqueta = 'Al fiado';
+  static String alFiadoResumen(String monto, String quien) =>
+      quien.trim().isEmpty ? 'Al fiado: $monto' : 'Al fiado: $monto · $quien';
   static const plin = 'Interbank Plin';
   static const bbvaPlin = 'BBVA Plin';
   static const scotiabankPlin = 'Scotiabank Plin';

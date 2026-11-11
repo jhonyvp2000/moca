@@ -236,9 +236,14 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
   Future<Guardado> anotarVentaDelDia(
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
+    FiadoDelDia? fiado,
   }) {
-    if (!ventaPorCuenta.values.any((monto) => monto > 0)) {
+    final conFiado = fiado != null && fiado.montoCentimos > 0;
+    if (!ventaPorCuenta.values.any((monto) => monto > 0) && !conFiado) {
       throw ArgumentError('La venta necesita al menos un monto.');
+    }
+    if (conFiado && fiado.quien.trim().isEmpty) {
+      throw ArgumentError('Lo fiado necesita a quién.');
     }
     return _base.transaction(() async {
       final empresa = (await _a.empresa())!;
@@ -254,6 +259,20 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             montoCentimos: monto,
             categoriaId: venta.id,
             fuente: fuente,
+          ),
+        );
+      }
+      // Lo fiado (entrega 52): una venta que todavía te deben.
+      if (conFiado) {
+        ids.add(
+          await _insertar(
+            tipo: TipoMovimiento.ingreso,
+            cuenta: fiado.cuenta,
+            montoCentimos: fiado.montoCentimos,
+            categoriaId: venta.id,
+            fuente: fuente,
+            pendiente: true,
+            contraparte: fiado.quien.trim(),
           ),
         );
       }

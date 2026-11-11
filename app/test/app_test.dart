@@ -1244,6 +1244,52 @@ void main() {
       expect(find.text(Textos.avisos), findsWidgets);
     });
 
+    testWidgets('Entrega 52: la venta de hoy con lo fiado; sin nombre no se '
+        'guarda y el total no lo suma', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      await tester.enterText(find.byType(TextField).at(0), '100');
+      await tocar(tester, find.text(Textos.agregarFiado));
+      // Efectivo, Yape, Al fiado y a quién.
+      await tester.enterText(find.byType(TextField).at(2), '80');
+      await tester.pump();
+      expect(
+        find.text(Textos.falta([Textos.faltaQuienTeDebe])),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, Textos.guardar),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, Textos.quienTeDebeEjemplo),
+        'Doña Rosa',
+      );
+      await tester.pump();
+      // El total es lo que entró; lo fiado va aparte.
+      expect(find.text('S/\u00A0100'), findsWidgets);
+      expect(
+        find.text(Textos.alFiadoResumen('S/\u00A080', 'Doña Rosa')),
+        findsOneWidget,
+      );
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      await tester.pump(const Duration(seconds: 5));
+
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      final fiado = movimientos!.singleWhere(
+        (m) => m.estadoPago == EstadoPago.pendiente,
+      );
+      expect(fiado.montoCentimos, 8000);
+      expect(find.text(Textos.teDebenCuantos(1)), findsOneWidget);
+    });
+
     testWidgets('Mejora 01: Ajustes desde el ⚙ del Inicio; la campana lleva '
         'a los avisos del Asistente', (tester) async {
       await abrirApp(tester, listo: true);

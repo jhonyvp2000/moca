@@ -175,6 +175,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a Informes → **Lo que te deben**. Ahí está cada cliente con lo que falta. Toca **Recordar por WhatsApp** y elige el contacto del cliente: el mensaje ya va escrito.
 
+**Cómo se fía:** desde **«Escribirlo»** (Entró → «Todavía me debe» → el nombre), **por voz** («Le fié 50 a doña Rosa») o, desde la entrega 52, en **«Anotar la venta de hoy»** → **«+ Al fiado»**: el monto fiado y el nombre, junto con lo cobrado. Lo fiado no sube «Tienes hoy» hasta que te paguen; se ve en la píldora del Inicio («· S/ 80 al fiado») y en Informes → «Lo que te deben».
+
+> Para anotar lo que fiaste hoy junto con la venta: + → «Venta del día» → «+ Al fiado», pon cuánto y quién te debe, y guarda.
+
 **Por voz (entregas 49 y 50):** «Le fié 50 a doña Rosa» o «Le debo 100 a don Pepe» quedan como deuda, sin preguntar la cuenta. «Cobré 30 del fiado de doña Rosa» o «Le pagué 100 a don Pepe» descuentan la deuda si el usuario toca **«Sí, de esa deuda»**. Si dice que la deuda no bajó, revisa su versión (antes de la 50 se anotaba aparte) y si tocó **«Anotarlo aparte»**:
 
 > Si lo anotaste aparte, deshaz ese registro en el Historial y cóbralo desde Informes → **Lo que te deben** → el cliente → **Ya me pagó**, para que no cuente dos veces. La próxima vez, cuando Moca te pregunte «¿Es de esa deuda?», toca «Sí, de esa deuda».

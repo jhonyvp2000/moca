@@ -72,6 +72,20 @@ class BorradorMovimiento {
   final String? contraparte;
 }
 
+/// Lo fiado en «Anotar la venta de hoy» (entrega 52): cuánto, a quién y la
+/// caja donde queda anotado (no mueve su saldo hasta que te paguen).
+class FiadoDelDia {
+  const FiadoDelDia({
+    required this.montoCentimos,
+    required this.quien,
+    this.cuenta = TipoCuenta.efectivo,
+  });
+
+  final int montoCentimos;
+  final String quien;
+  final TipoCuenta cuenta;
+}
+
 class CategoriaVista {
   const CategoriaVista({required this.id, required this.nombre});
 
@@ -152,9 +166,13 @@ abstract interface class RepositorioMovimientos {
 
   /// Venta del día por cuenta, después del primer día. Se suma a lo que ya
   /// se haya anotado hoy.
+  /// Con [fiado], también lo vendido a crédito ese día (entrega 52): una
+  /// venta que todavía te deben, en el mismo paso; «Deshacer» la anula
+  /// junto con lo demás.
   Future<Guardado> anotarVentaDelDia(
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
+    FiadoDelDia? fiado,
   });
 
   /// Anula lo guardado: no se borra, y el cambio queda en la bitácora.
