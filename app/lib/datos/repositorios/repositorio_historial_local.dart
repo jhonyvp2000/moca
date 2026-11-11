@@ -95,6 +95,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       contraparteId: m.contraparteId,
       celular: d.clientes[m.contraparteId]?.celular,
       recordadoEn: d.clientes[m.contraparteId]?.recordadoEn,
+      fechaPago: m.estadoPago == EstadoPago.pagado ? m.fechaPago : null,
     );
   }
 
@@ -180,6 +181,11 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     final filas =
         [
           for (final m in vigentes) (m.creadoEn, _fila(d, m)),
+          // Lo cobrado o pagado otro día sale también el día del pago
+          // (entrega 55).
+          for (final m in vigentes)
+            if (_fila(d, m) case final f when f.pagadoOtroDia)
+              (f.fechaPago!, f.comoPago()),
           for (final a in _ajustesVisibles(d)) (a.fecha, _filaDeAjuste(d, a)),
         ]..sort((a, b) {
           final porFecha = b.$2.fecha.compareTo(a.$2.fecha);

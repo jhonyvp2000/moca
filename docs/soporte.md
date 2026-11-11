@@ -163,7 +163,14 @@ Si la prueba o el mes vencieron, todos pasan a «solo anotar»: se puede anotar 
 
 > Abran Moca los dos con señal y esperen unos segundos. Lo que dice «por subir» en el Historial todavía no llegó. Si sigue sin aparecer, revisen que los dos teléfonos tengan Moca abierto con su número (Ajustes → Mi equipo).
 
-### 9. «Anoté mal» · «Quiero deshacer un cobro»
+### 9. «Anoté mal» · «Quiero deshacer un cobro» · «Una venta fiada me sale dos veces»
+
+**Desde la entrega 55**, un fiado que te pagaron otro día sale dos veces en el Historial, y es a propósito: el día de la venta, con «Cobrado el …» (no suma ese día), y el día en que te pagaron, como «Te pagó doña Rosa» (suma ese día). Es el mismo registro: las dos filas abren el mismo detalle. Lo mismo con lo que debías: «Pagado el …» y «Le pagaste a …».
+
+> No está repetido: es la misma venta. Se ve el día que la fiaste y el día que te pagaron, y la plata cuenta solo el día que te pagaron, que es cuando entró a tu caja.
+
+El total del día («= S/ 350») es lo que entró menos lo que salió ese día; no cuenta lo que te deben ni lo que debes.
+
 
 Todo se arregla desde el **Historial**: toca el registro.
 - **«Corregir»:** cambia el monto, la cuenta, la categoría o la nota. Una venta o compra escrita también puede pasar a «todavía me debe» o «todavía lo debo».

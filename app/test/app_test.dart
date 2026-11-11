@@ -18,6 +18,7 @@ import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
+import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
@@ -1134,6 +1135,87 @@ void main() {
       // Mockup: 8 + 60 (botón central) + 16 de relleno, más el borde.
       final alto = tester.getSize(find.byType(BarraInferior)).height;
       expect(alto, inInclusiveRange(84, 90));
+    });
+
+    testWidgets('Entrega 55: el total del día y el cobro de un fiado en el '
+        'día en que te pagaron', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        // Fiado el sábado 10; cobrado hoy, lunes 12, con un gasto de S/ 30.
+        final antes = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 10, 18),
+        );
+        final ventas = await antes.categorias(TipoMovimiento.ingreso);
+        final id = (await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 5000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ventas.first.id,
+            pagado: false,
+            contraparte: 'Doña Rosa',
+          ),
+        )).ids.single;
+        await RepositorioHistorialLocal(
+          base,
+          ahora: () => _ahora,
+        ).pagar(id, cuenta: TipoCuenta.efectivo, dia: _ahora);
+        final hoy = RepositorioMovimientosLocal(base, ahora: () => _ahora);
+        final gastos = await hoy.categorias(TipoMovimiento.egreso);
+        await hoy.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 3000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+          ),
+        );
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      // Hoy: lo cobrado a doña Rosa en su propia fila, y suma hoy.
+      expect(find.text(Textos.tePago('Doña Rosa')), findsOneWidget);
+      final totales = tester
+          .widgetList<Text>(find.byKey(const ValueKey('quedoDelDia')))
+          .map((t) => t.data)
+          .toList();
+      // Hoy entró la venta del primer día y el cobro; salieron S/ 30.
+      final resumen = await tester.runAsync(
+        () => RepositorioHistorialLocal(
+          base,
+          ahora: () => _ahora,
+        ).observarHistorial().first,
+      );
+      final deHoy = resumen!.filas.where(
+        (f) =>
+            f.fecha.day == 12 &&
+            !f.loDebes &&
+            !f.pagadoOtroDia &&
+            !f.ajusteArqueo &&
+            !f.tipo.esPase,
+      );
+      final entro = deHoy
+          .where((f) => f.tipo.entraPlata)
+          .fold(0, (s, f) => s + f.montoCentimos);
+      expect(deHoy.any((f) => f.esPago && f.montoCentimos == 5000), isTrue);
+      expect(totales.first, formatearSolesComprobante(entro - 3000));
+      // El sábado: la venta queda con «Cobrado el 12 de octubre» y no suma.
+      await tester.scrollUntilVisible(
+        find.textContaining(
+          Textos.cobradoEl('12 de octubre'),
+          findRichText: true,
+        ),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(
+        find.textContaining(
+          Textos.cobradoEl('12 de octubre'),
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      expect(totales, hasLength(1));
     });
 
     testWidgets('Cada pestaña dice en qué entrega llega', (tester) async {

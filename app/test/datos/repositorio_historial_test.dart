@@ -950,4 +950,91 @@ void main() {
       );
     });
   });
+
+  group('Entrega 55: lo cobrado otro día sale el día del pago', () {
+    Future<String> fiado(
+      int soles, {
+      TipoMovimiento tipo = TipoMovimiento.ingreso,
+    }) async {
+      final categorias = await movimientos.categorias(tipo);
+      return (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: tipo,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias.first.id,
+          pagado: false,
+          contraparte: tipo == TipoMovimiento.ingreso
+              ? 'Doña Rosa'
+              : 'Don Pepe',
+        ),
+      )).ids.single;
+    }
+
+    Future<List<FilaHistorial>> filasDe(String id) async => [
+      for (final f in (await repo.observarHistorial().first).filas)
+        if (f.id == id) f,
+    ];
+
+    test('cobrado otro día: dos filas, la del pago suma ese día', () async {
+      final id = await fiado(50);
+      ahora = DateTime(2026, 10, 14, 10);
+      await repo.pagar(id, cuenta: TipoCuenta.yape, dia: ahora);
+      final filas = await filasDe(id);
+      expect(filas, hasLength(2));
+      final venta = filas.singleWhere((f) => !f.esPago);
+      final pago = filas.singleWhere((f) => f.esPago);
+      expect(venta.fecha.day, 12);
+      expect(venta.pagadoOtroDia, isTrue);
+      expect(pago.fecha, DateTime(2026, 10, 14, 10));
+      expect(pago.pagadoOtroDia, isFalse);
+      expect(pago.montoCentimos, 5000);
+      expect(pago.cuenta, TipoCuenta.yape);
+      // La del pago está más arriba: es más reciente.
+      final todas = (await repo.observarHistorial().first).filas;
+      expect(
+        todas.indexWhere((f) => f.id == id && f.esPago),
+        lessThan(todas.indexWhere((f) => f.id == id && !f.esPago)),
+      );
+      // En «Por subir» sale una sola vez.
+      expect(
+        filas.where((f) => f.cumple(FiltroHistorial.porSubir)).length,
+        lessThanOrEqualTo(1),
+      );
+    });
+
+    test('cobrado el mismo día: una sola fila', () async {
+      final id = await fiado(50);
+      await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: ahora);
+      final filas = await filasDe(id);
+      expect(filas.single.pagadoOtroDia, isFalse);
+      expect(filas.single.esPago, isFalse);
+    });
+
+    test('lo que debías, pagado otro día; y la deuda en partes', () async {
+      final compra = await fiado(80, tipo: TipoMovimiento.egreso);
+      final venta = await fiado(100);
+      ahora = DateTime(2026, 10, 13, 10);
+      await repo.pagar(
+        venta,
+        cuenta: TipoCuenta.efectivo,
+        dia: ahora,
+        parteCentimos: 3000,
+      );
+      ahora = DateTime(2026, 10, 15, 10);
+      await repo.pagar(compra, cuenta: TipoCuenta.efectivo, dia: ahora);
+      await repo.pagar(venta, cuenta: TipoCuenta.efectivo, dia: ahora);
+      final pagoCompra = (await filasDe(compra)).singleWhere((f) => f.esPago);
+      expect(pagoCompra.tipo, TipoMovimiento.egreso);
+      expect(pagoCompra.fecha.day, 15);
+      // La parte salió el 13; el resto, el 15, en la fila del pago.
+      final filas = (await repo.observarHistorial().first).filas;
+      final parte = filas.singleWhere((f) => f.parteDe == venta);
+      expect(parte.fecha.day, 13);
+      expect(parte.montoCentimos, 3000);
+      final resto = (await filasDe(venta)).singleWhere((f) => f.esPago);
+      expect(resto.montoCentimos, 7000);
+      expect(resto.fecha.day, 15);
+    });
+  });
 }

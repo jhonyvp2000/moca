@@ -31,7 +31,25 @@ class FilaHistorial {
     this.contraparteId,
     this.celular,
     this.recordadoEn,
+    this.fechaPago,
+    this.esPago = false,
   });
+
+  /// Cuándo se cobró o se pagó una deuda; nulo si todavía se debe o si no
+  /// fue una deuda (entrega 55).
+  final DateTime? fechaPago;
+
+  /// La fila del día en que te pagaron un fiado, o en que pagaste lo que
+  /// debías (entrega 55). Es el mismo registro: abre el mismo detalle.
+  final bool esPago;
+
+  /// Una deuda que se cobró o se pagó otro día: en el día de la venta o de
+  /// la compra ya no suma, porque la plata se movió el día del pago.
+  bool get pagadoOtroDia =>
+      !esPago && !loDebes && fechaPago != null && !_mismoDia(fechaPago!, fecha);
+
+  static bool _mismoDia(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   /// El cliente o proveedor, su celular y cuándo se le recordó por WhatsApp
   /// (entrega 53). El celular solo llega a los teléfonos de los dueños.
@@ -91,30 +109,38 @@ class FilaHistorial {
   final DateTime? vence;
 
   /// La misma fila con otro monto: lo que falta pagar de una deuda.
-  FilaHistorial conMonto(int centimos) => FilaHistorial(
-    id: id,
-    tipo: tipo,
-    montoCentimos: centimos,
-    fecha: fecha,
-    cuenta: cuenta,
-    loDebes: loDebes,
-    porSubir: porSubir,
-    categoria: categoria,
-    nota: nota,
-    proveedor: proveedor,
-    ajusteArqueo: ajusteArqueo,
-    cuentaDestino: cuentaDestino,
-    deOtro: deOtro,
-    autorNombre: autorNombre,
-    autorRol: autorRol,
-    anotadoEn: anotadoEn,
-    vence: vence,
-    parteDe: parteDe,
-    pagadoEnPartesCentimos: pagadoEnPartesCentimos,
-    contraparteId: contraparteId,
-    celular: celular,
-    recordadoEn: recordadoEn,
-  );
+  FilaHistorial conMonto(int centimos) => _copia(monto: centimos);
+
+  /// La fila del día del pago (entrega 55).
+  FilaHistorial comoPago() => _copia(fecha: fechaPago, esPago: true);
+
+  FilaHistorial _copia({int? monto, DateTime? fecha, bool? esPago}) =>
+      FilaHistorial(
+        id: id,
+        tipo: tipo,
+        montoCentimos: monto ?? montoCentimos,
+        fecha: fecha ?? this.fecha,
+        cuenta: cuenta,
+        loDebes: loDebes,
+        porSubir: porSubir,
+        categoria: categoria,
+        nota: nota,
+        proveedor: proveedor,
+        ajusteArqueo: ajusteArqueo,
+        cuentaDestino: cuentaDestino,
+        deOtro: deOtro,
+        autorNombre: autorNombre,
+        autorRol: autorRol,
+        anotadoEn: anotadoEn,
+        vence: vence,
+        parteDe: parteDe,
+        pagadoEnPartesCentimos: pagadoEnPartesCentimos,
+        contraparteId: contraparteId,
+        celular: celular,
+        recordadoEn: recordadoEn,
+        fechaPago: fechaPago,
+        esPago: esPago ?? this.esPago,
+      );
 
   bool cumple(FiltroHistorial filtro) => switch (filtro) {
     FiltroHistorial.todo => true,
@@ -122,7 +148,8 @@ class FilaHistorial {
     FiltroHistorial.entro => !ajusteArqueo && tipo.entraPlata,
     FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata && !tipo.esPase,
     FiltroHistorial.pendientes => loDebes,
-    FiltroHistorial.porSubir => porSubir,
+    // El registro sale una vez, aunque tenga la fila del día del pago.
+    FiltroHistorial.porSubir => porSubir && !esPago,
   };
 }
 

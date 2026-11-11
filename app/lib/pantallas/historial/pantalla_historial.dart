@@ -477,9 +477,11 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
   }
 }
 
-/// El día y, a la derecha, lo que entró y salió ese día. Solo la plata que
-/// se movió: lo fiado, los pases y los ajustes del arqueo no suman, como en
-/// «Esta semana» (decisiones.md, 10-11-2026).
+/// El día y, a la derecha, lo que entró y salió ese día y, si hubo de los
+/// dos, lo que quedó (entrega 55). Solo la plata que se movió: lo fiado, lo
+/// que se debe, los pases y los ajustes del arqueo no suman, como en «Esta
+/// semana» (decisiones.md, 10-11-2026). Una deuda cobrada o pagada otro día
+/// suma el día del pago, no el de la venta o la compra.
 class _EncabezadoDelDia extends StatelessWidget {
   const _EncabezadoDelDia({required this.titulo, required this.filas});
 
@@ -489,7 +491,8 @@ class _EncabezadoDelDia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final movio = filas.where(
-      (f) => !f.loDebes && !f.ajusteArqueo && !f.tipo.esPase,
+      (f) =>
+          !f.loDebes && !f.pagadoOtroDia && !f.ajusteArqueo && !f.tipo.esPase,
     );
     final entro = movio
         .where((f) => f.tipo.entraPlata)
@@ -532,6 +535,22 @@ class _EncabezadoDelDia extends StatelessWidget {
                     conSigno: true,
                     conCentimos: true,
                   ),
+                // Lo que quedó, solo si hubo de los dos (entrega 55).
+                if (entro > 0 && salio > 0) ...[
+                  Text(' · = ', style: estilo),
+                  Text(
+                    // Con su signo menos si salió más de lo que entró.
+                    formatearSolesComprobante(entro - salio),
+                    key: const ValueKey('quedoDelDia'),
+                    style: Tipografia.cifra(
+                      estilo.copyWith(
+                        color: entro - salio < 0
+                            ? Colores.egreso
+                            : Colores.textoPrincipal,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

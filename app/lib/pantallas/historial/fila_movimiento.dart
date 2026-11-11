@@ -37,6 +37,12 @@ Color colorDelMonto(TipoMovimiento tipo) => tipo.esPase
 /// categoría.
 String tituloDeFila(FilaHistorial f) {
   if (f.ajusteArqueo) return Textos.ajusteDelArqueo;
+  // El día en que te pagaron o pagaste una deuda (entrega 55).
+  if (f.esPago) {
+    return f.tipo.entraPlata
+        ? Textos.tePago(f.proveedor)
+        : Textos.lePagaste(f.proveedor);
+  }
   if (f.proveedor case final proveedor?) return proveedor;
   if (f.tipo == TipoMovimiento.retiro) return Textos.retiroParaMi;
   if (f.tipo == TipoMovimiento.aporte) return Textos.puseDeMiBolsillo;
@@ -66,6 +72,11 @@ List<String> _partes(FilaHistorial f, {bool conPorSubir = true}) {
     if (f.parteDe != null) Textos.pagoEnParte,
     if (!tituloEsCategoria && f.categoria != null) f.categoria!,
     if (!f.loDebes) cuenta,
+    // Cobrado o pagado otro día: ahí suma (entrega 55).
+    if (f.pagadoOtroDia)
+      (f.tipo.entraPlata ? Textos.cobradoEl : Textos.pagadoEl)(
+        formatearDiaYMes(f.fechaPago!),
+      ),
     if (f.loDebes && f.pagadoEnPartesCentimos > 0)
       Textos.pagoDeTotal(
         formatearSolesComprobante(f.pagadoEnPartesCentimos),

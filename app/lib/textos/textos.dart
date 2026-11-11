@@ -834,6 +834,12 @@ abstract final class Textos {
   };
   static const pagado = 'Pagado';
   static String pagadoEl(String fecha) => 'Pagado el $fecha';
+  // Lo cobrado o pagado otro día, en el día del pago (entrega 55).
+  static String cobradoEl(String fecha) => 'Cobrado el $fecha';
+  static String tePago(String? cliente) =>
+      cliente == null ? 'Te pagaron un fiado' : 'Te pagó $cliente';
+  static String lePagaste(String? proveedor) =>
+      proveedor == null ? 'Pagaste una deuda' : 'Le pagaste a $proveedor';
   static const todaviaLoDebes =
       'Todavía lo debes. No baja tu saldo hasta que lo pagues.';
   static const guardadoPorSubir =
