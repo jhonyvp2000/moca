@@ -826,7 +826,11 @@ export function rutasCobro(
         const { empresa, plan, nota } = peticion.body ?? {};
         if (
           typeof empresa !== 'string' ||
-          (plan !== 'basico' && plan !== 'normal' && plan !== 'fundador' && plan !== 'anual') ||
+          (plan !== 'basico' &&
+            plan !== 'basico_anual' &&
+            plan !== 'normal' &&
+            plan !== 'fundador' &&
+            plan !== 'anual') ||
           (nota !== undefined && nota !== null && typeof nota !== 'string')
         ) {
           throw new ErrorDeCobro(400, 'datos_invalidos');

@@ -106,7 +106,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     falso.pagos.set(id, {
       id: Number(id),
       status: 'approved',
-      transaction_amount: 14.9,
+      transaction_amount: 19.9,
       currency_id: 'PEN',
       external_reference: referencia,
       ...extra,
@@ -136,7 +136,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
 
   it('El teléfono sabe que puede pagar con Mercado Pago', async () => {
     const cobro = (await pedir(lucho, 'GET', '/datos/bajar')).json().cobro;
-    expect(cobro).toMatchObject({ estado: 'prueba', precio: 1490, mercadopago: true });
+    expect(cobro).toMatchObject({ estado: 'prueba', precio: 1990, mercadopago: true });
   });
 
   it('El dueño pide pagar: orden y página de pago; tocar dos veces, la misma orden', async () => {
@@ -144,33 +144,51 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     expect(r.statusCode).toBe(200);
     const { orden: id, enlace, monto_centimos } = r.json();
     expect(enlace).toBe(`https://mp.falso/pagar/${id}`);
-    expect(monto_centimos).toBe(1490);
+    expect(monto_centimos).toBe(1990);
     expect(falso.preferencias.at(-1)).toEqual({
       titulo: 'Moca Full · 1 mes · Bodega Don Lucho',
-      centimos: 1490,
+      centimos: 1990,
       referencia: id,
       avisos: 'https://moca.prueba/mercadopago/webhook',
       retorno: 'https://moca.prueba/pago/retorno',
     });
     expect(await orden(id)).toMatchObject({
       empresa_id: empresaDeLucho,
-      plan: 'fundador',
+      plan: 'normal',
       estado: 'pendiente',
       mp_preferencia_id: `pref-${id}`,
     });
     expect((await pedir(lucho, 'POST', '/cobro/mercadopago')).json().orden).toBe(id);
     // Quien no está en el negocio no paga por él.
     expect((await pedir(rosa, 'POST', '/cobro/mercadopago')).statusCode).toBe(403);
-    // Entrega 43: el fundador no tiene Básico; un plan que no existe, tampoco.
-    expect(
-      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'basico' })).json(),
-    ).toEqual({ error: 'sin_basico' });
+    // Un plan o un periodo que no existe, no.
     expect(
       (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'oro' })).statusCode,
     ).toBe(400);
     expect(
+      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'full', periodo: 'semana' }))
+        .statusCode,
+    ).toBe(400);
+    expect(
       (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'full' })).json().orden,
     ).toBe(id);
+    // Entrega 60: el anual del Full y el del Básico, por Mercado Pago.
+    const anual = (
+      await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'full', periodo: 'anio' })
+    ).json();
+    expect(anual.monto_centimos).toBe(19900);
+    expect(falso.preferencias.at(-1)?.titulo).toBe('Moca Full · 1 año · Bodega Don Lucho');
+    expect(await orden(anual.orden)).toMatchObject({ plan: 'anual' });
+    const basicoAnual = (
+      await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'basico', periodo: 'anio' })
+    ).json();
+    expect(basicoAnual.monto_centimos).toBe(14900);
+    expect(falso.preferencias.at(-1)?.titulo).toBe('Moca Básico · 1 año · Bodega Don Lucho');
+    expect(await orden(basicoAnual.orden)).toMatchObject({ plan: 'basico_anual' });
+    expect(
+      (await pedir(lucho, 'POST', '/cobro/mercadopago', { plan: 'basico' })).json()
+        .monto_centimos,
+    ).toBe(1490);
   });
 
   it('Con la firma mala no pasa nada; con la buena se registra una sola vez', async () => {
@@ -187,8 +205,8 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     const pagos = await pagosDe(empresaDeLucho);
     expect(pagos).toHaveLength(1);
     expect(pagos[0]).toMatchObject({
-      plan: 'fundador',
-      monto_centimos: 1490,
+      plan: 'normal',
+      monto_centimos: 1990,
       // La prueba terminaba el 25: el mes empieza el 26.
       desde: '2026-11-26',
       hasta: '2026-12-25',
@@ -202,7 +220,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     const consulta = (await pedir(lucho, 'GET', `/cobro/orden/${id}`)).json();
     expect(consulta).toMatchObject({
       estado: 'pagada',
-      cobro: { estado: 'pagado', hasta: '2026-12-25', plan: 'fundador' },
+      cobro: { estado: 'pagado', hasta: '2026-12-25', plan: 'normal' },
     });
     // Solo quien pagó ve su orden.
     expect((await pedir(rosa, 'GET', `/cobro/orden/${id}`)).statusCode).toBe(404);
@@ -263,7 +281,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
         celular: '987000001',
         motivo: 'monto',
         mp_pago_id: '5005',
-        monto_centimos: 1490,
+        monto_centimos: 1990,
       }),
     ]);
   });
@@ -286,7 +304,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
       (
         await pedir(jhony, 'POST', '/cobro/pago', {
           empresa: empresaDeLucho,
-          plan: 'fundador',
+          plan: 'normal',
           nota: 'op 777 · lo yapeó su hija',
         })
       ).statusCode,
@@ -303,11 +321,11 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     ]);
     expect(pagos[0]).not.toHaveProperty('operacion');
     expect(JSON.stringify(r.json())).not.toContain('su hija');
-    expect(pagos[1]).toMatchObject({ operacion: '5004', anulado: true, monto_centimos: 1490 });
+    expect(pagos[1]).toMatchObject({ operacion: '5004', anulado: true, monto_centimos: 1990 });
     expect(pagos[3]).toMatchObject({
       operacion: '5001',
       anulado: false,
-      plan: 'fundador',
+      plan: 'normal',
       desde: '2026-11-26',
       hasta: '2026-12-25',
     });
@@ -315,7 +333,7 @@ describe('Pagar Moca con Mercado Pago (entrega 32)', () => {
     expect(Number.isNaN(Date.parse(pagos[3].pagado_en))).toBe(false);
     // En revisión: la que cobró de menos y la devolución que no era la última.
     expect(en_revision).toHaveLength(2);
-    expect(en_revision[0]).toMatchObject({ monto_centimos: 1490 });
+    expect(en_revision[0]).toMatchObject({ monto_centimos: 1990 });
     // Quien no es del negocio no ve nada.
     expect((await pedir(rosa, 'GET', '/cobro/mis-pagos')).statusCode).toBe(403);
   });

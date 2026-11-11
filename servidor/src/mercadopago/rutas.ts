@@ -10,7 +10,7 @@ import {
   ErrorDeCobro,
   registrarPago,
 } from '../cobro/rutas.js';
-import { diaEnLima, estadoDelCobro, type Plan } from '../cobro/estado.js';
+import { diaEnLima, esAnual, estadoDelCobro, nivelDe, type Plan } from '../cobro/estado.js';
 import { empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
 import { miembroDe } from '../equipo/miembros.js';
@@ -176,7 +176,7 @@ export function rutasMercadoPago(
   }
 
   // El dueño pide pagar el mes: su orden y la página de Mercado Pago.
-  app.post<{ Body: { plan?: unknown } }>('/cobro/mercadopago', async (peticion, respuesta) => {
+  app.post<{ Body: { plan?: unknown; periodo?: unknown } }>('/cobro/mercadopago', async (peticion, respuesta) => {
     if (!config || !mp) return respuesta.code(503).send({ error: 'sin_mercadopago' });
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
@@ -191,6 +191,12 @@ export function rutasMercadoPago(
     if (pedido !== undefined && pedido !== 'basico' && pedido !== 'full') {
       return respuesta.code(400).send({ error: 'datos_invalidos' });
     }
+    // Al mes o al año (entrega 60); sin decirlo, al mes, como antes.
+    const periodo = peticion.body?.periodo;
+    if (periodo !== undefined && periodo !== 'mes' && periodo !== 'anio') {
+      return respuesta.code(400).send({ error: 'datos_invalidos' });
+    }
+    const anual = periodo === 'anio';
     try {
       await cliente.query('BEGIN');
       const miembro = await miembroDe(cliente, usuarioId, empresaPedida(peticion.query));
@@ -218,7 +224,14 @@ export function rutasMercadoPago(
       await cliente.query('COMMIT');
       if (estado.estado === 'sin_cobro') return respuesta.code(409).send({ error: 'sin_cobro' });
       // Se paga el mes al precio que le toca, con sus personas extra.
-      const opcion = pedido === 'basico' ? estado.opciones.basico : estado.opciones.full;
+      const opcion =
+        pedido === 'basico'
+          ? anual
+            ? estado.opciones.basicoAnual
+            : estado.opciones.basico
+          : anual
+            ? estado.opciones.fullAnual
+            : estado.opciones.full;
       if (!opcion) return respuesta.code(409).send({ error: 'sin_basico' });
       plan = opcion.plan;
       monto = opcion.precio;
@@ -255,7 +268,9 @@ export function rutasMercadoPago(
     });
     try {
       const preferencia = await mp.crearPreferencia({
-        titulo: `Moca ${plan === 'basico' ? 'Básico' : 'Full'} · 1 mes · ${nombre}`.slice(0, 120),
+        titulo: `Moca ${nivelDe(plan) === 'basico' ? 'Básico' : 'Full'} · ${
+          esAnual(plan) ? '1 año' : '1 mes'
+        } · ${nombre}`.slice(0, 120),
         centimos: monto,
         referencia: ordenId,
         avisos: `${config.urlPublica}/mercadopago/webhook`,

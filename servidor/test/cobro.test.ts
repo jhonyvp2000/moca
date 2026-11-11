@@ -47,7 +47,8 @@ describe('El estado del cobro (entrega 24)', () => {
       hasta: '2026-11-23',
       dias: 11,
       porVencer: false,
-      precio: 1490,
+      // Desde la entrega 60, el Full a S/ 19.90: nadie nuevo es fundador.
+      precio: 1990,
     });
     // Empezó después: cuenta desde su primer registro.
     expect(
@@ -127,14 +128,14 @@ describe('El estado del cobro (entrega 24)', () => {
     ).toEqual({ desde: '2027-02-01', hasta: '2028-01-31' });
   });
 
-  it('El fundador: 50 cupos; lo pierde quien renueva más de 30 días tarde', () => {
+  it('El fundador: nadie nuevo (entrega 60); lo pierde quien renueva más de 30 días tarde', () => {
     expect(
       puedeSerFundador({
         hoy: '2026-11-21',
         suscripcion: null,
-        fundadores: 49,
+        fundadores: 0,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       puedeSerFundador({
         hoy: '2026-11-21',
@@ -190,7 +191,10 @@ describe('El estado del cobro (entrega 24)', () => {
     // Cuatro personas: el Básico (S/ 23.60) sale más caro que el Full.
     expect(estadoDelCobro({ ...sinCupo, personas: 4 }).opciones).toEqual({
       full: { plan: 'normal', precio: 2280, extras: 1 },
+      fullAnual: { plan: 'anual', precio: 23380, extras: 1 },
       basico: { plan: 'basico', precio: 2360, extras: 3 },
+      // El Básico anual (entrega 60): S/ 149 y S/ 34.80 por persona al año.
+      basicoAnual: { plan: 'basico_anual', precio: 25340, extras: 3 },
     });
     // Con el Básico pagado: 1 persona incluida y sin crédito.
     const basico = {
@@ -204,15 +208,33 @@ describe('El estado del cobro (entrega 24)', () => {
       incluidas: 1,
       credito: false,
     });
-    // Al fundador no se le ofrece el Básico: cuesta lo mismo.
+    // Quien ya es fundador y renueva a tiempo conserva su precio; no se le
+    // ofrece el Básico: cuesta lo mismo.
     expect(
       estadoDelCobro({
         ...base,
         hoy: '2026-11-12',
         inicioPrueba: null,
+        suscripcion: { plan: 'fundador', pagadoHasta: '2026-11-20', fueFundador: true },
         personas: 3,
       }).opciones,
-    ).toEqual({ full: { plan: 'fundador', precio: 1490, extras: 0 } });
+    ).toEqual({
+      full: { plan: 'fundador', precio: 1490, extras: 0 },
+      fullAnual: { plan: 'anual', precio: 19900, extras: 0 },
+    });
+    // Un negocio nuevo ve los cuatro planes, al Full a S/ 19.90.
+    expect(
+      estadoDelCobro({ ...base, hoy: '2026-11-12', inicioPrueba: null, personas: 1 }).opciones,
+    ).toEqual({
+      full: { plan: 'normal', precio: 1990, extras: 0 },
+      fullAnual: { plan: 'anual', precio: 19900, extras: 0 },
+      basico: { plan: 'basico', precio: 1490, extras: 0 },
+      basicoAnual: { plan: 'basico_anual', precio: 14900, extras: 0 },
+    });
+    expect(precioDe('basico_anual', 1)).toBe(18380);
+    expect(
+      periodoDelPago({ hoy: '2026-11-12', pagadoHasta: null, plan: 'basico_anual' }),
+    ).toEqual({ desde: '2026-11-12', hasta: '2027-11-11' });
   });
 
   it('La configuración sale del entorno', () => {
@@ -291,14 +313,20 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       dias: 11,
       porVencer: false,
       plan: null,
-      precio: 1490,
-      // En la prueba es Full (entrega 43); al fundador no se le ofrece el
-      // Básico.
+      // Desde la entrega 60 nadie nuevo es fundador: el Full a S/ 19.90, y
+      // los cuatro planes, al mes y al año.
+      precio: 1990,
+      // En la prueba es Full (entrega 43).
       nivel: 'full',
       personas: 1,
       incluidas: 3,
       credito: true,
-      opciones: { full: { plan: 'fundador', precio: 1490, extras: 0 } },
+      opciones: {
+        full: { plan: 'normal', precio: 1990, extras: 0 },
+        fullAnual: { plan: 'anual', precio: 19900, extras: 0 },
+        basico: { plan: 'basico', precio: 1490, extras: 0 },
+        basicoAnual: { plan: 'basico_anual', precio: 14900, extras: 0 },
+      },
       pago: { yape: '911111111', nombre: 'Moca' },
       respondio: false,
     });
@@ -337,16 +365,22 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       pagos: [],
     });
 
+    // Un negocio nuevo ya no entra como fundador (entrega 60).
+    expect(
+      (
+        await pedir(jhony, 'POST', '/cobro/pago', { empresa: empresaDeLucho, plan: 'fundador' })
+      ).json(),
+    ).toEqual({ error: 'sin_cupo_fundador' });
     const pago = await pedir(jhony, 'POST', '/cobro/pago', {
       empresa: empresaDeLucho,
-      plan: 'fundador',
+      plan: 'normal',
       nota: 'Yape op. 123',
     });
     expect(pago.json().cobro).toMatchObject({
       estado: 'pagado',
       hasta: '2026-12-23',
-      plan: 'fundador',
-      precio: 1490,
+      plan: 'normal',
+      precio: 1990,
     });
     expect(await cobroDe(lucho)).toMatchObject({
       estado: 'pagado',
@@ -355,7 +389,7 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
 
     await pedir(jhony, 'POST', '/cobro/pago', {
       empresa: empresaDeLucho,
-      plan: 'fundador',
+      plan: 'normal',
     });
     const despues = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000001')).json();
     expect(despues.cobro.hasta).toBe('2027-01-23');
@@ -365,17 +399,22 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
         p.monto_centimos,
       ]),
     ).toEqual([
-      ['2026-12-24', 1490],
-      ['2026-11-24', 1490],
+      ['2026-12-24', 1990],
+      ['2026-11-24', 1990],
     ]);
-    // Cuenta una sola vez para los 50.
+    // Nadie nuevo cuenta como fundador.
     expect((await pedir(jhony, 'GET', '/cobro/resumen')).json().fundadores).toEqual({
-      usados: 1,
+      usados: 0,
       maximo: 50,
     });
   });
 
   it('Más de 30 días tarde pierde el fundador; paga S/ 19.90', async () => {
+    // Un fundador de antes de la entrega 60: lo conserva si renueva a tiempo.
+    await base.poolAdmin.query(
+      `UPDATE suscripciones SET plan = 'fundador', fue_fundador = true WHERE empresa_id = $1`,
+      [empresaDeLucho],
+    );
     elDia('2027-02-23');
     expect(await cobroDe(lucho)).toMatchObject({
       estado: 'vencido',
@@ -472,9 +511,10 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
       (await pedir(jhony, 'GET', '/cobro/resumen')).json().fundadores.usados as number;
     const antes = await cupo();
 
-    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
-    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'fundador' });
-    expect(await cupo()).toBe(antes + 1);
+    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'normal' });
+    await pedir(jhony, 'POST', '/cobro/pago', { empresa, plan: 'normal' });
+    // Desde la entrega 60 los pagos nuevos no usan el cupo de fundador.
+    expect(await cupo()).toBe(antes);
     const ficha = (await pedir(jhony, 'GET', '/cobro/negocio?celular=987000003')).json();
     const [ultimo, primero] = ficha.pagos as { id: string }[];
     // Solo el último.
