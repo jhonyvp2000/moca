@@ -2393,7 +2393,9 @@ void main() {
 
       await abrirHistorial(tester);
       expect(find.text(Textos.filtroPorSubir(1)), findsOneWidget);
-      expect(find.text('Efectivo · por subir'), findsOneWidget);
+      // «Por subir» va como etiqueta, no repetido en el texto (mejora 01).
+      expect(find.text('Efectivo'), findsWidgets);
+      expect(find.text(Textos.porSubirEtiqueta), findsOneWidget);
       await tocar(tester, find.text('Otros'));
       expect(find.text(Textos.guardadoPorSubir), findsOneWidget);
     });
