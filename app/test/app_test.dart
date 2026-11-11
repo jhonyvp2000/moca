@@ -3405,8 +3405,8 @@ void main() {
         },
       );
 
-      // En el Inicio completo, las cinco cuentas van en una fila que se
-      // desliza (mejora 01).
+      // En el Inicio completo, las cinco cuentas van en una lista, una
+      // debajo de otra (entrega 60).
       await abrirAjusteOculto(tester);
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
@@ -3415,9 +3415,9 @@ void main() {
       final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
       final plin = tester.getTopLeft(find.text(Textos.plin));
       final bim = tester.getTopLeft(find.text('Bim'));
-      expect(plin.dy, efectivo.dy);
-      expect(bim.dy, efectivo.dy);
-      expect(bim.dx, greaterThan(plin.dx));
+      expect(plin.dy, greaterThan(efectivo.dy));
+      expect(bim.dy, greaterThan(plin.dy));
+      expect(bim.dx, plin.dx);
     });
 
     testWidgets('Entrega 58: dejar de usar una billetera y volver a usarla', (
@@ -5204,10 +5204,6 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       // Los días en grande y hasta cuándo (mejora 01).
       expect(
-        find.text(Textos.cuantosDias(9), findRichText: true),
-        findsNothing,
-      );
-      expect(
         find.textContaining(Textos.cuantosDias(9), findRichText: true),
         findsOneWidget,
       );
@@ -5217,14 +5213,19 @@ void main() {
         ),
         findsOneWidget,
       );
+      // «Elige tu plan» (entrega 60): un fundador de antes ve su precio, sin
+      // la palabra «fundador» ni el Básico.
       await tocar(tester, find.text(Textos.activarMiPlan));
+      expect(find.text(Textos.eligeTuPlan), findsOneWidget);
+      expect(find.text(Textos.tuPrecioDeSiempre), findsOneWidget);
+      expect(find.text(Textos.elegirBasico), findsNothing);
+      await tocar(tester, find.text(Textos.elegirFull));
+      // Sin Mercado Pago en el servidor, solo el Yape, ya abierto.
+      expect(find.textContaining('Mercado Pago'), findsNothing);
       expect(
         find.text(Textos.yapeaA('S/\u00A014.90', '911 111 111', 'Moca')),
         findsOneWidget,
       );
-      expect(find.text(Textos.precioDeFundador), findsOneWidget);
-      // Sin Mercado Pago en el servidor, solo el Yape (entrega 32).
-      expect(find.text(Textos.pagarConMercadoPago), findsNothing);
       await tocar(tester, find.text(Textos.mandarLaCaptura));
       expect(_abiertos.single, startsWith('https://wa.me/51911111111?text='));
       expect(_abiertos.single, isNot(contains('+')));
@@ -5249,6 +5250,20 @@ void main() {
       await avanzar(tester, Duration.zero);
     }
 
+    // La lista de planes se arma a medida que se desliza.
+    Future<void> deslizarHasta(
+      WidgetTester tester,
+      Finder f, {
+      double paso = 200,
+    }) async {
+      await tester.scrollUntilVisible(
+        f,
+        paso,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pump();
+    }
+
     testWidgets('Entrega 43: elige Básico o Full, con sus personas extra', (
       tester,
     ) async {
@@ -5267,35 +5282,17 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       await tocar(tester, find.text(Textos.activarMiPlan).first);
       expect(find.text(Textos.eligeTuPlan), findsOneWidget);
-      // Viene el Full: tiene 2 personas, el Full incluye 3.
+      // Sin el año en el servidor, no hay Mensual / Anual.
+      expect(find.text(Textos.anual), findsNothing);
+      // Con 2 personas, el Básico dice lo que pagaría de verdad.
+      await deslizarHasta(tester, find.text(Textos.elegirBasico));
       expect(
         find.text(
-          Textos.cuentaDelPlan(
-            Textos.planFull,
-            formatearSolesComprobante(1990),
-            0,
-            formatearSolesComprobante(0),
-            formatearSolesComprobante(1990),
-          ),
-        ),
-        findsOneWidget,
-      );
-      await tocar(tester, find.text(Textos.planBasico));
-      expect(
-        find.text(
-          Textos.cuentaDelPlan(
-            Textos.planBasico,
-            formatearSolesComprobante(1490),
-            1,
-            formatearSolesComprobante(290),
+          Textos.conTusPersonas(
+            2,
             formatearSolesComprobante(1780),
+            anual: false,
           ),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text(
-          Textos.avisoBasicoConExtras(1, formatearSolesComprobante(290)),
         ),
         findsOneWidget,
       );
@@ -5304,14 +5301,70 @@ void main() {
         find.text(Textos.conFullPagasMenos(formatearSolesComprobante(1990))),
         findsNothing,
       );
-      await tester.ensureVisible(find.text(Textos.pagarConMercadoPago));
-      await tester.tap(find.text(Textos.pagarConMercadoPago));
+      await tocar(tester, find.text(Textos.elegirBasico));
+      expect(find.text(Textos.pagarTuPlan), findsOneWidget);
+      expect(find.text(Textos.personasDeMas(1)), findsOneWidget);
+      final pagar = find.text(
+        Textos.pagarMontoConMercadoPago(formatearSolesComprobante(1780)),
+      );
+      await tester.ensureVisible(pagar);
+      await tester.tap(pagar);
       await tester.pump(const Duration(milliseconds: 50));
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
       await tester.pump();
-      expect(_servidor.ultimaOrden, {'plan': 'basico'});
+      expect(_servidor.ultimaOrden, {'plan': 'basico', 'periodo': 'mes'});
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.text(Textos.seguirSinEsperar));
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(seconds: 10));
+    });
+
+    testWidgets('Entrega 60: el plan anual, por Mercado Pago', (tester) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(3),
+        'dias': 3,
+        'precio': 1990,
+        'mercadopago': true,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+          'fullAnual': {'plan': 'anual', 'precio': 19900, 'extras': 0},
+          'basico': {'plan': 'basico', 'precio': 1490, 'extras': 0},
+          'basicoAnual': {'plan': 'basico_anual', 'precio': 14900, 'extras': 0},
+        },
+      });
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.activarMiPlan).first);
+      expect(find.text(formatearSolesComprobante(1990)), findsOneWidget);
+      await tocar(tester, find.text(Textos.anual));
+      expect(find.text(formatearSolesComprobante(19900)), findsOneWidget);
+      expect(
+        find.text(
+          Textos.equivaleAlMes(
+            formatearSolesComprobante(1658),
+            formatearSolesComprobante(3980),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await deslizarHasta(tester, find.text(Textos.elegirBasico));
+      expect(find.text(formatearSolesComprobante(14900)), findsOneWidget);
+      await deslizarHasta(tester, find.text(Textos.elegirFull), paso: -200);
+      await tocar(tester, find.text(Textos.elegirFull));
+      expect(find.text(Textos.totalAlAnio), findsOneWidget);
+      final pagar = find.text(
+        Textos.pagarMontoConMercadoPago(formatearSolesComprobante(19900)),
+      );
+      await tester.ensureVisible(pagar);
+      await tester.tap(pagar);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      expect(_servidor.ultimaOrden, {'plan': 'full', 'periodo': 'anio'});
       await tester.pump(const Duration(seconds: 1));
       await tester.tap(find.text(Textos.seguirSinEsperar));
       await tester.pump(const Duration(seconds: 4));
@@ -5332,25 +5385,16 @@ void main() {
         },
       });
       await tocar(tester, find.text(Textos.comoPagar).first);
-      await tocar(tester, find.text(Textos.planBasico));
-      final sugerencia = find.text(
-        Textos.conFullPagasMenos(formatearSolesComprobante(2280)),
-      );
-      expect(sugerencia, findsOneWidget);
-      await tocar(tester, find.widgetWithText(TextButton, Textos.planFull));
-      expect(sugerencia, findsNothing);
+      expect(find.text(Textos.eligeTuPlan), findsOneWidget);
+      await deslizarHasta(tester, find.text(Textos.elegirBasico));
       expect(
-        find.text(
-          Textos.cuentaDelPlan(
-            Textos.planFull,
-            formatearSolesComprobante(1990),
-            1,
-            formatearSolesComprobante(290),
-            formatearSolesComprobante(2280),
-          ),
-        ),
+        find.text(Textos.conFullPagasMenos(formatearSolesComprobante(2280))),
         findsOneWidget,
       );
+      await deslizarHasta(tester, find.text(Textos.elegirFull), paso: -200);
+      await tocar(tester, find.text(Textos.elegirFull));
+      expect(find.text(Textos.personasDeMas(1)), findsOneWidget);
+      expect(find.text(formatearSolesComprobante(2280)), findsOneWidget);
     });
 
     testWidgets('Entrega 43: el Básico no arma lo del crédito', (tester) async {
@@ -5373,20 +5417,10 @@ void main() {
       await tocar(tester, find.text(Textos.pdfParaCredito));
       expect(find.text(Textos.creditoEsDelFull), findsOneWidget);
       await tocar(tester, find.text(Textos.comoPagar));
-      // «Cómo pagar» se abre con el Básico que tiene.
+      // «Cómo pagar» abre «Elige tu plan», con el Básico marcado como suyo.
       expect(find.text(Textos.eligeTuPlan), findsOneWidget);
-      expect(
-        find.text(
-          Textos.cuentaDelPlan(
-            Textos.planBasico,
-            formatearSolesComprobante(1490),
-            0,
-            formatearSolesComprobante(0),
-            formatearSolesComprobante(1490),
-          ),
-        ),
-        findsOneWidget,
-      );
+      await deslizarHasta(tester, find.text(Textos.tuPlan));
+      expect(find.text(Textos.tuPlan), findsOneWidget);
     });
 
     testWidgets('Entrega 32: paga con Mercado Pago y Moca queda pagada', (
@@ -5400,29 +5434,20 @@ void main() {
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       await tocar(tester, find.text(Textos.activarMiPlan));
-      // El fundador no ve el Básico: solo la cuenta del Full (entrega 43).
-      expect(find.text(Textos.eligeTuPlan), findsNothing);
-      expect(
-        find.text(
-          Textos.cuentaDelPlan(
-            Textos.planFull,
-            'S/\u00A014.90',
-            0,
-            'S/\u00A00.00',
-            'S/\u00A014.90',
-          ),
-        ),
-        findsOneWidget,
-      );
-      // El Yape manual queda debajo, con su botón ya no principal.
-      expect(find.text(Textos.oYapeaYMandaLaCaptura), findsOneWidget);
-      expect(
-        find.widgetWithText(OutlinedButton, Textos.mandarLaCaptura),
-        findsOneWidget,
-      );
+      await tocar(tester, find.text(Textos.elegirFull));
+      expect(find.text(Textos.pagarTuPlan), findsOneWidget);
+      // Mercado Pago primero; el Yape, plegado debajo (entrega 60).
+      expect(find.text(Textos.seActivaAlInstante), findsOneWidget);
+      expect(find.text(Textos.prefieresYapear), findsOneWidget);
+      expect(find.text(Textos.mandarLaCaptura), findsNothing);
+      await tocar(tester, find.text(Textos.verComoYapear));
+      expect(find.text(Textos.mandarLaCaptura), findsOneWidget);
 
-      await tocarSinEsperar(tester, find.text(Textos.pagarConMercadoPago));
+      final pagar = find.text(Textos.pagarMontoConMercadoPago('S/\u00A014.90'));
+      await tester.ensureVisible(pagar);
+      await tocarSinEsperar(tester, pagar);
       expect(_servidor.ordenesPedidas, 1);
+      expect(_servidor.ultimaOrden, {'plan': 'full', 'periodo': 'mes'});
       expect(_abiertos.single, 'https://mp.falso/pagar/orden-1');
       expect(find.text(Textos.esperandoElPago), findsOneWidget);
 
@@ -5445,7 +5470,8 @@ void main() {
       await avanzar(tester, const Duration(seconds: 3));
       await esperar(tester);
       expect(find.text(Textos.esperandoElPago), findsNothing);
-      expect(find.text(Textos.pagaTuMes), findsNothing);
+      expect(find.text(Textos.pagarTuPlan), findsNothing);
+      expect(find.text(Textos.eligeTuPlan), findsNothing);
       expect(
         find.text(Textos.mocaPagadaHasta(formatearDiaYMes(hasta))),
         findsOneWidget,
@@ -5467,18 +5493,23 @@ void main() {
       });
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       await tocar(tester, find.text(Textos.activarMiPlan));
-      await tocarSinEsperar(tester, find.text(Textos.pagarConMercadoPago));
+      await tocar(tester, find.text(Textos.elegirFull));
+      final pagar = find.text(Textos.pagarMontoConMercadoPago('S/\u00A014.90'));
+      await tester.ensureVisible(pagar);
+      await tocarSinEsperar(tester, pagar);
       await tocarSinEsperar(tester, find.text(Textos.seguirSinEsperar));
       await avanzar(tester, const Duration(seconds: 10));
       expect(find.text(Textos.esperandoElPago), findsNothing);
       expect(_servidor.consultasDeOrden, 0);
-      // Sigue en «Cómo pagar», por si quiere yapear.
-      expect(find.text(Textos.pagaTuMes), findsOneWidget);
+      // Sigue en «Pagar tu plan», por si quiere yapear.
+      expect(pagar, findsOneWidget);
+      expect(find.text(Textos.prefieresYapear), findsOneWidget);
 
       // Si el servidor no tiene Mercado Pago, lo dice y no abre nada.
       _abiertos.clear();
       _servidor.errorMercadoPago = 'sin_mercadopago';
-      await tocar(tester, find.text(Textos.pagarConMercadoPago));
+      await tester.ensureVisible(pagar);
+      await tocar(tester, pagar);
       expect(_abiertos, isEmpty);
       expect(find.text(Textos.pagoNoDisponible), findsOneWidget);
     });
@@ -5496,20 +5527,22 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(find.text(Textos.comoPagar), findsNothing);
       await tocar(tester, find.text(Textos.pagarOtroMes));
+      // Va directo a pagar el plan que ya tiene.
+      expect(find.text(Textos.eligeTuPlan), findsNothing);
+      expect(find.text(Textos.pagarTuPlan), findsOneWidget);
       final hasta = _ahora.add(const Duration(days: 30));
       final desde = DateTime(hasta.year, hasta.month, hasta.day + 1);
       final nuevo = DateTime(desde.year, desde.month + 1, desde.day - 1);
       expect(
         find.text(
-          Textos.pagoSumaUnMes(
-            formatearDiaYMes(hasta),
-            formatearDiaYMes(desde),
-            formatearDiaYMes(nuevo),
-          ),
+          Textos.cubreDelAl(formatearDiaYMes(desde), formatearDiaYMes(nuevo)),
         ),
         findsOneWidget,
       );
-      expect(find.text(Textos.pagarConMercadoPago), findsOneWidget);
+      expect(
+        find.text(Textos.pagarMontoConMercadoPago('S/\u00A014.90')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Entrega 32.2: con 60 días pagados ya no se adelanta', (

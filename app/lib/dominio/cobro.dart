@@ -16,14 +16,14 @@ class OpcionDePlan {
 
   static OpcionDePlan? desdeServidor(Object? json) => json is Map
       ? OpcionDePlan(
-          plan: PlanCobro.values.asNameMap()[json['plan']] ?? PlanCobro.normal,
+          plan: PlanCobro.desdeServidor(json['plan']) ?? PlanCobro.normal,
           precioCentimos: json['precio'] as int? ?? 0,
           extras: json['extras'] as int? ?? 0,
         )
       : null;
 
   Map<String, Object?> aJson() => {
-    'plan': plan.name,
+    'plan': plan.delServidor,
     'precio': precioCentimos,
     'extras': extras,
   };
@@ -35,7 +35,12 @@ class OpcionDePlan {
   final int extras;
 
   NivelDePlan get nivel =>
-      plan == PlanCobro.basico ? NivelDePlan.basico : NivelDePlan.full;
+      plan == PlanCobro.basico || plan == PlanCobro.basicoAnual
+      ? NivelDePlan.basico
+      : NivelDePlan.full;
+
+  PeriodoDePlan get periodo =>
+      plan.esAnual ? PeriodoDePlan.anio : PeriodoDePlan.mes;
 
   /// El precio del plan solo, sin las personas extra.
   int get precioBaseCentimos => precioDelPlan(plan);
@@ -44,16 +49,18 @@ class OpcionDePlan {
 /// Lo que cuesta cada plan al mes, o al año el anual, como en el servidor.
 int precioDelPlan(PlanCobro plan) => switch (plan) {
   PlanCobro.basico => 1490,
+  PlanCobro.basicoAnual => 14900,
   PlanCobro.normal => 1990,
   PlanCobro.fundador => 1490,
   PlanCobro.anual => 19900,
 };
 
 /// Cada persona más: S/ 2.90 al mes, S/ 34.80 al año.
-int precioPersonaExtra(PlanCobro plan) => plan == PlanCobro.anual ? 3480 : 290;
+int precioPersonaExtra(PlanCobro plan) => plan.esAnual ? 3480 : 290;
 
 /// Personas que incluye el plan, con el titular; el contador no cuenta.
-int personasIncluidas(PlanCobro plan) => plan == PlanCobro.basico ? 1 : 3;
+int personasIncluidas(PlanCobro plan) =>
+    plan == PlanCobro.basico || plan == PlanCobro.basicoAnual ? 1 : 3;
 
 int extrasPara(PlanCobro plan, int personas) {
   final extras = personas - personasIncluidas(plan);
@@ -82,6 +89,8 @@ class Cobro {
     this.credito = true,
     this.opcionFull,
     this.opcionBasico,
+    this.opcionFullAnual,
+    this.opcionBasicoAnual,
   });
 
   static const sinCobro = Cobro(estado: EstadoDelCobro.sinCobro);
@@ -121,6 +130,19 @@ class Cobro {
       opcionBasico: switch (json['opciones']) {
         final Map<Object?, Object?> o => OpcionDePlan.desdeServidor(
           o['basico'],
+        ),
+        _ => null,
+      },
+      // Al año (entrega 60); un servidor anterior no las manda.
+      opcionFullAnual: switch (json['opciones']) {
+        final Map<Object?, Object?> o => OpcionDePlan.desdeServidor(
+          o['fullAnual'],
+        ),
+        _ => null,
+      },
+      opcionBasicoAnual: switch (json['opciones']) {
+        final Map<Object?, Object?> o => OpcionDePlan.desdeServidor(
+          o['basicoAnual'],
         ),
         _ => null,
       },
@@ -167,6 +189,22 @@ class Cobro {
   final OpcionDePlan? opcionFull;
   final OpcionDePlan? opcionBasico;
 
+  /// Al año (entrega 60); nulas con un servidor anterior.
+  final OpcionDePlan? opcionFullAnual;
+  final OpcionDePlan? opcionBasicoAnual;
+
+  /// Lo que pagaría con un nivel y un periodo; nulo si no se ofrece.
+  OpcionDePlan? opcion(NivelDePlan nivel, PeriodoDePlan periodo) =>
+      switch ((nivel, periodo)) {
+        (NivelDePlan.full, PeriodoDePlan.mes) => full,
+        (NivelDePlan.full, PeriodoDePlan.anio) => opcionFullAnual,
+        (NivelDePlan.basico, PeriodoDePlan.mes) => opcionBasico,
+        (NivelDePlan.basico, PeriodoDePlan.anio) => opcionBasicoAnual,
+      };
+
+  /// Si hay algo que elegir al año.
+  bool get hayAnual => opcionFullAnual != null;
+
   /// El Full, aunque el servidor todavía no mande las opciones.
   OpcionDePlan get full =>
       opcionFull ??
@@ -204,6 +242,32 @@ class Cobro {
       desde.day > diasDelMes ? diasDelMes : desde.day,
     );
     return (desde: desde, hasta: DateTime(mes.year, mes.month, mes.day - 1));
+  }
+
+  /// Lo que cubriría un pago hecho [hoy], al mes o al año (entrega 60),
+  /// como en el servidor (`periodoDelPago`): sigue a lo pagado o a la prueba
+  /// si no vencieron; si no, empieza hoy.
+  ({DateTime desde, DateTime hasta}) periodoQueCubre(
+    DateTime hoy,
+    PeriodoDePlan periodo,
+  ) {
+    final dia = DateTime(hoy.year, hoy.month, hoy.day);
+    final ultimo = hasta;
+    final sigue =
+        ultimo != null &&
+        (estado == EstadoDelCobro.pagado || estado == EstadoDelCobro.prueba) &&
+        !ultimo.isBefore(dia);
+    final desde = sigue
+        ? DateTime(ultimo.year, ultimo.month, ultimo.day + 1)
+        : dia;
+    final meses = periodo == PeriodoDePlan.anio ? 12 : 1;
+    final diasDelMes = DateTime(desde.year, desde.month + meses + 1, 0).day;
+    final fin = DateTime(
+      desde.year,
+      desde.month + meses,
+      desde.day > diasDelMes ? diasDelMes : desde.day,
+    );
+    return (desde: desde, hasta: DateTime(fin.year, fin.month, fin.day - 1));
   }
 
   /// La pregunta del día 10 de la prueba: quedan 4 días o menos.
@@ -245,6 +309,8 @@ class Cobro {
       credito: credito,
       opcionFull: opcionFull,
       opcionBasico: opcionBasico,
+      opcionFullAnual: opcionFullAnual,
+      opcionBasicoAnual: opcionBasicoAnual,
     );
   }
 }
@@ -271,7 +337,27 @@ enum RespuestaPrecio { si, noSe, no }
 
 /// Lo que Jhony registra (entrega 26). «basico» es el Básico (entrega 43);
 /// los demás son el Full.
-enum PlanCobro { basico, normal, fundador, anual }
+enum PlanCobro {
+  basico,
+
+  /// El Básico por un año (entrega 60).
+  basicoAnual,
+  normal,
+  fundador,
+  anual;
+
+  /// Como lo escribe el servidor: «basico_anual».
+  String get delServidor => this == basicoAnual ? 'basico_anual' : name;
+
+  static PlanCobro? desdeServidor(Object? texto) => texto == 'basico_anual'
+      ? basicoAnual
+      : PlanCobro.values.asNameMap()[texto];
+
+  bool get esAnual => this == anual || this == basicoAnual;
+}
+
+/// Al mes o al año (entrega 60).
+enum PeriodoDePlan { mes, anio }
 
 /// Un pago registrado.
 class PagoRegistrado {

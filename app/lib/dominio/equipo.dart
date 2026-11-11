@@ -289,6 +289,7 @@ abstract interface class ServicioCobro {
   /// El Básico o el Full (entrega 43).
   Future<ResultadoInicioDePago> pagarConMercadoPago({
     NivelDePlan nivel = NivelDePlan.full,
+    PeriodoDePlan periodo = PeriodoDePlan.mes,
   });
 
   /// Cómo va la orden; al quedar pagada, guarda el cobro nuevo.

@@ -424,9 +424,11 @@ class ServicioCuentaRemoto
   @override
   Future<ResultadoInicioDePago> pagarConMercadoPago({
     NivelDePlan nivel = NivelDePlan.full,
+    PeriodoDePlan periodo = PeriodoDePlan.mes,
   }) async {
     final r = await _delEquipo(await _delNegocio('/cobro/mercadopago'), {
       'plan': nivel.name,
+      'periodo': periodo.name,
     });
     if (r == null) return (inicio: null, error: ErrorDePago.sinSenal);
     final cuerpo = _cuerpo(r);
@@ -729,7 +731,7 @@ class ServicioCuentaRemoto
           PagoRegistrado(
             id: p['id'] as String? ?? '',
             anulado: p['anulado_en'] != null,
-            plan: PlanCobro.values.asNameMap()[p['plan']] ?? PlanCobro.normal,
+            plan: PlanCobro.desdeServidor(p['plan']) ?? PlanCobro.normal,
             montoCentimos: p['monto_centimos'] as int? ?? 0,
             personasExtra: p['personas_extra'] as int? ?? 0,
             desde: _leerDia(p['desde']) ?? DateTime(2000),
@@ -902,7 +904,7 @@ class ServicioCuentaRemoto
   }) async {
     final r = await _delEquipo('/cobro/pago', {
       'empresa': empresaId,
-      'plan': plan.name,
+      'plan': plan.delServidor,
       if (nota != null && nota.trim().isNotEmpty) 'nota': nota.trim(),
     });
     if (r == null) return (null, ResultadoCobro.sinSenal);

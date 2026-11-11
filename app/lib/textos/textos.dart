@@ -1668,6 +1668,7 @@ abstract final class Textos {
   static String planDelPago(PlanCobro plan, [int extras = 0]) =>
       switch (plan) {
         PlanCobro.basico => 'Un mes · Básico',
+        PlanCobro.basicoAnual => 'Un año · Básico',
         PlanCobro.normal => 'Un mes · Full',
         PlanCobro.fundador => 'Un mes · Full de fundador',
         PlanCobro.anual => 'Un año · Full',
@@ -1735,6 +1736,74 @@ abstract final class Textos {
 
   // Elegir el plan al pagar (entrega 43).
   static const eligeTuPlan = 'Elige tu plan';
+  // «Elige tu plan» y «Pagar tu plan» (entrega 60).
+  static String avisoPruebaPlanes(int dias) => dias == 1
+      ? 'Te queda 1 día de prueba gratis. Si no eliges un plan, Moca sigue '
+            'guardando lo que anotes.'
+      : 'Te quedan $dias días de prueba gratis. Si no eliges un plan, Moca '
+            'sigue guardando lo que anotes.';
+  static const avisoVencidoPlanes =
+      'Moca sigue guardando lo que anotes. Elige un plan para volver a ver '
+      'todo.';
+  static String pagadaHastaPlanes(String fecha) =>
+      'Moca está pagada hasta el $fecha.';
+  static const mensual = 'Mensual';
+  static const anual = 'Anual';
+  static const ahorrasDosMeses = 'Ahorras 2 meses';
+  static const recomendado = 'Recomendado';
+  static const tuPlan = 'Tu plan';
+  static const fullPara = 'Para el negocio con equipo y para pedir un crédito.';
+  static const basicoPara = 'Para el dueño que lleva solo sus cuentas.';
+  static const alMes = 'al mes';
+  static const alAnio = 'al año';
+  static String equivaleAlMes(String monto, String ahorro) =>
+      'Equivale a $monto al mes · ahorras $ahorro';
+  static const elegirFull = 'Elegir Full';
+  static const elegirBasico = 'Elegir Básico';
+  static const fullTresPersonas = '3 personas: tú y 2 de tu equipo';
+  static const fullCredito =
+      'Para pedir un crédito: tu flujo de caja listo para la caja o el banco';
+  static const fullTodoElBasico = 'Todo lo del Básico';
+  static const basicoUnaPersona = '1 persona: tú';
+  static const basicoIncluye = [
+    'Anota por voz, foto, QR o escrito, aun sin señal',
+    'Tienes hoy, Historial e Informes del mes y del año',
+    'Lo que te deben, con recordatorio por WhatsApp',
+    'Arqueo semanal y avisos',
+    'PDF y Excel para ti y tu contador',
+  ];
+  static const basicoSinCredito = 'Para pedir un crédito';
+  static String cadaPersonaMas(String monto) => 'Cada persona más: $monto';
+  static const pieDePlanes =
+      'Puedes cambiar de plan o dejar de pagar cuando quieras. Lo que anotaste '
+      'no se borra y siempre lo puedes descargar.';
+  static const tuPrecioDeSiempre = 'Tu precio de siempre';
+  static const noIncluye = 'No incluye';
+  static const pagarTuPlan = 'Pagar tu plan';
+  static const etiquetaPlan = 'Plan';
+  static String planYPeriodo(String plan, {required bool anual}) =>
+      '$plan · ${anual ? 'anual' : 'mensual'}';
+  static String personasIncluidasEnPlan(int n) =>
+      n == 1 ? '1 persona incluida' : '$n personas incluidas';
+  static String personasDeMas(int n) =>
+      n == 1 ? '1 persona más' : '$n personas más';
+  static const totalAlMes = 'Total al mes';
+  static const totalAlAnio = 'Total al año';
+  static String cubreDelAl(String desde, String hasta) =>
+      'Cubre del $desde al $hasta.';
+  static const seActivaAlInstante = 'Se activa al instante';
+  static const mercadoPagoExplica =
+      'Pagas en Mercado Pago con Yape, tarjeta o PagoEfectivo, y Moca queda '
+      'activa apenas se confirma el pago.';
+  static String pagarMontoConMercadoPago(String monto) =>
+      'Pagar $monto con Mercado Pago';
+  static const prefieresYapear = '¿Prefieres yapear directo a Moca?';
+  static const yapeTardaMas =
+      'Tarda más: una persona revisa tu captura y activa tu plan.';
+  static const verComoYapear = 'Ver cómo yapear';
+  static const mercadoPagoSinTarjeta =
+      'Mercado Pago no le pasa a Moca los datos de tu tarjeta. Puedes cambiar '
+      'de plan o dejar de pagar cuando quieras.';
   static const planBasico = 'Básico';
   static const planFull = 'Full';
   static const detalleBasico = '1 persona. Sin «Para pedir un crédito».';
@@ -1753,9 +1822,14 @@ abstract final class Textos {
     return '$plan $base + $personas $porExtras = $total $periodo';
   }
 
-  static String conFullPagasMenos(String precio) =>
-      'Con el Full pagas menos: $precio al mes, con 3 personas y «Para pedir '
-      'un crédito».';
+  static String conFullPagasMenos(String precio, {bool anual = false}) =>
+      'Con el Full pagas menos: $precio ${anual ? 'al año' : 'al mes'}, con 3 '
+      'personas y «Para pedir un crédito».';
+  static String conTusPersonas(
+    int personas,
+    String monto, {
+    required bool anual,
+  }) => 'Con tus $personas personas: $monto ${anual ? 'al año' : 'al mes'}';
   static String avisoBasicoConExtras(int extras, String monto) =>
       'Tu Básico incluye 1 persona. '
       '${extras == 1 ? 'La otra suma' : 'Las otras $extras suman'} $monto al '
@@ -1933,6 +2007,7 @@ abstract final class Textos {
   static const registrarPago = 'Registrar pago';
   static String nombrePlan(PlanCobro plan) => switch (plan) {
     PlanCobro.basico => 'Básico, S/ 14.90',
+    PlanCobro.basicoAnual => 'Básico al año, S/ 149',
     PlanCobro.normal => 'Full, S/ 19.90',
     PlanCobro.fundador => 'Full de fundador, S/ 14.90',
     PlanCobro.anual => 'Full al año, S/ 199',

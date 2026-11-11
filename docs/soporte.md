@@ -221,6 +221,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a ⚙ → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».
 
+**«¿Cómo activo mi plan?»** · **«¿Cuál es la diferencia entre Básico y Full?»** · **«Ya no veo el precio de fundador»** (entrega 60): «Activar mi plan» abre «Elige tu plan». El Full (S/ 19.90 al mes o S/ 199 al año) incluye 3 personas y «Para pedir un crédito»; el Básico (S/ 14.90 al mes o S/ 149 al año), solo al dueño. Con Mercado Pago se activa solo; por Yape a Moca, hay que esperar a que revises la captura. El precio de fundador ya no se da a negocios nuevos; quien lo tenía lo conserva si renueva a tiempo.
+
+> En la pestaña Moca, toca «Activar mi plan», elige Full o Básico (arriba puedes cambiar a Anual y ahorras 2 meses) y paga con Mercado Pago: tu plan se activa al instante.
+
 **«No veo cuánto tengo en cada cuenta»** · **«¿Dónde está En qué se fue?»** · **«Ya no veo mi semana en el Inicio»** (entrega 59): no se borró nada, quedó a un toque.
 
 > En el Inicio, toca «Ver por cuenta» para ver cuánto hay en efectivo, Yape y banco. En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.

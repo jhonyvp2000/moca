@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +18,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
+import 'elegir_plan.dart';
 
 /// El estado del cobro en la pestaña Moca, para los dueños (entrega 25).
 class TarjetaCobro extends ConsumerWidget {
@@ -78,7 +78,8 @@ class TarjetaCobro extends ConsumerWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton(
-                  onPressed: () => mostrarComoPagar(context, ref, cobro),
+                  onPressed: () =>
+                      mostrarComoPagar(context, ref, cobro, otroMes: true),
                   child: const Text(Textos.pagarOtroMes),
                 ),
               ),
@@ -229,6 +230,7 @@ class AvisoDelCobro extends ConsumerWidget {
 Future<void> pagarConMercadoPago(
   BuildContext context, {
   NivelDePlan nivel = NivelDePlan.full,
+  PeriodoDePlan periodo = PeriodoDePlan.mes,
 }) async {
   final mensajes = ScaffoldMessenger.of(context);
   // El diálogo va en el navegador raíz; «Cómo pagar», en el de su pestaña.
@@ -239,7 +241,7 @@ Future<void> pagarConMercadoPago(
     SnackBar(content: Text(texto), duration: const Duration(seconds: 6)),
   );
 
-  final r = await servicio.pagarConMercadoPago(nivel: nivel);
+  final r = await servicio.pagarConMercadoPago(nivel: nivel, periodo: periodo);
   final inicio = r.inicio;
   if (inicio == null) {
     decir(switch (r.error) {
@@ -302,8 +304,15 @@ Future<void> pagarConMercadoPago(
       case EstadoDeOrden.pagada:
         cerrar();
         final hasta = orden.hasta;
-        // También se cierra «Cómo pagar»: ya está pagado.
-        if (context.mounted) Navigator.of(context).pop();
+        // También se cierran «Elige tu plan» y «Pagar tu plan»: ya está
+        // pagado.
+        if (context.mounted) {
+          Navigator.of(context).popUntil(
+            (r) =>
+                r.settings.name != rutaPagarPlan &&
+                r.settings.name != rutaElegirPlan,
+          );
+        }
         decir(
           hasta == null
               ? Textos.mocaPagada
@@ -328,246 +337,14 @@ Future<void> pagarConMercadoPago(
   }
 }
 
-/// A dónde yapear y el botón para mandar la captura por WhatsApp.
+/// «Elige tu plan» y «Pagar tu plan» (entrega 60). Antes era la hoja
+/// «Paga tu mes».
 Future<void> mostrarComoPagar(
   BuildContext context,
   WidgetRef ref,
-  Cobro cobro,
-) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  builder: (_) => _HojaComoPagar(cobro: cobro),
-);
-
-class _HojaComoPagar extends ConsumerStatefulWidget {
-  const _HojaComoPagar({required this.cobro});
-
-  final Cobro cobro;
-
-  @override
-  ConsumerState<_HojaComoPagar> createState() => _EstadoComoPagar();
-}
-
-class _EstadoComoPagar extends ConsumerState<_HojaComoPagar> {
-  Cobro get cobro => widget.cobro;
-
-  /// Básico o Full (entrega 43): viene el que tiene, si se puede.
-  late NivelDePlan _nivel =
-      cobro.nivel == NivelDePlan.basico && cobro.opcionBasico != null
-      ? NivelDePlan.basico
-      : NivelDePlan.full;
-
-  OpcionDePlan get _opcion => _nivel == NivelDePlan.basico
-      ? cobro.opcionBasico ?? cobro.full
-      : cobro.full;
-
-  String get _nombrePlan =>
-      _opcion.nivel == NivelDePlan.basico ? Textos.planBasico : Textos.planFull;
-
-  Future<void> _mandarCaptura() async {
-    final mensajes = ScaffoldMessenger.of(context);
-    final negocio =
-        ref.read(resumenInicioProvider).value?.nombreNegocio ?? 'mi negocio';
-    final celular = ref.read(situacionCuentaProvider).value?.celular;
-    final texto = Textos.mensajeDePago(
-      negocio,
-      celular == null ? '' : formatearCelular(celular),
-      _nombrePlan,
-    );
-    // Con %20 y no «+»: WhatsApp muestra los «+» tal cual.
-    final enlace =
-        'https://wa.me/51${cobro.yape}?text=${Uri.encodeComponent(texto)}';
-    if (!await ref.read(abridorProvider).abrir(enlace)) {
-      mensajes.showSnackBar(
-        const SnackBar(content: Text(Textos.noSeAbrioWhatsApp)),
-      );
-    }
-  }
-
-  /// Básico o Full, con lo que incluye cada uno (entrega 43).
-  Widget _elegirPlan(OpcionDePlan basico) {
-    Widget opcion(NivelDePlan nivel, String titulo, String detalle) {
-      final elegida = _nivel == nivel;
-      return Expanded(
-        child: Material(
-          color: elegida ? Colores.tinteAzul : Colores.superficie,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Medidas.radioBoton),
-            side: BorderSide(
-              color: elegida ? Colores.marca : Colores.bordeCampo,
-              width: elegida ? 2 : 1,
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(Medidas.radioBoton),
-            onTap: () => setState(() => _nivel = nivel),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(titulo, style: Tipografia.textoFuerte),
-                  const SizedBox(height: Medidas.e1),
-                  Text(detalle, style: Tipografia.secundario),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        opcion(NivelDePlan.basico, Textos.planBasico, Textos.detalleBasico),
-        const SizedBox(width: 8),
-        opcion(NivelDePlan.full, Textos.planFull, Textos.detalleFull),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final yape = cobro.yape;
-    final nombre = cobro.nombreYape;
-    final opcion = _opcion;
-    final basico = cobro.opcionBasico;
-    final precio = formatearSolesComprobante(opcion.precioCentimos);
-    final extrasCentimos = opcion.precioCentimos - opcion.precioBaseCentimos;
-    // Con Mercado Pago y el Yape, no cabe en un teléfono chico: se desplaza.
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(Medidas.margenLateral),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(Textos.pagaTuMes, style: Tipografia.tituloPantalla),
-            const SizedBox(height: 12),
-            // Ya pagada: qué meses cubre este pago, para no pagar dos veces
-            // sin darse cuenta (entrega 32.2).
-            if ((cobro.hasta, cobro.siguienteMes) case (
-              final hasta?,
-              final siguiente?,
-            )) ...[
-              Text(
-                Textos.pagoSumaUnMes(
-                  formatearDiaYMes(hasta),
-                  formatearDiaYMes(siguiente.desde),
-                  formatearDiaYMes(siguiente.hasta),
-                ),
-                style: Tipografia.texto,
-              ),
-              const SizedBox(height: 12),
-            ],
-            // El plan (entrega 43): al fundador no se le ofrece el Básico.
-            if (basico != null) ...[
-              const Text(Textos.eligeTuPlan, style: Tipografia.textoFuerte),
-              const SizedBox(height: 8),
-              _elegirPlan(basico),
-              const SizedBox(height: 12),
-            ],
-            Text(
-              Textos.cuentaDelPlan(
-                _nombrePlan,
-                formatearSolesComprobante(opcion.precioBaseCentimos),
-                opcion.extras,
-                formatearSolesComprobante(extrasCentimos),
-                precio,
-              ),
-              style: Tipografia.cifra(Tipografia.textoFuerte),
-            ),
-            if (opcion.plan == PlanCobro.fundador) ...[
-              const SizedBox(height: 4),
-              const Text(Textos.precioDeFundador, style: Tipografia.secundario),
-            ],
-            // El Básico con personas extra: cuánto suman, y si el Full sale
-            // más barato.
-            if (_nivel == NivelDePlan.basico && opcion.extras > 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                Textos.avisoBasicoConExtras(
-                  opcion.extras,
-                  formatearSolesComprobante(extrasCentimos),
-                ),
-                style: Tipografia.secundario,
-              ),
-              if (cobro.full.precioCentimos <= opcion.precioCentimos) ...[
-                const SizedBox(height: 8),
-                Text(
-                  Textos.conFullPagasMenos(
-                    formatearSolesComprobante(cobro.full.precioCentimos),
-                  ),
-                  style: Tipografia.textoFuerte.copyWith(
-                    color: Colores.azulOscuro,
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: () => setState(() => _nivel = NivelDePlan.full),
-                    child: const Text(Textos.planFull),
-                  ),
-                ),
-              ],
-            ],
-            const SizedBox(height: 12),
-            // Primero Mercado Pago (entrega 32); el Yape manual queda debajo.
-            if (cobro.mercadoPago) ...[
-              FilledButton(
-                onPressed: () => pagarConMercadoPago(context, nivel: _nivel),
-                child: const Text(Textos.pagarConMercadoPago),
-              ),
-              if (yape != null && nombre != null) ...[
-                const SizedBox(height: 20),
-                const Text(
-                  Textos.oYapeaYMandaLaCaptura,
-                  style: Tipografia.secundario,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ],
-            if (cobro.mercadoPago && (yape == null || nombre == null))
-              const SizedBox.shrink()
-            else if (yape == null || nombre == null)
-              const Text(Textos.pagoSinDatos, style: Tipografia.texto)
-            else ...[
-              Text(
-                Textos.yapeaA(precio, formatearCelular(yape), nombre),
-                style: Tipografia.textoFuerte,
-              ),
-              const SizedBox(height: 8),
-              const Text(Textos.luegoMandaLaCaptura, style: Tipografia.texto),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: yape));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text(Textos.numeroCopiado)),
-                  );
-                },
-                child: const Text(Textos.copiarElNumero),
-              ),
-              const SizedBox(height: 8),
-              // Con Mercado Pago, el botón principal es el de arriba.
-              if (cobro.mercadoPago)
-                OutlinedButton(
-                  onPressed: _mandarCaptura,
-                  child: const Text(Textos.mandarLaCaptura),
-                )
-              else
-                FilledButton(
-                  onPressed: _mandarCaptura,
-                  child: const Text(Textos.mandarLaCaptura),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
+  Cobro cobro, {
+  bool otroMes = false,
+}) => abrirPlanes(context, cobro, otroMes: otroMes);
 
 /// La pregunta del día 10 de la prueba, una sola vez, en la pestaña Moca.
 class PreguntaDelPrecio extends ConsumerStatefulWidget {
