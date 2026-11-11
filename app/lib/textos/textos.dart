@@ -861,6 +861,12 @@ abstract final class Textos {
       'Solo lo ven los dueños. Sirve para recordarle por WhatsApp.';
   static String celularDe(String cliente) => 'Celular de $cliente';
   static String leRecordasteEl(String fecha) => 'Le recordaste el $fecha';
+  // Moca avisa a quién recordarle (entrega 54).
+  static String avisoTeDebe(String cliente, String monto, String fecha) =>
+      '$cliente te debe $monto desde el $fecha';
+  static String notificacionPorCobrar(int clientes) => clientes == 1
+      ? 'Un cliente te debe hace más de una semana.'
+      : '$clientes clientes te deben hace más de una semana.';
   static const todaviaTeDebe =
       'Todavía te deben esta venta. No sube tu saldo hasta que te paguen.';
   static const yaMePago = 'Ya me pagó';
@@ -1482,6 +1488,7 @@ abstract final class Textos {
     TipoNotificacion.diasSinAnotar => 'Días sin anotar',
     TipoNotificacion.resumenSemanal => 'Resumen de la semana',
     TipoNotificacion.cobroPorVencer => 'Fin de la prueba gratis',
+    TipoNotificacion.clientesPorCobrar => 'Clientes por cobrar',
   };
   static const otroAviso = 'Otro aviso';
   static const simularSinSenal = 'Simular sin señal';

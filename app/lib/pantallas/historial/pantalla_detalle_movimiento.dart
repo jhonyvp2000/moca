@@ -400,12 +400,8 @@ class _EstadoDetalleMovimiento
             (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
                 Rol.dueno)
           OutlinedButton(
-            onPressed: () => recordarPorWhatsApp(
-              context,
-              ref,
-              cliente: f.proveedor,
-              ventas: [f],
-            ),
+            onPressed: () =>
+                recordarPorWhatsApp(context, cliente: f.proveedor, ventas: [f]),
             child: const Text(Textos.recordarPorWhatsApp),
           ),
         // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).

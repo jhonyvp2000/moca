@@ -214,7 +214,6 @@ class _Cliente extends ConsumerWidget {
             TextButton(
               onPressed: () => recordarPorWhatsApp(
                 context,
-                ref,
                 cliente: filas.first.proveedor,
                 ventas: filas,
               ),

@@ -3073,6 +3073,47 @@ void main() {
       expect(find.text(Textos.sinAvisos), findsOneWidget);
     });
 
+    testWidgets('Entrega 54: Moca avisa a quién recordarle lo que debe', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        final repo = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 3, 18),
+        );
+        final ventas = await repo.categorias(TipoMovimiento.ingreso);
+        await repo.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 8000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ventas.first.id,
+            pagado: false,
+            contraparte: 'Doña Rosa',
+            celularContraparte: '987000054',
+          ),
+        );
+      });
+      final texto = Textos.avisoTeDebe(
+        'Doña Rosa',
+        formatearSoles(8000),
+        '3 de octubre',
+      );
+
+      await abrirAjusteOculto(tester);
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(texto), findsOneWidget);
+      // Tocarlo abre el chat de doña Rosa con el mensaje listo.
+      await tocar(tester, find.text(texto));
+      expect(_abiertos.single, startsWith('https://wa.me/51987000054?text='));
+      await esperar(tester);
+      // Ya se le recordó: el aviso se va por una semana.
+      expect(find.text(texto), findsNothing);
+    });
+
     testWidgets('Informe y Moca no se desbordan con letra grande', (
       tester,
     ) async {

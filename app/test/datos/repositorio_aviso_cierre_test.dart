@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/acceso_local.dart';
 import 'package:moca/datos/repositorios/repositorio_aviso_cierre_local.dart';
 import 'package:moca/datos/repositorios/repositorio_moca_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
@@ -140,4 +141,46 @@ void main() {
       );
     },
   );
+
+  test('Entrega 54: el jueves avisa cuántos clientes deben hace una semana, '
+      'solo al dueño', () async {
+    final movimientos = RepositorioMovimientosLocal(base, ahora: () => ahora);
+    final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+    Future<void> fiar(String cliente) => movimientos.registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 5000,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: ingresos.first.id,
+        pagado: false,
+        contraparte: cliente,
+      ),
+    );
+    // Fiado el miércoles 7; el martes 13, otro; el miércoles 14 se anota.
+    ahora = DateTime(2026, 10, 7, 10);
+    await fiar('Doña Rosa');
+    await fiar('Don Pepe');
+    ahora = DateTime(2026, 10, 13, 10);
+    await fiar('Don Lucas');
+    ahora = DateTime(2026, 10, 14, 10);
+    await movimientos.anotarVentaDelDia({TipoCuenta.efectivo: 2000});
+    final plan = await repo.plan();
+    final cobros = plan
+        .where((n) => n.tipo == TipoNotificacion.clientesPorCobrar)
+        .toList();
+    // Solo el jueves 15, con los dos que deben desde el 7.
+    expect(cobros.single.cuando, DateTime(2026, 10, 15, 8));
+    expect(cobros.single.clientes, 2);
+    // El encargado no la recibe.
+    await AccesoLocal(
+      base,
+      () => ahora,
+    ).guardarAjuste(AccesoLocal.claveVerComo, Rol.encargado.name);
+    expect(
+      (await repo.plan()).where(
+        (n) => n.tipo == TipoNotificacion.clientesPorCobrar,
+      ),
+      isEmpty,
+    );
+  });
 }

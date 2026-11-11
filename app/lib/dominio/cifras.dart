@@ -93,6 +93,7 @@ class Cifras {
               categoria: a['categoria'] as String?,
               dias: a['dias'] as int?,
               destinoId: a['destinoId'] as String?,
+              cliente: a['cliente'] as String?,
             ),
       ],
       informes: [
@@ -188,6 +189,7 @@ class Cifras {
           'categoria': a.categoria,
           'dias': a.dias,
           'destinoId': a.destinoId,
+          'cliente': a.cliente,
         },
     ],
     'informes': [

@@ -32,12 +32,12 @@ String mensajeDeRecordatorio({
 /// directo a su chat; sin él, el dueño elige el contacto (entrega 45). Al
 /// abrirse queda la fecha del recordatorio, solo para mostrarla (entrega 53).
 Future<void> recordarPorWhatsApp(
-  BuildContext context,
-  WidgetRef ref, {
+  BuildContext context, {
   required String? cliente,
   required List<FilaHistorial> ventas,
 }) async {
   final mensajes = ScaffoldMessenger.of(context);
+  final ref = ProviderScope.containerOf(context, listen: false);
   final repo = ref.read(repositorioHistorialProvider);
   final texto = mensajeDeRecordatorio(
     negocio:

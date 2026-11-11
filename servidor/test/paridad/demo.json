@@ -8980,7 +8980,8 @@
       "cuenta": null,
       "categoria": "Mercadería",
       "dias": null,
-      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704"
+      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704",
+      "cliente": null
      }
     ],
     "informes": [
@@ -9208,7 +9209,8 @@
       "cuenta": null,
       "categoria": null,
       "dias": 2,
-      "destinoId": null
+      "destinoId": null,
+      "cliente": null
      },
      {
       "clave": "atipico:a8f8174b-9046-4dd2-a7a1-fb87b3063704",
@@ -9219,7 +9221,8 @@
       "cuenta": null,
       "categoria": "Mercadería",
       "dias": null,
-      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704"
+      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704",
+      "cliente": null
      }
     ],
     "informes": [
@@ -9447,7 +9450,8 @@
       "cuenta": null,
       "categoria": null,
       "dias": 4,
-      "destinoId": null
+      "destinoId": null,
+      "cliente": null
      },
      {
       "clave": "atipico:a8f8174b-9046-4dd2-a7a1-fb87b3063704",
@@ -9458,7 +9462,8 @@
       "cuenta": null,
       "categoria": "Mercadería",
       "dias": null,
-      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704"
+      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704",
+      "cliente": null
      }
     ],
     "informes": [
@@ -9686,7 +9691,8 @@
       "cuenta": null,
       "categoria": null,
       "dias": 6,
-      "destinoId": null
+      "destinoId": null,
+      "cliente": null
      },
      {
       "clave": "atipico:a8f8174b-9046-4dd2-a7a1-fb87b3063704",
@@ -9697,7 +9703,8 @@
       "cuenta": null,
       "categoria": "Mercadería",
       "dias": null,
-      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704"
+      "destinoId": "a8f8174b-9046-4dd2-a7a1-fb87b3063704",
+      "cliente": null
      }
     ],
     "informes": [
@@ -9925,7 +9932,8 @@
       "cuenta": null,
       "categoria": null,
       "dias": 22,
-      "destinoId": null
+      "destinoId": null,
+      "cliente": null
      },
      {
       "clave": "falta_arqueo:2026-11-02T00:00:00.000",
@@ -9936,7 +9944,8 @@
       "cuenta": null,
       "categoria": null,
       "dias": null,
-      "destinoId": null
+      "destinoId": null,
+      "cliente": null
      }
     ],
     "informes": [

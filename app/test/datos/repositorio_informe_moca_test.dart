@@ -468,6 +468,52 @@ void main() {
       expect(await moca.observarAvisos().first, isEmpty);
     });
 
+    test('Entrega 54: el cliente que debe hace una semana, hasta que se '
+        'le recuerda o se marca «Entendido»', () async {
+      Future<void> fiar(int soles, String cliente) => movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: soles * 100,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Venta del día'],
+          pagado: false,
+          contraparte: cliente,
+        ),
+      );
+      ahora = DateTime(2026, 10, 12, 21);
+      await fiar(80, 'Doña Rosa');
+      ahora = DateTime(2026, 10, 15, 21);
+      await fiar(40, 'Doña Rosa');
+      await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+      // A los seis días, todavía no.
+      ahora = DateTime(2026, 10, 18, 21);
+      await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+      expect(await moca.observarAvisos().first, isEmpty);
+      ahora = DateTime(2026, 10, 19, 9);
+      await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+      var avisos = await moca.observarAvisos().first;
+      final cobro = avisos.singleWhere(
+        (a) => a.tipo == TipoAviso.cobrarCliente,
+      );
+      expect(cobro.cliente, 'Doña Rosa');
+      expect(cobro.montoCentimos, 12000);
+      expect(cobro.fecha, DateTime(2026, 10, 12, 21));
+      expect(cobro.descartable, isTrue);
+      // Recordarle lo calla por una semana.
+      final historial = RepositorioHistorialLocal(base, ahora: () => ahora);
+      await historial.marcarRecordado(cobro.destinoId!);
+      avisos = await moca.observarAvisos().first;
+      expect(avisos.where((a) => a.tipo == TipoAviso.cobrarCliente), isEmpty);
+      ahora = DateTime(2026, 10, 26, 9);
+      await anotar(TipoMovimiento.ingreso, 100, categoria: 'Venta del día');
+      avisos = await moca.observarAvisos().first;
+      final otra = avisos.singleWhere((a) => a.tipo == TipoAviso.cobrarCliente);
+      // «Entendido» lo calla hasta la semana que viene.
+      await moca.descartar(otra);
+      avisos = await moca.observarAvisos().first;
+      expect(avisos.where((a) => a.tipo == TipoAviso.cobrarCliente), isEmpty);
+    });
+
     test('Gasto atípico, y «Entendido» lo quita', () async {
       for (final d in [5, 6, 7]) {
         await anotar(

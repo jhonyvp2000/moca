@@ -4,6 +4,7 @@ import '../../dominio/aviso_cierre.dart';
 import '../../dominio/modelos.dart';
 import '../../pais/peru/categorias.dart';
 import '../../pais/peru/formato.dart';
+import '../calculos/por_cobrar.dart';
 import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
 import '../local/base_local.dart';
@@ -35,6 +36,9 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
   /// Banco y las billeteras se preguntan solo si tuvieron ventas en los
   /// últimos 30 días.
   static const _diasConVentas = 30;
+
+  /// El aviso de los clientes por cobrar sale los jueves (entrega 54).
+  static const _diaPorCobrar = DateTime.thursday;
 
   static int _idCierre(int dia) => 100 + dia;
   static int _idManana(int dia) => 200 + dia;
@@ -94,6 +98,13 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
       ...cerrados,
     }.reduce((a, b) => a.isAfter(b) ? a : b);
 
+    // Los clientes por cobrar, solo para los dueños (entrega 54).
+    final clientes = await _a.miRol() == Rol.dueno
+        ? await (_base.select(
+            _base.contrapartes,
+          )..where((c) => c.empresaId.equals(empresa.id))).get()
+        : null;
+
     final plan = <NotificacionProgramada>[];
     for (var i = 0; i < _diasDePlan; i++) {
       final dia = DateTime(hoy.year, hoy.month, hoy.day + i);
@@ -131,6 +142,21 @@ class RepositorioAvisoCierreLocal implements RepositorioAvisoCierre {
         tipo = TipoNotificacion.resumenSemanal;
       } else {
         tipo = null;
+      }
+      // Una vez por semana, el jueves, si no hay otro aviso ese día.
+      final porCobrar =
+          tipo == null && clientes != null && dia.weekday == _diaPorCobrar
+          ? clientesPorCobrar(movimientos, clientes, dia).length
+          : 0;
+      if (porCobrar > 0) {
+        plan.add(
+          NotificacionProgramada(
+            id: _idManana(i),
+            cuando: manana,
+            tipo: TipoNotificacion.clientesPorCobrar,
+            clientes: porCobrar,
+          ),
+        );
       }
       if (tipo != null) {
         plan.add(

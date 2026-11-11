@@ -22,13 +22,17 @@ export interface DatosEmpresa {
   arqueo_cuentas: Fila[];
   dias_cerrados: Fila[];
   alertas?: Fila[];
+  /** Los clientes, con cuándo se les recordó (entrega 54). */
+  contrapartes?: Fila[];
+  /** Quién pide las cifras: los avisos de cobro son solo de los dueños. */
+  membresia?: { rol?: string };
 }
 
 export type EstadoArqueo = 'nada' | 'toca' | 'falta' | 'hecho';
 
 export interface Aviso {
   clave: string;
-  tipo: 'faltaArqueo' | 'diferenciaArqueo' | 'diasSinRegistrar' | 'gastoAtipico';
+  tipo: 'faltaArqueo' | 'diferenciaArqueo' | 'diasSinRegistrar' | 'gastoAtipico' | 'cobrarCliente';
   prioridad: 'importante' | 'paraTenerEnCuenta';
   fecha: string;
   montoCentimos: number | null;
@@ -36,6 +40,8 @@ export interface Aviso {
   categoria: string | null;
   dias: number | null;
   destinoId: string | null;
+  /** El nombre del cliente que debe (entrega 54). */
+  cliente: string | null;
 }
 
 export interface Informe {
@@ -143,6 +149,7 @@ interface Movimiento {
   estadoPago: string;
   montoPagado: number;
   categoriaId: string | null;
+  contraparteId: string | null;
   nivelConfianza: string;
   vigente: boolean;
 }
@@ -245,6 +252,8 @@ const atipicoPrevios = 3;
 const atipicoVigencia = 14 * dia;
 /** «Días sin registrar»: dos días seguidos. */
 const diasSinRegistrarMinimo = 2;
+/** Un cliente se recuerda a los 7 días de su deuda o del último recordatorio. */
+const diasParaRecordarCliente = 7;
 /** Cambio mínimo de una categoría para mencionarlo: S/ 100 y 20 %. */
 const cambioMinimoCentimos = 10000;
 const cambioMinimoProporcion = 0.2;
@@ -273,6 +282,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
     estadoPago: String(m.estado_pago),
     montoPagado: Number(m.monto_pagado_centimos),
     categoriaId: (m.categoria_id as string | null) ?? null,
+    contraparteId: (m.contraparte_id as string | null) ?? null,
     nivelConfianza: String(m.nivel_confianza),
     vigente: m.estado === 'vigente',
   }));
@@ -414,6 +424,7 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
         categoria: null,
         dias: null,
         destinoId: null,
+        cliente: null,
         ...a,
       });
 
@@ -493,6 +504,43 @@ export function calcularCifras(datos: DatosEmpresa, ahoraReal: Date): Cifras {
         categoria: nombreCategoria(m.categoriaId) ?? null,
         destinoId: m.id,
       });
+    }
+
+    // Clientes que deben hace una semana o más, sin recordarles (entrega 54).
+    // Solo los dueños: los demás no recuerdan por WhatsApp.
+    const rol = datos.membresia?.rol;
+    if (!rol || rol === 'dueno') {
+      const falta = new Map<string, number>();
+      const desde = new Map<string, number>();
+      for (const m of vigentes) {
+        if (m.contraparteId == null || m.tipo !== 'ingreso' || m.estadoPago === 'pagado') continue;
+        const resto = m.monto - m.montoPagado;
+        if (resto <= 0) continue;
+        falta.set(m.contraparteId, (falta.get(m.contraparteId) ?? 0) + resto);
+        const antes = desde.get(m.contraparteId);
+        if (antes == null || m.fechaMovimiento < antes) desde.set(m.contraparteId, m.fechaMovimiento);
+      }
+      const clientes = new Map((datos.contrapartes ?? []).map((c) => [String(c.id), c]));
+      for (const [id, centimos] of falta) {
+        const cliente = clientes.get(id);
+        if (!cliente) continue;
+        const recordado = localONulo(cliente.recordado_en);
+        const base = Math.max(
+          inicioDelDia(desde.get(id)!),
+          recordado == null ? -Infinity : inicioDelDia(recordado),
+        );
+        if (hoy < base + diasParaRecordarCliente * dia) continue;
+        aviso({
+          // «Entendido» lo calla hasta la semana que viene.
+          clave: `cobrar:${id}:${textoLocal(lunes)}`,
+          tipo: 'cobrarCliente',
+          prioridad: 'paraTenerEnCuenta',
+          fecha: real(desde.get(id)!),
+          montoCentimos: centimos,
+          destinoId: id,
+          cliente: String(cliente.nombre),
+        });
+      }
     }
 
     const vistos = new Set(

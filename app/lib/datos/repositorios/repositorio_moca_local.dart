@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../dominio/arqueo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
+import '../calculos/por_cobrar.dart';
 import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
 import '../local/base_local.dart';
@@ -165,6 +166,29 @@ class RepositorioMocaLocal implements RepositorioMoca {
           destinoId: m.id,
         ),
       );
+    }
+
+    // Clientes que deben hace una semana o más, sin recordarles (entrega
+    // 54). Solo los dueños: los demás no recuerdan por WhatsApp.
+    if (await _a.miRol() == Rol.dueno) {
+      final lunes = inicioDeSemana(ahora);
+      final clientes = await (_base.select(
+        _base.contrapartes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get();
+      for (final c in clientesPorCobrar(movimientos, clientes, ahora)) {
+        avisos.add(
+          Aviso(
+            // «Entendido» lo calla hasta la semana que viene.
+            clave: 'cobrar:${c.contraparteId}:${lunes.toIso8601String()}',
+            tipo: TipoAviso.cobrarCliente,
+            prioridad: PrioridadAlerta.paraTenerEnCuenta,
+            fecha: c.desde,
+            montoCentimos: c.faltaCentimos,
+            destinoId: c.contraparteId,
+            cliente: c.nombre,
+          ),
+        );
+      }
     }
 
     // Empates: por clave, igual que en el servidor.

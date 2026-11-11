@@ -192,6 +192,8 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         _rutas.push(Rutas.arqueo);
       case DestinoNotificacion.registrar:
         _rutas.push(Rutas.registrar);
+      case DestinoNotificacion.loQueTeDeben:
+        _rutas.push(Rutas.loQueTeDeben);
     }
   }
 

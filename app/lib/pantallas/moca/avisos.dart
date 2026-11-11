@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dominio/medicion.dart';
 import '../../inyeccion.dart';
+import '../informe/recordatorio_whatsapp.dart';
 
 // Las plantillas de los avisos y del resumen. Las reglas viven en la capa
 // de datos; aquí solo se redacta (en la V1 real, lo redacta la IA).
@@ -26,6 +27,11 @@ String textoAviso(Aviso a) => switch (a.tipo) {
     formatearSolesComprobante(a.montoCentimos ?? 0),
     a.categoria ?? Textos.otro,
   ),
+  TipoAviso.cobrarCliente => Textos.avisoTeDebe(
+    a.cliente ?? Textos.sinCliente,
+    formatearSoles(a.montoCentimos ?? 0),
+    formatearDiaYMes(a.fecha),
+  ),
 };
 
 /// Lo que dice la tarjeta de Moca del Inicio para este aviso.
@@ -38,6 +44,7 @@ String accionAviso(Aviso a) => switch (a.tipo) {
   TipoAviso.diferenciaArqueo => Textos.verElAjuste,
   TipoAviso.diasSinRegistrar => Textos.registrar,
   TipoAviso.gastoAtipico => Textos.verElGasto,
+  TipoAviso.cobrarCliente => Textos.recordarPorWhatsApp,
 };
 
 void abrirAviso(BuildContext context, Aviso a) {
@@ -49,6 +56,8 @@ void abrirAviso(BuildContext context, Aviso a) {
       context.push(Rutas.arqueo);
     case TipoAviso.diasSinRegistrar:
       context.push(Rutas.registrar);
+    case TipoAviso.cobrarCliente:
+      _recordarAlCliente(context, a);
     case TipoAviso.diferenciaArqueo || TipoAviso.gastoAtipico:
       if (a.destinoId case final id?) {
         context.push(Rutas.detalleMovimiento(id));
@@ -92,4 +101,24 @@ int segundosDeLectura(String texto) {
   final palabras = texto.split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
   final segundos = (palabras.length / 2.5).round();
   return segundos < 5 ? 5 : segundos;
+}
+
+/// «Recordar por WhatsApp» desde el aviso (entrega 54): con sus ventas
+/// fiadas de ahora, como en «Lo que te deben».
+Future<void> _recordarAlCliente(BuildContext context, Aviso a) async {
+  final id = a.destinoId;
+  if (id == null) return;
+  final ventas = [
+    for (final f in await ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(repositorioHistorialProvider).observarLoQueTeDeben().first)
+      if (f.contraparteId == id) f,
+  ];
+  if (ventas.isEmpty || !context.mounted) return;
+  await recordarPorWhatsApp(
+    context,
+    cliente: ventas.first.proveedor ?? a.cliente,
+    ventas: ventas,
+  );
 }

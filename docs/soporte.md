@@ -179,6 +179,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para que WhatsApp abra directo su chat: Informes → Lo que te deben → **Agregar celular** debajo del nombre del cliente, escribe su número y toca Guardar.
 
+**Los avisos de cobro (entrega 54):** cuando un cliente debe hace una semana o más y no se le recordó, sale en el **Asistente** «Doña Rosa te debe S/ 150 desde el 3 de noviembre»; tocarlo abre WhatsApp con el mensaje. Los jueves a las 8:00 a. m. llega «Un cliente te debe hace más de una semana.» (sin nombres, a propósito). Si le recuerda, el aviso desaparece una semana; si toca «Entendido», también. Solo lo ven los dueños.
+
+> Si no quieres que te avise de un cliente esta semana, toca «Entendido» en el aviso. Si ya te pagó, márcalo en Lo que te deben → el cliente → **Ya me pagó**, y el aviso se va.
+
 **Cómo se fía:** desde **«Escribirlo»** (Entró → «Todavía me debe» → el nombre), **por voz** («Le fié 50 a doña Rosa») o, desde la entrega 52, en **«Anotar la venta de hoy»** → **«+ Al fiado»**: el monto fiado y el nombre, junto con lo cobrado. Lo fiado no sube «Tienes hoy» hasta que te paguen; se ve en la píldora del Inicio («· S/ 80 al fiado») y en Informes → «Lo que te deben».
 
 > Para anotar lo que fiaste hoy junto con la venta: + → «Venta del día» → «+ Al fiado», pon cuánto y quién te debe, y guarda.

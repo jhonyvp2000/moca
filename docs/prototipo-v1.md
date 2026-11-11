@@ -150,9 +150,11 @@ Estados aprobados el 13-10-2026 (entrega 7):
 | Días sin registrar | Dos días seguidos sin registros ni «Hoy no abrí» | Importante |
 | Gasto atípico | Un gasto de S/ 100 o más que duplica el promedio de su categoría en las últimas 8 semanas (con al menos 3 gastos previos en ella) | Para tener en cuenta |
 | Resumen semanal | Lunes 8:00 a. m. | Para tener en cuenta |
+| Cliente por cobrar (entrega 54, solo dueños) | Un cliente con ventas fiadas cuya deuda más antigua tiene 7 días o más y al que no se le recordó por WhatsApp en los últimos 7 días. Dice «Doña Rosa te debe S/ 150 desde el 3 de noviembre»; al tocarlo abre «Recordar por WhatsApp» (directo a su chat si tiene celular). «Entendido» lo calla hasta la semana siguiente | Para tener en cuenta |
 
 - Notificaciones del teléfono: el aviso de cierre, más un aviso al día como máximo (el de mayor prioridad), entre las 8:00 a. m. y la hora de cierre. Dentro de la app, la pestaña Moca muestra todos, ordenados por prioridad y fecha.
-- El resumen semanal y los avisos no mencionan «Lo que viene», «te alcanza» ni fiado.
+- El resumen semanal y los avisos no mencionan «Lo que viene», «te alcanza» ni fiado, salvo el aviso «Cliente por cobrar» (entrega 54), que existe justamente para eso.
+- Desde la entrega 54, los jueves a las 8:00 a. m., si ese día no hay otro aviso más importante, la notificación «Un cliente te debe hace más de una semana.» (o «N clientes…») lleva a «Lo que te deben». No dice nombres ni montos, porque se ve en la pantalla bloqueada. Solo la reciben los dueños.
 
 ### Informe del mes (S14)
 

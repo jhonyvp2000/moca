@@ -100,3 +100,72 @@ describe('Cifras: rutas', () => {
     expect((await pedir('/cifras', 'otra')).statusCode).toBe(401);
   });
 });
+
+describe('Entrega 54: avisos de clientes por cobrar', () => {
+  // Jueves 12 de noviembre de 2026, 10:00 a. m. en Lima (15:00 UTC).
+  const ahora = new Date('2026-11-12T15:00:00Z');
+  const venta = (id: string, cliente: string, fecha: string, monto: number, pagado = 0) => ({
+    id,
+    tipo: 'ingreso',
+    cuenta_id: 'c1',
+    cuenta_destino_id: null,
+    monto_centimos: monto,
+    fecha_movimiento: fecha,
+    fecha_comprobante: null,
+    fecha_pago: null,
+    estado_pago: pagado > 0 ? 'parcial' : 'pendiente',
+    monto_pagado_centimos: pagado,
+    categoria_id: null,
+    contraparte_id: cliente,
+    nivel_confianza: 'd',
+    estado: 'vigente',
+  });
+  const datos = (rol?: string, recordadoRosa: string | null = null): DatosEmpresa => ({
+    cuentas: [{ id: 'c1', tipo: 'efectivo', saldo_inicial_centimos: 0, fecha_saldo_inicial: null }],
+    categorias: [],
+    movimientos: [
+      // Doña Rosa: dos ventas, la más antigua del 3 de noviembre.
+      venta('m1', 'rosa', '2026-11-03T15:00:00Z', 10000, 2500),
+      venta('m2', 'rosa', '2026-11-10T15:00:00Z', 5000),
+      // Don Pepe: fió hace 6 días, todavía no toca.
+      venta('m3', 'pepe', '2026-11-06T15:00:00Z', 3000),
+    ],
+    arqueos: [],
+    arqueo_cuentas: [],
+    dias_cerrados: [],
+    contrapartes: [
+      { id: 'rosa', nombre: 'Doña Rosa', recordado_en: recordadoRosa },
+      { id: 'pepe', nombre: 'Don Pepe', recordado_en: null },
+    ],
+    ...(rol ? { membresia: { rol } } : {}),
+  });
+  const cobros = (d: DatosEmpresa) =>
+    calcularCifras(d, ahora).avisos.filter((a) => a.tipo === 'cobrarCliente');
+
+  it('avisa del cliente que debe hace 7 días o más, con lo que falta', () => {
+    expect(cobros(datos('dueno'))).toEqual([
+      {
+        clave: 'cobrar:rosa:2026-11-09T00:00:00.000',
+        tipo: 'cobrarCliente',
+        prioridad: 'paraTenerEnCuenta',
+        fecha: '2026-11-03T15:00:00.000Z',
+        montoCentimos: 12500,
+        cuenta: null,
+        categoria: null,
+        dias: null,
+        destinoId: 'rosa',
+        cliente: 'Doña Rosa',
+      },
+    ]);
+  });
+
+  it('recordarle hace menos de 7 días lo calla; hace 7, vuelve', () => {
+    expect(cobros(datos('dueno', '2026-11-06T20:00:00Z'))).toEqual([]);
+    expect(cobros(datos('dueno', '2026-11-05T20:00:00Z'))).toHaveLength(1);
+  });
+
+  it('solo para los dueños', () => {
+    expect(cobros(datos('encargado'))).toEqual([]);
+    expect(cobros(datos('contador'))).toEqual([]);
+  });
+});

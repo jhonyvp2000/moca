@@ -204,6 +204,12 @@ class AccesoLocal {
           'COALESCE(SUM(LENGTH(nombre)), 0) AS largo FROM categorias',
         )
         .getSingle();
+    final recordados = await base
+        .customSelect(
+          'SELECT COUNT(recordado_en) AS n, '
+          'COALESCE(MAX(recordado_en), 0) AS ultimo FROM contrapartes',
+        )
+        .getSingle();
     return [
       await contar(base.bitacora),
       await contar(base.movimientos),
@@ -214,6 +220,8 @@ class AccesoLocal {
       empresa?.tipoNegocio.name,
       empresa?.horaCierreMinutos,
       categorias.data.values.join('-'),
+      // Un recordatorio por WhatsApp cambia los avisos (entrega 54).
+      recordados.data.values.join('-'),
     ].join('|');
   }
 

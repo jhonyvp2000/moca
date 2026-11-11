@@ -42,6 +42,7 @@ const _cargaEscrita = 'venta_escrita';
 const _cargaArqueo = 'arqueo';
 const _cargaRegistrar = 'registrar';
 const _cargaMoca = 'moca';
+const _cargaTeDeben = 'lo_que_te_deben';
 
 AndroidNotificationDetails _detalles({
   List<AndroidNotificationAction> acciones = const [],
@@ -106,6 +107,7 @@ Future<DestinoNotificacion?> procesarRespuesta(
       _cargaArqueo => DestinoNotificacion.arqueo,
       _cargaRegistrar => DestinoNotificacion.registrar,
       _cargaMoca => DestinoNotificacion.moca,
+      _cargaTeDeben => DestinoNotificacion.loQueTeDeben,
       _ => null,
     };
   }
@@ -186,6 +188,7 @@ Future<void> responderEnSegundoPlano(NotificationResponse r) async {
 (String, String, List<AndroidNotificationAction>) _contenido(
   TipoNotificacion tipo, {
   int? dias,
+  int? clientes,
 }) => switch (tipo) {
   TipoNotificacion.cierre => (
     Textos.preguntaVentaCuenta(TipoCuenta.efectivo),
@@ -220,12 +223,21 @@ Future<void> responderEnSegundoPlano(NotificationResponse r) async {
     _cargaMoca,
     const <AndroidNotificationAction>[],
   ),
+  TipoNotificacion.clientesPorCobrar => (
+    Textos.notificacionPorCobrar(clientes ?? 1),
+    _cargaTeDeben,
+    const <AndroidNotificationAction>[],
+  ),
 };
 
 Future<void> _programar(List<NotificacionProgramada> plan) async {
   await _plugin.cancelAllPendingNotifications();
   for (final n in plan) {
-    final (cuerpo, carga, acciones) = _contenido(n.tipo, dias: n.dias);
+    final (cuerpo, carga, acciones) = _contenido(
+      n.tipo,
+      dias: n.dias,
+      clientes: n.clientes,
+    );
     await _plugin.zonedSchedule(
       id: n.id,
       title: Textos.nombreApp,
