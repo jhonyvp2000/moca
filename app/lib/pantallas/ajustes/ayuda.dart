@@ -95,7 +95,7 @@ class AyudaDelTelefono extends ConsumerWidget {
                 Textos.estadoDeEsteTelefono,
                 style: Tipografia.textoFuerte,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: Medidas.e2),
               for (final (etiqueta, valor) in filas)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -113,7 +113,7 @@ class AyudaDelTelefono extends ConsumerWidget {
               // La solución cuando algo está mal.
               if (estado == EstadoCuenta.cerradaEnOtro ||
                   estado == EstadoCuenta.fueraDelNegocio) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: Medidas.e2),
                 Text(
                   estado == EstadoCuenta.cerradaEnOtro
                       ? Textos.abiertaEnOtroQueHacer

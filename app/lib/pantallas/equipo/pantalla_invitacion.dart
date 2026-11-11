@@ -85,7 +85,7 @@ class _EstadoInvitacion extends ConsumerState<PantallaInvitacion> {
             header: true,
             child: Text(
               Textos.teInvitaron(elegida.negocio),
-              style: Tipografia.tituloPantalla.copyWith(fontSize: 26),
+              style: Tipografia.tituloPantalla,
             ),
           ),
           const SizedBox(height: 12),

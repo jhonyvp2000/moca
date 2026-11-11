@@ -10,6 +10,7 @@ import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/tono.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../dominio/voz.dart';
@@ -812,10 +813,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         children: [
           const IconoTrazo(Icono.check, color: Colores.azulOscuro, tamano: 18),
           const SizedBox(width: 8),
-          Text(
-            Textos.mocaEntendio,
-            style: Tipografia.etiquetaMoca.copyWith(fontSize: 14),
-          ),
+          Text(Textos.mocaEntendio, style: Tipografia.etiquetaMoca),
         ],
       ),
       const SizedBox(height: 8),
@@ -823,6 +821,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       if (_lectura.abono case final deuda?) ...[
         _TarjetaPartida(
           icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+          tono: tipo.esPase
+              ? Tono.neutro
+              : tipo.entraPlata
+              ? Tono.ingreso
+              : Tono.egreso,
           titulo: tipo == TipoMovimiento.ingreso
               ? Textos.cobroDeLoQueTeDebe(deuda.nombre)
               : Textos.pagoDeLoQueLeDebes(deuda.nombre),
@@ -841,6 +844,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       if (_lectura.debe) ...[
         _TarjetaPartida(
           icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+          tono: tipo.esPase
+              ? Tono.neutro
+              : tipo.entraPlata
+              ? Tono.ingreso
+              : Tono.egreso,
           titulo: titulo,
           detalle: tipo == TipoMovimiento.ingreso
               ? Textos.todaviaMeDebe
@@ -854,7 +862,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               : Textos.aQuienLeDebes,
           style: Tipografia.textoFuerte,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Medidas.e2),
         TextField(
           controller: _quien,
           textCapitalization: TextCapitalization.words,
@@ -869,6 +877,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         for (final p in _lectura.partidas) ...[
           _TarjetaPartida(
             icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+            tono: tipo.esPase
+                ? Tono.neutro
+                : tipo.entraPlata
+                ? Tono.ingreso
+                : Tono.egreso,
             titulo: titulo,
             detalle: switch (_lectura.cuentaDestino) {
               // «Efectivo → BCP» (entrega 21.1).
@@ -883,7 +896,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         ],
       if (_lectura.partidas.length > 1)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, Medidas.e2, 16, 0),
           child: Row(
             children: [
               Expanded(
@@ -891,7 +904,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                   tipo.entraPlata
                       ? Textos.totalQueEntroHoy
                       : Textos.totalQueSale,
-                  style: Tipografia.secundario.copyWith(fontSize: 15),
+                  style: Tipografia.texto.copyWith(
+                    color: Colores.textoSecundario,
+                  ),
                 ),
               ),
               Text(
@@ -968,8 +983,7 @@ class _TarjetaMicrofono extends StatelessWidget {
             Text(
               '«$textoDicho»',
               textAlign: TextAlign.center,
-              style: Tipografia.texto.copyWith(
-                fontSize: 19,
+              style: Tipografia.tituloDestacado.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1011,11 +1025,12 @@ class _TarjetaPregunta extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Quien habla es Moca, no la pestaña (mejora 01).
                         const Text(
-                          Textos.pestanaMoca,
+                          Textos.nombreApp,
                           style: Tipografia.etiquetaMoca,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: Medidas.e1),
                         Text(texto, style: Tipografia.textoFuerte),
                       ],
                     ),
@@ -1028,7 +1043,7 @@ class _TarjetaPregunta extends StatelessWidget {
           ),
         ),
         if (pie != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: Medidas.e3),
           Text(pie!, style: Tipografia.secundario),
         ],
       ],
@@ -1036,56 +1051,57 @@ class _TarjetaPregunta extends StatelessWidget {
   }
 }
 
+/// Lo que Moca entendió (mejora 01): el icono en su cuadro de color (azul si
+/// entró, coral si salió), qué fue, de dónde, y el monto con su color.
 class _TarjetaPartida extends StatelessWidget {
   const _TarjetaPartida({
     required this.icono,
     required this.titulo,
     required this.detalle,
     required this.monto,
+    this.tono = Tono.marca,
   });
 
   final Icono icono;
   final String titulo;
   final String detalle;
   final String monto;
+  final Tono tono;
 
   @override
   Widget build(BuildContext context) {
     return Tarjeta(
-      relleno: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      relleno: const EdgeInsets.all(Medidas.e4),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colores.tinteAzul,
-              borderRadius: BorderRadius.circular(Medidas.radioBoton),
+              color: tono.fondo(context),
+              borderRadius: BorderRadius.circular(Medidas.radioChico),
             ),
             child: Center(
-              child: IconoTrazo(icono, color: Colores.azulOscuro, tamano: 20),
+              child: IconoTrazo(icono, color: tono.color(context), tamano: 22),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Medidas.e3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  titulo,
-                  style: Tipografia.textoFuerte.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text(titulo, style: Tipografia.tituloTarjeta),
                 Text(detalle, style: Tipografia.secundario),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Medidas.e3),
           Text(
             monto,
             style: Tipografia.cifra(
-              Tipografia.tituloTarjeta.copyWith(fontSize: 18),
+              Tipografia.tituloDestacado.copyWith(
+                color: tono == Tono.marca ? null : tono.color(context),
+              ),
             ),
           ),
         ],

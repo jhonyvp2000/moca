@@ -952,14 +952,17 @@ class _VistaAnio extends ConsumerWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 44, top: 2),
+          padding: const EdgeInsets.only(left: 44, top: Medidas.e1),
           child: Text(periodo, style: Tipografia.secundario),
         ),
         const SizedBox(height: 12),
 
         // Cuánto creció la plata en el año, y de dónde salió esa cifra.
         Tarjeta(
-          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          relleno: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: Medidas.e5,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1102,7 +1105,7 @@ class _FilaDeMes extends StatelessWidget {
               Textos.columnaSalio,
               Textos.columnaCrecio,
             ]) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: Medidas.e2),
               SizedBox(
                 width: _anchoCifra,
                 child: Text(
@@ -1138,7 +1141,7 @@ class _FilaDeMes extends StatelessWidget {
           minHeight: Medidas.objetivoTactilMinimo,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: Medidas.e2),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1157,14 +1160,14 @@ class _FilaDeMes extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Medidas.e2),
                   _cifra(formatearSoles(m.entroCentimos)),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Medidas.e2),
                   _cifra(
                     formatearSoles(m.salioCentimos),
                     color: Colores.salida,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: Medidas.e2),
                   _cifra(
                     formatearSoles(crecio),
                     color: crecio < 0 ? Colores.salida : null,
@@ -1286,7 +1289,7 @@ class _Barra extends StatelessWidget {
 
   Widget _contenido() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: Medidas.e2),
       child: Row(
         children: [
           Expanded(
@@ -1367,7 +1370,9 @@ class _Confianza extends StatelessWidget {
                     Expanded(
                       flex: pct,
                       child: Container(
-                        margin: EdgeInsets.only(right: n < 2 ? 2 : 0),
+                        margin: EdgeInsets.only(
+                          right: n < Medidas.e1 ? Medidas.e1 : 0,
+                        ),
                         color: colores[n],
                       ),
                     ),
@@ -1375,10 +1380,10 @@ class _Confianza extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: Medidas.e3),
         for (final (n, (_, texto)) in partes.indexed)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.symmetric(vertical: Medidas.e1),
             child: Row(
               children: [
                 Container(
@@ -1389,7 +1394,7 @@ class _Confianza extends StatelessWidget {
                     borderRadius: BorderRadius.circular(Medidas.radioMini),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: Medidas.e3),
                 Expanded(
                   child: Text(texto, style: Tipografia.cifra(Tipografia.texto)),
                 ),

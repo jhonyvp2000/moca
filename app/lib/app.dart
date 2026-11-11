@@ -270,12 +270,7 @@ class _ConFranjaDemo extends ConsumerWidget {
                 const Expanded(
                   child: Text(
                     Textos.estasViendoUnaDemo,
-                    style: TextStyle(
-                      fontFamily: Tipografia.familia,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colores.sobreMarca,
-                    ),
+                    style: Tipografia.sobreMarca,
                   ),
                 ),
                 TextButton(

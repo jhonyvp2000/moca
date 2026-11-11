@@ -27,7 +27,10 @@ class FranjaSinSenal extends ConsumerWidget {
         liveRegion: true,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Medidas.e4,
+            vertical: Medidas.e3,
+          ),
           decoration: BoxDecoration(
             color: Colores.superficie,
             borderRadius: BorderRadius.circular(Medidas.radioBoton),
@@ -40,7 +43,7 @@ class FranjaSinSenal extends ConsumerWidget {
                 color: Colores.textoSecundario,
                 tamano: 20,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Medidas.e3),
               Expanded(
                 child: Text(Textos.sinSenal, style: Tipografia.secundario),
               ),

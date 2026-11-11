@@ -10,6 +10,7 @@ import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../../tema/medidas.dart';
 
 /// «Datos del negocio» (entrega 29.1), solo para dueños: el nombre y la
 /// hora de cierre. El aviso de cierre se reprograma solo.
@@ -105,7 +106,7 @@ class _EstadoDatos extends ConsumerState<PantallaDatosNegocio> {
               onTap: hora == null ? null : _elegirHora,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
+                  horizontal: Medidas.e4,
                   vertical: 12,
                 ),
                 child: Row(

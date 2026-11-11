@@ -163,24 +163,16 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
 
   @override
   Widget build(BuildContext context) {
-    const etiqueta = TextStyle(
-      fontFamily: Tipografia.familia,
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: Colores.textoPrincipal,
-    );
+    const etiqueta = Tipografia.tituloSeccion;
 
     return PantallaConAcciones(
       encabezado: const EncabezadoConVolver(titulo: Textos.unMinutoYListo),
       contenido: [
         Semantics(
           header: true,
-          child: Text(
-            Textos.cuentaleDeTuNegocio,
-            style: Tipografia.tituloPantalla.copyWith(fontSize: 24),
-          ),
+          child: Text(Textos.cuentaleDeTuNegocio, style: Tipografia.encabezado),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.comoSeLlama, style: etiqueta),
         const SizedBox(height: 8),
         TextField(
@@ -188,19 +180,19 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           onChanged: (_) => setState(() {}),
-          style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+          style: Tipografia.tituloTarjeta,
           decoration: InputDecoration(
             hintText: Textos.nombreEjemplo,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
+              horizontal: Medidas.e4,
+              vertical: Medidas.e4,
             ),
             border: _borde(Colores.bordeCampo, 1),
             enabledBorder: _borde(Colores.bordeCampo, 1),
             focusedBorder: _borde(Colores.marca, 2),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.queTipoDeNegocio, style: etiqueta),
         const SizedBox(height: 8),
         // Una opción por fila: son muchas (entrega 48).
@@ -209,7 +201,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
           elegida: _tipo,
           alElegir: (tipo) => setState(() => _tipo = tipo),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.usasOtraBilletera, style: etiqueta),
         const SizedBox(height: 4),
         const Text(Textos.puedesAgregarlaDespues, style: Tipografia.secundario),
@@ -229,7 +221,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             _nombreOtra,
             Textos.nombreDeLaBilletera,
           ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.usasOtroBanco, style: etiqueta),
         const SizedBox(height: 4),
         const Text(Textos.puedesAgregarlaDespues, style: Tipografia.secundario),
@@ -249,22 +241,32 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             _nombreOtroBanco,
             Textos.nombreDelBanco,
           ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.cuantaPlataTienes, style: etiqueta),
         const SizedBox(height: 4),
         const Text(Textos.sinContarLaVenta, style: Tipografia.secundario),
-        const SizedBox(height: 10),
+        const SizedBox(height: Medidas.e3),
         GrupoMontos(
           filas: [
-            FilaMonto(etiqueta: Textos.efectivo, controlador: _efectivo),
-            FilaMonto(etiqueta: Textos.yape, controlador: _yape),
+            FilaMonto(
+              cuenta: TipoCuenta.efectivo,
+              etiqueta: Textos.efectivo,
+              controlador: _efectivo,
+            ),
+            FilaMonto(
+              cuenta: TipoCuenta.yape,
+              etiqueta: Textos.yape,
+              controlador: _yape,
+            ),
             for (final b in TipoCuenta.billeteras)
               if (_billeteras.contains(b))
                 FilaMonto(
+                  cuenta: b,
                   etiqueta: _etiquetaSaldo(b),
                   controlador: _saldoBilletera[b]!,
                 ),
             FilaMonto(
+              cuenta: TipoCuenta.banco,
               etiqueta: Textos.banco,
               controlador: _banco,
               accionTeclado: _billeteras.any((b) => b.esBanco)
@@ -274,12 +276,13 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             for (final b in TipoCuenta.otrosBancos)
               if (_billeteras.contains(b))
                 FilaMonto(
+                  cuenta: b,
                   etiqueta: _etiquetaSaldo(b),
                   controlador: _saldoBilletera[b]!,
                 ),
           ],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         Material(
           color: Colores.superficie,
           shape: RoundedRectangleBorder(
@@ -290,7 +293,10 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
             onTap: _elegirHora,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Medidas.e4,
+                vertical: 12,
+              ),
               child: Row(
                 children: [
                   const Expanded(
@@ -317,8 +323,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
                     child: Text(
                       formatearHora(_horaCierreMinutos),
                       style: Tipografia.cifra(
-                        Tipografia.textoFuerte.copyWith(
-                          fontSize: 16,
+                        Tipografia.tituloTarjeta.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -329,7 +334,7 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         const Text(Textos.textoLegalAlta, style: Tipografia.secundario),
       ],
       acciones: [
@@ -352,18 +357,18 @@ class _EstadoAlta extends ConsumerState<PantallaAlta> {
   /// El nombre de la otra billetera o del otro banco.
   Widget _campoNombre(Key key, TextEditingController c, String ayuda) =>
       Padding(
-        padding: const EdgeInsets.only(top: 10),
+        padding: const EdgeInsets.only(top: Medidas.e3),
         child: TextField(
           key: key,
           controller: c,
           textCapitalization: TextCapitalization.words,
           onChanged: (_) => setState(() {}),
-          style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+          style: Tipografia.tituloTarjeta,
           decoration: InputDecoration(
             hintText: ayuda,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
+              horizontal: Medidas.e4,
+              vertical: Medidas.e4,
             ),
             border: _borde(Colores.bordeCampo, 1),
             enabledBorder: _borde(Colores.bordeCampo, 1),

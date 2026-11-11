@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/iconos.dart';
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
 import '../../comun/opciones.dart';
@@ -99,12 +100,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
     final cajas = {?siguienteCaja: Textos.otraCaja};
     final hayQueAgregar =
         billeteras.isNotEmpty || bancos.isNotEmpty || cajas.isNotEmpty;
-    const etiqueta = TextStyle(
-      fontFamily: Tipografia.familia,
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: Colores.textoPrincipal,
-    );
+    const etiqueta = Tipografia.tituloSeccion;
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
@@ -135,8 +131,8 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
                       minHeight: Medidas.objetivoTactilMinimo,
                     ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                      horizontal: Medidas.e4,
+                      vertical: Medidas.e3,
                     ),
                     decoration: i < cuentas.length - 1
                         ? const BoxDecoration(
@@ -147,6 +143,25 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
                         : null,
                     child: Row(
                       children: [
+                        // El icono de la cuenta, como en el Inicio (mejora 01).
+                        ExcludeSemantics(
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Iconos.coloresDeCuenta(c.tipo).$2,
+                              borderRadius: BorderRadius.circular(
+                                Medidas.radioChico,
+                              ),
+                            ),
+                            child: Icon(
+                              Iconos.deCuenta(c.tipo),
+                              size: 22,
+                              color: Iconos.coloresDeCuenta(c.tipo).$1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: Medidas.e3),
                         Expanded(
                           child: Text(c.nombre, style: Tipografia.textoFuerte),
                         ),
@@ -156,7 +171,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
                               : formatearSoles(c.saldoCentimos!),
                           style: c.saldoCentimos == null
                               ? Tipografia.secundario
-                              : Tipografia.cifra(Tipografia.textoFuerte),
+                              : Tipografia.cifra(Tipografia.tituloTarjeta),
                         ),
                       ],
                     ),
@@ -180,7 +195,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
           if (opciones.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(titulo, style: etiqueta),
-            const SizedBox(height: 10),
+            const SizedBox(height: Medidas.e3),
             Opciones<TipoCuenta>(
               opciones: opciones,
               elegida: opciones.containsKey(_elegida) ? _elegida : null,
@@ -191,7 +206,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             ),
             if (opciones.containsKey(_elegida) &&
                 _elegida!.conNombrePropio) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: Medidas.e3),
               TextField(
                 key: Key(switch (_elegida) {
                   TipoCuenta.otra => 'nombre-otra-billetera',
@@ -202,7 +217,7 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
                 onChanged: (_) => setState(() {}),
-                style: Tipografia.textoFuerte.copyWith(fontSize: 16),
+                style: Tipografia.tituloTarjeta,
                 decoration: InputDecoration(
                   hintText: switch (_elegida) {
                     TipoCuenta.otra => Textos.nombreDeLaBilletera,
@@ -297,7 +312,7 @@ class _EstadoHojaSaldo extends ConsumerState<_HojaSaldoInicial> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: Medidas.e3),
               Text(
                 Textos.conEsteCambioTienes(
                   formatearSoles(cuenta.saldoConInicial(nuevo)),

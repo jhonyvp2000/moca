@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/badge_estado.dart';
 import '../../comun/estructura.dart';
+import '../../comun/monto_text.dart';
+import '../../comun/tono.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/equipo.dart';
@@ -233,36 +236,56 @@ class _EstadoDetalleMovimiento
         alVolver: () => context.pop(),
       ),
       contenido: [
+        // El registro arriba, como su fila del Historial (mejora 01): icono
+        // o inicial, el monto grande con signo y color, y su estado.
         Tarjeta(
-          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          relleno: const EdgeInsets.all(Medidas.e5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  AvatarDeFila(fila: f),
+                  const SizedBox(width: Medidas.e3),
+                  Expanded(
+                    child: Text(tituloDeFila(f), style: Tipografia.tituloFila),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Medidas.e3),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  montoConSigno(f.tipo, f.montoCentimos),
-                  style: Tipografia.cifra(
-                    Tipografia.tituloPantalla.copyWith(
-                      fontSize: 32,
-                      color: colorDelMonto(f.tipo),
-                    ),
-                  ),
+                child: MontoText(
+                  f.montoCentimos,
+                  estilo: Tipografia.montoDetalle,
+                  tono: tonoDeFila(f) == Tono.neutro ? null : tonoDeFila(f),
+                  conSigno: true,
+                  conCentimos: true,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                tituloDeFila(f),
-                style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-              ),
-              const SizedBox(height: 2),
+              const SizedBox(height: Medidas.e1),
               Text(fechaYHora(f.fecha), style: Tipografia.secundario),
               if (f.deOtro)
                 Text(
                   Textos.loAnoto(f.autorNombre, f.autorRol),
                   style: Tipografia.secundario,
                 ),
+              if (f.loDebes || f.porSubir) ...[
+                const SizedBox(height: Medidas.e2),
+                Wrap(
+                  spacing: Medidas.e1,
+                  children: [
+                    if (f.loDebes)
+                      BadgeEstado(f.teDeben ? Textos.teDebe : Textos.loDebes),
+                    if (f.porSubir)
+                      const BadgeEstado(
+                        Textos.porSubirEtiqueta,
+                        tono: Tono.neutro,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -426,7 +449,7 @@ class FranjaInformativa extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Medidas.e4, vertical: 12),
       decoration: BoxDecoration(
         color: Colores.tinteAzul,
         borderRadius: BorderRadius.circular(Medidas.radioBoton),
@@ -447,7 +470,7 @@ class _Subtitulo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
+      padding: const EdgeInsets.fromLTRB(0, Medidas.e5, 0, 8),
       child: Semantics(
         header: true,
         child: Text(texto, style: Tipografia.tituloTarjeta),
@@ -471,7 +494,10 @@ class _TarjetaDeFilas extends StatelessWidget {
           for (final (i, (etiqueta, valor)) in filas.indexed)
             Container(
               constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: Medidas.e3,
+              ),
               decoration: i < filas.length - 1
                   ? const BoxDecoration(
                       border: Border(
@@ -601,7 +627,7 @@ class _Comprobante extends StatelessWidget {
     );
 
     return Tarjeta(
-      relleno: const EdgeInsets.all(14),
+      relleno: const EdgeInsets.all(Medidas.e4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -616,7 +642,7 @@ class _Comprobante extends StatelessWidget {
             )
           else
             miniatura,
-          const SizedBox(width: 14),
+          const SizedBox(width: Medidas.e4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,7 +661,7 @@ class _Comprobante extends StatelessWidget {
                   ),
                 if (c.fechaEmision case final fecha?)
                   Text(formatearDiaYMes(fecha), style: Tipografia.secundario),
-                const SizedBox(height: 6),
+                const SizedBox(height: Medidas.e2),
                 Text(
                   '${Textos.total} ${formatearSolesComprobante(c.totalCentimos)}',
                   style: Tipografia.cifra(Tipografia.textoFuerte),
@@ -728,7 +754,7 @@ class _Cambios extends StatelessWidget {
                 children: [
                   for (final linea in _lineas(cambio))
                     Text(linea, style: Tipografia.textoFuerte),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
                     '${fechaYHora(cambio.fecha)} · ${Textos.autorTu}',
                     style: Tipografia.secundario,

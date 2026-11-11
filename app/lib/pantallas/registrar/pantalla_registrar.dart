@@ -277,7 +277,7 @@ class _Entrada extends StatelessWidget {
                             titulo,
                             style: Tipografia.tituloFila.copyWith(color: texto),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: Medidas.e1),
                           Text(
                             detalle,
                             style: Tipografia.secundario.copyWith(

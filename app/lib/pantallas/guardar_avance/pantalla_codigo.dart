@@ -16,6 +16,7 @@ import '../../tema/colores.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'modo_cuenta.dart';
+import '../../tema/medidas.dart';
 
 /// Código de acceso (estado no dibujado, aprobado el 12-10-2026). Desde la
 /// entrega 11 el código llega por SMS y lo comprueba el servidor; al
@@ -340,13 +341,13 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             _conCuentaExistente
                 ? Textos.numeroConCuenta
                 : Textos.escribeElCodigo,
-            style: Tipografia.tituloPantalla.copyWith(fontSize: 26),
+            style: Tipografia.tituloPantalla,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Medidas.e2),
         Text(
           Textos.codigoEnviadoA(formatearCelular(widget.celular)),
-          style: Tipografia.secundario.copyWith(fontSize: 15),
+          style: Tipografia.texto.copyWith(color: Colores.textoSecundario),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -365,20 +366,12 @@ class _EstadoCodigo extends ConsumerState<PantallaCodigo> {
             setState(() => _error = null);
             if (_completo) _confirmar();
           },
-          style: Tipografia.cifra(
-            const TextStyle(
-              fontFamily: Tipografia.familia,
-              fontSize: 28,
-              letterSpacing: 12,
-              fontWeight: FontWeight.w700,
-              color: Colores.textoPrincipal,
-            ),
-          ),
+          style: Tipografia.codigo,
           decoration: const InputDecoration(
             hintText: '······',
             labelText: Textos.codigo,
             floatingLabelBehavior: FloatingLabelBehavior.never,
-            contentPadding: EdgeInsets.symmetric(vertical: 14),
+            contentPadding: EdgeInsets.symmetric(vertical: Medidas.e4),
           ),
         ),
         if (_leeSms &&

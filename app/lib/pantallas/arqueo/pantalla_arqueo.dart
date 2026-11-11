@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/iconos.dart';
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
@@ -138,15 +139,15 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
       contenido: [
         const TarjetaPrimeraVez(
           video: VideoTutoria.arqueo,
-          margen: EdgeInsets.only(bottom: 14),
+          margen: EdgeInsets.only(bottom: Medidas.e4),
         ),
         Text(
           todoPuntoDePartida
               ? Textos.arqueoPuntoDePartidaDetalle
               : Textos.arqueoDetalle,
-          style: Tipografia.secundario.copyWith(fontSize: 15),
+          style: Tipografia.texto.copyWith(color: Colores.textoSecundario),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: Medidas.e4),
         DecoratedBox(
           decoration: BoxDecoration(
             color: Colores.superficie,
@@ -232,7 +233,7 @@ class _FilaCuenta extends StatelessWidget {
             color: color,
             tamano: 18,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: Medidas.e2),
           Flexible(
             child: Text(
               !noCuadra
@@ -257,10 +258,31 @@ class _FilaCuenta extends StatelessWidget {
       borderSide: BorderSide(color: color, width: ancho),
     );
 
+    final (colorCuenta, fondoCuenta) = Iconos.coloresDeCuenta(cuenta.cuenta);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Medidas.e4,
+        vertical: Medidas.e3,
+      ),
       child: Row(
         children: [
+          // El icono de la cuenta, como en el Inicio (mejora 01).
+          ExcludeSemantics(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: fondoCuenta,
+                borderRadius: BorderRadius.circular(Medidas.e2 + 2),
+              ),
+              child: Icon(
+                Iconos.deCuenta(cuenta.cuenta),
+                size: 20,
+                color: colorCuenta,
+              ),
+            ),
+          ),
+          const SizedBox(width: Medidas.e3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,19 +291,15 @@ class _FilaCuenta extends StatelessWidget {
                   Textos.nombreCuenta(cuenta.cuenta),
                   style: Tipografia.tituloTarjeta,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: Medidas.e1),
                 estado,
               ],
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'S/',
-            style: TextStyle(
-              fontFamily: Tipografia.familia,
-              fontSize: 15,
-              color: Colores.textoSecundario,
-            ),
+            style: Tipografia.texto.copyWith(color: Colores.textoSecundario),
           ),
           const SizedBox(width: 8),
           SizedBox(
@@ -296,15 +314,16 @@ class _FilaCuenta extends StatelessWidget {
                 inputFormatters: [FormateadorSoles()],
                 textAlign: TextAlign.right,
                 style: Tipografia.cifra(
-                  Tipografia.textoFuerte.copyWith(
-                    fontSize: 18,
+                  Tipografia.tituloDestacado.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 decoration: InputDecoration(
                   hintText: '0',
                   hintStyle: Tipografia.cifra(
-                    Tipografia.secundario.copyWith(fontSize: 18),
+                    Tipografia.tituloDestacado.copyWith(
+                      color: Colores.grisAzulado,
+                    ),
                   ),
                   enabledBorder: noCuadra ? borde(Colores.avisoMarca, 2) : null,
                   focusedBorder: noCuadra ? borde(Colores.avisoMarca, 2) : null,
@@ -396,16 +415,8 @@ class _Pregunta extends ConsumerWidget {
             ),
           ],
           if (categorias != null) ...[
-            const SizedBox(height: 14),
-            const Text(
-              Textos.enQue,
-              style: TextStyle(
-                fontFamily: Tipografia.familia,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colores.textoPrincipal,
-              ),
-            ),
+            const SizedBox(height: Medidas.e4),
+            const Text(Textos.enQue, style: Tipografia.tituloSeccion),
             const SizedBox(height: 8),
             Opciones<String>(
               opciones: {for (final c in categorias) c.id: c.nombre},

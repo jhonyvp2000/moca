@@ -128,32 +128,26 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           header: true,
           child: Text(
             _titulo,
-            style: Tipografia.tituloPantalla.copyWith(
-              fontSize: 26,
-              height: 1.2,
-            ),
+            style: Tipografia.tituloPantalla.copyWith(height: 1.2),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Medidas.e2),
         Text(switch (widget.modo) {
           ModoCuenta.entrar => Textos.entraATuCuentaDetalle,
           ModoCuenta.invitado => Textos.entraAlNegocioDetalle,
           _ => Textos.sinCorreoNiContrasena,
-        }, style: Tipografia.secundario.copyWith(fontSize: 15)),
+        }, style: Tipografia.texto.copyWith(color: Colores.textoSecundario)),
         const SizedBox(height: 20),
         Text(
           Textos.tuNumeroDeCelular,
-          style: Tipografia.textoFuerte.copyWith(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Tipografia.apoyo.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Container(
               height: 54,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colores.superficie,
@@ -179,7 +173,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
                     fontWeight: FontWeight.w400,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: Medidas.e4,
                     vertical: 15,
                   ),
                   border: _borde(Colores.bordeCampo, 1),
@@ -273,11 +267,8 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     }
   }
 
-  static const _estiloCelular = TextStyle(
-    fontFamily: Tipografia.familia,
-    fontSize: 18,
+  static final _estiloCelular = Tipografia.tituloDestacado.copyWith(
     fontWeight: FontWeight.w600,
-    color: Colores.textoPrincipal,
   );
 
   static OutlineInputBorder _borde(Color color, double grosor) =>

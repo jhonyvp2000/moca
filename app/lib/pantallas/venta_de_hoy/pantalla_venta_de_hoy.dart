@@ -14,6 +14,7 @@ import '../../textos/textos.dart';
 import '../registrar/franja_sin_senal.dart';
 import '../registrar/confirmacion.dart';
 import '../../dominio/medicion.dart';
+import '../../tema/medidas.dart';
 
 /// S07 · Venta de hoy, en su versión escrita. La voz llega en la entrega 4
 /// y llenará esta misma pantalla. Sirve para la primera venta (antes del
@@ -127,7 +128,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
       contenido: [
         const FranjaSinSenal(),
         const Text(Textos.cuantoVendisteHoy, style: Tipografia.tituloPantalla),
-        const SizedBox(height: 6),
+        const SizedBox(height: Medidas.e2),
         const Text(Textos.ventaPorCuentaDetalle, style: Tipografia.secundario),
         if (ventaYaAnotada > 0) ...[
           const SizedBox(height: 12),
@@ -140,6 +141,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
           filas: [
             for (final (i, cuenta) in cuentas.indexed)
               FilaMonto(
+                cuenta: cuenta,
                 etiqueta: Textos.nombreCuenta(cuenta),
                 controlador: _campos[cuenta]!,
                 alCambiar: actualizar,
@@ -171,9 +173,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
               ),
               Text(
                 formatearSoles(total),
-                style: Tipografia.cifra(
-                  Tipografia.tituloTarjeta.copyWith(fontSize: 18),
-                ),
+                style: Tipografia.cifra(Tipografia.tituloDestacado),
               ),
             ],
           ),

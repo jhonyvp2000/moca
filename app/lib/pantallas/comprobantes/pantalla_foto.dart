@@ -214,7 +214,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
       child: Row(
         children: [
           const IconoTrazo(Icono.check, color: Colores.marca, tamano: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: Medidas.e3),
           Expanded(child: Text(texto, style: Tipografia.texto)),
         ],
       ),
@@ -223,7 +223,10 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
     final ruta = l.rutaImagen;
     return [
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: Medidas.e4,
+        ),
         decoration: BoxDecoration(
           color: Colores.avisoFondo,
           borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
@@ -241,7 +244,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                     Textos.fotoBorrosa,
                     style: Tipografia.tituloTarjeta,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
                     l.totalCentimos == null
                         ? Textos.fotoNoSeLeyoTodo
@@ -256,9 +259,9 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: Medidas.e4),
       Tarjeta(
-        relleno: const EdgeInsets.all(14),
+        relleno: const EdgeInsets.all(Medidas.e4),
         child: Row(
           children: [
             Container(
@@ -266,7 +269,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
               height: 100,
               decoration: BoxDecoration(
                 color: Colores.fondo,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Medidas.e2),
                 border: Border.all(color: Colores.bordeCampo),
               ),
               clipBehavior: Clip.antiAlias,
@@ -276,7 +279,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                       child: Text(Textos.foto, style: Tipografia.secundario),
                     ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Medidas.e4),
             Expanded(
               child: Column(
                 children: [
@@ -299,7 +302,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: Medidas.e4),
       Tarjeta(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,7 +313,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: Medidas.e2),
             consejo(Textos.consejoMesa),
             consejo(Textos.consejoCompleto),
             consejo(Textos.consejoSombra),

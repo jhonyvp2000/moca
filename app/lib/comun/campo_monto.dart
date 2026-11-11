@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../dominio/modelos.dart';
 import '../pais/peru/formato.dart';
+import 'iconos.dart';
 import '../tema/colores.dart';
 import '../tema/medidas.dart';
 import '../tema/tipografia.dart';
@@ -40,7 +42,12 @@ class FilaMonto extends StatelessWidget {
     this.alCambiar,
     this.autofocus = false,
     this.accionTeclado = TextInputAction.next,
+    this.cuenta,
   });
+
+  /// La cuenta de este monto: su icono a la izquierda, como en el Inicio
+  /// (mejora 01).
+  final TipoCuenta? cuenta;
 
   final String etiqueta;
   final String? detalle;
@@ -52,9 +59,16 @@ class FilaMonto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Medidas.e4,
+        vertical: Medidas.e3,
+      ),
       child: Row(
         children: [
+          if (cuenta case final c?) ...[
+            _IconoCuenta(c),
+            const SizedBox(width: Medidas.e3),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,13 +80,9 @@ class FilaMonto extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'S/',
-            style: TextStyle(
-              fontFamily: Tipografia.familia,
-              fontSize: 15,
-              color: Colores.textoSecundario,
-            ),
+            style: Tipografia.texto.copyWith(color: Colores.textoSecundario),
           ),
           const SizedBox(width: 8),
           SizedBox(
@@ -85,17 +95,10 @@ class FilaMonto extends StatelessWidget {
               textInputAction: accionTeclado,
               inputFormatters: [FormateadorSoles()],
               textAlign: TextAlign.right,
-              style: Tipografia.cifra(
-                Tipografia.textoFuerte.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              style: Tipografia.cifra(Tipografia.tituloTarjeta),
               decoration: InputDecoration(
                 hintText: '0',
-                hintStyle: Tipografia.cifra(
-                  Tipografia.secundario.copyWith(fontSize: 16),
-                ),
+                hintStyle: Tipografia.cifra(Tipografia.secundario),
               ),
             ),
           ),
@@ -114,10 +117,11 @@ class GrupoMontos extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
+      // Como las tarjetas: sombra azul, sin borde gris (mejora 01).
       decoration: BoxDecoration(
         color: Colores.superficie,
-        borderRadius: BorderRadius.circular(Medidas.radioMedio),
-        border: Border.all(color: Colores.bordeTarjeta),
+        borderRadius: BorderRadius.circular(Medidas.radioGrande),
+        boxShadow: Sombras.nivel1,
       ),
       child: Column(
         children: [
@@ -126,6 +130,29 @@ class GrupoMontos extends StatelessWidget {
             fila,
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// El icono de una cuenta en su cuadro de color (mejora 01).
+class _IconoCuenta extends StatelessWidget {
+  const _IconoCuenta(this.cuenta);
+
+  final TipoCuenta cuenta;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, fondo) = Iconos.coloresDeCuenta(cuenta);
+    return ExcludeSemantics(
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: fondo,
+          borderRadius: BorderRadius.circular(Medidas.e2 + 2),
+        ),
+        child: Icon(Iconos.deCuenta(cuenta), size: 20, color: color),
       ),
     );
   }

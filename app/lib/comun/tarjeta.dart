@@ -42,7 +42,7 @@ class TarjetaMoca extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: Medidas.e4),
       decoration: BoxDecoration(
         color: Colores.tinteAzul,
         borderRadius: BorderRadius.circular(Medidas.radioTarjeta),

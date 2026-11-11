@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/estado_vacio.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/historial.dart';
@@ -74,27 +75,64 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (deudas.isEmpty)
-              Text(
-                widget.teDeben ? Textos.nadieTeDebe : Textos.noDebesNada,
-                style: Tipografia.texto,
+              EstadoVacio(
+                icono: Icons.check_circle_outline_rounded,
+                titulo: widget.teDeben
+                    ? Textos.nadieTeDebe
+                    : Textos.noDebesNada,
               )
             else ...[
-              Text(
-                (widget.teDeben ? Textos.teDebenTotal : Textos.debesTotal)(
-                  formatearSoles(total(deudas)),
-                  deudas.length,
+              // El total en su color: ámbar lo que te deben, coral lo que
+              // debes (mejora 01).
+              Container(
+                padding: const EdgeInsets.all(Medidas.e5),
+                decoration: BoxDecoration(
+                  color: widget.teDeben
+                      ? Colores.pendienteFondo
+                      : Colores.egresoFondo,
+                  borderRadius: BorderRadius.circular(Medidas.radioGrande),
                 ),
-                style: Tipografia.tituloTarjeta,
+                child: Row(
+                  children: [
+                    Icon(
+                      widget.teDeben
+                          ? Icons.call_received_rounded
+                          : Icons.call_made_rounded,
+                      color: widget.teDeben
+                          ? Colores.pendienteTexto
+                          : Colores.egreso,
+                    ),
+                    const SizedBox(width: Medidas.e3),
+                    Expanded(
+                      child: Text(
+                        (widget.teDeben
+                            ? Textos.teDebenTotal
+                            : Textos.debesTotal)(
+                          formatearSoles(total(deudas)),
+                          deudas.length,
+                        ),
+                        style: Tipografia.cifra(
+                          Tipografia.tituloFila.copyWith(
+                            color: widget.teDeben
+                                ? Colores.pendienteTexto
+                                : Colores.egreso,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: Medidas.separacionTarjetas),
               for (final MapEntry(key: aQuien, value: filas) in ordenados) ...[
+                // Quién debe; la inicial va en cada fila (mejora 01).
                 Text(
                   (widget.teDeben ? Textos.grupoTeDeben : Textos.grupoDeuda)(
                     aQuien,
                     formatearSoles(total(filas)),
                     filas.length,
                   ),
-                  style: Tipografia.textoFuerte,
+                  style: Tipografia.cifra(Tipografia.tituloTarjeta),
                 ),
                 // Recordarle por WhatsApp, solo los dueños (entrega 45).
                 if (widget.teDeben && dueno)
@@ -110,7 +148,7 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                       child: const Text(Textos.recordarPorWhatsApp),
                     ),
                   ),
-                const SizedBox(height: 6),
+                const SizedBox(height: Medidas.e2),
                 Tarjeta(
                   relleno: EdgeInsets.zero,
                   child: ClipRRect(

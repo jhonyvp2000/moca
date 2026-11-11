@@ -305,7 +305,7 @@ class _Fila extends StatelessWidget {
       constraints: const BoxConstraints(
         minHeight: Medidas.objetivoTactilMinimo + 12,
       ),
-      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      padding: const EdgeInsets.fromLTRB(16, Medidas.e3, 8, Medidas.e3),
       decoration: BoxDecoration(
         border: conSeparador
             ? const Border(bottom: BorderSide(color: Colores.bordeTarjeta))

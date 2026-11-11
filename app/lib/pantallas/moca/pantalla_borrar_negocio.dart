@@ -8,6 +8,7 @@ import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../../tema/medidas.dart';
 
 /// «Borrar mi negocio y mis datos» (entrega 16.1): el derecho del dueño a
 /// borrar sus datos (Ley 29733), a la vista y no solo en el ajuste oculto.
@@ -77,7 +78,7 @@ class _EstadoBorrar extends ConsumerState<PantallaBorrarNegocio> {
           Textos.seBorraElEquipo,
         ])
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: Medidas.e2),
             child: Text('•  $texto', style: Tipografia.texto),
           ),
         const SizedBox(height: 8),

@@ -26,7 +26,7 @@ class PantallaConError extends StatelessWidget {
               style: Tipografia.tituloTarjeta,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: Medidas.e2),
             const Text(
               Textos.algoSalioMalDetalle,
               style: Tipografia.secundario,

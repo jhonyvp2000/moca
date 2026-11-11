@@ -126,7 +126,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: Medidas.e4),
           const TarjetaGuardarAvance(),
           // La prueba o el pago, y la pregunta del día 10 (entrega 25).
           const TarjetaCobro(),
@@ -155,7 +155,7 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                                   Textos.todoEnOrden,
                                   style: Tipografia.tituloSeccion,
                                 ),
-                                SizedBox(height: 2),
+                                SizedBox(height: Medidas.e1),
                                 Text(
                                   Textos.sinAvisos,
                                   style: Tipografia.secundario,
@@ -376,7 +376,7 @@ class _FilaAviso extends StatelessWidget {
                 fondo: importante ? Colores.pendienteFondo : Colores.azul100,
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Medidas.e4),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +385,7 @@ class _FilaAviso extends StatelessWidget {
                     textoAviso(aviso),
                     style: Tipografia.cifra(Tipografia.tituloTarjeta),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
                     importante ? Textos.importante : Textos.paraTenerEnCuenta,
                     style: Tipografia.secundario.copyWith(

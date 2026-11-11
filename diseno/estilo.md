@@ -53,6 +53,8 @@ Mínimo 14 px en todo texto, sin excepciones (decidido el 12 de octubre de 2026 
 
 - Espaciado en múltiplos de 4 y 8. Radios de 12, 16, 20 y 24 px, y 4 px para detalles chicos (`app/lib/tema/medidas.dart`).
 - Botón atrás: la flecha sola, sin caja (Material 3), en toda la app; el título de esas pantallas, grande.
+- Botón secundario: azul suave sin borde, en toda la app.
+- Ninguna pantalla escribe a mano colores, tamaños de letra, radios ni espacios: todo sale de `app/lib/tema/` (salvo el dibujo del isotipo y el PDF).
 - Tarjetas: radio 20 px, sin borde gris, con sombra azul suave en dos niveles (`0 1 2` y `0 4 14`).
 - Botones: radio 16 px. Principal de 52 px, relleno azul y texto blanco; secundario de 48 px, fondo azul suave y texto azul.
 - Campos de texto: 48 px de alto, radio 12 px.

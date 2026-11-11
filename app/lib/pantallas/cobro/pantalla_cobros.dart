@@ -345,7 +345,7 @@ class _EstadoCobros extends ConsumerState<PantallaCobros> {
           const SizedBox(height: 8),
           for (final p in resumen.porRevisar)
             Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: Medidas.e2),
               child: Text(
                 [
                   p.nombre,

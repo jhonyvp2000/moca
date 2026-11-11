@@ -144,7 +144,7 @@ class Aviso extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Medidas.e4, vertical: 12),
       decoration: BoxDecoration(
         color: Colores.avisoFondo,
         borderRadius: BorderRadius.circular(Medidas.radioBoton),

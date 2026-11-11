@@ -52,6 +52,7 @@ import 'dominio/equipo.dart';
 import 'dominio/medicion.dart';
 import 'dominio/version.dart';
 import 'inyeccion.dart';
+import 'tema/medidas.dart';
 
 abstract final class Rutas {
   static const cargando = '/cargando';
@@ -549,7 +550,7 @@ class _FranjaVerComo extends ConsumerWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+          padding: const EdgeInsets.fromLTRB(16, Medidas.e2, 8, Medidas.e2),
           child: Row(
             children: [
               Expanded(

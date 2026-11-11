@@ -56,7 +56,7 @@ class EnlaceVerComo extends ConsumerWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: () => verVideo(context, ref, video, desde),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Medidas.e2),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44),
           child: Row(
@@ -67,7 +67,7 @@ class EnlaceVerComo extends ConsumerWidget {
                 color: Colores.marca,
                 tamano: 18,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: Medidas.e2),
               Text(
                 Textos.verComo(video.segundos),
                 style: Tipografia.textoFuerte.copyWith(color: Colores.marca),
@@ -147,7 +147,7 @@ class SeccionAprende extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 18),
+        const SizedBox(height: Medidas.e5),
         Semantics(
           header: true,
           child: Text(
@@ -155,7 +155,7 @@ class SeccionAprende extends ConsumerWidget {
             style: Tipografia.secundario.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: Medidas.e1),
         const Text(Textos.aprendeDetalle, style: Tipografia.secundario),
         const SizedBox(height: 8),
         Tarjeta(

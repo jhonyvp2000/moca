@@ -7,6 +7,7 @@ import '../../comun/isotipo.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
+import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 
@@ -34,10 +35,7 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
 
   @override
   Widget build(BuildContext context) {
-    const suave = TextStyle(
-      fontFamily: Tipografia.familia,
-      color: Colores.sobreMarcaSuave,
-    );
+    final suave = Tipografia.texto.copyWith(color: Colores.sobreMarcaSuave);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -63,25 +61,12 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
                         alignment: Alignment.centerLeft,
                         child: Isotipo(tamano: 72, invertido: true),
                       ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        Textos.nombreApp,
-                        style: TextStyle(
-                          fontFamily: Tipografia.familia,
-                          fontSize: 64,
-                          height: 1,
-                          letterSpacing: -1.3,
-                          fontWeight: FontWeight.w700,
-                          color: Colores.sobreMarca,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: Medidas.e4),
+                      const Text(Textos.nombreApp, style: Tipografia.marca),
+                      const SizedBox(height: Medidas.e4),
                       Text(
                         Textos.nombreCompleto,
-                        style: suave.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: suave.copyWith(fontWeight: FontWeight.w500),
                       ),
                       const Spacer(),
                       const SizedBox(height: 32),
@@ -89,19 +74,13 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
                         header: true,
                         child: const Text(
                           Textos.esloganEnDosLineas,
-                          style: TextStyle(
-                            fontFamily: Tipografia.familia,
-                            fontSize: 36,
-                            height: 1.15,
-                            fontWeight: FontWeight.w700,
-                            color: Colores.sobreMarca,
-                          ),
+                          style: Tipografia.lema,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         Textos.bienvenidaDetalle,
-                        style: suave.copyWith(fontSize: 16, height: 1.5),
+                        style: suave.copyWith(height: 1.5),
                       ),
                       const Spacer(),
                       const SizedBox(height: 32),
@@ -112,7 +91,9 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
                           foregroundColor: Colores.azulOscuro,
                           minimumSize: const Size.fromHeight(54),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                              Medidas.radioMedio,
+                            ),
                           ),
                         ),
                         child: const Text(Textos.anotarPrimeraVenta),
@@ -121,7 +102,9 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
                       Text(
                         Textos.sinCrearCuenta,
                         textAlign: TextAlign.center,
-                        style: suave.copyWith(fontSize: 14),
+                        style: Tipografia.secundario.copyWith(
+                          color: Colores.sobreMarcaSuave,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -174,7 +157,9 @@ class _EstadoBienvenida extends ConsumerState<PantallaBienvenida> {
         side: conBorde
             ? const BorderSide(color: Colores.sobreMarcaSuave)
             : BorderSide.none,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Medidas.radioMedio),
+        ),
         textStyle: Tipografia.textoFuerte,
       );
 

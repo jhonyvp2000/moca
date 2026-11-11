@@ -8,6 +8,7 @@ import '../../inyeccion.dart';
 import '../../rutas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import '../../tema/medidas.dart';
 
 /// Pestaña Moca: pide guardar el avance a los tres días de «Ahora no», o
 /// confirmar el número a quien pasó por el código de prueba del prototipo
@@ -37,7 +38,7 @@ class TarjetaGuardarAvance extends ConsumerWidget {
         }
         case (final titulo, final detalle)) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.only(bottom: Medidas.e5),
         child: Tarjeta(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -52,7 +53,7 @@ class TarjetaGuardarAvance extends ConsumerWidget {
     }
     final confirmar = situacion.estado == EstadoCuenta.porConfirmar;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: Medidas.e5),
       child: Tarjeta(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

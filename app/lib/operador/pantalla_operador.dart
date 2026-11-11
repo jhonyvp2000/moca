@@ -596,7 +596,7 @@ class _Opcion extends StatelessWidget {
                             : Colores.textoSecundario,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Medidas.e1),
                     Text(detalle, style: Tipografia.secundario),
                   ],
                 ),

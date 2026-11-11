@@ -178,12 +178,7 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
 
   @override
   Widget build(BuildContext context) {
-    const etiqueta = TextStyle(
-      fontFamily: Tipografia.familia,
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: Colores.textoPrincipal,
-    );
+    const etiqueta = Tipografia.tituloSeccion;
     // Una venta a crédito se cobra (entrega 42): la plata entra.
     final cobro = widget.detalle.fila.teDeben;
     final ayerSePuede = !_ayer.isBefore(_primerDia);
@@ -232,7 +227,7 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
                 ],
               ),
               if (_errorMonto case final error?) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: Medidas.e2),
                 Text(
                   error,
                   style: Tipografia.secundario.copyWith(
@@ -241,7 +236,7 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
                 ),
               ],
             ],
-            const SizedBox(height: 18),
+            const SizedBox(height: Medidas.e5),
             Text(
               cobro ? Textos.aDondeEntro : Textos.conQuePagaste,
               style: etiqueta,
@@ -255,7 +250,7 @@ class _EstadoHojaPagar extends ConsumerState<_HojaPagar> {
               elegida: _cuenta,
               alElegir: (c) => setState(() => _cuenta = c),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: Medidas.e5),
             Text(
               cobro ? Textos.cuandoTePago : Textos.cuandoPagaste,
               style: etiqueta,

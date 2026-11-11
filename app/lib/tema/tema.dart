@@ -170,10 +170,10 @@ ThemeData temaMoca() {
     // El secundario, como en el sistema de diseño: azul suave sin borde.
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        backgroundColor: Colores.superficie,
+        backgroundColor: Colores.azul100,
         foregroundColor: Colores.marca,
         minimumSize: const Size.fromHeight(Medidas.altoBotonSecundario),
-        side: const BorderSide(color: Colores.bordeBotonSecundario),
+        side: BorderSide.none,
         shape: formaBoton,
         textStyle: Tipografia.boton,
       ),

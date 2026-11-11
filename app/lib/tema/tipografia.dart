@@ -54,6 +54,42 @@ abstract final class Tipografia {
   static final encabezado = tituloPantalla.copyWith(fontSize: 24);
   static final tituloDestacado = tituloSeccion.copyWith(fontSize: 19);
   static final tituloFila = tituloSeccion.copyWith(fontSize: 17);
+  static final montoDetalle = montoPrincipal.copyWith(fontSize: 36);
+
+  /// La Bienvenida: el nombre «Moca» y el eslogan, en blanco sobre azul.
+  static const marca = TextStyle(
+    fontFamily: familia,
+    fontSize: 64,
+    height: 1,
+    letterSpacing: -1.3,
+    fontWeight: FontWeight.w700,
+    color: Colores.sobreMarca,
+  );
+  static const lema = TextStyle(
+    fontFamily: familia,
+    fontSize: 36,
+    height: 1.15,
+    fontWeight: FontWeight.w700,
+    color: Colores.sobreMarca,
+  );
+
+  /// El código del SMS: separado y con cifras tabulares.
+  static const codigo = TextStyle(
+    fontFamily: familia,
+    fontSize: 28,
+    letterSpacing: 12,
+    fontWeight: FontWeight.w700,
+    color: Colores.textoPrincipal,
+    fontFeatures: _numerosTabulares,
+  );
+
+  /// Texto de apoyo sobre fondo azul (la franja de la demo).
+  static const sobreMarca = TextStyle(
+    fontFamily: familia,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: Colores.sobreMarca,
+  );
 
   static const tituloTarjeta = TextStyle(
     fontFamily: familia,

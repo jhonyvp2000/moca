@@ -110,6 +110,57 @@ class DetalleDeFila extends StatelessWidget {
   }
 }
 
+/// Entró, salió o se movió adentro (mejora 01).
+Tono tonoDeFila(FilaHistorial f) => f.tipo.esPase || f.ajusteArqueo
+    ? Tono.neutro
+    : f.tipo.entraPlata
+    ? Tono.ingreso
+    : Tono.egreso;
+
+/// La inicial de la persona en un círculo o el icono de la categoría en su
+/// cuadro de color (mejora 01): en el Historial y en el detalle.
+class AvatarDeFila extends StatelessWidget {
+  const AvatarDeFila({super.key, required this.fila});
+
+  final FilaHistorial fila;
+
+  @override
+  Widget build(BuildContext context) {
+    final quien = fila.proveedor?.trim();
+    final conPersona = quien != null && quien.isNotEmpty;
+    final tono = tonoDeFila(fila);
+    return ExcludeSemantics(
+      child: Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: conPersona ? Colores.azul100 : tono.fondo(context),
+          shape: conPersona ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: conPersona
+              ? null
+              : BorderRadius.circular(Medidas.radioMedio),
+        ),
+        child: conPersona
+            ? Text(
+                quien.characters.first.toUpperCase(),
+                style: Tipografia.tituloDestacado.copyWith(
+                  color: Colores.marca,
+                ),
+              )
+            : Icon(
+                fila.tipo == TipoMovimiento.ingreso ||
+                        fila.tipo == TipoMovimiento.egreso
+                    ? iconoDeCategoria(fila.categoria)
+                    : Iconos.deTipo(fila.tipo),
+                size: 24,
+                color: tono.color(context),
+              ),
+      ),
+    );
+  }
+}
+
 /// Una fila del Historial (S10), rediseñada en la mejora 01: la inicial
 /// de la persona o el icono de la categoría, el título, su línea, las
 /// etiquetas de estado y el monto con signo y color.
@@ -125,17 +176,10 @@ class FilaMovimiento extends StatelessWidget {
   final VoidCallback alTocar;
   final bool conSeparador;
 
-  /// Entró, salió o se movió adentro.
-  Tono get _tono => fila.tipo.esPase || fila.ajusteArqueo
-      ? Tono.neutro
-      : fila.tipo.entraPlata
-      ? Tono.ingreso
-      : Tono.egreso;
+  Tono get _tono => tonoDeFila(fila);
 
   @override
   Widget build(BuildContext context) {
-    final quien = fila.proveedor?.trim();
-    final conPersona = quien != null && quien.isNotEmpty;
     return InkWell(
       onTap: alTocar,
       child: Container(
@@ -151,35 +195,7 @@ class FilaMovimiento extends StatelessWidget {
             : null,
         child: Row(
           children: [
-            ExcludeSemantics(
-              child: Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: conPersona ? Colores.azul100 : _tono.fondo(context),
-                  shape: conPersona ? BoxShape.circle : BoxShape.rectangle,
-                  borderRadius: conPersona
-                      ? null
-                      : BorderRadius.circular(Medidas.radioMedio),
-                ),
-                child: conPersona
-                    ? Text(
-                        quien.characters.first.toUpperCase(),
-                        style: Tipografia.tituloDestacado.copyWith(
-                          color: Colores.marca,
-                        ),
-                      )
-                    : Icon(
-                        fila.tipo == TipoMovimiento.ingreso ||
-                                fila.tipo == TipoMovimiento.egreso
-                            ? iconoDeCategoria(fila.categoria)
-                            : Iconos.deTipo(fila.tipo),
-                        size: 24,
-                        color: _tono.color(context),
-                      ),
-              ),
-            ),
+            AvatarDeFila(fila: fila),
             const SizedBox(width: Medidas.e3),
             Expanded(
               child: Column(
@@ -189,7 +205,7 @@ class FilaMovimiento extends StatelessWidget {
                     tituloDeFila(fila),
                     style: Tipografia.textoFuerte.copyWith(height: 1.3),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   DetalleDeFila(fila: fila, conEstado: false),
                   if (fila.loDebes || fila.porSubir) ...[
                     const SizedBox(height: Medidas.e1),

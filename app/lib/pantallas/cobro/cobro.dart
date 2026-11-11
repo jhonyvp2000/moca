@@ -196,7 +196,7 @@ class AvisoDelCobro extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: Medidas.separacionTarjetas),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        padding: const EdgeInsets.fromLTRB(Medidas.e4, 12, 8, 12),
         decoration: BoxDecoration(
           color: Colores.avisoFondo,
           borderRadius: BorderRadius.circular(Medidas.radioBoton),
@@ -407,7 +407,7 @@ class _EstadoComoPagar extends ConsumerState<_HojaComoPagar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(titulo, style: Tipografia.textoFuerte),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(detalle, style: Tipografia.secundario),
                 ],
               ),
@@ -628,7 +628,7 @@ class _EstadoPregunta extends ConsumerState<PreguntaDelPrecio> {
               ),
               style: Tipografia.textoFuerte,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: Medidas.e3),
             Wrap(
               spacing: 8,
               children: [
@@ -645,7 +645,7 @@ class _EstadoPregunta extends ConsumerState<PreguntaDelPrecio> {
               ],
             ),
             if (_elegida != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: Medidas.e3),
               TextField(
                 controller: _motivo,
                 maxLength: 300,
