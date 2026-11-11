@@ -88,9 +88,16 @@ class PantallaPrimerDia extends StatelessWidget {
                 centimos: resumen.tienesHoyCentimos,
                 explicacion: nota,
                 pildora: resumen.ventaDeHoyAnotada
-                    ? Textos.vendisteHoy(
-                        formatearSoles(resumen.ventaDeHoyCentimos),
-                      )
+                    ? [
+                        Textos.vendisteHoy(
+                          formatearSoles(resumen.ventaDeHoyCentimos),
+                        ),
+                        // Cuánto de lo vendido hoy se fió (entrega 51).
+                        if (resumen.fiadoDeHoyCentimos > 0)
+                          Textos.alFiado(
+                            formatearSoles(resumen.fiadoDeHoyCentimos),
+                          ),
+                      ].join(' · ')
                     : null,
               ),
             ),

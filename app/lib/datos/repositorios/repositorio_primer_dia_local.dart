@@ -381,6 +381,14 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
     final ventaDeHoy = ventas
         .where((m) => inicioDelDia(m.fechaMovimiento) == hoy)
         .fold(0, (suma, m) => suma + m.montoCentimos);
+    // Lo fiado de hoy que falta cobrar (entrega 51).
+    final fiadoDeHoy = ventas
+        .where(
+          (m) =>
+              inicioDelDia(m.fechaMovimiento) == hoy &&
+              m.estadoPago != EstadoPago.pagado,
+        )
+        .fold(0, (suma, m) => suma + m.montoCentimos - m.montoPagadoCentimos);
     final dias = ventas.map((m) => inicioDelDia(m.fechaMovimiento)).toSet();
 
     return ResumenPrimerDia(
@@ -389,6 +397,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
       saldosPorCuenta: saldos,
       saldoPendiente: cuentas.any((c) => c.saldoInicialCentimos == null),
       ventaDeHoyCentimos: ventaDeHoy,
+      fiadoDeHoyCentimos: fiadoDeHoy,
       diasConVenta: dias.length,
       conOtrosMovimientos: movimientos.any(
         (m) =>

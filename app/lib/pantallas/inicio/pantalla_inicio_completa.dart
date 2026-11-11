@@ -109,11 +109,7 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
                 ocultar: _ocultar,
                 explicacion: Textos.notaConMovimientos,
                 // El ayudante ve siempre lo que anotó hoy (entrega 20).
-                pildora: permisos.rol == Rol.ayudante
-                    ? '${Textos.hoyAnotaste}: $hoy'
-                    : r.ventaDeHoyCentimos > 0
-                    ? Textos.vendisteHoy(hoy)
-                    : null,
+                pildora: _pildora(r, permisos, hoy),
               ),
             ),
             if (misCajas == null || saldos.length > 1) ...[
@@ -151,6 +147,22 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
         ),
       ),
     );
+  }
+
+  /// Lo de hoy, en la píldora de «Tienes hoy»: lo que anotó el ayudante o
+  /// lo vendido, con lo que se fió (entrega 51): «Vendiste hoy S/ 480 ·
+  /// S/ 130 al fiado».
+  String? _pildora(ResumenInicio r, Permisos permisos, String hoy) {
+    final base = permisos.rol == Rol.ayudante
+        ? '${Textos.hoyAnotaste}: $hoy'
+        : r.ventaDeHoyCentimos > 0
+        ? Textos.vendisteHoy(hoy)
+        : null;
+    if (base == null || r.fiadoDeHoyCentimos <= 0) return base;
+    final fiado = _ocultar
+        ? Textos.montoOculto
+        : formatearSoles(r.fiadoDeHoyCentimos);
+    return '$base · ${Textos.alFiado(fiado)}';
   }
 
   /// La tarjeta de Moca no repite el +: la venta de hoy mientras falta (es

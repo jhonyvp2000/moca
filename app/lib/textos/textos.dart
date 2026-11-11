@@ -519,14 +519,14 @@ abstract final class Textos {
     return 'Del $desde al $hasta de $nombre';
   }
 
-  static const notaSaldoMasVenta =
-      'Es lo que tenías al empezar más tu venta de hoy. Desde aquí Moca '
-      'lleva la cuenta.';
+  // Lo fiado no es plata en la mano (entrega 51): las dos notas dicen lo
+  // mismo.
+  static const notaSaldoMasVenta = notaConMovimientos;
   static const notaSoloSaldo =
       'Es lo que anotaste al empezar. Desde aquí Moca lleva la cuenta.';
   static const notaConMovimientos =
-      'Es lo que tenías al empezar, más lo que entró y menos lo que salió. '
-      'Desde aquí Moca lleva la cuenta.';
+      'Es lo que tenías al empezar, más lo que te pagaron y menos lo que '
+      'pagaste. Lo fiado se suma cuando te paguen.';
   static const notaSaldoPendiente = 'Aún no pones cuánto tenías al empezar.';
   static const mocaEmpiezaPorLaVenta =
       'Empieza por lo más fácil: dime cuánto vendiste hoy. Toma menos de '
@@ -544,6 +544,7 @@ abstract final class Textos {
   static const escucharMiSemana = 'Escuchar mi semana';
   static const queEsEstaCifra = '¿Qué es esta cifra?';
   static String vendisteHoy(String monto) => 'Vendiste hoy $monto';
+  static String alFiado(String monto) => '$monto al fiado';
   static String teDebenCuantos(int personas) => 'Te deben · $personas';
   static String debesCuantos(int personas) => 'Debes · $personas';
   static String pasosHechos(int hechos, int total) => '$hechos de $total';

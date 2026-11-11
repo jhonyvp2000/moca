@@ -60,6 +60,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         diferenciaConSemanaAnteriorCentimos:
             i.diferenciaConSemanaAnteriorCentimos,
         ventaDeHoyCentimos: i.ventaDeHoyCentimos,
+        // Lo fiado de hoy sale de lo que tiene el teléfono (entrega 51).
+        fiadoDeHoyCentimos: await _fiadoDeHoy(empresa.id, movimientos),
         mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
         estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
       );
@@ -100,9 +102,29 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
           ? semana.quedoCentimos - semanaPasadaHastaHoy.quedoCentimos
           : null,
       ventaDeHoyCentimos: await _ventaDeHoy(empresa.id, movimientos),
+      fiadoDeHoyCentimos: await _fiadoDeHoy(empresa.id, movimientos),
       mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
       estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
     );
+  }
+
+  /// De la venta de hoy, lo que se fió y falta cobrar (entrega 51): lo
+  /// mismo que cuenta «Lo que te deben».
+  Future<int> _fiadoDeHoy(String empresaId, List<Movimiento> movs) async {
+    final venta = await _categoriaVentaDelDia(empresaId);
+    final hoy = inicioDelDia(_a.ahora());
+    return movs
+        .where(
+          (m) =>
+              m.estado == EstadoRegistro.vigente &&
+              m.categoriaId == venta.id &&
+              m.estadoPago != EstadoPago.pagado &&
+              inicioDelDia(m.fechaMovimiento) == hoy,
+        )
+        .fold<int>(
+          0,
+          (suma, m) => suma + m.montoCentimos - m.montoPagadoCentimos,
+        );
   }
 
   Future<int> _ventaDeHoy(String empresaId, List<Movimiento> movs) async {

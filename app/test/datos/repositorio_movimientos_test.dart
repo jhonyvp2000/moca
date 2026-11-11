@@ -54,6 +54,30 @@ void main() {
     expect(r.diferenciaConSemanaAnteriorCentimos, isNull);
   });
 
+  test('Entrega 51: de la venta de hoy, lo fiado que falta cobrar', () async {
+    final venta = await categoria(TipoMovimiento.ingreso, categoriaVentaDelDia);
+    await repo.registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 13000,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: venta,
+        pagado: false,
+        contraparte: 'Doña Rosa',
+      ),
+    );
+    final r = await inicio();
+    // La venta de hoy suma lo fiado; el saldo no.
+    expect(r.ventaDeHoyCentimos, 35000 + 13000);
+    expect(r.fiadoDeHoyCentimos, 13000);
+    expect(r.tienesHoyCentimos, 155000);
+    final primerDia = await RepositorioPrimerDiaLocal(
+      base,
+      ahora: () => ahora,
+    ).observarResumen().first;
+    expect(primerDia.fiadoDeHoyCentimos, 13000);
+  });
+
   test('Las categorías dependen de si entró o salió', () async {
     final entro = await repo.categorias(TipoMovimiento.ingreso);
     expect(entro.map((c) => c.nombre), categoriasComunesIngreso);

@@ -103,7 +103,12 @@ class ResumenInicio {
     this.semanaRetirosCentimos = 0,
     this.semanaAportesCentimos = 0,
     this.estadoArqueo = EstadoArqueo.nada,
+    this.fiadoDeHoyCentimos = 0,
   });
+
+  /// De la venta de hoy, lo que se fió y todavía no se cobra (entrega 51):
+  /// «Vendiste hoy S/ 480 · S/ 130 al fiado».
+  final int fiadoDeHoyCentimos;
 
   final String nombreNegocio;
   final Map<TipoCuenta, int> saldosPorCuenta;

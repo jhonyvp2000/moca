@@ -49,6 +49,7 @@ class ResumenPrimerDia {
     required this.nombreNegocio,
     required this.tienesHoyCentimos,
     required this.saldoPendiente,
+    this.fiadoDeHoyCentimos = 0,
     required this.ventaDeHoyCentimos,
     required this.diasConVenta,
     this.conOtrosMovimientos = false,
@@ -66,6 +67,9 @@ class ResumenPrimerDia {
 
   /// Cero si hoy no se anotó venta.
   final int ventaDeHoyCentimos;
+
+  /// De la venta de hoy, lo fiado que falta cobrar (entrega 51).
+  final int fiadoDeHoyCentimos;
   final int diasConVenta;
 
   /// Si hay algo más que el saldo inicial y las ventas del día (gastos,

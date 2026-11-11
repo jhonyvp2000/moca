@@ -1226,6 +1226,16 @@ void main() {
       expect(find.text(Textos.teDebenCuantos(1)), findsOneWidget);
       expect(find.text('Doña Rosa'), findsOneWidget);
       expect(find.text(Textos.escucharMiSemana), findsOneWidget);
+      // Entrega 51: cuánto de lo vendido hoy se fió, y el ⓘ no cuenta lo
+      // fiado como plata en la mano.
+      expect(
+        find.text(
+          '${Textos.vendisteHoy('S/\u00A0430')} · '
+          '${Textos.alFiado('S/\u00A080')}',
+        ),
+        findsOneWidget,
+      );
+      await verNotaDeTienesHoy(tester, Textos.notaConMovimientos);
       await tocar(tester, find.text(Textos.teDebenCuantos(1)));
       expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
       await tocar(tester, find.byType(BotonVolver).first);
