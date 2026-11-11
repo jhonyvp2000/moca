@@ -26,6 +26,7 @@ enum Icono {
   alerta(Icons.error_outline_rounded),
   sinSenal(Icons.cloud_off_rounded),
   derecha(Icons.chevron_right_rounded),
+  izquierda(Icons.chevron_left_rounded),
   compartir(Icons.ios_share_rounded),
   reproducir(Icons.play_arrow_rounded),
   detener(Icons.stop_rounded);

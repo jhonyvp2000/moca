@@ -220,17 +220,21 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
               color: Colores.sobreMarca,
             ),
           ),
-          // De qué periodo es (entrega 36).
-          Text(
-            Textos.deLunesAHoy,
-            style: Tipografia.secundario.copyWith(
-              color: Colores.sobreMarcaSuave,
+          // De qué periodo es (entrega 36). El lunes, el resumen es de la
+          // semana pasada, y el dato grande lo dice.
+          if (!resumen.semanaPasada)
+            Text(
+              Textos.deLunesAHoy,
+              style: Tipografia.secundario.copyWith(
+                color: Colores.sobreMarcaSuave,
+              ),
             ),
-          ),
           if (resumen.conMovimientos) ...[
             const SizedBox(height: Medidas.e4),
             Text(
-              Textos.estaSemanaTeQuedo.trim(),
+              resumen.semanaPasada
+                  ? Textos.laSemanaPasadaTeQuedo
+                  : Textos.estaSemanaTeQuedo.trim(),
               style: Tipografia.texto.copyWith(color: Colores.sobreMarcaSuave),
             ),
             FittedBox(

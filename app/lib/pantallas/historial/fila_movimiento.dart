@@ -71,7 +71,7 @@ List<String> _partes(FilaHistorial f, {bool conPorSubir = true}) {
         formatearSolesComprobante(f.pagadoEnPartesCentimos),
         formatearSolesComprobante(f.totalConPartesCentimos),
       ),
-    if (f.porSubir) Textos.marcaPorSubir,
+    if (conPorSubir && f.porSubir) Textos.marcaPorSubir,
     // Con varias personas, quién lo anotó (entrega 20).
     if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
   ];

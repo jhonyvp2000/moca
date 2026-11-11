@@ -1158,6 +1158,28 @@ void main() {
       expect(find.text(Textos.queFue), findsOneWidget);
     });
 
+    testWidgets('Mejora 01: las pantallas nuevas no se desbordan con letra '
+        'grande', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.escribirlo));
+      await tester.enterText(find.byType(TextField).first, '80');
+      await tocar(tester, find.text(Textos.salio));
+      expect(tester.takeException(), isNull, reason: 'Escribirlo');
+      await tocar(tester, find.byType(BotonVolver).first);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(tester.takeException(), isNull, reason: 'Asistente');
+      await tocar(tester, find.text(Textos.pestanaInicio).last);
+      await tocar(tester, find.byTooltip(Textos.ajustes));
+      expect(tester.takeException(), isNull, reason: 'Ajustes');
+      await tocar(tester, find.byType(BotonVolver).first);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      await tocar(tester, find.text(Textos.verAnio));
+      expect(tester.takeException(), isNull, reason: 'Año');
+    });
+
     testWidgets('Mejora 01: el + abre la hoja con atajos; «Un gasto» abre '
         'Escribirlo con «Salió» y «Venta del día», la venta', (tester) async {
       await abrirApp(tester, listo: true);

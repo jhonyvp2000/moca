@@ -1520,6 +1520,7 @@ abstract final class Textos {
   static String pruebaGratisDias(int dias) =>
       'Prueba gratis · ${dias == 1 ? '1 día' : '$dias días'}';
   static const escucharResumen = 'Escuchar resumen';
+  static const laSemanaPasadaTeQuedo = 'La semana pasada te quedó';
 
   // El cobro (entrega 25).
   static String pruebaTeQuedan(int dias, String hasta) => switch (dias) {

@@ -323,7 +323,21 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
         bottom: false,
         child: _VistaAnio(
           anio: _anio,
-          selector: _selector(),
+          // El mismo título que el mes (mejora 01).
+          selector: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: const Text(
+                  Textos.pestanaInformes,
+                  style: Tipografia.tituloPantalla,
+                ),
+              ),
+              const SizedBox(height: Medidas.e3),
+              _selector(),
+            ],
+          ),
           alCambiarAnio: (a) => setState(() => _anio = a),
           alElegirMes: (m) => setState(() {
             _mes = m;
@@ -394,7 +408,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _Flecha(
-                      icono: Icono.volver,
+                      icono: Icono.izquierda,
                       etiqueta: Textos.mesAnterior,
                       alTocar: i.mesPrevio == null
                           ? null
@@ -766,6 +780,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       _TarjetaDeuda(
         titulo: Textos.loQueDebesTitulo,
         nota: Textos.todoLoQueDebes,
+        tono: Tono.egreso,
         centimos: i.loQueDebesCentimos,
         ruta: Rutas.loQueDebes,
       ),
@@ -774,6 +789,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       _TarjetaDeuda(
         titulo: Textos.loQueTeDebenTitulo,
         nota: Textos.todoLoQueTeDeben,
+        tono: Tono.pendiente,
         centimos: (ref.watch(loQueTeDebenProvider).value ?? const []).fold(
           0,
           (s, f) => s + f.montoCentimos,
@@ -803,12 +819,16 @@ class _TarjetaDeuda extends StatelessWidget {
     required this.nota,
     required this.centimos,
     required this.ruta,
+    required this.tono,
   });
 
   final String titulo;
   final String nota;
   final int centimos;
   final String ruta;
+
+  /// Coral lo que debes, ámbar lo que te deben; el cero, gris (mejora 01).
+  final Tono tono;
 
   @override
   Widget build(BuildContext context) => Tarjeta(
@@ -820,18 +840,20 @@ class _TarjetaDeuda extends StatelessWidget {
         borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
         onTap: () => context.push(ruta),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(Medidas.e5),
           child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(titulo, style: Tipografia.secundario),
+                    Text(titulo, style: Tipografia.tituloFila),
                     Text(nota, style: Tipografia.secundario),
-                    Text(
-                      formatearSoles(centimos),
-                      style: Tipografia.cifra(Tipografia.encabezado),
+                    const SizedBox(height: Medidas.e1),
+                    MontoText(
+                      centimos,
+                      estilo: Tipografia.encabezado,
+                      tono: tono,
                     ),
                   ],
                 ),
@@ -932,7 +954,7 @@ class _VistaAnio extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _Flecha(
-              icono: Icono.volver,
+              icono: Icono.izquierda,
               etiqueta: Textos.anioAnterior,
               alTocar: r.anioPrevio == null
                   ? null
@@ -976,14 +998,35 @@ class _VistaAnio extends ConsumerWidget {
                   color: Colores.textoSecundario,
                 ),
               ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  formatearSoles(crecio.abs()),
-                  maxLines: 1,
-                  style: Tipografia.montoGrande,
-                ),
+              // Como el mes: signo y flecha, azul si subió y gris si bajó
+              // (mejora 01).
+              Row(
+                children: [
+                  if (crecio != 0) ...[
+                    Icon(
+                      crecio > 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      size: 32,
+                      color: crecio > 0 ? Colores.marca : Colores.neutro,
+                    ),
+                    const SizedBox(width: Medidas.e2),
+                  ],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: MontoText(
+                        crecio,
+                        estilo: Tipografia.montoGrande.copyWith(
+                          color: crecio < 0 ? Colores.neutro : null,
+                        ),
+                        tono: crecio > 0 ? Tono.ingreso : null,
+                        conSigno: true,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               _Fila(Textos.entro, r.entroCentimos, tono: Tono.ingreso),
