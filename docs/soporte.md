@@ -213,6 +213,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ---
 
+**Dónde está el arqueo (desde la entrega 57):** en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. El domingo, y desde el lunes si quedó sin hacer, también sale en la tarjeta de Moca del Inicio. El ayudante no lo ve.
+
+> Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.

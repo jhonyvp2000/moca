@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/videos.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
@@ -102,6 +103,9 @@ class ContenidoRegistrar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sin cuenta, cuántas fotos de prueba quedan (entrega 14.2).
     final pruebas = ref.watch(fotosDePruebaProvider).value;
+    // El arqueo, para quien lo hace (entrega 57).
+    final haceArqueo =
+        (ref.watch(permisosProvider).value ?? Permisos.delDueno).haceArqueo;
     // Todo armado de una vez (no es una lista larga): con letra grande,
     // «Escribirlo» existe aunque haya que desplazarse para verlo.
     return SingleChildScrollView(
@@ -188,6 +192,15 @@ class ContenidoRegistrar extends ConsumerWidget {
                   ).toString(),
                 ),
               ),
+              // Contar la plata de las cuentas (entrega 57): no entra ni sale.
+              if (haceArqueo)
+                _Atajo(
+                  icono: Icons.fact_check_outlined,
+                  texto: Textos.hacerArqueo,
+                  color: Colores.marca,
+                  fondo: Colores.azul50,
+                  alTocar: () => alElegir(Rutas.arqueo),
+                ),
             ],
           ),
           if (alCancelar != null) ...[
@@ -302,7 +315,7 @@ class _Entrada extends StatelessWidget {
   }
 }
 
-/// Un atajo de la hoja: la venta del día o un gasto, con su flecha.
+/// Un atajo de la hoja: la venta del día, un gasto o el arqueo.
 class _Atajo extends StatelessWidget {
   const _Atajo({
     required this.icono,

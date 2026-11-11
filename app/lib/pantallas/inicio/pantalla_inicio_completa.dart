@@ -120,17 +120,8 @@ class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
                 conVerTodas: permisos.cambiaCuentas,
               ),
             ],
-            if (permisos.haceArqueo)
-              _conMargen(
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: widget.alHacerArqueo,
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: const Text(Textos.hacerArqueo),
-                  ),
-                ),
-              ),
+            // «Hacer arqueo» vive en el + (entrega 57); aquí, solo cuando
+            // toca, en la tarjeta de Moca.
             // Lo pendiente, para quien ve los informes (mejora 01).
             if (permisos.veInformes) BloquePendientes(ocultar: _ocultar),
             // La semana es de todo el negocio: la ven el dueño y el contador.

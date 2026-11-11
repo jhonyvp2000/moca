@@ -2749,6 +2749,13 @@ void main() {
   });
 
   group('Arqueo', () {
+    testWidgets('Entrega 57: el + abre el arqueo con su atajo', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.hacerArqueo));
+      expect(find.text(Textos.guardarArqueo), findsOneWidget);
+    });
+
     Future<void> abrirArqueoDesdeElPrimerDia(WidgetTester tester) async {
       // Con letra grande, el paso queda más abajo de la pantalla.
       await tester.scrollUntilVisible(
@@ -2795,7 +2802,8 @@ void main() {
       expect(find.text(Textos.arqueoGuardado('S/ 1,270')), findsOneWidget);
       // Con el primer arqueo, el Inicio pasa a ser el completo (S04).
       expect(find.text(Textos.tienesHoy), findsOneWidget);
-      expect(find.text(Textos.hacerArqueo), findsOneWidget);
+      // Desde la entrega 57, el Inicio ya no tiene el enlace suelto.
+      expect(find.text(Textos.hacerArqueo), findsNothing);
       expect(find.textContaining(Textos.mocaArqueoHecho), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.retiroParaMi), findsOneWidget);
@@ -4460,12 +4468,23 @@ void main() {
       expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });
 
+    testWidgets('Entrega 57: «Hacer arqueo» está en el +, no para el '
+        'ayudante', (tester) async {
+      await comoRol(tester, Rol.ayudante);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.atajoVentaDelDia), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+    });
+
     testWidgets('El encargado no ve los informes ni cambia las cuentas', (
       tester,
     ) async {
       await comoRol(tester, Rol.encargado);
       expect(find.text(Textos.enTuCaja), findsOneWidget);
-      expect(find.text(Textos.hacerArqueo), findsWidgets);
+      // El encargado hace el arqueo desde el + (entrega 57).
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      expect(find.text(Textos.hacerArqueo), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
       expect(find.text(Textos.pestanaInformes), findsNothing);
       await abrirAjustes(tester);
       expect(find.text(Textos.misCuentas), findsNothing);
