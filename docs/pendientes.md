@@ -17,6 +17,14 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - ~~«Lo que te deben»~~: entrega 42 (09-11-2026). Mejoras pedidas por Jhony para después: ~~cobros y pagos en partes~~ (entrega 44, 10-11-2026); ~~recordarle al cliente por WhatsApp lo que debe~~ (entrega 45, 10-11-2026; ~~guardar su celular y «Le recordaste el…»~~, entrega 53; ~~recordatorios automáticos~~: Moca avisa al dueño a quién recordarle, entrega 54, 11-11-2026); ~~vender a crédito por voz~~ (entrega 49, 10-11-2026; ~~unir «Cobré el fiado» a la deuda de esa persona~~, entrega 50); ~~vender a crédito desde «Anotar la venta de hoy»~~ (entrega 52, 11-11-2026).
 - Pasar el pago con Mercado Pago (entrega 32) de la API de Preferences a la API de Orders. Al crear la aplicación «moca» (05-11-2026), el panel avisa que Preferences «será descontinuada pronto»; Mercado Pago dice que sigue con soporte, sin funciones nuevas, y no da fecha. Conviene hacerlo a la vez en Moca y en TVSamGo, que usan la misma API.
 
+## Yapes automáticos (análisis del 11-11-2026, `yape-automatico.md`)
+
+- Si entra en la V1 o queda para después: no está en `v1-real.md` ni en `prototipo-v1.md`.
+- La vía: leer la notificación de Yape en el teléfono (recomendada), el correo del BCP reenviado a un webhook (solo ve los yapeos que vienen de otro banco) o ambas.
+- Prueba antes de programar, con el Yape de Jhony: el texto actual de la notificación (de BCP a BCP y desde otro banco) y si el permiso de notificaciones se destraba con el APK.
+- Solo Yape, o también Plin y las billeteras de otros bancos.
+- Que el consentimiento del dueño (Ley 29733) mencione el permiso de leer notificaciones.
+
 ## Se resuelven en la Fase 0
 
 Ver `fase-0.md`. En resumen:
