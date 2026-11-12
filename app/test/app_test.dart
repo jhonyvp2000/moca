@@ -1831,15 +1831,13 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInicio));
 
       expect(find.text(Textos.tuPrimerDia), findsNothing);
-      // Las cuentas, abiertas al entrar (entrega 64): toda la plata está en
-      // efectivo, así que el total y Efectivo coinciden.
+      // Las cuentas, siempre a la vista y sin «Ver por cuenta / Ocultar»
+      // (entrega 65): toda la plata está en efectivo, así que el total y
+      // Efectivo coinciden.
       expect(find.text('S/\u00A01,350'), findsNWidgets(2));
       expect(find.text(Textos.efectivo), findsWidgets);
-      // Se pueden cerrar, y el teléfono lo recuerda.
-      await tocar(tester, find.text(Textos.ocultarSeccion));
-      expect(find.text('S/\u00A01,350'), findsOneWidget);
-      await tocar(tester, find.text(Textos.verPorCuenta));
-      expect(find.text('S/\u00A01,350'), findsNWidgets(2));
+      expect(find.text('Ver por cuenta'), findsNothing);
+      expect(find.text(Textos.ocultarSeccion), findsNothing);
       // «Esta semana» vive en el Asistente (entrega 59), y la tarjeta de
       // Moca ya no está en el Inicio (entrega 64).
       expect(find.text(Textos.estaSemana), findsNothing);
@@ -3433,7 +3431,7 @@ void main() {
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
-      // Abiertas al entrar (entrega 64).
+      // Siempre a la vista (entrega 65).
       final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
       final plin = tester.getTopLeft(find.text(Textos.plin));
       final bim = tester.getTopLeft(find.text('Bim'));

@@ -9,7 +9,6 @@ import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
 import 'desglose_cuentas.dart';
 import 'encabezado_negocio.dart';
-import '../../comun/seccion_plegable.dart';
 import '../../inyeccion.dart';
 import 'tarjeta_tienes_hoy.dart';
 
@@ -96,23 +95,14 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 pildora: _pildora(r, permisos, hoy),
               ),
             ),
-            // Las cuentas, plegadas (entrega 59): «Ver por cuenta», sin la
-            // línea con sus nombres (entrega 63).
+            // Las cuentas, siempre a la vista (entrega 65): sin la fila
+            // «Ver por cuenta / Ocultar».
             if (misCajas == null || saldos.length > 1) ...[
               const SizedBox(height: Medidas.separacionTarjetas),
-              SeccionPlegable(
-                clave: 'inicio_cuentas',
-                titulo: Textos.verPorCuenta,
-                // Abierta al entrar (entrega 64), hasta que la cierre.
-                abiertaPorDefecto: true,
-                margenEncabezado: const EdgeInsets.symmetric(
-                  horizontal: Medidas.margenLateral,
-                ),
-                hijo: DesgloseDeCuentas(
-                  saldos: saldos,
-                  ocultar: _ocultar,
-                  conVerTodas: permisos.cambiaCuentas,
-                ),
+              DesgloseDeCuentas(
+                saldos: saldos,
+                ocultar: _ocultar,
+                conVerTodas: permisos.cambiaCuentas,
               ),
             ],
             // La tarjeta de Moca salió del Inicio (entrega 64): el aviso va

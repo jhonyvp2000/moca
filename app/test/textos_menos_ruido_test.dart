@@ -30,19 +30,4 @@ void main() {
     await ajustes.guardarSeccion('informe_mes', abierta: false);
     expect(await ajustes.seccionAbierta('informe_mes'), isFalse);
   });
-
-  test('Entrega 64: las cuentas del Inicio empiezan abiertas', () async {
-    final base = BaseLocal(NativeDatabase.memory());
-    addTearDown(base.close);
-    final ajustes = RepositorioAjustesLocal(base);
-    expect(
-      await ajustes.seccionAbierta('inicio_cuentas', porDefecto: true),
-      isTrue,
-    );
-    await ajustes.guardarSeccion('inicio_cuentas', abierta: false);
-    expect(
-      await ajustes.seccionAbierta('inicio_cuentas', porDefecto: true),
-      isFalse,
-    );
-  });
 }

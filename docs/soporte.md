@@ -227,7 +227,7 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **«No veo cuánto tengo en cada cuenta»** · **«¿Dónde está En qué se fue?»** · **«Ya no veo mi semana en el Inicio»** (entrega 59): no se borró nada, quedó a un toque.
 
-> En el Inicio, debajo de «Tienes hoy», está cuánto hay en efectivo, Yape y banco (si no la ves, toca «Ver por cuenta»). En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
+> En el Inicio, debajo de «Tienes hoy», está cuánto hay en efectivo, Yape y banco (desde la entrega 65 la lista está siempre a la vista; en versiones anteriores, toca «Ver por cuenta»). En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
 
 **«Ya no veo el aviso de Moca en el Inicio»** · **«¿Dónde anoto la venta de hoy?»** (entrega 64): el Inicio ya no tiene la tarjeta de Moca. El aviso más importante (el ajuste del arqueo, un gasto alto, un cliente que debe) está arriba de **Informes**, con el mismo botón, y todos los avisos siguen en el **Asistente**. La venta de hoy y el arqueo se anotan con el **+**.
 

@@ -18,12 +18,8 @@ class RepositorioAjustesLocal implements RepositorioAjustes {
       _a.guardarAjuste(_claveMicrofono, 'si');
 
   @override
-  Future<bool> seccionAbierta(String clave, {bool porDefecto = false}) async =>
-      switch (await _a.leerAjuste('seccion_$clave')) {
-        'abierta' => true,
-        'cerrada' => false,
-        _ => porDefecto,
-      };
+  Future<bool> seccionAbierta(String clave) async =>
+      await _a.leerAjuste('seccion_$clave') == 'abierta';
 
   @override
   Future<void> guardarSeccion(String clave, {required bool abierta}) =>

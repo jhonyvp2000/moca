@@ -547,7 +547,6 @@ abstract final class Textos {
   static const verTodas = 'Ver todas';
   // Menos ruido (entrega 59): lo que se ve a un toque.
   static const ocultarSeccion = 'Ocultar';
-  static const verPorCuenta = 'Ver por cuenta';
   static const verDetalleDelMes = 'Ver el detalle del mes';
   static const verDetalleDelAnio = 'Ver el detalle del año';
   static const fichaTeDeben = 'Te deben';
