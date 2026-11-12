@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../comun/badge_estado.dart';
 import '../../comun/iconos.dart';
 import '../../comun/monto_text.dart';
 import '../../comun/tono.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
+import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../pais/peru/iconos_categorias.dart';
 import '../../tema/colores.dart';
@@ -48,77 +49,6 @@ String tituloDeFila(FilaHistorial f) {
   if (f.tipo == TipoMovimiento.aporte) return Textos.puseDeMiBolsillo;
   if (f.tipo.esPase) return f.nota ?? Textos.pasePlata;
   return f.nota ?? f.categoria ?? Textos.nombreTipo(f.tipo);
-}
-
-/// La línea de abajo: categoría y cuenta, sin repetir lo que ya dice el
-/// título. Lo que se debe no ha salido de ninguna cuenta.
-List<String> _partes(FilaHistorial f, {bool conPorSubir = true}) {
-  final cuenta = Textos.nombreCuenta(f.cuenta);
-  if (f.ajusteArqueo) return [Textos.ajusteNoCuenta, cuenta];
-  if (f.tipo == TipoMovimiento.retiro) return [Textos.retiroNoCuenta, cuenta];
-  if (f.tipo == TipoMovimiento.aporte) return [Textos.aporteNoCuenta, cuenta];
-  // «Efectivo → BCP» (entrega 21.1).
-  if (f.cuentaDestino case final destino? when f.tipo.esPase) {
-    return [
-      Textos.pase(cuenta, Textos.nombreCuenta(destino)),
-      if (conPorSubir && f.porSubir) Textos.marcaPorSubir,
-      if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
-    ];
-  }
-  final tituloEsCategoria =
-      f.proveedor == null && f.nota == null && f.categoria != null;
-  return [
-    // Un pago en parte, y lo que va pagado de una deuda (entrega 44).
-    if (f.parteDe != null) Textos.pagoEnParte,
-    if (!tituloEsCategoria && f.categoria != null) f.categoria!,
-    if (!f.loDebes) cuenta,
-    // Cobrado o pagado otro día: ahí suma (entrega 55).
-    if (f.pagadoOtroDia)
-      (f.tipo.entraPlata ? Textos.cobradoEl : Textos.pagadoEl)(
-        formatearDiaYMes(f.fechaPago!),
-      ),
-    if (f.loDebes && f.pagadoEnPartesCentimos > 0)
-      Textos.pagoDeTotal(
-        formatearSolesComprobante(f.pagadoEnPartesCentimos),
-        formatearSolesComprobante(f.totalConPartesCentimos),
-      ),
-    if (conPorSubir && f.porSubir) Textos.marcaPorSubir,
-    // Con varias personas, quién lo anotó (entrega 20).
-    if (f.deOtro) Textos.loAnoto(f.autorNombre, f.autorRol),
-  ];
-}
-
-class DetalleDeFila extends StatelessWidget {
-  const DetalleDeFila({super.key, required this.fila, this.conEstado = true});
-
-  final FilaHistorial fila;
-
-  /// Con «Te debe» y «por subir» en el texto; la fila del Historial los
-  /// muestra como etiquetas (mejora 01).
-  final bool conEstado;
-
-  @override
-  Widget build(BuildContext context) {
-    final partes = _partes(fila, conPorSubir: conEstado);
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(text: partes.join(' · ')),
-          if (conEstado && fila.loDebes) ...[
-            if (partes.isNotEmpty) const TextSpan(text: ' · '),
-            TextSpan(
-              text: fila.teDeben ? Textos.teDebe : Textos.loDebes,
-              style: Tipografia.secundario.copyWith(
-                color: Colores.avisoTexto,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ],
-      ),
-      style: Tipografia.secundario,
-    );
-  }
 }
 
 /// Entró, salió o se movió adentro (mejora 01).
@@ -172,29 +102,70 @@ class AvatarDeFila extends StatelessWidget {
   }
 }
 
-/// Una fila del Historial (S10), rediseñada en la mejora 01: la inicial
-/// de la persona o el icono de la categoría, el título, su línea, las
-/// etiquetas de estado y el monto con signo y color.
-class FilaMovimiento extends StatelessWidget {
+/// Lo que va en la segunda línea después de la hora (entrega 68): la
+/// categoría si el título no la dice, el pase o la cuenta del ajuste.
+String? _complemento(FilaHistorial f) {
+  if (f.ajusteArqueo) return Textos.nombreCuenta(f.cuenta);
+  if (f.cuentaDestino case final destino? when f.tipo.esPase) {
+    return Textos.pase(
+      Textos.nombreCuenta(f.cuenta),
+      Textos.nombreCuenta(destino),
+    );
+  }
+  if (f.tipo == TipoMovimiento.retiro || f.tipo == TipoMovimiento.aporte) {
+    return null;
+  }
+  final categoria = f.categoria;
+  return categoria == null || tituloDeFila(f) == categoria ? null : categoria;
+}
+
+/// Una fila del Historial (S10). Desde la entrega 68, como en Yape: dos
+/// líneas y sin ícono. Arriba, en negrita, la institución (o lo que dice
+/// qué fue); abajo, la hora (o la fecha y la hora con [conFecha]), si se
+/// debe o falta subir, y la categoría. A la derecha, lo que salió en rojo
+/// con «−» y lo que entró en azul, sin signo.
+class FilaMovimiento extends ConsumerWidget {
   const FilaMovimiento({
     super.key,
     required this.fila,
     required this.alTocar,
     this.conSeparador = false,
+    this.conFecha = false,
   });
 
   final FilaHistorial fila;
   final VoidCallback alTocar;
   final bool conSeparador;
 
-  Tono get _tono => tonoDeFila(fila);
+  /// En una lista sin cabeceras de día («Lo que te deben», una categoría):
+  /// la fecha con la hora.
+  final bool conFecha;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final f = fila;
+    final cuando = conFecha
+        ? formatearFechaYHoraDeFila(f.fecha, ref.watch(relojProvider)())
+        : formatearHora(f.fecha.hour * 60 + f.fecha.minute);
+    final estado = [
+      if (f.loDebes) f.teDeben ? Textos.teDebe : Textos.loDebes,
+      if (f.porSubir) Textos.porSubirEtiqueta,
+    ];
+    // Cobrado o pagado otro día: ahí suma (entrega 55).
+    final otroDia = f.pagadoOtroDia
+        ? (f.tipo.entraPlata ? Textos.cobradoEl : Textos.pagadoEl)(
+            formatearDiaYMes(f.fechaPago!),
+          )
+        : null;
+    final complemento = _complemento(f);
+    final tono = tonoDeFila(f);
+    const separador = TextSpan(text: ' · ');
     return InkWell(
       onTap: alTocar,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 64),
+        constraints: const BoxConstraints(
+          minHeight: Medidas.objetivoTactilMinimo + Medidas.e4,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: Medidas.e4,
           vertical: Medidas.e3,
@@ -206,45 +177,58 @@ class FilaMovimiento extends StatelessWidget {
             : null,
         child: Row(
           children: [
-            AvatarDeFila(fila: fila),
-            const SizedBox(width: Medidas.e3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tituloDeFila(fila),
+                    tituloDeFila(f),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Tipografia.textoFuerte.copyWith(height: 1.3),
                   ),
-                  const SizedBox(height: Medidas.e1),
-                  DetalleDeFila(fila: fila, conEstado: false),
-                  if (fila.loDebes || fila.porSubir) ...[
-                    const SizedBox(height: Medidas.e1),
-                    Wrap(
-                      spacing: Medidas.e1,
-                      runSpacing: Medidas.e1,
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(
                       children: [
-                        if (fila.loDebes)
-                          BadgeEstado(
-                            fila.teDeben ? Textos.teDebe : Textos.loDebes,
+                        TextSpan(text: cuando),
+                        // Lo que se debe, antes que la categoría: no se corta.
+                        for (final e in estado) ...[
+                          separador,
+                          TextSpan(
+                            text: e,
+                            style: TextStyle(
+                              color: e == Textos.porSubirEtiqueta
+                                  ? Colores.textoSecundario
+                                  : Colores.avisoTexto,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        if (fila.porSubir)
-                          const BadgeEstado(
-                            Textos.porSubirEtiqueta,
-                            tono: Tono.neutro,
-                          ),
+                        ],
+                        if (otroDia != null) ...[
+                          separador,
+                          TextSpan(text: otroDia),
+                        ],
+                        if (complemento != null) ...[
+                          separador,
+                          TextSpan(text: complemento),
+                        ],
                       ],
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tipografia.cifra(Tipografia.secundario),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: Medidas.e3),
             MontoText(
-              fila.montoCentimos,
-              estilo: Tipografia.tituloFila,
-              tono: _tono == Tono.neutro ? null : _tono,
-              conSigno: true,
+              f.montoCentimos,
+              estilo: Tipografia.textoFuerte,
+              tono: tono == Tono.neutro ? null : tono,
+              // Solo lo que salió lleva «−» (entrega 68).
+              conSigno: tono == Tono.egreso,
               conCentimos: true,
             ),
           ],

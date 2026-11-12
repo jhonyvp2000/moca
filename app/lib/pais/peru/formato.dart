@@ -63,6 +63,19 @@ String formatearSolesComprobante(int centimos) {
       '${resto.toString().padLeft(2, '0')}';
 }
 
+/// La fecha y la hora de una fila de lista sin días (entrega 68): «Hoy ·
+/// 10:33 a. m.», «Ayer · 7:38 p. m.», «10 nov. 2026 · 9:06 a. m.».
+String formatearFechaYHoraDeFila(DateTime momento, DateTime hoy) {
+  final d = DateTime(momento.year, momento.month, momento.day);
+  final h = DateTime(hoy.year, hoy.month, hoy.day);
+  final dia = d == h
+      ? 'Hoy'
+      : d == DateTime(h.year, h.month, h.day - 1)
+      ? 'Ayer'
+      : '${d.day} ${_meses[d.month - 1].substring(0, 3)}. ${d.year}';
+  return '$dia · ${formatearHora(momento.hour * 60 + momento.minute)}';
+}
+
 /// El momento en que se mira el Inicio (entrega 62): «Jueves 12:13 p. m.».
 String formatearDiaYHora(DateTime momento) {
   final dia = _dias[momento.weekday - 1];

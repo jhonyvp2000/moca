@@ -80,6 +80,8 @@ class _EstadoDeCategoria extends ConsumerState<PantallaDeCategoria> {
                             FilaMovimiento(
                               fila: f,
                               conSeparador: i < filas.length - 1,
+                              // Sin cabeceras de día: con la fecha.
+                              conFecha: true,
                               alTocar: () =>
                                   context.push(Rutas.detalleMovimiento(f.id)),
                             ),

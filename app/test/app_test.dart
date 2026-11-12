@@ -2621,9 +2621,14 @@ void main() {
       await abrirHistorial(tester);
 
       // El total de hoy cuenta la venta (S/ 350), no lo fiado.
-      expect(find.text('+ S/ 350'), findsNWidgets(2));
+      expect(find.text('+ S/ 350'), findsOneWidget);
+      // La fila, en azul y sin signo (entrega 68).
+      expect(find.text('S/ 350'), findsWidgets);
       expect(find.text('+ S/ 430'), findsNothing);
-      expect(find.text(Textos.teDebe), findsOneWidget);
+      expect(
+        find.textContaining(' · ${Textos.teDebe}', findRichText: true),
+        findsOneWidget,
+      );
       expect(find.text(Textos.esoEsTodo), findsOneWidget);
 
       await tocar(tester, find.text(Textos.filtroPendientes(1)));
@@ -2641,9 +2646,15 @@ void main() {
       expect(find.text('Hoy · lunes 12'), findsOneWidget);
       expect(find.text('Venta del día'), findsOneWidget);
       // La fila y el total del día (mejora 01).
-      expect(find.text('+ S/ 350'), findsNWidgets(2));
+      expect(find.text('+ S/ 350'), findsOneWidget);
+      // La fila, en azul y sin signo (entrega 68).
+      expect(find.text('S/ 350'), findsWidgets);
       expect(find.text('Bolsas'), findsOneWidget);
-      expect(find.text('Otros · Efectivo'), findsOneWidget);
+      // La segunda línea: la hora y la categoría (entrega 68).
+      expect(
+        find.textContaining(' · Otros', findRichText: true),
+        findsOneWidget,
+      );
       expect(find.text('− S/ 80'), findsNWidgets(2));
 
       await tocar(tester, find.text(Textos.entro));
@@ -2679,9 +2690,14 @@ void main() {
 
       await abrirHistorial(tester);
       expect(find.text(Textos.filtroPorSubir(1)), findsOneWidget);
-      // «Por subir» va como etiqueta, no repetido en el texto (mejora 01).
-      expect(find.text('Efectivo'), findsWidgets);
-      expect(find.text(Textos.porSubirEtiqueta), findsOneWidget);
+      // «Por subir» va en la segunda línea (entrega 68).
+      expect(
+        find.textContaining(
+          ' · ${Textos.porSubirEtiqueta}',
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
       await tocar(tester, find.text('Otros'));
       expect(find.text(Textos.guardadoPorSubir), findsOneWidget);
     });
@@ -2718,7 +2734,9 @@ void main() {
       );
 
       await tocar(tester, find.byType(BotonVolver));
-      expect(find.text('+ S/ 400'), findsNWidgets(2));
+      expect(find.text('+ S/ 400'), findsOneWidget);
+      // La fila, en azul y sin signo (entrega 68).
+      expect(find.text('S/ 400'), findsWidgets);
       expect(find.text('+ S/ 350'), findsNothing);
     });
 
@@ -2924,7 +2942,7 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.ajusteDelArqueo), findsOneWidget);
       expect(
-        find.text('${Textos.ajusteNoCuenta} · ${Textos.efectivo}'),
+        find.textContaining(' · ${Textos.efectivo}', findRichText: true),
         findsOneWidget,
       );
       await tocar(tester, find.text(Textos.salio));
@@ -4564,6 +4582,8 @@ void main() {
       );
       await esperar(tester);
       await tocar(tester, find.text(Textos.pestanaHistorial));
+      // Quién lo anotó está en el detalle (entrega 68).
+      await tocar(tester, find.text('Venta del día').last);
       expect(
         find.textContaining(Textos.loAnoto(AccesoLocal.nombreSimulado, null)),
         findsWidgets,
@@ -4712,7 +4732,10 @@ void main() {
     await tocar(tester, find.text(Textos.pestanaHistorial));
     expect(find.text(Textos.pasePlata), findsOneWidget);
     expect(
-      find.text(Textos.pase(Textos.efectivo, Textos.yape)),
+      find.textContaining(
+        Textos.pase(Textos.efectivo, Textos.yape),
+        findRichText: true,
+      ),
       findsOneWidget,
     );
   });
@@ -4747,10 +4770,10 @@ void main() {
       expect(find.text(Textos.ventaDeOtroSimulada), findsOneWidget);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaHistorial));
-      expect(
-        find.text('Efectivo · ${Textos.loAnoto('Pepe', null)}'),
-        findsOneWidget,
-      );
+      // Quién lo anotó está en el detalle (entrega 68).
+      await tocar(tester, find.text('Venta del día').last);
+      expect(find.textContaining(Textos.loAnoto('Pepe', null)), findsWidgets);
+      await tocar(tester, find.byType(BotonVolver));
 
       await abrirAjusteOculto(tester);
       await tocar(tester, find.text(Textos.salirDeLaSimulacion));

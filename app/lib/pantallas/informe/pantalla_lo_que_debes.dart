@@ -150,6 +150,8 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                             FilaMovimiento(
                               fila: f,
                               conSeparador: i < filas.length - 1,
+                              // Sin cabeceras de día: con la fecha.
+                              conFecha: true,
                               alTocar: () =>
                                   context.push(Rutas.detalleMovimiento(f.id)),
                             ),
