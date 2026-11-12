@@ -78,7 +78,12 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
   /// si no es la caja de nadie del equipo.
   Future<void> _dejarDeUsar(CuentaVista cuenta) async {
     final mensajes = ScaffoldMessenger.of(context);
-    if (cuenta.tipo.esCaja) {
+    // Solo con varias personas puede ser la caja de otro. Sin cuenta (o en
+    // la Demo) o con una sola persona, no hay a quién preguntarle
+    // (entrega 70).
+    final situacion = await ref.read(situacionCuentaProvider.future);
+    if (!mounted) return;
+    if (cuenta.tipo.esCaja && situacion.variasPersonas) {
       final equipo = await ref.read(servicioEquipoProvider).equipo();
       if (!mounted) return;
       if (equipo == null) {

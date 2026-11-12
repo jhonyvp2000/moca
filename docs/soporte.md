@@ -217,6 +217,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
+**«No puedo dejar de usar una caja: dice que hace falta señal»** (corregido en la entrega 70): en versiones anteriores pasaba en la Demo o sin cuenta, aunque hubiera señal. Desde la entrega 70 solo se revisa con el servidor si el negocio tiene varias personas; ahí sí hace falta señal, porque la caja podría ser de alguien del equipo.
+
+> Actualiza Moca a la última versión. Si tu negocio tiene varias personas, conéctate a internet y vuelve a intentarlo.
+
 **«No me sale Yape (o Plin, o el banco) al anotar»** · **«Quiero quitar una billetera»** (entrega 58): las cuentas no se borran, se **dejan de usar**. En Ajustes (el nombre del negocio, arriba en el Inicio) → Mis cuentas, toca la cuenta → «Dejar de usar esta cuenta» (solo con saldo S/ 0; si tiene plata, primero «Pasar la plata»). Si alguien no la ve al anotar, revisa si está abajo en «Ya no usas».
 
 > Toca el nombre de tu negocio arriba en el Inicio → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».

@@ -4674,6 +4674,26 @@ void main() {
       expect(find.text('Caja delivery'), findsWidgets);
     });
 
+    testWidgets('Entrega 70: sin cuenta, una caja en S/ 0 se deja de usar '
+        'sin pedir señal', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(tester, find.text(Textos.otraCaja));
+      await tester.enterText(find.byKey(const Key('nombre-caja')), 'Caja 2');
+      await tester.pump();
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.agregar));
+      await tocar(tester, find.text('Caja 2'));
+      await tocar(tester, find.text(Textos.dejarDeUsarEstaCuenta));
+      expect(find.text(Textos.sinSenalParaRevisarCaja), findsNothing);
+      expect(find.text(Textos.preguntaDejarDeUsar('Caja 2')), findsOneWidget);
+      await tocar(
+        tester,
+        find.widgetWithText(FilledButton, Textos.dejarDeUsar),
+      );
+      expect(find.text(Textos.dejasteDeUsar('Caja 2')), findsOneWidget);
+    });
+
     testWidgets('El ayudante a cargo de «Caja delivery» ve su caja y anota '
         'en ella, no en la principal', (tester) async {
       final base = await abrirApp(tester, listo: true);
