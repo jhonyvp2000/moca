@@ -70,11 +70,6 @@ class PantallaInicio extends ConsumerWidget {
           resumen: inicio,
           actualizado: actualizado,
           permisos: permisos,
-          alAnotarVenta: anotarVenta,
-          alHacerArqueo: () => context.push(Rutas.arqueo),
-          aviso: permisos.veAvisos
-              ? ref.watch(avisosProvider).value?.firstOrNull
-              : null,
           tarjetaAvisos: arriba(permisos.recibeAvisos),
         ),
       );

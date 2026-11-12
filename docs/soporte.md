@@ -213,7 +213,7 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ---
 
-**Dónde está el arqueo (desde la entrega 57):** en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. El domingo, y desde el lunes si quedó sin hacer, también sale en la tarjeta de Moca del Inicio. El ayudante no lo ve.
+**Dónde está el arqueo (desde la entrega 57):** en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
@@ -227,7 +227,11 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **«No veo cuánto tengo en cada cuenta»** · **«¿Dónde está En qué se fue?»** · **«Ya no veo mi semana en el Inicio»** (entrega 59): no se borró nada, quedó a un toque.
 
-> En el Inicio, toca «Ver por cuenta» para ver cuánto hay en efectivo, Yape y banco. En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
+> En el Inicio, debajo de «Tienes hoy», está cuánto hay en efectivo, Yape y banco (si no la ves, toca «Ver por cuenta»). En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
+
+**«Ya no veo el aviso de Moca en el Inicio»** · **«¿Dónde anoto la venta de hoy?»** (entrega 64): el Inicio ya no tiene la tarjeta de Moca. El aviso más importante (el ajuste del arqueo, un gasto alto, un cliente que debe) está arriba de **Informes**, con el mismo botón, y todos los avisos siguen en el **Asistente**. La venta de hoy y el arqueo se anotan con el **+**.
+
+> El aviso ahora está arriba, en la pestaña Informes. Para anotar la venta de hoy, toca el + de abajo y elige «Anotar la venta de hoy».
 
 **«Ya no veo "Te deben" ni "Debes" en el Inicio»** (entrega 63): se movieron a Informes, donde ya estaban.
 

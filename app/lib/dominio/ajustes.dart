@@ -6,7 +6,9 @@ abstract interface class RepositorioAjustes {
   Future<void> marcarMicrofonoExplicado();
 
   /// Si una sección plegada quedó abierta en este teléfono (entrega 59).
-  Future<bool> seccionAbierta(String clave);
+  /// Sin nada guardado, [porDefecto] (entrega 64: las cuentas del Inicio
+  /// empiezan abiertas).
+  Future<bool> seccionAbierta(String clave, {bool porDefecto = false});
 
   Future<void> guardarSeccion(String clave, {required bool abierta});
 }

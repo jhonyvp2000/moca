@@ -19,7 +19,11 @@ class SeccionPlegable extends ConsumerStatefulWidget {
     required this.hijo,
     this.resumen,
     this.margenEncabezado = EdgeInsets.zero,
+    this.abiertaPorDefecto = false,
   });
+
+  /// Cómo empieza mientras la persona no la abra o la cierre (entrega 64).
+  final bool abiertaPorDefecto;
 
   /// El margen de la fila que se toca, si [hijo] trae el suyo (las cuentas
   /// del Inicio se deslizan hasta el borde).
@@ -38,16 +42,19 @@ class SeccionPlegable extends ConsumerStatefulWidget {
 }
 
 class _EstadoSeccionPlegable extends ConsumerState<SeccionPlegable> {
-  bool _abierta = false;
+  late bool _abierta = widget.abiertaPorDefecto;
 
   @override
   void initState() {
     super.initState();
-    ref.read(repositorioAjustesProvider).seccionAbierta(widget.clave).then((
-      abierta,
-    ) {
-      if (mounted && abierta != _abierta) setState(() => _abierta = abierta);
-    });
+    ref
+        .read(repositorioAjustesProvider)
+        .seccionAbierta(widget.clave, porDefecto: widget.abiertaPorDefecto)
+        .then((abierta) {
+          if (mounted && abierta != _abierta) {
+            setState(() => _abierta = abierta);
+          }
+        });
   }
 
   Future<void> _alternar() async {

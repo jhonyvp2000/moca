@@ -9,6 +9,7 @@ import '../../comun/tarjeta.dart';
 import '../../comun/tarjeta_resumen.dart';
 import '../../comun/tono.dart';
 import '../inicio/bloque_pendientes.dart';
+import '../moca/avisos.dart';
 import 'grafico_semanas.dart';
 import '../../comun/videos.dart';
 import '../../dominio/informe.dart';
@@ -329,6 +330,7 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           selector: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const AvisoEnInformes(),
               Semantics(
                 header: true,
                 child: const Text(
@@ -365,6 +367,8 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // El aviso más importante, arriba de todo (entrega 64).
+            const AvisoEnInformes(),
             // «Informes» y un solo «Compartir» que abre PDF o Excel
             // (mejora 01): el resultado queda arriba.
             Row(

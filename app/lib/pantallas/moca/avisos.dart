@@ -1,7 +1,10 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/moca.dart';
+import '../../tema/medidas.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
@@ -34,7 +37,7 @@ String textoAviso(Aviso a) => switch (a.tipo) {
   ),
 };
 
-/// Lo que dice la tarjeta de Moca del Inicio para este aviso.
+/// Lo que dice la tarjeta del aviso (en Informes desde la entrega 64).
 String textoAvisoEnInicio(Aviso a) => a.tipo == TipoAviso.faltaArqueo
     ? Textos.mocaFaltaArqueo
     : '${textoAviso(a)}.';
@@ -121,4 +124,28 @@ Future<void> _recordarAlCliente(BuildContext context, Aviso a) async {
     cliente: ventas.first.proveedor ?? a.cliente,
     ventas: ventas,
   );
+}
+
+/// El aviso más importante, arriba de Informes (entrega 64; antes era la
+/// tarjeta de Moca del Inicio). Solo para quien ve los avisos.
+class AvisoEnInformes extends ConsumerWidget {
+  const AvisoEnInformes({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    if (!permisos.veAvisos) return const SizedBox.shrink();
+    final aviso = ref.watch(avisosProvider).value?.firstOrNull;
+    if (aviso == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Medidas.e4),
+      child: TarjetaMoca(
+        texto: textoAvisoEnInicio(aviso),
+        accion: FilledButton(
+          onPressed: () => abrirAviso(context, aviso),
+          child: Text(accionAviso(aviso)),
+        ),
+      ),
+    );
+  }
 }

@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../comun/tarjeta.dart';
-import '../../dominio/arqueo.dart';
 import '../../dominio/equipo.dart';
-import '../../dominio/moca.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
-import '../moca/avisos.dart';
 import 'desglose_cuentas.dart';
 import 'encabezado_negocio.dart';
 import '../../comun/seccion_plegable.dart';
@@ -24,20 +19,12 @@ class PantallaInicioCompleta extends ConsumerStatefulWidget {
   const PantallaInicioCompleta({
     super.key,
     required this.resumen,
-    required this.alAnotarVenta,
-    required this.alHacerArqueo,
-    this.aviso,
     this.tarjetaAvisos,
     this.actualizado,
     this.permisos = Permisos.delDueno,
   });
 
   final ResumenInicio resumen;
-  final VoidCallback alAnotarVenta;
-  final VoidCallback alHacerArqueo;
-
-  /// El aviso más importante, si hay alguno.
-  final Aviso? aviso;
 
   /// El permiso de avisos, si falta pedirlo.
   final Widget? tarjetaAvisos;
@@ -116,6 +103,8 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
               SeccionPlegable(
                 clave: 'inicio_cuentas',
                 titulo: Textos.verPorCuenta,
+                // Abierta al entrar (entrega 64), hasta que la cierre.
+                abiertaPorDefecto: true,
                 margenEncabezado: const EdgeInsets.symmetric(
                   horizontal: Medidas.margenLateral,
                 ),
@@ -126,15 +115,9 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 ),
               ),
             ],
-            // «Hacer arqueo» vive en el + (entrega 57); aquí, solo cuando
-            // toca, en la tarjeta de Moca.
-            // «Te deben» y «Debes» viven en Informes (entrega 63).
-            // «Esta semana» vive en el Asistente (entrega 59).
-            if (permisos.anota) ...[
-              const SizedBox(height: Medidas.separacionTarjetas),
-              // El aviso más importante; si no hay, la venta de hoy y el arqueo.
-              _conMargen(_tarjetaMoca(r)),
-            ],
+            // La tarjeta de Moca salió del Inicio (entrega 64): el aviso va
+            // en Informes y en el Asistente; la venta de hoy y el arqueo, en
+            // el +. «Te deben» y «Debes» viven en Informes (entrega 63).
           ],
         ),
       ),
@@ -155,77 +138,6 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
         ? Textos.montoOculto
         : formatearSoles(r.fiadoDeHoyCentimos);
     return '$base · ${Textos.alFiado(fiado)}';
-  }
-
-  /// La tarjeta de Moca no repite el +: la venta de hoy mientras falta (es
-  /// el hábito que se mide), el arqueo cuando toca y, con todo hecho,
-  /// «Escuchar mi semana» (mejora 01).
-  Widget _tarjetaMoca(ResumenInicio r) {
-    if (widget.aviso case final aviso?) {
-      return TarjetaMoca(
-        texto: textoAvisoEnInicio(aviso),
-        accion: FilledButton(
-          onPressed: () => abrirAviso(context, aviso),
-          child: Text(accionAviso(aviso)),
-        ),
-      );
-    }
-    final ventaHecha = r.ventaDeHoyCentimos > 0;
-    final venta = ventaHecha
-        ? Textos.mocaYaAnotasteHoy
-        : Textos.mocaFaltaVentaDeHoy;
-    final anotarVenta = FilledButton.icon(
-      onPressed: widget.alAnotarVenta,
-      icon: const Icon(Icons.mic_rounded),
-      label: const Text(Textos.anotarVentaDeHoy),
-    );
-    final escucharSemana = widget.permisos.veAvisos
-        ? Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () =>
-                  StatefulNavigationShell.maybeOf(context)?.goBranch(3),
-              iconAlignment: IconAlignment.end,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              icon: const Icon(Icons.arrow_forward_rounded),
-              label: const Text(Textos.escucharMiSemana),
-            ),
-          )
-        : null;
-    final arqueo = FilledButton(
-      onPressed: widget.alHacerArqueo,
-      child: const Text(Textos.hacerArqueo),
-    );
-    // Sin arqueo para su rol, solo la venta de hoy (entrega 20).
-    final estado = widget.permisos.haceArqueo
-        ? r.estadoArqueo
-        : EstadoArqueo.nada;
-    return switch (estado) {
-      EstadoArqueo.falta || EstadoArqueo.toca => TarjetaMoca(
-        texto: estado == EstadoArqueo.falta
-            ? Textos.mocaFaltaArqueo
-            : Textos.mocaTocaArqueo,
-        accion: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            arqueo,
-            if (!ventaHecha) ...[
-              const SizedBox(height: Medidas.e2),
-              OutlinedButton(
-                onPressed: widget.alAnotarVenta,
-                child: const Text(Textos.anotarVentaDeHoy),
-              ),
-            ],
-          ],
-        ),
-      ),
-      EstadoArqueo.hecho || EstadoArqueo.nada => TarjetaMoca(
-        texto: estado == EstadoArqueo.hecho
-            ? '$venta ${Textos.mocaArqueoHecho}'
-            : venta,
-        accion: ventaHecha ? escucharSemana : anotarVenta,
-      ),
-    };
   }
 
   Widget _conMargen(Widget hijo) => Padding(

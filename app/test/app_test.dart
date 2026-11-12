@@ -1831,15 +1831,19 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInicio));
 
       expect(find.text(Textos.tuPrimerDia), findsNothing);
-      // Las cuentas, plegadas (entrega 59); al desplegarlas, toda la plata
-      // está en efectivo: el total y Efectivo coinciden.
-      expect(find.text('S/\u00A01,350'), findsOneWidget);
-      await desplegar(tester, Textos.verPorCuenta);
+      // Las cuentas, abiertas al entrar (entrega 64): toda la plata está en
+      // efectivo, así que el total y Efectivo coinciden.
       expect(find.text('S/\u00A01,350'), findsNWidgets(2));
       expect(find.text(Textos.efectivo), findsWidgets);
-      // «Esta semana» vive en el Asistente (entrega 59).
+      // Se pueden cerrar, y el teléfono lo recuerda.
+      await tocar(tester, find.text(Textos.ocultarSeccion));
+      expect(find.text('S/\u00A01,350'), findsOneWidget);
+      await tocar(tester, find.text(Textos.verPorCuenta));
+      expect(find.text('S/\u00A01,350'), findsNWidgets(2));
+      // «Esta semana» vive en el Asistente (entrega 59), y la tarjeta de
+      // Moca ya no está en el Inicio (entrega 64).
       expect(find.text(Textos.estaSemana), findsNothing);
-      expect(find.text(Textos.mocaYaAnotasteHoy), findsOneWidget);
+      expect(find.text(Textos.mocaYaAnotasteHoy), findsNothing);
 
       // El ojo oculta los montos.
       await tocar(tester, find.byTooltip(Textos.ocultarMontos));
@@ -2820,7 +2824,8 @@ void main() {
       expect(find.text(Textos.tienesHoy), findsOneWidget);
       // Desde la entrega 57, el Inicio ya no tiene el enlace suelto.
       expect(find.text(Textos.hacerArqueo), findsNothing);
-      expect(find.textContaining(Textos.mocaArqueoHecho), findsOneWidget);
+      // Sin tarjeta de Moca en el Inicio (entrega 64).
+      expect(find.textContaining(Textos.mocaArqueoHecho), findsNothing);
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.retiroParaMi), findsOneWidget);
     });
@@ -2887,9 +2892,8 @@ void main() {
       expect(find.text(Textos.deshacerRegistro), findsNothing);
     });
 
-    testWidgets('«Pedir el arqueo ahora» muestra la tarjeta en el Inicio', (
-      tester,
-    ) async {
+    testWidgets('«Pedir el arqueo ahora»: el Inicio no lleva tarjeta '
+        '(entrega 64) y el arqueo se hace desde el +', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
@@ -2897,11 +2901,9 @@ void main() {
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
 
-      expect(find.text(Textos.mocaTocaArqueo), findsOneWidget);
-      await tocar(
-        tester,
-        find.widgetWithText(FilledButton, Textos.hacerArqueo),
-      );
+      expect(find.text(Textos.mocaTocaArqueo), findsNothing);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.hacerArqueo));
       expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
     });
 
@@ -3211,8 +3213,13 @@ void main() {
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
+      // El aviso ya no está en el Inicio: arriba de Informes (entrega 64).
+      expect(find.text('$texto.'), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text('$texto.'), findsOneWidget);
-      expect(find.text(Textos.verElGasto), findsOneWidget);
+      await tocar(tester, find.text(Textos.verElGasto));
+      expect(find.text(Textos.tituloDetalle), findsOneWidget);
+      await tocar(tester, find.byType(BotonVolver));
 
       await tocar(tester, find.text(Textos.pestanaMoca).last);
       expect(find.text(texto), findsOneWidget);
@@ -3426,7 +3433,7 @@ void main() {
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
       await tocar(tester, find.byType(IconButton).first);
       await tocar(tester, find.text(Textos.pestanaInicio));
-      await desplegar(tester, Textos.verPorCuenta);
+      // Abiertas al entrar (entrega 64).
       final efectivo = tester.getTopLeft(find.text(Textos.efectivo));
       final plin = tester.getTopLeft(find.text(Textos.plin));
       final bim = tester.getTopLeft(find.text('Bim'));
