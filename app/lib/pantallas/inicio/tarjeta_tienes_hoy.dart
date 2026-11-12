@@ -19,6 +19,7 @@ class TarjetaTienesHoy extends StatelessWidget {
     required this.centimos,
     required this.explicacion,
     this.ocultar = false,
+    this.alOcultar,
     this.pildora,
   });
 
@@ -28,6 +29,9 @@ class TarjetaTienesHoy extends StatelessWidget {
   /// Lo que dice el ⓘ: cómo se llega a esta cifra.
   final String explicacion;
   final bool ocultar;
+
+  /// El ojo que oculta o muestra los montos (entrega 61); sin él, no sale.
+  final VoidCallback? alOcultar;
 
   /// «Vendiste hoy S/ 100».
   final String? pildora;
@@ -92,6 +96,19 @@ class TarjetaTienesHoy extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (alOcultar case final alTocar?)
+                      IconButton(
+                        tooltip: ocultar
+                            ? Textos.mostrarMontos
+                            : Textos.ocultarMontos,
+                        onPressed: alTocar,
+                        icon: Icon(
+                          ocultar
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colores.sobreMarca,
+                        ),
+                      ),
                     IconButton(
                       tooltip: Textos.queEsEstaCifra,
                       onPressed: () => _explicar(context),

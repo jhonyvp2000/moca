@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../comun/boton_redondo.dart';
-
 import '../../comun/tarjeta.dart';
 import '../../dominio/arqueo.dart';
 import '../../dominio/equipo.dart';
@@ -94,13 +92,6 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
             EncabezadoNegocio(
               nombre: r.nombreNegocio,
               detalle: widget.actualizado,
-              extra: BotonRedondo(
-                icono: _ocultar
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                nombre: _ocultar ? Textos.mostrarMontos : Textos.ocultarMontos,
-                alTocar: () => setState(() => _ocultar = !_ocultar),
-              ),
             ),
             ?widget.tarjetaAvisos,
             _conMargen(
@@ -112,6 +103,8 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 },
                 centimos: total,
                 ocultar: _ocultar,
+                // El ojo vive en la tarjeta desde la entrega 61.
+                alOcultar: () => setState(() => _ocultar = !_ocultar),
                 explicacion: Textos.notaConMovimientos,
                 // El ayudante ve siempre lo que anotó hoy (entrega 20).
                 pildora: _pildora(r, permisos, hoy),

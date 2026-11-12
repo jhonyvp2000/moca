@@ -1394,16 +1394,22 @@ void main() {
       expect(find.text(Textos.fichaTeDeben), findsOneWidget);
     });
 
-    testWidgets('Mejora 01: Ajustes desde el ⚙ del Inicio; la campana lleva '
-        'a los avisos del Asistente', (tester) async {
+    testWidgets('Entrega 61: sin botones en la cabecera; Ajustes desde el '
+        'nombre del negocio y desde el Asistente', (tester) async {
       await abrirApp(tester, listo: true);
-      expect(find.text(Textos.pestanaMoca), findsWidgets);
-      await tocar(tester, find.byTooltip(Textos.avisos));
-      expect(find.text(Textos.avisos), findsWidgets);
-      expect(find.text(Textos.ajustes), findsNothing);
-      await tocar(tester, find.text(Textos.pestanaInicio).last);
+      // Ni campana, ni engranaje, ni ojo en la cabecera.
+      expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
+      expect(find.byIcon(Icons.settings_outlined), findsNothing);
+      // El nombre del negocio abre Ajustes.
       await tocar(tester, find.byTooltip(Textos.ajustes));
       expect(find.text(Textos.ajustes), findsWidgets);
+      await tocar(tester, find.byType(BotonVolver));
+      // En el Asistente, los avisos y una fila de Ajustes al final.
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.avisos), findsWidgets);
+      await tocar(tester, find.byKey(PantallaMoca.claveAjustes));
+      expect(find.byType(BotonVolver), findsOneWidget);
+      expect(find.text(Textos.misCuentas), findsWidgets);
     });
 
     Future<void> abrirEscribir(WidgetTester tester) async {

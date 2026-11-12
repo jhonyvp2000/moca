@@ -8,7 +8,7 @@ Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con las entrega
 
 ---
 
-> **Desde la mejora 01** (el diseño nuevo), Ajustes se abre con el engranaje ⚙ de arriba en el Inicio y la pestaña «Moca» se llama «Asistente». Si la persona tiene una versión anterior, Ajustes está al final de la pestaña Moca.
+> **Desde la entrega 61**, Ajustes se abre **tocando el nombre del negocio** arriba en el Inicio, o con la fila **Ajustes** al final de la pestaña Asistente. Ya no hay engranaje ⚙, ni campana, ni ojo arriba: los avisos están en el Asistente y el ojo que oculta los montos está dentro de la tarjeta «Tienes hoy». Entre la mejora 01 y la entrega 60, Ajustes era el engranaje ⚙ de arriba en el Inicio; antes de la mejora 01, estaba al final de la pestaña Moca.
 
 ## Lo primero: busca su número en «Cobros»
 
@@ -31,7 +31,7 @@ Desde la entrega 47, en tu teléfono: pestaña Asistente (antes «Moca») → ma
 
 Desde la entrega 46, lo más rápido es pedirle:
 
-> En el Inicio de Moca, toca el engranaje ⚙ de arriba (Ajustes), baja hasta **Ayuda** y toca **Pedir ayuda por WhatsApp**. Mándame el mensaje tal como sale.
+> En el Inicio de Moca, toca el nombre de tu negocio arriba (Ajustes), baja hasta **Ayuda** y toca **Pedir ayuda por WhatsApp**. Mándame el mensaje tal como sale.
 
 Te llega algo así:
 
@@ -55,8 +55,8 @@ El mismo estado se ve en **Ajustes → Ayuda → Estado de este teléfono**. Si 
 
 Pídele al usuario que te las responda o que te mande una captura:
 
-1. **¿Qué versión tienes?** Está al final de **Ajustes** (el ⚙ de arriba en el Inicio; en versiones viejas, pestaña Moca → Ajustes), por ejemplo «Moca entrega-45.1 (172)».
-2. **¿Qué ves en Ajustes (el ⚙ del Inicio)?** Una captura de toda la pantalla.
+1. **¿Qué versión tienes?** Está al final de **Ajustes** (se toca el nombre del negocio arriba en el Inicio; en versiones anteriores, el ⚙ de arriba), por ejemplo «Moca entrega-45.1 (172)».
+2. **¿Qué ves en Ajustes (el nombre del negocio, arriba en el Inicio)?** Una captura de toda la pantalla.
 3. **¿Qué ves arriba de la pestaña Asistente (antes «Moca»)?** Por ejemplo, una tarjeta que dice que la cuenta se abrió en otro teléfono, o «Guarda tu avance».
 
 **Cómo leer la captura de Ajustes:**
@@ -83,11 +83,11 @@ Pídele al usuario que te las responda o que te mande una captura:
 - Si tiene una versión anterior a la 45.1, primero mándale la última (ver el caso 11).
 - Si quiere **conservar lo que anotó en ese teléfono:**
 
-> En el Inicio, toca el ⚙ de arriba (Ajustes) → **Entrar con mi celular**. Pon tu número y el código que te llega. Si te dice «Este número ya tiene una cuenta de Moca», toca **Entrar a mi cuenta** (no toques «Empezar de cero»). Así vuelve tu negocio y se suma lo que anotaste en este teléfono.
+> En el Inicio, toca el nombre de tu negocio arriba (Ajustes) → **Entrar con mi celular**. Pon tu número y el código que te llega. Si te dice «Este número ya tiene una cuenta de Moca», toca **Entrar a mi cuenta** (no toques «Empezar de cero»). Así vuelve tu negocio y se suma lo que anotaste en este teléfono.
 
 - Si **no le importa** lo que anotó en ese teléfono:
 
-> En el Inicio, toca el ⚙ de arriba (Ajustes) → **Borrar todo en este teléfono** → Borrar. En la bienvenida toca **Ya tengo cuenta** y pon tu número y el código. Si te dice que ese número no tiene cuenta, toca **Empezar**.
+> En el Inicio, toca el nombre de tu negocio arriba (Ajustes) → **Borrar todo en este teléfono** → Borrar. En la bienvenida toca **Ya tengo cuenta** y pon tu número y el código. Si te dice que ese número no tiene cuenta, toca **Empezar**.
 
 ### 2. «No me llega el código»
 
@@ -114,12 +114,12 @@ Si dos personas del mismo negocio necesitan anotar, cada una necesita **su propi
 
 ### 4. «Quiero borrar todo mi negocio»
 
-**Quién puede:** el **titular**, desde **Ajustes (el ⚙ del Inicio) → Seguridad → Borrar mi negocio y mis datos**. Le pide escribir BORRAR. Borra todo, también lo del servidor, y en los teléfonos de los demás aparece que el negocio se borró.
+**Quién puede:** el **titular**, desde **Ajustes (el nombre del negocio, arriba en el Inicio) → Seguridad → Borrar mi negocio y mis datos**. Le pide escribir BORRAR. Borra todo, también lo del servidor, y en los teléfonos de los demás aparece que el negocio se borró.
 
 - Si no ve esa opción y ve «Salir de este negocio», no es el titular: tiene que pedírselo a quien creó el negocio.
 - Si no ve ninguna de las dos, es el caso 1: primero tiene que entrar con su número.
 
-> En el Inicio, toca el ⚙ de arriba (Ajustes) → Seguridad → **Borrar mi negocio y mis datos**, escribe BORRAR y confirma. Moca queda como recién instalada.
+> En el Inicio, toca el nombre de tu negocio arriba (Ajustes) → Seguridad → **Borrar mi negocio y mis datos**, escribe BORRAR y confirma. Moca queda como recién instalada.
 
 Si el titular no puede entrar y te pide que lo borres: búscalo en **Cobros** → **Borrar el negocio** → escribe el nombre del negocio.
 
@@ -204,7 +204,7 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ### 11. «Tengo una versión vieja» · «No me sale lo que me dijiste»
 
-**Qué revisar:** la versión, al final de **Ajustes** (el ⚙ del Inicio).
+**Qué revisar:** la versión, al final de **Ajustes** (el nombre del negocio en el Inicio).
 
 - **Pilotos:** reciben el aviso «Hay una versión nueva de Moca» **solo con las versiones `piloto-N`**. Una `entrega-N` no le avisa a nadie.
 - **Mandar una versión a mano:** el enlace es `https://github.com/jhonyvp2000/moca/releases/tag/<versión>`. Que baje el archivo que termina en **arm64** (si no se instala, el **armeabi-v7a**) y lo instale **encima**, sin desinstalar.
@@ -217,9 +217,9 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
-**«No me sale Yape (o Plin, o el banco) al anotar»** · **«Quiero quitar una billetera»** (entrega 58): las cuentas no se borran, se **dejan de usar**. En ⚙ → Mis cuentas, toca la cuenta → «Dejar de usar esta cuenta» (solo con saldo S/ 0; si tiene plata, primero «Pasar la plata»). Si alguien no la ve al anotar, revisa si está abajo en «Ya no usas».
+**«No me sale Yape (o Plin, o el banco) al anotar»** · **«Quiero quitar una billetera»** (entrega 58): las cuentas no se borran, se **dejan de usar**. En Ajustes (el nombre del negocio, arriba en el Inicio) → Mis cuentas, toca la cuenta → «Dejar de usar esta cuenta» (solo con saldo S/ 0; si tiene plata, primero «Pasar la plata»). Si alguien no la ve al anotar, revisa si está abajo en «Ya no usas».
 
-> Ve a ⚙ → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».
+> Toca el nombre de tu negocio arriba en el Inicio → Mis cuentas. Si la cuenta está abajo, en «Ya no usas», toca «Volver a usar».
 
 **«¿Cómo activo mi plan?»** · **«¿Cuál es la diferencia entre Básico y Full?»** · **«Ya no veo el precio de fundador»** (entrega 60): «Activar mi plan» abre «Elige tu plan». El Full (S/ 19.90 al mes o S/ 199 al año) incluye 3 personas y «Para pedir un crédito»; el Básico (S/ 14.90 al mes o S/ 149 al año), solo al dueño. Con Mercado Pago se activa solo; por Yape a Moca, hay que esperar a que revises la captura. El precio de fundador ya no se da a negocios nuevos; quien lo tenía lo conserva si renueva a tiempo.
 

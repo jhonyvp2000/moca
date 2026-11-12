@@ -33,6 +33,7 @@ class PantallaMoca extends ConsumerStatefulWidget {
   static const esperaAjusteOculto = Duration(seconds: 3);
 
   static const claveIsotipo = Key('isotipo-moca');
+  static const claveAjustes = Key('ajustes-desde-moca');
   static const claveEscuchar = Key('escuchar-semana');
 
   @override
@@ -190,8 +191,38 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                       ),
                     ),
           ],
-          // Ajustes se abre desde el ⚙ del Inicio (mejora 01).
           const SeccionAprende(),
+          // Ajustes también desde aquí (entrega 61): en el Inicio se abre
+          // tocando el nombre del negocio.
+          const SizedBox(height: Medidas.e5),
+          Tarjeta(
+            relleno: EdgeInsets.zero,
+            child: Material(
+              color: Colores.superficie,
+              borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                key: PantallaMoca.claveAjustes,
+                minTileHeight: Medidas.objetivoTactilMinimo + Medidas.e2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+                ),
+                leading: const Icon(
+                  Icons.settings_outlined,
+                  color: Colores.marca,
+                ),
+                title: const Text(
+                  Textos.ajustes,
+                  style: Tipografia.textoFuerte,
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colores.textoSecundario,
+                ),
+                onTap: () => context.push(Rutas.ajustes),
+              ),
+            ),
+          ),
         ],
       ),
     );
