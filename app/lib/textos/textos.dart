@@ -770,7 +770,6 @@ abstract final class Textos {
       'cuenta como venta. Si te la prestaron, no es esto.';
   static const cuanto = '¿Cuánto?';
   // «Escribirlo» rediseñado (mejora 01)
-  static const verMas = 'Ver más';
   static const faltaElMonto = 'el monto';
   static const faltaQueFue = 'qué fue';
   static const faltaEnQueFue = 'en qué fue';

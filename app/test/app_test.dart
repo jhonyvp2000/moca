@@ -1439,7 +1439,12 @@ void main() {
       expect(find.text(Textos.falta([Textos.faltaQueFue])), findsOneWidget);
       await tocar(tester, find.text(Textos.salio));
       expect(find.text(Textos.falta([Textos.faltaEnQueFue])), findsOneWidget);
-      await tocar(tester, find.text(Textos.verMas));
+      // Todas a la vista, sin íconos ni «Ver más» (entrega 67).
+      expect(find.text('Ver más'), findsNothing);
+      for (final c in ['Mercadería', 'Movilidad', 'Combustible', 'Otros']) {
+        expect(find.text(c), findsOneWidget, reason: c);
+      }
+      expect(find.byIcon(Icons.local_taxi_rounded), findsNothing);
       expect(find.text('Servicios'), findsOneWidget);
       expect(
         find.text('Servicios (luz, agua, internet, teléfono)'),
@@ -3868,8 +3873,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '80');
       await tester.pump();
       await tocar(tester, find.text(Textos.efectivo));
-      // Nombre corto, detrás de «Ver más» (mejora 01).
-      await tocar(tester, find.text(Textos.verMas));
+      // Nombre corto, a la vista (entrega 67).
       await tocar(tester, find.text('Movilidad'));
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.pump(const Duration(seconds: 6));
