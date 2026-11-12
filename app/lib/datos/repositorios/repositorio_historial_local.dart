@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../pais/peru/documentos.dart';
 import '../../dominio/arqueo.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
@@ -80,6 +81,16 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       categoria: d.categorias[m.categoriaId],
       nota: m.nota,
       proveedor: d.contrapartes[m.contraparteId] ?? comprobante?.emisorNombre,
+      // El anotado manda; si no hay, el del comprobante leído (entrega 66).
+      documentoTipo: m.documentoTipo ?? comprobante?.tipo,
+      documentoNumero:
+          m.documentoNumero ??
+          (comprobante == null
+              ? null
+              : [
+                  comprobante.serie,
+                  comprobante.numero,
+                ].whereType<String>().join('-').nullSiVacio),
       cuentaDestino: m.cuentaDestinoId == null
           ? null
           : d.tipoDeCuenta(m.cuentaDestinoId!),
@@ -463,6 +474,11 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
           'categoriaId',
         );
         comparar(CampoMovimiento.nota, (v) => v, 'nota');
+        // Entrega 66: una corrección de antes no los trae, y no cuenta.
+        if (anterior.containsKey('documento')) {
+          comparar(CampoMovimiento.documento, (v) => v, 'documento');
+          comparar(CampoMovimiento.institucion, (v) => v, 'contraparte');
+        }
         return CambioCorregido(fila.fecha, campos);
       case AccionBitacora.pagar:
         final cuenta = TipoCuenta.values.asNameMap()[nuevo['cuenta']];
@@ -513,8 +529,14 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
             ? (debia ? m.fechaPago : null)
             : (debia ? _a.ahora() : m.fechaPago),
       ),
+      // La institución se puede cambiar aun con comprobante (entrega 66);
+      // si se deja vacía, el comprobante conserva su emisor.
       contraparteId: Value(
-        conComprobante ? m.contraparteId : (debe ? contraparteId : null),
+        tipo.sinCategoria
+            ? null
+            : conComprobante
+            ? (contraparteId ?? m.contraparteId)
+            : contraparteId,
       ),
       cuentaId: d.idDeCuenta(c.cuenta),
       // Un pase lleva su destino (entrega 21.1).
@@ -526,7 +548,17 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       // Un retiro para el dueño y un pase no llevan categoría.
       categoriaId: Value(tipo.sinCategoria ? null : c.categoriaId),
       nota: Value(nota == null || nota.isEmpty ? null : nota),
+      // El documento, editable siempre (entrega 66).
+      documentoTipo: Value(tipo.sinCategoria ? null : _limpio(c.documentoTipo)),
+      documentoNumero: Value(
+        tipo.sinCategoria ? null : _limpio(c.documentoNumero),
+      ),
     );
+  }
+
+  static String? _limpio(String? texto) {
+    final t = texto?.trim();
+    return t == null || t.isEmpty ? null : t;
   }
 
   Future<Movimiento> _vigente(_Datos d, String id) async {
@@ -557,6 +589,9 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
     'categoriaId': m.categoriaId,
     'nota': m.nota,
     'pagado': m.estadoPago == EstadoPago.pagado,
+    // Entrega 66: el documento y con quién.
+    'documento': textoDelDocumento(m.documentoTipo, m.documentoNumero),
+    'contraparte': d.contrapartes[m.contraparteId],
   };
 
   @override
@@ -573,19 +608,25 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       if (m.comprobanteId == null && correccion.faltaQuienDebe) {
         throw ArgumentError('Una venta a crédito lleva quién la debe.');
       }
+      // Con comprobante, el tipo y si se debe no cambian: el nombre que
+      // cuenta es la institución (entrega 66).
+      final tipo = m.comprobanteId != null ? m.tipo : correccion.tipo;
+      final nombre = m.comprobanteId != null
+          ? _limpio(correccion.institucion)
+          : correccion.nombreContraparte;
       final corregido = _corregido(
         d,
         m,
         correccion,
-        contraparteId: correccion.pendiente
-            ? await _a.contraparte(
+        contraparteId: nombre == null || tipo.sinCategoria
+            ? null
+            : await _a.contraparte(
                 d.empresa.id,
-                tipo: correccion.tipo == TipoMovimiento.ingreso
+                tipo: tipo == TipoMovimiento.ingreso
                     ? TipoContraparte.cliente
                     : TipoContraparte.proveedor,
-                nombre: correccion.contraparte,
-              )
-            : null,
+                nombre: nombre,
+              ),
       );
       if (!corregido.tipo.sinCategoria && corregido.categoriaId == null) {
         throw ArgumentError('Entró y salió llevan categoría.');
@@ -618,7 +659,14 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
         entidadId: m.id,
         accion: AccionBitacora.editar,
         anterior: _valores(d, m),
-        nuevo: {..._valores(d, corregido), 'reemplazadoPor': nuevoId},
+        nuevo: {
+          ..._valores(d, corregido),
+          // Un nombre nuevo todavía no está en lo leído.
+          if (corregido.contraparteId != null &&
+              !d.contrapartes.containsKey(corregido.contraparteId))
+            'contraparte': nombre,
+          'reemplazadoPor': nuevoId,
+        },
       );
       return Guardado(ids: [nuevoId], tienesHoyCentimos: await _tienesHoy());
     });
@@ -969,4 +1017,8 @@ class _Datos {
       ajustes: ajustes,
     )[cuenta.tipo]!;
   }
+}
+
+extension on String {
+  String? get nullSiVacio => isEmpty ? null : this;
 }

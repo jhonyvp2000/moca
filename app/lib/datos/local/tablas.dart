@@ -140,6 +140,11 @@ class Movimientos extends Table with _ConId {
   /// Un pago en parte (entrega 44): la deuda de la que es parte. La deuda
   /// se queda con lo que falta.
   TextColumn get abonaA => text().nullable()();
+
+  /// El documento del registro (entrega 66), opcional: «Factura» y su
+  /// número libre, «0045J». La institución va en [contraparteId].
+  TextColumn get documentoTipo => text().nullable()();
+  TextColumn get documentoNumero => text().nullable()();
   TextColumn get estadoSincronizacion => textEnum<EstadoSincronizacion>()();
   DateTimeColumn get creadoEn => dateTime()();
 }

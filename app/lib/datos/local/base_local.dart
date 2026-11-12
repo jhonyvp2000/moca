@@ -35,7 +35,7 @@ class BaseLocal extends _$BaseLocal {
   // Desde el APK de los pilotos (entrega 9) los datos de un teléfono no se
   // borran al actualizar: cada cambio de versión agrega aquí su migración.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +55,11 @@ class BaseLocal extends _$BaseLocal {
         await m.addColumn(contrapartes, contrapartes.recordadoEn);
       }
       if (desde < 6) await m.addColumn(cuentas, cuentas.enUso);
+      // El documento del registro (entrega 66).
+      if (desde < 7) {
+        await m.addColumn(movimientos, movimientos.documentoTipo);
+        await m.addColumn(movimientos, movimientos.documentoNumero);
+      }
     },
     beforeOpen: (detalles) async {
       await customStatement('PRAGMA foreign_keys = ON');

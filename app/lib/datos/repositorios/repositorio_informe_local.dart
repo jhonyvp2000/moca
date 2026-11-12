@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../dominio/cifras.dart';
 import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
+import '../../pais/peru/documentos.dart';
 import '../../pais/peru/categorias.dart';
 import '../calculos/saldos.dart';
 import '../local/base_local.dart';
@@ -847,9 +848,12 @@ class RepositorioInformeLocal implements RepositorioInforme {
       confianza: m.nivelConfianza,
       categoria: categoria,
       nota: m.nota,
-      proveedor: c?.emisorNombre ?? proveedor,
+      // La institución y el documento anotados mandan (entrega 66).
+      proveedor: proveedor ?? c?.emisorNombre,
       ruc: c?.emisorIdentificacion ?? ruc,
-      comprobante: numero.isEmpty ? null : numero,
+      comprobante:
+          textoDelDocumento(m.documentoTipo, m.documentoNumero) ??
+          (numero.isEmpty ? null : numero),
       igvCentimos: c?.impuestoCentimos,
     );
   }

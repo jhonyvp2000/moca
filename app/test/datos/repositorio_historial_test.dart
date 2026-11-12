@@ -1037,4 +1037,126 @@ void main() {
       expect(resto.fecha.day, 15);
     });
   });
+
+  group('Entrega 66: el documento y la institución', () {
+    test('se guardan, se corrigen y quedan en los cambios', () async {
+      final id = (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 4500,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: mercaderia,
+          documentoTipo: 'Factura',
+          documentoNumero: ' 0045J ',
+          institucion: 'Comercial Tarapoto',
+        ),
+      )).ids.single;
+      var d = await detalle(id);
+      expect(d.fila.documentoTipo, 'Factura');
+      expect(d.fila.documentoNumero, '0045J');
+      expect(d.fila.proveedor, 'Comercial Tarapoto');
+      // Guardada como proveedor, para sugerirla la próxima vez.
+      expect(
+        await movimientos.nombresDeContrapartes(TipoContraparte.proveedor),
+        ['Comercial Tarapoto'],
+      );
+      // El buscador la encuentra por el número.
+      final h = await historial();
+      expect(
+        h.filas.where(
+          (f) =>
+              const FiltrosDelHistorial(texto: '0045j')
+                  .cumple(f, cuenta: (c) => c.name),
+        ),
+        hasLength(1),
+      );
+
+      final nuevo = (await repo.corregir(
+        id,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 4500,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: mercaderia,
+          documentoTipo: 'Boleta',
+          documentoNumero: 'B-12',
+          institucion: 'Distribuidora Selva',
+        ),
+      )).ids.single;
+      d = await detalle(nuevo);
+      expect(d.fila.documentoTipo, 'Boleta');
+      expect(d.fila.proveedor, 'Distribuidora Selva');
+      final corregido = d.cambios.whereType<CambioCorregido>().single;
+      expect(
+        {for (final c in corregido.campos) c.campo: (c.anterior, c.nuevo)},
+        {
+          CampoMovimiento.documento: ('Factura 0045J', 'Boleta B-12'),
+          CampoMovimiento.institucion: (
+            'Comercial Tarapoto',
+            'Distribuidora Selva',
+          ),
+        },
+      );
+    });
+
+    test('una venta pagada guarda al cliente; un pase no lleva nada', () async {
+      final ingresos = await movimientos.categorias(TipoMovimiento.ingreso);
+      final venta = (await movimientos.registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 9000,
+          cuenta: TipoCuenta.yape,
+          categoriaId: ingresos.first.id,
+          institucion: 'Hotel Río Mayo',
+        ),
+      )).ids.single;
+      expect((await detalle(venta)).fila.proveedor, 'Hotel Río Mayo');
+      expect(await movimientos.nombresDeContrapartes(TipoContraparte.cliente), [
+        'Hotel Río Mayo',
+      ]);
+      // Lo que te deben no cambia: una venta pagada no es deuda.
+      expect(await repo.observarLoQueTeDeben().first, isEmpty);
+
+      final pase = (await movimientos.registrar(
+        const NuevoMovimiento(
+          tipo: TipoMovimiento.transferencia,
+          montoCentimos: 1000,
+          cuenta: TipoCuenta.efectivo,
+          cuentaDestino: TipoCuenta.yape,
+          documentoTipo: 'Factura',
+          institucion: 'Nadie',
+        ),
+      )).ids.single;
+      final p = (await detalle(pase)).fila;
+      expect(p.documentoTipo, isNull);
+      expect(p.proveedor, isNull);
+    });
+
+    test('con comprobante leído, se corrigen sin tocar el monto', () async {
+      final id = await compraQueSeDebe();
+      var d = await detalle(id);
+      // Lo leído se muestra como documento.
+      expect(d.fila.documentoTipo, 'Factura');
+      expect(d.fila.documentoNumero, 'F001-12345');
+      final nuevo = (await repo.corregir(
+        id,
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 1,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: mercaderia,
+          pagado: false,
+          documentoTipo: 'Guía de remisión',
+          documentoNumero: 'T001-9',
+          institucion: 'San Martín SAC',
+        ),
+      )).ids.single;
+      d = await detalle(nuevo);
+      expect(d.fila.montoCentimos, 98000);
+      expect(d.fila.documentoTipo, 'Guía de remisión');
+      expect(d.fila.documentoNumero, 'T001-9');
+      expect(d.fila.proveedor, 'San Martín SAC');
+      expect(d.comprobante, isNotNull);
+    });
+  });
 }

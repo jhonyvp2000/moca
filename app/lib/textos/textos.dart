@@ -833,6 +833,21 @@ abstract final class Textos {
   static const etiquetaPago = 'Pago';
   static const etiquetaProveedor = 'Proveedor';
   static const etiquetaComprobante = 'Comprobante';
+  // Entrega 66.
+  static const etiquetaDocumento = 'Documento';
+  static const masDatosOpcional = 'Más datos (opcional)';
+  static const tipoDeDocumento = 'Tipo de documento';
+  static const sinDocumentoOpcion = 'Sin documento';
+  static const numeroDeDocumento = 'Número de documento';
+  static const numeroDocumentoEjemplo = 'Ej.: 0045J';
+  static const institucion = 'Institución';
+  static const institucionEjemplo = 'Ej.: Comercial Tarapoto';
+  static String institucionAyuda(TipoMovimiento tipo) =>
+      tipo == TipoMovimiento.ingreso
+      ? 'El cliente: a quién le vendiste.'
+      : 'El proveedor: a quién le compraste o pagaste.';
+  static String etiquetaInstitucion(TipoMovimiento tipo) =>
+      tipo == TipoMovimiento.ingreso ? 'Cliente' : 'Proveedor';
   static const etiquetaRuc = 'RUC';
   static String nombreTipo(TipoMovimiento tipo) => switch (tipo) {
     TipoMovimiento.ingreso => entro,
@@ -936,6 +951,13 @@ abstract final class Textos {
   static String cambiasteNota(String antes, String despues) =>
       'Cambiaste la nota: $antes → $despues';
   static const sinNota = 'sin nota';
+  // El documento y la institución (entrega 66).
+  static String cambiasteDocumento(String antes, String despues) =>
+      'Cambiaste el documento: $antes → $despues';
+  static String cambiasteInstitucion(String antes, String despues) =>
+      'Cambiaste la institución: $antes → $despues';
+  static const sinDocumento = 'sin documento';
+  static const sinInstitucion = 'sin institución';
   static const sinCategoria = 'sin categoría';
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
@@ -1340,9 +1362,11 @@ abstract final class Textos {
       '$monto · $registros ${registros == 1 ? 'registro' : 'registros'}';
   static const columnaFecha = 'Fecha';
   static const columnaProveedor = 'Proveedor';
+  static const columnaClienteOProveedor = 'Cliente o proveedor';
   static const columnaDetalle = 'Detalle';
   static const columnaMonto = 'Monto';
   static const columnaComprobante = 'Comprobante';
+  static const columnaDocumento = 'Documento';
   static const columnaRuc = 'RUC';
   static const columnaIgv = 'IGV';
   static const columnaTotal = 'Total';

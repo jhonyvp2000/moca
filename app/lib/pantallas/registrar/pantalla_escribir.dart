@@ -17,6 +17,7 @@ import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/categorias.dart';
+import '../../pais/peru/documentos.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
@@ -84,6 +85,23 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
   /// El monto original, con céntimos si los tenía, mientras no se toque.
   int? _montoOriginal;
 
+  // Más datos, opcionales (entrega 66): el documento y la institución.
+  String? _documentoTipo;
+  final _documentoNumero = TextEditingController();
+  String _institucion = '';
+  bool _masDatos = false;
+
+  String? get _numeroLimpio => _documentoNumero.text.trim().isEmpty
+      ? null
+      : _documentoNumero.text.trim();
+
+  String? get _institucionLimpia =>
+      _loDebe || _institucion.trim().isEmpty ? null : _institucion.trim();
+
+  /// Solo Entró y Salió llevan documento e institución.
+  bool get _llevaMasDatos =>
+      _tipo == TipoMovimiento.ingreso || _tipo == TipoMovimiento.egreso;
+
   @override
   void initState() {
     super.initState();
@@ -96,7 +114,14 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       _monto.text = separarMiles(d.fila.montoCentimos ~/ 100);
       _nota.text = d.fila.nota ?? '';
       _pagado = !d.fila.loDebes;
-      _contraparte.text = d.fila.proveedor ?? '';
+      _contraparte.text = d.fila.loDebes ? d.fila.proveedor ?? '' : '';
+      _documentoTipo = d.fila.documentoTipo;
+      _documentoNumero.text = d.fila.documentoNumero ?? '';
+      _institucion = d.fila.loDebes ? '' : d.fila.proveedor ?? '';
+      _masDatos =
+          _documentoTipo != null ||
+          _documentoNumero.text.isNotEmpty ||
+          _institucion.isNotEmpty;
       return;
     }
     final borrador = widget.borrador;
@@ -121,6 +146,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
     _nota.dispose();
     _contraparte.dispose();
     _celular.dispose();
+    _documentoNumero.dispose();
     super.dispose();
   }
 
@@ -177,6 +203,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         _destino == d.fila.cuentaDestino &&
         ((_tipo?.sinCategoria ?? false) || _categoriaId == d.categoriaId) &&
         (nota.isEmpty ? null : nota) == d.fila.nota &&
+        _documentoTipo == d.fila.documentoTipo &&
+        _numeroLimpio == d.fila.documentoNumero &&
+        (_loDebe || _institucionLimpia == d.fila.proveedor) &&
         (_conComprobante ||
             (_loDebe == d.fila.loDebes &&
                 (!_loDebe || _nombreContraparte == d.fila.proveedor)));
@@ -233,6 +262,9 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       pagado: !_loDebe,
       contraparte: _loDebe ? _nombreContraparte : null,
       celularContraparte: _celularCliente,
+      documentoTipo: _llevaMasDatos ? _documentoTipo : null,
+      documentoNumero: _llevaMasDatos ? _numeroLimpio : null,
+      institucion: _llevaMasDatos ? _institucionLimpia : null,
     );
     final repo = ref.read(repositorioMovimientosProvider);
     setState(() => _guardando = true);
@@ -498,6 +530,116 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           ),
         ),
       ),
+      if (_llevaMasDatos) ..._camposMasDatos(tipo, etiqueta),
+    ];
+  }
+
+  /// «Más datos (opcional)» (entrega 66): plegados, para no estorbar a
+  /// quien no los usa.
+  List<Widget> _camposMasDatos(TipoMovimiento tipo, TextStyle etiqueta) {
+    const relleno = EdgeInsets.symmetric(
+      horizontal: Medidas.e4,
+      vertical: Medidas.e3,
+    );
+    // Un tipo leído de un comprobante que no está en la lista se conserva.
+    final tipos = [
+      ...tiposDeDocumento,
+      if (_documentoTipo case final t? when !tiposDeDocumento.contains(t)) t,
+    ];
+    final nombres =
+        ref
+            .watch(
+              nombresDeContrapartesProvider(
+                tipo == TipoMovimiento.ingreso
+                    ? TipoContraparte.cliente
+                    : TipoContraparte.proveedor,
+              ),
+            )
+            .value ??
+        const <String>[];
+    return [
+      const SizedBox(height: Medidas.e4),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => setState(() => _masDatos = !_masDatos),
+          iconAlignment: IconAlignment.end,
+          icon: Icon(
+            _masDatos ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+          ),
+          label: const Text(Textos.masDatosOpcional),
+        ),
+      ),
+      if (_masDatos) ...[
+        const SizedBox(height: Medidas.e2),
+        Text(Textos.tipoDeDocumento, style: etiqueta),
+        const SizedBox(height: Medidas.e2),
+        DropdownButtonFormField<String?>(
+          key: const Key('tipo-de-documento'),
+          initialValue: _documentoTipo,
+          isExpanded: true,
+          style: Tipografia.texto,
+          decoration: const InputDecoration(contentPadding: relleno),
+          items: [
+            const DropdownMenuItem<String?>(
+              child: Text(Textos.sinDocumentoOpcion),
+            ),
+            for (final t in tipos)
+              DropdownMenuItem<String?>(value: t, child: Text(t)),
+          ],
+          onChanged: (t) => setState(() => _documentoTipo = t),
+        ),
+        const SizedBox(height: Medidas.e5),
+        Text(Textos.numeroDeDocumento, style: etiqueta),
+        const SizedBox(height: Medidas.e2),
+        TextField(
+          key: const Key('numero-de-documento'),
+          controller: _documentoNumero,
+          maxLength: 40,
+          textCapitalization: TextCapitalization.characters,
+          style: Tipografia.texto,
+          onChanged: (_) => setState(() {}),
+          decoration: const InputDecoration(
+            hintText: Textos.numeroDocumentoEjemplo,
+            counterText: '',
+            contentPadding: relleno,
+          ),
+        ),
+        // En lo que se debe, el nombre ya se pidió arriba.
+        if (!_loDebe) ...[
+          const SizedBox(height: Medidas.e5),
+          Text(Textos.institucion, style: etiqueta),
+          const SizedBox(height: Medidas.e2),
+          Autocomplete<String>(
+            initialValue: TextEditingValue(text: _institucion),
+            optionsBuilder: (valor) {
+              final texto = valor.text.trim().toLowerCase();
+              if (texto.isEmpty) return const Iterable<String>.empty();
+              return nombres.where(
+                (n) => n.toLowerCase().contains(texto) && n != valor.text,
+              );
+            },
+            onSelected: (n) => setState(() => _institucion = n),
+            fieldViewBuilder: (context, controlador, foco, alEnviar) =>
+                TextField(
+                  key: const Key('institucion'),
+                  controller: controlador,
+                  focusNode: foco,
+                  maxLength: 60,
+                  textCapitalization: TextCapitalization.words,
+                  style: Tipografia.texto,
+                  onChanged: (v) => setState(() => _institucion = v),
+                  onSubmitted: (_) => alEnviar(),
+                  decoration: InputDecoration(
+                    hintText: Textos.institucionEjemplo,
+                    helperText: Textos.institucionAyuda(tipo),
+                    counterText: '',
+                    contentPadding: relleno,
+                  ),
+                ),
+          ),
+        ],
+      ],
     ];
   }
 

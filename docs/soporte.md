@@ -229,6 +229,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > En el Inicio, debajo de «Tienes hoy», está cuánto hay en efectivo, Yape y banco (desde la entrega 65 la lista está siempre a la vista; en versiones anteriores, toca «Ver por cuenta»). En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
 
+**«¿Dónde pongo el número de la factura?»** · **«Quiero anotar a qué proveedor le compré»** (entrega 66): al escribir o corregir un Entró o un Salió, debajo de la nota está **«Más datos (opcional)»**: el tipo de documento, su número y la institución (el cliente o el proveedor). Todo es opcional. Por voz no se dicta: se completa después con «Corregir».
+
+> Al anotar, baja hasta «Más datos (opcional)» y tócalo. Elige el tipo de documento, escribe su número y el nombre del cliente o proveedor. Si ya lo anotaste, ábrelo en el Historial y toca «Corregir».
+
 **«Ya no veo el aviso de Moca en el Inicio»** · **«¿Dónde anoto la venta de hoy?»** (entrega 64): el Inicio ya no tiene la tarjeta de Moca. El aviso más importante (el ajuste del arqueo, un gasto alto, un cliente que debe) está arriba de **Informes**, con el mismo botón, y todos los avisos siguen en el **Asistente**. La venta de hoy y el arqueo se anotan con el **+**.
 
 > El aviso ahora está arriba, en la pestaña Informes. Para anotar la venta de hoy, toca el + de abajo y elige «Anotar la venta de hoy».

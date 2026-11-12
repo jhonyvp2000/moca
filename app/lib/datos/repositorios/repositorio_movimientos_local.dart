@@ -226,8 +226,13 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
         fuente: m.fuente,
         pendiente: m.pendiente,
-        contraparte: m.pendiente ? m.contraparte : null,
+        // Con quién y con qué documento, solo en Entró y Salió (entrega 66).
+        contraparte: m.tipo.sinCategoria ? null : m.nombreContraparte,
         celular: m.pendiente ? m.celularContraparte : null,
+        documentoTipo: m.tipo.sinCategoria ? null : _limpio(m.documentoTipo),
+        documentoNumero: m.tipo.sinCategoria
+            ? null
+            : _limpio(m.documentoNumero),
       );
       return Guardado(ids: [id], tienesHoyCentimos: await _tienesHoy());
     });
@@ -293,6 +298,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     bool pendiente = false,
     String? contraparte,
     String? celular,
+    String? documentoTipo,
+    String? documentoNumero,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
@@ -303,7 +310,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         : cuentas.firstWhere((c) => c.tipo == cuentaDestino).id;
     final ahora = _a.ahora();
     final id = _a.nuevoId();
-    final contraparteId = pendiente
+    final contraparteId = contraparte != null
         ? await _a.contraparte(
             empresa.id,
             tipo: tipo == TipoMovimiento.ingreso
@@ -332,6 +339,8 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             contraparteId: Value(contraparteId),
             categoriaId: Value(categoriaId),
             nota: Value(nota),
+            documentoTipo: Value(documentoTipo),
+            documentoNumero: Value(documentoNumero),
             // Escrito o dicho por el dueño, sin comprobante: nivel D.
             nivelConfianza: NivelConfianza.d,
             fuente: fuente,
@@ -356,6 +365,9 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
         'nota': nota,
         'fuente': fuente.name,
         if (pendiente) 'pagado': false,
+        'documentoTipo': ?documentoTipo,
+        'documentoNumero': ?documentoNumero,
+        'contraparte': ?contraparte,
       },
     );
     return id;
@@ -394,4 +406,23 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       );
     }
   });
+
+  static String? _limpio(String? texto) {
+    final t = texto?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  @override
+  Future<List<String>> nombresDeContrapartes(TipoContraparte tipo) async {
+    final empresa = await _a.empresa();
+    if (empresa == null) return const [];
+    final filas =
+        await (_base.select(_base.contrapartes)..where(
+              (c) => c.empresaId.equals(empresa.id) & c.tipo.equalsValue(tipo),
+            ))
+            .get();
+    final nombres = {for (final c in filas) c.nombre}.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return nombres;
+  }
 }

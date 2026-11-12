@@ -656,6 +656,32 @@ describe('El cobro manual por Yape en el servidor (entrega 24)', () => {
     expect(filas.find((m) => m.id === deuda.id)?.abona_a).toBeNull();
   });
 
+  it('Entrega 66: el tipo y el número del documento suben y bajan', async () => {
+    const lia = await verificar('987000010');
+    const datos = negocio('Bodega Lía', lia.usuarioId, '2026-11-20T14:00:00.000Z');
+    const [venta] = datos.movimientos;
+    const conDocumento = {
+      ...venta!,
+      documento_tipo: 'Factura',
+      documento_numero: '0045J',
+    };
+    const subida = await pedir(lia, 'POST', '/datos/subir', {
+      ...datos,
+      movimientos: [conDocumento],
+    });
+    expect(subida.statusCode).toBe(200);
+    const bajado = (await pedir(lia, 'GET', '/datos/bajar')).json();
+    expect(bajado.datos.movimientos[0]).toMatchObject({
+      documento_tipo: 'Factura',
+      documento_numero: '0045J',
+    });
+    // Una versión anterior de Moca no los manda: no se borran.
+    const otra = await pedir(lia, 'POST', '/datos/subir', datos);
+    expect(otra.statusCode).toBe(200);
+    const igual = (await pedir(lia, 'GET', '/datos/bajar')).json();
+    expect(igual.datos.movimientos[0]).toMatchObject({ documento_numero: '0045J' });
+  });
+
   it('Entrega 47: soporte busca cualquier número, ve la ficha y actúa', async () => {
     elDia('2026-11-20');
     // Un número sin cuenta.

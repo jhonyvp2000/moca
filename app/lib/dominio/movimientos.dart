@@ -14,6 +14,9 @@ class NuevoMovimiento {
     this.pagado = true,
     this.contraparte,
     this.celularContraparte,
+    this.documentoTipo,
+    this.documentoNumero,
+    this.institucion,
   });
 
   final TipoMovimiento tipo;
@@ -40,6 +43,21 @@ class NuevoMovimiento {
 
   /// El celular de quien te debe, si el dueño lo puso (entrega 53).
   final String? celularContraparte;
+
+  /// El documento del registro, opcional (entrega 66): «Factura» y su
+  /// número libre, «0045J».
+  final String? documentoTipo;
+  final String? documentoNumero;
+
+  /// La institución, opcional (entrega 66): el cliente si entró plata, el
+  /// proveedor si salió. En lo que se debe, el nombre es [contraparte].
+  final String? institucion;
+
+  /// El nombre del cliente o proveedor que se guarda con el registro.
+  String? get nombreContraparte {
+    final n = (pendiente ? contraparte : institucion)?.trim();
+    return n == null || n.isEmpty ? null : n;
+  }
 
   bool get pendiente =>
       (tipo == TipoMovimiento.egreso || tipo == TipoMovimiento.ingreso) &&
@@ -165,6 +183,10 @@ abstract interface class RepositorioMovimientos {
   Stream<ResumenInicio> observarInicio();
 
   Future<List<CategoriaVista>> categorias(TipoMovimiento tipo);
+
+  /// Los nombres ya usados, para sugerirlos (entrega 66): los clientes en
+  /// lo que entró, los proveedores en lo que salió.
+  Future<List<String>> nombresDeContrapartes(TipoContraparte tipo);
 
   /// Cuánto quedaría en la cuenta si se guarda este movimiento. Moca
   /// pregunta antes de dejar una cuenta en negativo.

@@ -40,6 +40,8 @@ export const tablas = {
     'fecha_pago', 'categoria_id', 'contraparte_id', 'comprobante_id',
     'nivel_confianza', 'fuente', 'autor_id', 'nota', 'estado', 'reemplaza_a',
     'creado_en', 'abona_a',
+    // El documento del registro (entrega 66).
+    'documento_tipo', 'documento_numero',
   ],
   arqueos: ['id', 'empresa_id', 'fecha', 'autor_id', 'creado_en'],
   arqueo_cuentas: [

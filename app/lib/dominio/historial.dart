@@ -19,6 +19,8 @@ class FilaHistorial {
     this.categoria,
     this.nota,
     this.proveedor,
+    this.documentoTipo,
+    this.documentoNumero,
     this.ajusteArqueo = false,
     this.cuentaDestino,
     this.deOtro = false,
@@ -85,8 +87,13 @@ class FilaHistorial {
   final String? categoria;
   final String? nota;
 
-  /// Nombre del proveedor del comprobante, si lo tiene.
+  /// Nombre del proveedor del comprobante, si lo tiene; desde la entrega 66,
+  /// también la institución que se anotó (el cliente o el proveedor).
   final String? proveedor;
+
+  /// El documento anotado (entrega 66): «Factura» y «0045J».
+  final String? documentoTipo;
+  final String? documentoNumero;
 
   /// Diferencia del arqueo que ajustó el saldo («Di mal un vuelto» o «No lo
   /// sé»). No es gasto ni ingreso: solo sale en «Todo». [tipo] dice si sobró
@@ -305,6 +312,8 @@ class FiltrosDelHistorial {
       [
         f.nota,
         f.proveedor,
+        f.documentoTipo,
+        f.documentoNumero,
         f.categoria,
         f.autorNombre,
         cuenta(f.cuenta),
@@ -402,7 +411,15 @@ class CambioCreado extends Cambio {
   final Fuente fuente;
 }
 
-enum CampoMovimiento { tipo, monto, cuenta, categoria, nota }
+enum CampoMovimiento {
+  tipo,
+  monto,
+  cuenta,
+  categoria,
+  nota,
+  documento,
+  institucion,
+}
 
 /// Un dato que cambió en una corrección. Los valores son del tipo del campo:
 /// [TipoMovimiento], céntimos, [TipoCuenta] o el nombre de la categoría y la

@@ -4275,6 +4275,28 @@ class $MovimientosTable extends Movimientos
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _documentoTipoMeta = const VerificationMeta(
+    'documentoTipo',
+  );
+  @override
+  late final GeneratedColumn<String> documentoTipo = GeneratedColumn<String>(
+    'documento_tipo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _documentoNumeroMeta = const VerificationMeta(
+    'documentoNumero',
+  );
+  @override
+  late final GeneratedColumn<String> documentoNumero = GeneratedColumn<String>(
+    'documento_numero',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<EstadoSincronizacion, String>
   estadoSincronizacion =
@@ -4322,6 +4344,8 @@ class $MovimientosTable extends Movimientos
     estado,
     reemplazaA,
     abonaA,
+    documentoTipo,
+    documentoNumero,
     estadoSincronizacion,
     creadoEn,
   ];
@@ -4477,6 +4501,24 @@ class $MovimientosTable extends Movimientos
         abonaA.isAcceptableOrUnknown(data['abona_a']!, _abonaAMeta),
       );
     }
+    if (data.containsKey('documento_tipo')) {
+      context.handle(
+        _documentoTipoMeta,
+        documentoTipo.isAcceptableOrUnknown(
+          data['documento_tipo']!,
+          _documentoTipoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('documento_numero')) {
+      context.handle(
+        _documentoNumeroMeta,
+        documentoNumero.isAcceptableOrUnknown(
+          data['documento_numero']!,
+          _documentoNumeroMeta,
+        ),
+      );
+    }
     if (data.containsKey('creado_en')) {
       context.handle(
         _creadoEnMeta,
@@ -4592,6 +4634,14 @@ class $MovimientosTable extends Movimientos
         DriftSqlType.string,
         data['${effectivePrefix}abona_a'],
       ),
+      documentoTipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documento_tipo'],
+      ),
+      documentoNumero: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documento_numero'],
+      ),
       estadoSincronizacion: $MovimientosTable.$converterestadoSincronizacion
           .fromSql(
             attachedDatabase.typeMapping.read(
@@ -4662,6 +4712,11 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
   /// Un pago en parte (entrega 44): la deuda de la que es parte. La deuda
   /// se queda con lo que falta.
   final String? abonaA;
+
+  /// El documento del registro (entrega 66), opcional: «Factura» y su
+  /// número libre, «0045J». La institución va en [contraparteId].
+  final String? documentoTipo;
+  final String? documentoNumero;
   final EstadoSincronizacion estadoSincronizacion;
   final DateTime creadoEn;
   const Movimiento({
@@ -4687,6 +4742,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     required this.estado,
     this.reemplazaA,
     this.abonaA,
+    this.documentoTipo,
+    this.documentoNumero,
     required this.estadoSincronizacion,
     required this.creadoEn,
   });
@@ -4755,6 +4812,12 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     if (!nullToAbsent || abonaA != null) {
       map['abona_a'] = Variable<String>(abonaA);
     }
+    if (!nullToAbsent || documentoTipo != null) {
+      map['documento_tipo'] = Variable<String>(documentoTipo);
+    }
+    if (!nullToAbsent || documentoNumero != null) {
+      map['documento_numero'] = Variable<String>(documentoNumero);
+    }
     {
       map['estado_sincronizacion'] = Variable<String>(
         $MovimientosTable.$converterestadoSincronizacion.toSql(
@@ -4808,6 +4871,12 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       abonaA: abonaA == null && nullToAbsent
           ? const Value.absent()
           : Value(abonaA),
+      documentoTipo: documentoTipo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentoTipo),
+      documentoNumero: documentoNumero == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentoNumero),
       estadoSincronizacion: Value(estadoSincronizacion),
       creadoEn: Value(creadoEn),
     );
@@ -4857,6 +4926,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       ),
       reemplazaA: serializer.fromJson<String?>(json['reemplazaA']),
       abonaA: serializer.fromJson<String?>(json['abonaA']),
+      documentoTipo: serializer.fromJson<String?>(json['documentoTipo']),
+      documentoNumero: serializer.fromJson<String?>(json['documentoNumero']),
       estadoSincronizacion: $MovimientosTable.$converterestadoSincronizacion
           .fromJson(serializer.fromJson<String>(json['estadoSincronizacion'])),
       creadoEn: serializer.fromJson<DateTime>(json['creadoEn']),
@@ -4898,6 +4969,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       ),
       'reemplazaA': serializer.toJson<String?>(reemplazaA),
       'abonaA': serializer.toJson<String?>(abonaA),
+      'documentoTipo': serializer.toJson<String?>(documentoTipo),
+      'documentoNumero': serializer.toJson<String?>(documentoNumero),
       'estadoSincronizacion': serializer.toJson<String>(
         $MovimientosTable.$converterestadoSincronizacion.toJson(
           estadoSincronizacion,
@@ -4930,6 +5003,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     EstadoRegistro? estado,
     Value<String?> reemplazaA = const Value.absent(),
     Value<String?> abonaA = const Value.absent(),
+    Value<String?> documentoTipo = const Value.absent(),
+    Value<String?> documentoNumero = const Value.absent(),
     EstadoSincronizacion? estadoSincronizacion,
     DateTime? creadoEn,
   }) => Movimiento(
@@ -4965,6 +5040,12 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     estado: estado ?? this.estado,
     reemplazaA: reemplazaA.present ? reemplazaA.value : this.reemplazaA,
     abonaA: abonaA.present ? abonaA.value : this.abonaA,
+    documentoTipo: documentoTipo.present
+        ? documentoTipo.value
+        : this.documentoTipo,
+    documentoNumero: documentoNumero.present
+        ? documentoNumero.value
+        : this.documentoNumero,
     estadoSincronizacion: estadoSincronizacion ?? this.estadoSincronizacion,
     creadoEn: creadoEn ?? this.creadoEn,
   );
@@ -5016,6 +5097,12 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           ? data.reemplazaA.value
           : this.reemplazaA,
       abonaA: data.abonaA.present ? data.abonaA.value : this.abonaA,
+      documentoTipo: data.documentoTipo.present
+          ? data.documentoTipo.value
+          : this.documentoTipo,
+      documentoNumero: data.documentoNumero.present
+          ? data.documentoNumero.value
+          : this.documentoNumero,
       estadoSincronizacion: data.estadoSincronizacion.present
           ? data.estadoSincronizacion.value
           : this.estadoSincronizacion,
@@ -5048,6 +5135,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           ..write('estado: $estado, ')
           ..write('reemplazaA: $reemplazaA, ')
           ..write('abonaA: $abonaA, ')
+          ..write('documentoTipo: $documentoTipo, ')
+          ..write('documentoNumero: $documentoNumero, ')
           ..write('estadoSincronizacion: $estadoSincronizacion, ')
           ..write('creadoEn: $creadoEn')
           ..write(')'))
@@ -5078,6 +5167,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     estado,
     reemplazaA,
     abonaA,
+    documentoTipo,
+    documentoNumero,
     estadoSincronizacion,
     creadoEn,
   ]);
@@ -5107,6 +5198,8 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           other.estado == this.estado &&
           other.reemplazaA == this.reemplazaA &&
           other.abonaA == this.abonaA &&
+          other.documentoTipo == this.documentoTipo &&
+          other.documentoNumero == this.documentoNumero &&
           other.estadoSincronizacion == this.estadoSincronizacion &&
           other.creadoEn == this.creadoEn);
 }
@@ -5134,6 +5227,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
   final Value<EstadoRegistro> estado;
   final Value<String?> reemplazaA;
   final Value<String?> abonaA;
+  final Value<String?> documentoTipo;
+  final Value<String?> documentoNumero;
   final Value<EstadoSincronizacion> estadoSincronizacion;
   final Value<DateTime> creadoEn;
   final Value<int> rowid;
@@ -5160,6 +5255,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     this.estado = const Value.absent(),
     this.reemplazaA = const Value.absent(),
     this.abonaA = const Value.absent(),
+    this.documentoTipo = const Value.absent(),
+    this.documentoNumero = const Value.absent(),
     this.estadoSincronizacion = const Value.absent(),
     this.creadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5187,6 +5284,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     required EstadoRegistro estado,
     this.reemplazaA = const Value.absent(),
     this.abonaA = const Value.absent(),
+    this.documentoTipo = const Value.absent(),
+    this.documentoNumero = const Value.absent(),
     required EstadoSincronizacion estadoSincronizacion,
     required DateTime creadoEn,
     this.rowid = const Value.absent(),
@@ -5227,6 +5326,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Expression<String>? estado,
     Expression<String>? reemplazaA,
     Expression<String>? abonaA,
+    Expression<String>? documentoTipo,
+    Expression<String>? documentoNumero,
     Expression<String>? estadoSincronizacion,
     Expression<DateTime>? creadoEn,
     Expression<int>? rowid,
@@ -5255,6 +5356,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       if (estado != null) 'estado': estado,
       if (reemplazaA != null) 'reemplaza_a': reemplazaA,
       if (abonaA != null) 'abona_a': abonaA,
+      if (documentoTipo != null) 'documento_tipo': documentoTipo,
+      if (documentoNumero != null) 'documento_numero': documentoNumero,
       if (estadoSincronizacion != null)
         'estado_sincronizacion': estadoSincronizacion,
       if (creadoEn != null) 'creado_en': creadoEn,
@@ -5285,6 +5388,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Value<EstadoRegistro>? estado,
     Value<String?>? reemplazaA,
     Value<String?>? abonaA,
+    Value<String?>? documentoTipo,
+    Value<String?>? documentoNumero,
     Value<EstadoSincronizacion>? estadoSincronizacion,
     Value<DateTime>? creadoEn,
     Value<int>? rowid,
@@ -5312,6 +5417,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       estado: estado ?? this.estado,
       reemplazaA: reemplazaA ?? this.reemplazaA,
       abonaA: abonaA ?? this.abonaA,
+      documentoTipo: documentoTipo ?? this.documentoTipo,
+      documentoNumero: documentoNumero ?? this.documentoNumero,
       estadoSincronizacion: estadoSincronizacion ?? this.estadoSincronizacion,
       creadoEn: creadoEn ?? this.creadoEn,
       rowid: rowid ?? this.rowid,
@@ -5397,6 +5504,12 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     if (abonaA.present) {
       map['abona_a'] = Variable<String>(abonaA.value);
     }
+    if (documentoTipo.present) {
+      map['documento_tipo'] = Variable<String>(documentoTipo.value);
+    }
+    if (documentoNumero.present) {
+      map['documento_numero'] = Variable<String>(documentoNumero.value);
+    }
     if (estadoSincronizacion.present) {
       map['estado_sincronizacion'] = Variable<String>(
         $MovimientosTable.$converterestadoSincronizacion.toSql(
@@ -5438,6 +5551,8 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
           ..write('estado: $estado, ')
           ..write('reemplazaA: $reemplazaA, ')
           ..write('abonaA: $abonaA, ')
+          ..write('documentoTipo: $documentoTipo, ')
+          ..write('documentoNumero: $documentoNumero, ')
           ..write('estadoSincronizacion: $estadoSincronizacion, ')
           ..write('creadoEn: $creadoEn, ')
           ..write('rowid: $rowid')
@@ -13184,6 +13299,8 @@ typedef $$MovimientosTableCreateCompanionBuilder =
       required EstadoRegistro estado,
       Value<String?> reemplazaA,
       Value<String?> abonaA,
+      Value<String?> documentoTipo,
+      Value<String?> documentoNumero,
       required EstadoSincronizacion estadoSincronizacion,
       required DateTime creadoEn,
       Value<int> rowid,
@@ -13212,6 +13329,8 @@ typedef $$MovimientosTableUpdateCompanionBuilder =
       Value<EstadoRegistro> estado,
       Value<String?> reemplazaA,
       Value<String?> abonaA,
+      Value<String?> documentoTipo,
+      Value<String?> documentoNumero,
       Value<EstadoSincronizacion> estadoSincronizacion,
       Value<DateTime> creadoEn,
       Value<int> rowid,
@@ -13447,6 +13566,16 @@ class $$MovimientosTableFilterComposer
 
   ColumnFilters<String> get abonaA => $composableBuilder(
     column: $table.abonaA,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13736,6 +13865,16 @@ class $$MovimientosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get estadoSincronizacion => $composableBuilder(
     column: $table.estadoSincronizacion,
     builder: (column) => ColumnOrderings(column),
@@ -13979,6 +14118,16 @@ class $$MovimientosTableAnnotationComposer
 
   GeneratedColumn<String> get abonaA =>
       $composableBuilder(column: $table.abonaA, builder: (column) => column);
+
+  GeneratedColumn<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<EstadoSincronizacion, String>
   get estadoSincronizacion => $composableBuilder(
@@ -14235,6 +14384,8 @@ class $$MovimientosTableTableManager
                 Value<EstadoRegistro> estado = const Value.absent(),
                 Value<String?> reemplazaA = const Value.absent(),
                 Value<String?> abonaA = const Value.absent(),
+                Value<String?> documentoTipo = const Value.absent(),
+                Value<String?> documentoNumero = const Value.absent(),
                 Value<EstadoSincronizacion> estadoSincronizacion =
                     const Value.absent(),
                 Value<DateTime> creadoEn = const Value.absent(),
@@ -14262,6 +14413,8 @@ class $$MovimientosTableTableManager
                 estado: estado,
                 reemplazaA: reemplazaA,
                 abonaA: abonaA,
+                documentoTipo: documentoTipo,
+                documentoNumero: documentoNumero,
                 estadoSincronizacion: estadoSincronizacion,
                 creadoEn: creadoEn,
                 rowid: rowid,
@@ -14290,6 +14443,8 @@ class $$MovimientosTableTableManager
                 required EstadoRegistro estado,
                 Value<String?> reemplazaA = const Value.absent(),
                 Value<String?> abonaA = const Value.absent(),
+                Value<String?> documentoTipo = const Value.absent(),
+                Value<String?> documentoNumero = const Value.absent(),
                 required EstadoSincronizacion estadoSincronizacion,
                 required DateTime creadoEn,
                 Value<int> rowid = const Value.absent(),
@@ -14316,6 +14471,8 @@ class $$MovimientosTableTableManager
                 estado: estado,
                 reemplazaA: reemplazaA,
                 abonaA: abonaA,
+                documentoTipo: documentoTipo,
+                documentoNumero: documentoNumero,
                 estadoSincronizacion: estadoSincronizacion,
                 creadoEn: creadoEn,
                 rowid: rowid,

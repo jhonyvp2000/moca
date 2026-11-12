@@ -14,6 +14,7 @@ import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
+import '../../pais/peru/documentos.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../informe/recordatorio_whatsapp.dart';
@@ -551,6 +552,19 @@ class _Datos extends StatelessWidget {
     final d = detalle;
     final f = d.fila;
     final pago = d.fechaPago;
+    // El documento y la institución anotados (entrega 66). Lo que ya dice
+    // el comprobante leído no se repite.
+    final c = d.comprobante;
+    final documento = textoDelDocumento(f.documentoTipo, f.documentoNumero);
+    final delComprobante = c == null
+        ? null
+        : textoDelDocumento(
+            c.tipo,
+            [c.serie, c.numero].whereType<String>().join('-'),
+          );
+    final institucion = f.loDebes || f.proveedor == c?.emisorNombre
+        ? null
+        : f.proveedor;
     return _TarjetaDeFilas(
       filas: [
         (Textos.etiquetaQueFue, Textos.nombreTipo(f.tipo)),
@@ -558,6 +572,10 @@ class _Datos extends StatelessWidget {
         if (f.categoria case final categoria?)
           (Textos.etiquetaCategoria, categoria),
         if (f.nota case final nota?) (Textos.etiquetaNota, nota),
+        if (documento != null && documento != delComprobante)
+          (Textos.etiquetaDocumento, documento),
+        if (institucion != null)
+          (Textos.etiquetaInstitucion(f.tipo), institucion),
         (Textos.etiquetaComoSeAnoto, Textos.comoSeAnoto(d.fuente)),
         if (d.comprobante != null)
           (
@@ -696,6 +714,8 @@ class _Cambios extends StatelessWidget {
     CampoMovimiento.cuenta => v is TipoCuenta ? Textos.nombreCuenta(v) : '',
     CampoMovimiento.categoria => v is String ? v : Textos.sinCategoria,
     CampoMovimiento.nota => v is String ? '«$v»' : Textos.sinNota,
+    CampoMovimiento.documento => v is String ? v : Textos.sinDocumento,
+    CampoMovimiento.institucion => v is String ? v : Textos.sinInstitucion,
   };
 
   static String _campo(CampoCambiado c) {
@@ -707,6 +727,11 @@ class _Cambios extends StatelessWidget {
       CampoMovimiento.cuenta => Textos.cambiasteCuenta(antes, despues),
       CampoMovimiento.categoria => Textos.cambiasteCategoria(antes, despues),
       CampoMovimiento.nota => Textos.cambiasteNota(antes, despues),
+      CampoMovimiento.documento => Textos.cambiasteDocumento(antes, despues),
+      CampoMovimiento.institucion => Textos.cambiasteInstitucion(
+        antes,
+        despues,
+      ),
     };
   }
 

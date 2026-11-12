@@ -37,6 +37,7 @@ import 'package:moca/dominio/servicios.dart';
 import 'package:moca/dominio/tutoria.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/inyeccion.dart';
+import 'package:moca/pais/peru/documentos.dart';
 import 'package:moca/pais/peru/formato.dart';
 import 'package:moca/dominio/historial.dart';
 import 'package:moca/dominio/medicion.dart';
@@ -1447,6 +1448,51 @@ void main() {
       await tocar(tester, find.text('Servicios'));
       expect(find.textContaining('Falta:'), findsNothing);
       expect(botonGuardar(tester).onPressed, isNotNull);
+    });
+
+    testWidgets('Entrega 66: «Más datos» guarda el documento y la '
+        'institución, y se ven en el detalle', (tester) async {
+      await abrirApp(tester, listo: true);
+      await abrirEscribir(tester);
+      await tocar(tester, find.text(Textos.salio));
+      await tester.enterText(find.byType(TextField).first, '45');
+      await tester.pump();
+      await tocar(tester, find.text('Otros'));
+      // Plegados: no estorban a quien no los usa.
+      expect(find.text(Textos.tipoDeDocumento), findsNothing);
+      await tocar(tester, find.text(Textos.masDatosOpcional));
+      await tocar(tester, find.byKey(const Key('tipo-de-documento')));
+      for (final t in tiposDeDocumento) {
+        expect(find.text(t), findsWidgets, reason: t);
+      }
+      await tocar(tester, find.text('Factura').last);
+      await tester.enterText(
+        find.byKey(const Key('numero-de-documento')),
+        '0045J',
+      );
+      await tester.enterText(
+        find.byKey(const Key('institucion')),
+        'Comercial Tarapoto',
+      );
+      await tester.pump();
+      expect(botonGuardar(tester).onPressed, isNotNull);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      // En la fila, el nombre de la institución.
+      await tocar(tester, find.text('Comercial Tarapoto').first);
+      expect(find.text(Textos.tituloDetalle), findsOneWidget);
+      expect(find.text('Factura 0045J'), findsOneWidget);
+      expect(
+        find.text(Textos.etiquetaInstitucion(TipoMovimiento.egreso)),
+        findsOneWidget,
+      );
+      expect(find.text('Comercial Tarapoto'), findsWidgets);
+
+      // Al corregir, vienen llenos y abiertos.
+      await tocar(tester, find.text(Textos.corregir));
+      expect(find.text('0045J'), findsOneWidget);
+      expect(find.text('Comercial Tarapoto'), findsOneWidget);
     });
 
     testWidgets('«Escribirlo» guarda un gasto, avisa cuánto tienes y se '

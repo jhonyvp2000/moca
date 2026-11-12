@@ -46,8 +46,9 @@ La unidad de todo informe. Campos:
 - fecha del movimiento y fecha del comprobante
 - estado de pago: pagado, pendiente o parcial; monto pagado; fecha de vencimiento
 - categoría
-- contraparte (opcional)
+- contraparte (opcional): desde la entrega 66 también en lo pagado, como «institución» (el cliente si entró plata, el proveedor si salió)
 - comprobante (opcional)
+- documento (opcional, entrega 66): tipo (Factura, Boleta, Guía de remisión, Nota de crédito, Nota de débito, Liquidación de compra u Otro, del paquete de Perú) y número libre («0045J»), en `documento_tipo` y `documento_numero`. Si el registro vino de un comprobante leído, lo anotado manda sobre lo leído
 - nivel de confianza: A, B, C o D
 - fuente: voz, texto, foto, QR, SIRE
 - autor
