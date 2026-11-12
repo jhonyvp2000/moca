@@ -1840,7 +1840,11 @@ void main() {
       await tocar(tester, find.byTooltip(Textos.ocultarMontos));
       expect(find.text('S/ 1,350'), findsNothing);
       expect(find.text(Textos.montoOculto), findsWidgets);
+      // La hora no se oculta (entrega 62).
+      expect(find.text(formatearDiaYHora(_ahora)), findsOneWidget);
       await tocar(tester, find.byTooltip(Textos.mostrarMontos));
+      // Bajo la cifra, el día y la hora en que se mira (entrega 62).
+      expect(find.text(formatearDiaYHora(_ahora)), findsOneWidget);
 
       // Con la venta de hoy ya anotada, otra más va por el + (mejora 01).
       expect(find.text(Textos.anotarVentaDeHoy), findsNothing);

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../comun/monto_text.dart';
 import '../../dominio/medicion.dart';
 import '../../inyeccion.dart';
+import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
@@ -132,6 +135,9 @@ class TarjetaTienesHoy extends StatelessWidget {
                         )
                       : MontoAnimado(centimos, color: Colores.sobreMarca),
                 ),
+                // A qué momento corresponde la cifra (entrega 62).
+                const SizedBox(height: Medidas.e1),
+                const HoraDeAhora(),
                 if (pildora case final texto?) ...[
                   const SizedBox(height: Medidas.e3),
                   Container(
@@ -211,4 +217,53 @@ class TarjetaTienesHoy extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// «Jueves 12:13 p. m.» (entrega 62): el día y la hora en que se mira la
+/// tarjeta. Se pone al día al cambiar el minuto.
+class HoraDeAhora extends ConsumerStatefulWidget {
+  const HoraDeAhora({super.key});
+
+  @override
+  ConsumerState<HoraDeAhora> createState() => _HoraDeAhoraState();
+}
+
+class _HoraDeAhoraState extends ConsumerState<HoraDeAhora> {
+  Timer? _siguiente;
+
+  @override
+  void initState() {
+    super.initState();
+    _programar();
+  }
+
+  void _programar() {
+    final ahora = ref.read(relojProvider)();
+    final falta = Duration(
+      seconds: 60 - ahora.second,
+      milliseconds: -ahora.millisecond,
+    );
+    _siguiente = Timer(falta, () {
+      if (!mounted) return;
+      setState(() {});
+      _programar();
+    });
+  }
+
+  @override
+  void dispose() {
+    _siguiente?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ahora = ref.watch(relojProvider)();
+    return Text(
+      formatearDiaYHora(ahora),
+      style: Tipografia.cifra(
+        Tipografia.secundario.copyWith(color: Colores.sobreMarcaSuave),
+      ),
+    );
+  }
 }

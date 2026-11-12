@@ -88,4 +88,20 @@ void main() {
       expect(celularParaWhatsApp('987654321'), '51987654321');
     },
   );
+
+  test('Entrega 62: el día y la hora de «Tienes hoy»', () {
+    // 12 de noviembre de 2026 es jueves.
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 12, 12, 13)),
+      'Jueves 12:13\u00A0p. m.',
+    );
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 15, 0, 5)),
+      'Domingo 12:05\u00A0a. m.',
+    );
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 18, 9, 0)),
+      'Miércoles 9:00\u00A0a. m.',
+    );
+  });
 }

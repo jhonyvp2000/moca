@@ -63,6 +63,13 @@ String formatearSolesComprobante(int centimos) {
       '${resto.toString().padLeft(2, '0')}';
 }
 
+/// El momento en que se mira el Inicio (entrega 62): «Jueves 12:13 p. m.».
+String formatearDiaYHora(DateTime momento) {
+  final dia = _dias[momento.weekday - 1];
+  return '${dia[0].toUpperCase()}${dia.substring(1)} '
+      '${formatearHora(momento.hour * 60 + momento.minute)}';
+}
+
 const _dias = [
   'lunes',
   'martes',
