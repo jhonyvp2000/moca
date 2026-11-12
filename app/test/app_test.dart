@@ -1307,8 +1307,8 @@ void main() {
       expect(find.text(Textos.tienesHoy), findsOneWidget);
     });
 
-    testWidgets('Mejora 01: el Inicio muestra lo pendiente con nombres y, '
-        'con la venta anotada, «Escuchar mi semana»', (tester) async {
+    testWidgets('Mejora 01: lo fiado en la píldora; «Te deben» en Informes '
+        '(entrega 63) y «Escuchar mi semana»', (tester) async {
       await abrirApp(tester, listo: true);
       // Sin nada pendiente, no hay bloque.
       expect(find.textContaining('Te deben ·'), findsNothing);
@@ -1327,8 +1327,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
 
-      // Desde la entrega 59, en una ficha, sin los nombres.
-      expect(find.text(Textos.fichaTeDeben), findsOneWidget);
+      // Desde la entrega 63, «Te deben» no está en el Inicio: en Informes.
+      expect(find.text(Textos.fichaTeDeben), findsNothing);
       expect(find.text(Textos.escucharMiSemana), findsOneWidget);
       // Entrega 51: cuánto de lo vendido hoy se fió, y el ⓘ no cuenta lo
       // fiado como plata en la mano.
@@ -1340,10 +1340,12 @@ void main() {
         findsOneWidget,
       );
       await verNotaDeTienesHoy(tester, Textos.notaConMovimientos);
+      await tocar(tester, find.text(Textos.pestanaInformes));
       await tocar(tester, find.text(Textos.fichaTeDeben));
       expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
       await tocar(tester, find.byType(BotonVolver).first);
 
+      await tocar(tester, find.text(Textos.pestanaInicio).last);
       await tocar(tester, find.text(Textos.escucharMiSemana));
       expect(find.text(Textos.avisos), findsWidgets);
     });
@@ -1391,6 +1393,9 @@ void main() {
         (m) => m.estadoPago == EstadoPago.pendiente,
       );
       expect(fiado.montoCentimos, 8000);
+      // «Te deben» está en Informes (entrega 63), no en el Inicio.
+      expect(find.text(Textos.fichaTeDeben), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text(Textos.fichaTeDeben), findsOneWidget);
     });
 

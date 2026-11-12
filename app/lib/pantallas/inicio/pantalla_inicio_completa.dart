@@ -13,7 +13,6 @@ import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
 import '../moca/avisos.dart';
 import 'desglose_cuentas.dart';
-import 'bloque_pendientes.dart';
 import 'encabezado_negocio.dart';
 import '../../comun/seccion_plegable.dart';
 import '../../inyeccion.dart';
@@ -110,15 +109,13 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 pildora: _pildora(r, permisos, hoy),
               ),
             ),
-            // Las cuentas, plegadas (entrega 59): «Ver por cuenta».
+            // Las cuentas, plegadas (entrega 59): «Ver por cuenta», sin la
+            // línea con sus nombres (entrega 63).
             if (misCajas == null || saldos.length > 1) ...[
               const SizedBox(height: Medidas.separacionTarjetas),
               SeccionPlegable(
                 clave: 'inicio_cuentas',
                 titulo: Textos.verPorCuenta,
-                resumen: Textos.resumenDeCuentas([
-                  for (final c in saldos.keys) Textos.nombreCuenta(c),
-                ]),
                 margenEncabezado: const EdgeInsets.symmetric(
                   horizontal: Medidas.margenLateral,
                 ),
@@ -131,8 +128,7 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
             ],
             // «Hacer arqueo» vive en el + (entrega 57); aquí, solo cuando
             // toca, en la tarjeta de Moca.
-            // Lo pendiente, para quien ve los informes (mejora 01).
-            if (permisos.veInformes) BloquePendientes(ocultar: _ocultar),
+            // «Te deben» y «Debes» viven en Informes (entrega 63).
             // «Esta semana» vive en el Asistente (entrega 59).
             if (permisos.anota) ...[
               const SizedBox(height: Medidas.separacionTarjetas),

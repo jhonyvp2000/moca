@@ -5,19 +5,6 @@ import 'package:moca/datos/repositorios/repositorio_ajustes_local.dart';
 import 'package:moca/textos/textos.dart';
 
 void main() {
-  test('El resumen de las cuentas plegadas (entrega 59)', () {
-    expect(Textos.resumenDeCuentas(['Efectivo']), 'Efectivo');
-    expect(Textos.resumenDeCuentas(['Efectivo', 'Yape']), 'Efectivo y Yape');
-    expect(
-      Textos.resumenDeCuentas(['Efectivo', 'Yape', 'BCP']),
-      'Efectivo, Yape y BCP',
-    );
-    expect(
-      Textos.resumenDeCuentas(['Efectivo', 'Yape', 'BCP', 'Plin', 'Sip']),
-      'Efectivo, Yape y 3 más',
-    );
-  });
-
   test('«También…» bajo lo que entró y salió (entrega 59)', () {
     expect(
       Textos.tambien([

@@ -548,13 +548,6 @@ abstract final class Textos {
   // Menos ruido (entrega 59): lo que se ve a un toque.
   static const ocultarSeccion = 'Ocultar';
   static const verPorCuenta = 'Ver por cuenta';
-  static String resumenDeCuentas(List<String> nombres) => switch (nombres) {
-    [] => '',
-    [final una] => una,
-    [final a, final b] => '$a y $b',
-    [final a, final b, final c] => '$a, $b y $c',
-    [final a, final b, ...final resto] => '$a, $b y ${resto.length} más',
-  };
   static const verDetalleDelMes = 'Ver el detalle del mes';
   static const verDetalleDelAnio = 'Ver el detalle del año';
   static const fichaTeDeben = 'Te deben';

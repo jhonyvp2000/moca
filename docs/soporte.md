@@ -229,6 +229,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > En el Inicio, toca «Ver por cuenta» para ver cuánto hay en efectivo, Yape y banco. En Informes, toca «Ver el detalle del mes» para ver el gráfico, en qué entró y en qué se fue tu plata. Tu semana está en la pestaña Asistente. Moca recuerda lo que dejaste abierto.
 
+**«Ya no veo "Te deben" ni "Debes" en el Inicio»** (entrega 63): se movieron a Informes, donde ya estaban.
+
+> Ve a la pestaña Informes: arriba están «Te deben» y «Debes». Toca cada uno para ver la lista de clientes o de a quién le debes.
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.
