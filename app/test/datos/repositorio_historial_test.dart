@@ -1055,11 +1055,8 @@ void main() {
       expect(d.fila.documentoTipo, 'Factura');
       expect(d.fila.documentoNumero, '0045J');
       expect(d.fila.proveedor, 'Comercial Tarapoto');
-      // Guardada como proveedor, para sugerirla la próxima vez.
-      expect(
-        await movimientos.nombresDeContrapartes(TipoContraparte.proveedor),
-        ['Comercial Tarapoto'],
-      );
+      // Se sugiere la próxima vez.
+      expect(await movimientos.nombresDeContrapartes(), ['Comercial Tarapoto']);
       // El buscador la encuentra por el número.
       final h = await historial();
       expect(
@@ -1086,6 +1083,10 @@ void main() {
       d = await detalle(nuevo);
       expect(d.fila.documentoTipo, 'Boleta');
       expect(d.fila.proveedor, 'Distribuidora Selva');
+      // Entrega 69: el nombre corregido deja de sugerirse.
+      expect(await movimientos.nombresDeContrapartes(), [
+        'Distribuidora Selva',
+      ]);
       final corregido = d.cambios.whereType<CambioCorregido>().single;
       expect(
         {for (final c in corregido.campos) c.campo: (c.anterior, c.nuevo)},
@@ -1111,9 +1112,7 @@ void main() {
         ),
       )).ids.single;
       expect((await detalle(venta)).fila.proveedor, 'Hotel Río Mayo');
-      expect(await movimientos.nombresDeContrapartes(TipoContraparte.cliente), [
-        'Hotel Río Mayo',
-      ]);
+      expect(await movimientos.nombresDeContrapartes(), ['Hotel Río Mayo']);
       // Lo que te deben no cambia: una venta pagada no es deuda.
       expect(await repo.observarLoQueTeDeben().first, isEmpty);
 

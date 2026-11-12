@@ -160,12 +160,11 @@ final resumenInicioProvider = StreamProvider<ResumenInicio>(
 );
 
 /// Categorías de entró o salió, para «Escribirlo».
-/// Los clientes o proveedores ya anotados, para sugerirlos (entrega 66).
-final nombresDeContrapartesProvider = FutureProvider.autoDispose
-    .family<List<String>, TipoContraparte>(
-      (ref, tipo) =>
-          ref.watch(repositorioMovimientosProvider).nombresDeContrapartes(tipo),
-    );
+/// Los clientes y proveedores ya anotados, para sugerirlos (entregas 66 y
+/// 69).
+final nombresDeContrapartesProvider = FutureProvider.autoDispose<List<String>>(
+  (ref) => ref.watch(repositorioMovimientosProvider).nombresDeContrapartes(),
+);
 
 final categoriasProvider = FutureProvider.autoDispose
     .family<List<CategoriaVista>, TipoMovimiento>((ref, tipo) {

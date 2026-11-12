@@ -184,9 +184,10 @@ abstract interface class RepositorioMovimientos {
 
   Future<List<CategoriaVista>> categorias(TipoMovimiento tipo);
 
-  /// Los nombres ya usados, para sugerirlos (entrega 66): los clientes en
-  /// lo que entró, los proveedores en lo que salió.
-  Future<List<String>> nombresDeContrapartes(TipoContraparte tipo);
+  /// Los nombres ya usados, para sugerirlos (entrega 66): desde la entrega
+  /// 69, clientes y proveedores juntos, y solo los que tienen algún registro
+  /// vigente (un nombre que se corrigió deja de sugerirse).
+  Future<List<String>> nombresDeContrapartes();
 
   /// Cuánto quedaría en la cuenta si se guarda este movimiento. Moca
   /// pregunta antes de dejar una cuenta en negativo.

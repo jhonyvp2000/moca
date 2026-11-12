@@ -413,16 +413,27 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
   }
 
   @override
-  Future<List<String>> nombresDeContrapartes(TipoContraparte tipo) async {
+  Future<List<String>> nombresDeContrapartes() async {
     final empresa = await _a.empresa();
     if (empresa == null) return const [];
-    final filas =
-        await (_base.select(_base.contrapartes)..where(
-              (c) => c.empresaId.equals(empresa.id) & c.tipo.equalsValue(tipo),
-            ))
-            .get();
-    final nombres = {for (final c in filas) c.nombre}.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final enUso = {
+      for (final m
+          in await (_base.select(_base.movimientos)..where(
+                (m) =>
+                    m.empresaId.equals(empresa.id) &
+                    m.estado.equalsValue(EstadoRegistro.vigente) &
+                    m.contraparteId.isNotNull(),
+              ))
+              .get())
+        m.contraparteId!,
+    };
+    final filas = await (_base.select(
+      _base.contrapartes,
+    )..where((c) => c.empresaId.equals(empresa.id))).get();
+    final nombres = {
+      for (final c in filas)
+        if (enUso.contains(c.id)) c.nombre,
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return nombres;
   }
 }

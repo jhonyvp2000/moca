@@ -7,6 +7,7 @@ import '../../comun/estructura.dart';
 import '../../comun/chip_seleccion.dart';
 import '../../comun/iconos.dart';
 import '../../comun/opciones.dart';
+import '../../comun/sugerencias.dart';
 import '../../comun/tono.dart';
 import 'cuadros_de_categoria.dart';
 import '../../comun/tarjeta.dart';
@@ -547,16 +548,7 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
       if (_documentoTipo case final t? when !tiposDeDocumento.contains(t)) t,
     ];
     final nombres =
-        ref
-            .watch(
-              nombresDeContrapartesProvider(
-                tipo == TipoMovimiento.ingreso
-                    ? TipoContraparte.cliente
-                    : TipoContraparte.proveedor,
-              ),
-            )
-            .value ??
-        const <String>[];
+        ref.watch(nombresDeContrapartesProvider).value ?? const <String>[];
     return [
       const SizedBox(height: Medidas.e4),
       Align(
@@ -612,13 +604,8 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           const SizedBox(height: Medidas.e2),
           Autocomplete<String>(
             initialValue: TextEditingValue(text: _institucion),
-            optionsBuilder: (valor) {
-              final texto = valor.text.trim().toLowerCase();
-              if (texto.isEmpty) return const Iterable<String>.empty();
-              return nombres.where(
-                (n) => n.toLowerCase().contains(texto) && n != valor.text,
-              );
-            },
+            optionsBuilder: (valor) =>
+                sugerenciasDeNombres(nombres, valor.text),
             onSelected: (n) => setState(() => _institucion = n),
             fieldViewBuilder: (context, controlador, foco, alEnviar) =>
                 TextField(
