@@ -124,6 +124,7 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
     EnlaceRespuesta.teDeben => context.push(Rutas.loQueTeDeben),
     EnlaceRespuesta.debes => context.push(Rutas.loQueDebes),
     EnlaceRespuesta.cuentas => context.push(Rutas.cuentas),
+    EnlaceRespuesta.misPagos => context.push(Rutas.misPagos),
   };
 
   static String _textoDelEnlace(EnlaceRespuesta e) => switch (e) {
@@ -132,6 +133,7 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
     EnlaceRespuesta.debes => Textos.verLoQueDebes,
     EnlaceRespuesta.informe => Textos.verElInformeDelMes,
     EnlaceRespuesta.cuentas => Textos.verMisCuentas,
+    EnlaceRespuesta.misPagos => Textos.verMisPagosDeMoca,
   };
 
   @override
@@ -211,7 +213,9 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
                       spacing: Medidas.e2,
                       runSpacing: Medidas.e2,
                       children: [
-                        for (final s in Textos.preguntasSugeridas)
+                        for (final s in Textos.sugerenciasDelDia(
+                          ref.watch(relojProvider)(),
+                        ))
                           OutlinedButton(
                             onPressed: () => _preguntar(s),
                             child: Text(s),

@@ -488,6 +488,7 @@ class ServicioCuentaRemoto
             'debes' => EnlaceRespuesta.debes,
             'informe' => EnlaceRespuesta.informe,
             'cuentas' => EnlaceRespuesta.cuentas,
+            'mis_pagos' => EnlaceRespuesta.misPagos,
             _ => null,
           },
         ),

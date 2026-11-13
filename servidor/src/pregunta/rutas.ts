@@ -4,6 +4,7 @@ import { calcularCifras, type DatosEmpresa } from '../cifras/calcular.js';
 import { bajar, empresaPedida } from '../datos/bajar.js';
 import { autenticar } from '../datos/subir.js';
 import { desfaseHorario } from '../pais/peru.js';
+import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import { hechosDelNegocio } from './hechos.js';
 import type { Respondedor } from './respondedor.js';
 
@@ -41,11 +42,53 @@ async function delDueno(
   return { usuarioId, datos, empresaId: membresia.empresa_id };
 }
 
+const meses = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+  'setiembre', 'octubre', 'noviembre', 'diciembre',
+];
+const fecha = (dia: string) =>
+  `${Number(dia.slice(8, 10))} de ${meses[Number(dia.slice(5, 7)) - 1]} de ${dia.slice(0, 4)}`;
+const nombrePlan: Record<string, string> = {
+  basico: 'Básico mensual',
+  basico_anual: 'Básico anual',
+  normal: 'Full mensual',
+  fundador: 'Full mensual',
+  anual: 'Full anual',
+};
+
+/** El estado del plan de Moca, en palabras (entrega 75). */
+async function planEnPalabras(
+  pool: Pool,
+  cobro: ConfigCobro,
+  usuarioId: string,
+  empresaId: string,
+  ahora: Date,
+): Promise<string | null> {
+  try {
+    const e = await cobroParaElTelefono(pool, cobro, usuarioId, empresaId, ahora);
+    switch (e.estado) {
+      case 'sin_cobro':
+        return 'Moca todavía no se cobra: puedes usarlo sin pagar.';
+      case 'prueba':
+        return e.hasta
+          ? `Estás en la prueba gratis, hasta el ${fecha(e.hasta)}.`
+          : 'Estás en la prueba gratis: empieza a contar con tu primer registro.';
+      case 'pagado':
+        return `Tienes el plan ${nombrePlan[e.plan ?? ''] ?? 'pagado'}, pagado hasta el ${fecha(e.hasta!)}.`;
+      case 'vencido':
+        return `Tu plan venció el ${fecha(e.hasta!)}: puedes seguir anotando, pero hay que pagar para ver todo.`;
+    }
+  } catch {
+    return null;
+  }
+}
+
 export function rutasPregunta(
   app: FastifyInstance,
   pool: Pool,
   respondedor: Respondedor | null,
   ahora: () => Date,
+  cobro: ConfigCobro,
 ): void {
   // Cuántas preguntas le quedan hoy al negocio.
   app.get('/pregunta', async (peticion, respuesta) => {
@@ -81,6 +124,10 @@ export function rutasPregunta(
         quien.datos,
         calcularCifras(quien.datos as unknown as DatosEmpresa, momento),
         momento,
+        {
+          usuarioId: quien.usuarioId,
+          plan: await planEnPalabras(pool, cobro, quien.usuarioId, quien.empresaId, momento),
+        },
       );
       const inicio = Date.now();
       try {

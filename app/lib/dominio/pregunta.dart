@@ -2,7 +2,7 @@
 // IA responde con las cifras que el servidor ya calculó.
 
 /// A qué pantalla lleva una respuesta.
-enum EnlaceRespuesta { historial, teDeben, debes, informe, cuentas }
+enum EnlaceRespuesta { historial, teDeben, debes, informe, cuentas, misPagos }
 
 /// Por qué no hubo respuesta.
 enum ErrorDePregunta { sinSenal, topeDelDia, noDisponible, soloDuenos, fallo }

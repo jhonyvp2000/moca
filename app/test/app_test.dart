@@ -6617,18 +6617,20 @@ void main() {
       await conCuenta(tester);
       await abrirPreguntale(tester);
       expect(find.text(Textos.preguntasQueQuedan(20)), findsOneWidget);
-      for (final s in Textos.preguntasSugeridas) {
+      // Las 4 sugerencias de hoy (entrega 75).
+      final sugeridas = Textos.sugerenciasDelDia(_ahora);
+      for (final s in sugeridas) {
         expect(find.text(s), findsOneWidget, reason: s);
       }
-      await preguntar(tester, find.text(Textos.preguntasSugeridas[1]));
-      expect(_servidor.preguntas, [Textos.preguntasSugeridas[1]]);
+      await preguntar(tester, find.text(sugeridas[1]));
+      expect(_servidor.preguntas, [sugeridas[1]]);
       expect(
         find.text('Doña Rosa te debe S/ 80 desde el 12 de octubre.'),
         findsOneWidget,
       );
       expect(find.text(Textos.preguntasQueQuedan(19)), findsOneWidget);
       // Ya preguntó: las sugerencias se van.
-      expect(find.text(Textos.preguntasSugeridas[0]), findsNothing);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[0]), findsNothing);
       // Una pregunta escrita.
       await tester.enterText(
         find.byKey(PantallaPreguntale.claveCampo),
@@ -6648,9 +6650,9 @@ void main() {
       await conCuenta(tester);
       await abrirPreguntale(tester);
       _conSenal = false;
-      await preguntar(tester, find.text(Textos.preguntasSugeridas[0]));
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
       expect(find.text(Textos.preguntaleSinSenal), findsOneWidget);
-      expect(find.text(Textos.preguntasSugeridas[0]), findsWidgets);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[0]), findsWidgets);
       expect(_servidor.preguntas, isEmpty);
     });
 
@@ -6660,7 +6662,7 @@ void main() {
       await conCuenta(tester);
       await abrirPreguntale(tester);
       _servidor.errorPregunta = 'sin_respuesta';
-      await preguntar(tester, find.text(Textos.preguntasSugeridas[0]));
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
       expect(find.text(Textos.preguntaleNoDisponible), findsOneWidget);
       _servidor.errorPregunta = 'tope_del_dia';
       await tester.enterText(

@@ -131,7 +131,7 @@ export function crearApp({
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
-  rutasPregunta(app, pool, respondedor, ahora);
+  rutasPregunta(app, pool, respondedor, ahora, conPago);
 
   return app;
 }

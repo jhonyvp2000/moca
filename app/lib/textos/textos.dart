@@ -811,12 +811,37 @@ abstract final class Textos {
       'Hola, soy Moca. Pregúntame lo que quieras saber de tus cuentas. '
       'Respondo con lo que anotaste.';
   static const pruebaCon = 'Prueba con:';
+
+  /// Se muestran 4 que cambian cada día (entrega 75).
   static const preguntasSugeridas = [
     '¿Cuánto vendí esta semana?',
     '¿Quién me debe más?',
     '¿En qué gasté más este mes?',
     '¿Cuánto tengo en total?',
+    '¿Cuál fue mi mejor día este mes?',
+    '¿Cuánto me entra por Yape y cuánto en efectivo?',
+    '¿Cuánto le compré a cada proveedor este mes?',
+    '¿Cuál fue mi gasto más grande del mes?',
+    '¿Cuánto me pagaron de fiado esta semana?',
+    '¿Cuál fue mi mejor mes del año?',
+    '¿Cómo salió mi último arqueo?',
+    '¿Hay algo que deba revisar?',
   ];
+
+  /// Las 4 de hoy: cada día empiezan una más adelante.
+  static List<String> sugerenciasDelDia(DateTime hoy) {
+    final dia = DateTime.utc(
+      hoy.year,
+      hoy.month,
+      hoy.day,
+    ).difference(DateTime.utc(2026)).inDays;
+    return [
+      for (var i = 0; i < 4; i++)
+        preguntasSugeridas[(dia + i * 3) % preguntasSugeridas.length],
+    ];
+  }
+
+  static const verMisPagosDeMoca = 'Ver Mis pagos de Moca';
   static const tuPregunta = 'Tu pregunta';
   static const escribeTuPregunta = 'Escribe tu pregunta';
   static const enviar = 'Enviar';
