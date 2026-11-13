@@ -73,7 +73,7 @@ Todo texto legal lo revisa un abogado antes de publicar, como ya está pendiente
 
 Decidido el 14-10-2026 que la V1 real se distribuye por Play Store en prueba cerrada; Jhony decide avanzar el 13-11-2026. Lo que hace falta:
 
-1. **Cuenta de desarrollador de Google Play** (pago único de USD 25). Jhony ya tiene la de organización (13-11-2026). La de **organización** pide un número D-U-N-S de la empresa; la **personal** es más rápida, pero Google exige a las cuentas personales nuevas una **prueba cerrada con al menos 12 personas durante 14 días seguidos** antes de publicar para todos. La comprueba Jhony en la consola, porque las reglas cambian.
+1. **Cuenta de desarrollador de Google Play** (pago único de USD 25). Jhony tiene una cuenta personal y quiere una de organización para Publisher Online E.I.R.L. (13-11-2026, ver 8.1). La de **organización** pide un número D-U-N-S de la empresa; la **personal** es más rápida, pero Google exige a las cuentas personales nuevas una **prueba cerrada con al menos 12 personas durante 14 días seguidos** antes de publicar para todos. La comprueba Jhony en la consola, porque las reglas cambian.
 2. **El paquete:** Play pide un **AAB** (no APK), firmado con una llave de subida, y la firma final la guarda Google («Play App Signing»). El flujo `apk.yml` tiene que sumar el armado del AAB. El identificador `pe.moca.app` queda fijo para siempre al publicar.
 3. **La ficha:** nombre, ícono, capturas, descripción corta y larga, categoría (Empresa o Finanzas).
 4. **Formularios:** **política de privacidad en una dirección pública** (mocanegocios.com/privacidad), **Seguridad de los datos** (qué datos se recogen y a quién se envían: Twilio, Anthropic, Mercado Pago), clasificación de contenido, público objetivo, y **acceso a la app** con una cuenta de prueba para el revisor (Moca entra por SMS).
@@ -82,7 +82,7 @@ Decidido el 14-10-2026 que la V1 real se distribuye por Play Store en prueba cer
 
 ### 8.1 Lo investigado sobre el cobro (13-11-2026)
 
-Jhony ya tiene la **cuenta de desarrollador de organización**, a nombre de su EIRL: no aplica la prueba de 12 personas por 14 días, que es para las cuentas personales nuevas.
+**Corrección (13-11-2026):** la cuenta de Play que tiene Jhony aparece con su nombre, como **cuenta personal**, y la consola pide la **prueba cerrada de 12 personas por 14 días**. Jhony quiere publicar a nombre de su empresa, **Publisher Online E.I.R.L.**: eso pide una cuenta de organización, con el número D-U-N-S de la empresa. Hasta decidirlo, no se sube nada a la cuenta personal.
 
 Lo encontrado, con fuentes secundarias porque la ayuda oficial de Google no se pudo abrir desde la sesión (hay que confirmarlo en la Play Console):
 
