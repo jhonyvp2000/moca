@@ -101,6 +101,8 @@ Las tres salidas posibles:
 
 Recomendación: **A**, con los precios ajustados si hace falta para cubrir la comisión, y confirmar en la Play Console los medios de pago que acepta Google en el Perú.
 
+**Decidido (13-11-2026): opción A.** Jhony eligió Google Play Billing para la versión de Play.
+
 Fuentes: [Understanding Google Play's Payments policy](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en), [Understanding user choice billing](https://support.google.com/googleplay/android-developer/answer/13821247?hl=en), [Enrolling in the external offers programme](https://support.google.com/googleplay/android-developer/answer/14372887?hl=en_mt), [Alternative billing APIs](https://developer.android.com/google/play/billing/alternative), [Adapty: Google Play billing changes](https://adapty.io/blog/google-play-billing-changes-subscriptions-fees/), [HaiPay: Google Play billing, games left out in 5 markets](https://www.haipay.net/news/google-play-user-choice-billing-games-excluded-five-markets).
 
 ## 9. Lo que falta decidir
@@ -110,4 +112,4 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 3. ¿Para todo tipo de negocio, o primero bodegas?
 4. ¿Presupuesto para publicidad, o inicio orgánico?
 5. Dónde se aloja la web (por ejemplo, un sitio estático en Render o Cloudflare Pages) y quién administra el DNS del dominio.
-6. Cómo se cobra en la versión de Play Store (punto 8.6).
+6. ~~Cómo se cobra en la versión de Play Store~~: Google Play Billing (13-11-2026).
