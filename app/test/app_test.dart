@@ -5393,9 +5393,12 @@ void main() {
     /// El estado que mandaría el servidor, con la cuenta guardada.
     Future<BaseLocal> conCobro(
       WidgetTester tester,
-      Map<String, Object?> cobro,
-    ) async {
-      final base = await abrirApp(tester, listo: true);
+      Map<String, Object?> cobro, {
+      VersionInstalada? version,
+    }) async {
+      final base = version == null
+          ? await abrirApp(tester, listo: true)
+          : await abrirApp(tester, listo: true, versionInstalada: version);
       await tester.runAsync(() async {
         await _llavero.guardar('llave-de-prueba');
         await AccesoLocal(
@@ -5547,6 +5550,46 @@ void main() {
       await tester.tap(find.text(Textos.seguirSinEsperar));
       await tester.pump(const Duration(seconds: 4));
       await tester.pump(const Duration(seconds: 10));
+    });
+
+    testWidgets('Entrega 77: en la versión de Play no se nombran Mercado '
+        'Pago ni el Yape para pagar', (tester) async {
+      await conCobro(
+        tester,
+        {
+          'estado': 'prueba',
+          'hasta': dia(3),
+          'dias': 3,
+          'precio': 1990,
+          'mercadopago': true,
+          'opciones': {
+            'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+            'basico': {'plan': 'basico', 'precio': 1490, 'extras': 0},
+          },
+        },
+        version: const VersionInstalada(
+          entrega: 'piloto-24',
+          armado: 300,
+          commit: 'abc',
+          esArm64: true,
+          canal: Canal.play,
+        ),
+      );
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.activarMiPlan).first);
+      await deslizarHasta(tester, find.text(Textos.elegirBasico));
+      await tocar(tester, find.text(Textos.elegirBasico));
+      expect(find.text(Textos.pagarTuPlan), findsOneWidget);
+      expect(find.text(Textos.pagoConGooglePlayPronto), findsOneWidget);
+      expect(
+        find.text(
+          Textos.pagarMontoConMercadoPago(formatearSolesComprobante(1490)),
+        ),
+        findsNothing,
+      );
+      expect(find.text(Textos.prefieresYapear), findsNothing);
+      expect(find.text(Textos.verComoYapear), findsNothing);
+      expect(find.text(Textos.mercadoPagoSinTarjeta), findsNothing);
     });
 
     testWidgets('Entrega 60: el plan anual, por Mercado Pago', (tester) async {

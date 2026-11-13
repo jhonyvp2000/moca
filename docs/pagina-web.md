@@ -105,6 +105,23 @@ Recomendación: **A**, con los precios ajustados si hace falta para cubrir la co
 
 Fuentes: [Understanding Google Play's Payments policy](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en), [Understanding user choice billing](https://support.google.com/googleplay/android-developer/answer/13821247?hl=en), [Enrolling in the external offers programme](https://support.google.com/googleplay/android-developer/answer/14372887?hl=en_mt), [Alternative billing APIs](https://developer.android.com/google/play/billing/alternative), [Adapty: Google Play billing changes](https://adapty.io/blog/google-play-billing-changes-subscriptions-fees/), [HaiPay: Google Play billing, games left out in 5 markets](https://www.haipay.net/news/google-play-user-choice-billing-games-excluded-five-markets).
 
+### 8.2 El plan del cobro con Google Play (aprobado el 13-11-2026)
+
+| Entrega | Qué |
+|---|---|
+| 77 | El AAB para Play Store, armado por GitHub junto a los APK (`MOCA_CANAL=play`). En esa versión no se nombran Mercado Pago ni el Yape para pagar el plan, ni se avisa de un APK nuevo |
+| 78 | El servidor comprueba cada compra con Google, revisa que sea de ese negocio, la acepta y la registra hasta su vencimiento |
+| 79 | Los avisos en tiempo real de Google: renovación, cancelación, reembolso y pago con problemas, más una revisión diaria |
+| 80 | La app compra con Google Play; «Mis pagos» dice cuándo se renueva y lleva a «Administrar en Google Play» |
+| 81 | Prueba de punta a punta con las cuentas de prueba de Google y `soporte.md` al día |
+
+- **Personas extra:** suscripciones aparte de 1 a 5 personas (al mes y al año); más de 5, por WhatsApp.
+- **Precios:** los mismos al empezar (S/ 19.90 el Full, S/ 14.90 el Básico). Se revisan con los primeros números: Google se queda ~15 % y, probablemente, el IGV.
+- **Fundadores:** una oferta del Full a S/ 14.90 que solo ve quien ya es fundador.
+- **La cuenta:** Moca se publica a nombre de Publisher Online E.I.R.L. El D-U-N-S se pidió el 13-11-2026; cuando llegue, Jhony crea la cuenta de organización. El correo de contacto es `contacto@mocanegocios.com`.
+- **La firma:** al subir el primer AAB, elegir la propia llave de Moca para Play App Signing, para que los pilotos actualicen desde Play sin desinstalar.
+- **Una versión obligatoria** no bloquea la de Play: Play actualiza sola. Si hiciera falta forzarla, se suma la actualización dentro de la app de Play.
+
 ## 9. Lo que falta decidir
 
 1. El número de WhatsApp de ventas (va solo en la web publicada, no en el repositorio ni en el chat).

@@ -452,7 +452,10 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
       ref.read(relojProvider)(),
       opcion.periodo,
     );
-    final yape = cobro.yape;
+    // En la versión de Play no se nombran otros medios de pago (entrega 77).
+    final dePlay = ref.read(versionInstaladaProvider).dePlay;
+    final mercadoPago = cobro.mercadoPago && !dePlay;
+    final yape = dePlay ? null : cobro.yape;
     final nombre = cobro.nombreYape;
     return Scaffold(
       backgroundColor: Colores.fondo,
@@ -519,7 +522,7 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
             ),
             const SizedBox(height: Medidas.e4),
             // Mercado Pago, grande: se activa solo (entrega 60).
-            if (cobro.mercadoPago)
+            if (mercadoPago)
               Container(
                 padding: const EdgeInsets.all(Medidas.e5),
                 decoration: BoxDecoration(
@@ -562,8 +565,13 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
               ),
             const SizedBox(height: Medidas.e4),
             // El Yape directo, aparte: lo activa una persona.
-            if (yape == null || nombre == null)
-              (cobro.mercadoPago
+            if (dePlay)
+              const Text(
+                Textos.pagoConGooglePlayPronto,
+                style: Tipografia.texto,
+              )
+            else if (yape == null || nombre == null)
+              (mercadoPago
                   ? const SizedBox.shrink()
                   : const Text(Textos.pagoSinDatos, style: Tipografia.texto))
             else
@@ -616,7 +624,7 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
                         child: const Text(Textos.copiarElNumero),
                       ),
                       const SizedBox(height: Medidas.e2),
-                      if (cobro.mercadoPago)
+                      if (mercadoPago)
                         OutlinedButton(
                           onPressed: _mandarCaptura,
                           child: const Text(Textos.mandarLaCaptura),
@@ -630,7 +638,7 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
                   ],
                 ),
               ),
-            if (cobro.mercadoPago) ...[
+            if (mercadoPago) ...[
               const SizedBox(height: Medidas.e5),
               const Text(
                 Textos.mercadoPagoSinTarjeta,

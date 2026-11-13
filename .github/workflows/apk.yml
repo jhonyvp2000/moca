@@ -9,6 +9,8 @@
 #   pilotos se publica igual, con el nombre piloto-N.
 # - Desde la entrega 9 se arma un APK por tipo de procesador, más liviano:
 #   arm64 (casi todos los teléfonos) y armeabi-v7a (teléfonos antiguos).
+# - Desde la entrega 77 se arma también el AAB para Play Store (play.aab),
+#   con MOCA_CANAL=play. El servidor solo mira los .apk de Releases.
 #
 # Firma: si existen los secretos MOCA_KEYSTORE_BASE64, MOCA_KEYSTORE_PASSWORD,
 # MOCA_KEY_ALIAS y MOCA_KEY_PASSWORD, el APK se firma con la llave de Moca.
@@ -142,6 +144,18 @@ jobs:
           --dart-define=MOCA_ENTREGA=${ENTREGA}
           --dart-define=MOCA_COMMIT=${GITHUB_SHA::7}
 
+      - name: Armar AAB para Play Store
+        # Entrega 77: el paquete que pide Play Store, firmado con la misma
+        # llave (la de subida). MOCA_CANAL=play: sin Mercado Pago ni Yape
+        # para pagar el plan, y sin avisos de APK nuevo.
+        run: >-
+          flutter build appbundle --release
+          --build-number=${{ github.run_number }}
+          --dart-define=MOCA_ARMADO=${{ github.run_number }}
+          --dart-define=MOCA_ENTREGA=${ENTREGA}
+          --dart-define=MOCA_COMMIT=${GITHUB_SHA::7}
+          --dart-define=MOCA_CANAL=play
+
       - name: Comprobar la firma
         run: |
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
@@ -161,13 +175,16 @@ jobs:
           mkdir -p publicar
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "publicar/$nombre-arm64.apk"
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "publicar/$nombre-armeabi-v7a.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "publicar/$nombre-play.aab"
           ls -lh publicar
           echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NOMBRE }}
-          path: app/publicar/*.apk
+          path: |
+            app/publicar/*.apk
+            app/publicar/*.aab
           retention-days: 30
 
       - name: Publicar en Releases
@@ -187,7 +204,8 @@ jobs:
           notas="APK de la $ENTREGA del prototipo V1. Firma: $FIRMA.
 
           - arm64: para casi todos los teléfonos.
-          - armeabi-v7a: solo si el teléfono es muy antiguo y el otro no se instala."
+          - armeabi-v7a: solo si el teléfono es muy antiguo y el otro no se instala.
+          - play.aab: el paquete para subir a Play Store (no se instala directo)."
           # Obligatoria (entrega 34): el servidor lee esta marca de las notas.
           if [[ "${{ inputs.obligatoria }}" == "true" ]]; then
             notas="$notas
@@ -197,7 +215,7 @@ jobs:
           # La versión de los pilotos no es de prueba interna.
           prueba=""
           if [[ "$ENTREGA" == entrega-* || "$ENTREGA" == mejora-* ]]; then prueba="--prerelease"; fi
-          gh release create "$ENTREGA" app/publicar/*.apk \
+          gh release create "$ENTREGA" app/publicar/*.apk app/publicar/*.aab \
             --target "$GITHUB_SHA" \
             --title "Moca · $ENTREGA" \
             --notes "$notas" \

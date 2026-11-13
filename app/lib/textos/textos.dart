@@ -1874,6 +1874,10 @@ abstract final class Textos {
       'activa apenas se confirma el pago.';
   static String pagarMontoConMercadoPago(String monto) =>
       'Pagar $monto con Mercado Pago';
+  // La versión de Play Store (entrega 77): el pago con Google Play llega en
+  // la entrega 80.
+  static const pagoConGooglePlayPronto =
+      'Muy pronto vas a poder pagar tu plan aquí mismo, con Google Play.';
   static const prefieresYapear = '¿Prefieres yapear directo a Moca?';
   static const yapeTardaMas =
       'Tarda más: una persona revisa tu captura y activa tu plan.';
