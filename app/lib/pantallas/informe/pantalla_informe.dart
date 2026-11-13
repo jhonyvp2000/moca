@@ -403,45 +403,45 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               ],
             ),
             const SizedBox(height: Medidas.e3),
-            // «Mes · Año» y las flechas del mes, en una fila.
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              runSpacing: Medidas.e2,
+            // «Mes · Año» y el mes con sus flechas, siempre en una sola fila
+            // (entrega 76): si no cabe, el nombre del mes se achica.
+            Row(
               children: [
                 _selector(),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _Flecha(
-                      icono: Icono.izquierda,
-                      etiqueta: Textos.mesAnterior,
-                      alTocar: i.mesPrevio == null
-                          ? null
-                          : () => setState(() => _mes = i.mesPrevio),
-                    ),
-                    // Con letra grande se achica antes que desbordarse.
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 180),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Semantics(
-                          header: true,
-                          child: Text(
-                            nombreDelMesConMayuscula(i.mes),
-                            style: Tipografia.tituloDestacado,
+                const SizedBox(width: Medidas.e2),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _Flecha(
+                        icono: Icono.izquierda,
+                        etiqueta: Textos.mesAnterior,
+                        alTocar: i.mesPrevio == null
+                            ? null
+                            : () => setState(() => _mes = i.mesPrevio),
+                      ),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Semantics(
+                            header: true,
+                            child: Text(
+                              nombreDelMesConMayuscula(i.mes),
+                              maxLines: 1,
+                              style: Tipografia.tituloDestacado,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    _Flecha(
-                      icono: Icono.derecha,
-                      etiqueta: Textos.mesSiguiente,
-                      alTocar: i.mesSiguiente == null
-                          ? null
-                          : () => setState(() => _mes = i.mesSiguiente),
-                    ),
-                  ],
+                      _Flecha(
+                        icono: Icono.derecha,
+                        etiqueta: Textos.mesSiguiente,
+                        alTocar: i.mesSiguiente == null
+                            ? null
+                            : () => setState(() => _mes = i.mesSiguiente),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

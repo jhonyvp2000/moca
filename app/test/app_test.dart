@@ -1978,6 +1978,29 @@ void main() {
       expect(find.text('S/ 1,470'), findsOneWidget);
     });
 
+    testWidgets('Entrega 76: en Informes, «Mes / Año» y el mes van en una '
+        'sola fila, aun en un teléfono angosto con letra grande', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360 * 3, 780 * 3);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      for (final escala in [1.0, 1.5]) {
+        tester.platformDispatcher.textScaleFactorTestValue = escala;
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'letra $escala');
+        final selector = tester.getRect(find.text(Textos.verMes));
+        final mes = tester.getRect(find.text(nombreDelMesConMayuscula(_ahora)));
+        // En la misma fila: se cruzan en altura.
+        expect(mes.top, lessThan(selector.bottom), reason: 'letra $escala');
+        expect(mes.bottom, greaterThan(selector.top), reason: 'letra $escala');
+        expect(mes.right, lessThanOrEqualTo(360), reason: 'letra $escala');
+      }
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
     testWidgets('Con la letra del sistema al 150 % nada se desborda', (
       tester,
     ) async {
