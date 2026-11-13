@@ -25,6 +25,12 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - Solo Yape, o también Plin y las billeteras de otros bancos.
 - Que el consentimiento del dueño (Ley 29733) mencione el permiso de leer notificaciones.
 
+## Página web y Play Store (13-11-2026, `pagina-web.md`)
+
+- El número de WhatsApp de ventas, los testimonios autorizados de pilotos, el público inicial (todos o bodegas), el presupuesto de publicidad y dónde se aloja la web.
+- La cuenta de desarrollador de Google Play (personal u organización), la prueba cerrada con 12 personas si es personal, el armado del AAB y la política de privacidad pública en mocanegocios.com.
+- Cómo se cobra en la versión de Play Store: Google Play Billing u otra salida que permitan sus reglas para el Perú.
+
 ## Se resuelven en la Fase 0
 
 Ver `fase-0.md`. En resumen:

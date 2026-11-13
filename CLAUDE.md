@@ -58,6 +58,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `docs/prueba-varios-telefonos.md` | Guion de la prueba con dos o tres teléfonos (entrega 23) |
 | `docs/guiones-videos.md` | Guiones de los 7 videos cortos de tutoría |
 | `docs/pendientes.md` | Decisiones abiertas |
+| `docs/pagina-web.md` | La página de venta en mocanegocios.com: análisis, estructura, píxeles y cookies, y lo que falta para Play Store |
 | `docs/yape-automatico.md` | Análisis de los yapes automáticos (correo del BCP o notificación de Yape), con lo medido en TVSamGo |
 | `diseno/indice.md` | Las 50 pantallas, con su versión y sus archivos |
 | `diseno/estilo.md` | Colores, tipografía y reglas de interfaz |
