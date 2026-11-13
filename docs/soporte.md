@@ -219,7 +219,7 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **«Ya no veo los botones Entró, Salió y Pendientes en el Historial»** (entrega 71): están en el botón **Filtrar** del Historial, en la sección **«Transacciones»**. «Pendientes» ahora son dos: **Te deben** y **Debes**. Se pueden marcar varios a la vez.
 
-> En el Historial, toca **Filtrar** (arriba, a la derecha). En «Transacciones» elige Entró, Salió, Te deben, Debes o Por subir (puedes marcar varios) y toca «Ver registros».
+> En el Historial, toca **Filtrar** (arriba, a la derecha). En «Transacciones» elige Entró, Salió, Te deben, Debes o Por subir (puedes marcar varios) y toca «Ver registros». (Hasta la entrega 71, justo después de guardar, el aviso «Guardado…» tapaba unos segundos «Ver registros»: se espera o se desliza el aviso. Desde la 72 se cierra solo.)
 
 **«No puedo dejar de usar una caja: dice que hace falta señal»** (corregido en la entrega 70): en versiones anteriores pasaba en la Demo o sin cuenta, aunque hubiera señal. Desde la entrega 70 solo se revisa con el servidor si el negocio tiene varias personas; ahí sí hace falta señal, porque la caja podría ser de alguien del equipo.
 

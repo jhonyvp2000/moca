@@ -937,9 +937,7 @@ Future<void> filtrarTransacciones(
 ) async {
   Finder enLaHoja(Finder f) =>
       find.descendant(of: find.byType(HojaFiltros), matching: f);
-  // Que se vaya el aviso de «Guardado»: tapa el botón de la hoja.
-  await tester.pump(const Duration(seconds: 8));
-  await esperar(tester);
+  // Sin esperar al aviso de «Guardado»: la hoja lo cierra (entrega 72).
   await tocar(tester, botonFiltrar);
   expect(enLaHoja(find.text(Textos.filtroTransacciones)), findsOneWidget);
   for (final p in pastillas) {

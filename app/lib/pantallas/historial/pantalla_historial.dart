@@ -52,6 +52,8 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
     required DateTime hoy,
     required bool conPeriodo,
   }) async {
+    // El aviso de «Guardado» tapaba el botón de la hoja (entrega 72).
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
     final aplicar = await showModalBottomSheet<FiltrosDelHistorial>(
       context: context,
       isScrollControlled: true,
