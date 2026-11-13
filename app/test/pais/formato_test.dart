@@ -104,4 +104,21 @@ void main() {
       'Miércoles 9:00\u00A0a. m.',
     );
   });
+
+  test('Entrega 73: los montos como se dicen en voz alta', () {
+    const n = '\u00A0';
+    expect(montosParaDecir('Entró S/${n}30.'), 'Entró 30 soles.');
+    expect(montosParaDecir('S/${n}1,350'), '1350 soles');
+    expect(montosParaDecir('S/ 1'), 'un sol');
+    expect(montosParaDecir('S/${n}3.40'), '3 soles con 40 céntimos');
+    expect(montosParaDecir('S/${n}0.50'), '50 céntimos');
+    expect(montosParaDecir('S/${n}2.01'), '2 soles con un céntimo');
+    expect(montosParaDecir('−S/${n}50'), 'menos 50 soles');
+    expect(montosParaDecir('− S/${n}1,200,000'), 'menos 1200000 soles');
+    expect(
+      montosParaDecir('Entró S/${n}480 y salió S/${n}130.'),
+      'Entró 480 soles y salió 130 soles.',
+    );
+    expect(montosParaDecir('Sin montos.'), 'Sin montos.');
+  });
 }

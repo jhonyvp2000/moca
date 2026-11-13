@@ -165,3 +165,22 @@ String? celularDeCliente(String texto) {
 
 /// El número para el enlace de WhatsApp, con el código de Perú.
 String celularParaWhatsApp(String celular) => '51$celular';
+
+/// Los montos como se dicen en voz alta (entrega 73): «S/ 30» → «30 soles»,
+/// «S/ 1,350» → «1350 soles», «S/ 1» → «un sol», «S/ 3.40» → «3 soles con 40
+/// céntimos», «S/ 0.50» → «50 céntimos», «−S/ 50» → «menos 50 soles». Las
+/// cifras las pronuncia la voz del teléfono; lo demás no cambia.
+String montosParaDecir(String texto) => texto.replaceAllMapped(
+  RegExp(r'([−-][\s ]?)?S/[\s ]?(\d{1,3}(?:,\d{3})*|\d+)(?:\.(\d{1,2}))?'),
+  (m) {
+    final menos = m.group(1) == null ? '' : 'menos ';
+    final soles = int.parse(m.group(2)!.replaceAll(',', ''));
+    final centimos = int.parse((m.group(3) ?? '0').padRight(2, '0'));
+    String deSoles(int n) => n == 1 ? 'un sol' : '$n soles';
+    String deCentimos(int n) => n == 1 ? 'un céntimo' : '$n céntimos';
+    if (soles == 0 && centimos > 0) return '$menos${deCentimos(centimos)}';
+    return centimos > 0
+        ? '$menos${deSoles(soles)} con ${deCentimos(centimos)}'
+        : '$menos${deSoles(soles)}';
+  },
+);

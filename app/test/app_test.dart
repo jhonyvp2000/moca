@@ -3301,7 +3301,8 @@ void main() {
       expect(find.text(texto), findsOneWidget);
       expect(find.text(Textos.sinAvisos), findsOneWidget);
       await tocar(tester, find.byKey(PantallaMoca.claveEscuchar));
-      expect(_loQueDijo, [texto]);
+      // En pantalla «S/ 350»; en voz, «350 soles» (entrega 73).
+      expect(_loQueDijo, ['${Textos.estaSemanaQueda('350 soles')}.']);
     });
 
     testWidgets('Sin voz en español, lo dice', (tester) async {

@@ -14,6 +14,7 @@ import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
 import '../../inyeccion.dart';
+import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
@@ -64,7 +65,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
     setState(() => _hablando = true);
     try {
       await ref.read(medicionProvider).anotar(EventoMedicion.resumenEscuchado);
-      await locutor.decir(texto);
+      // «S/ 30» se dice «30 soles» (entrega 73).
+      await locutor.decir(montosParaDecir(texto));
     } finally {
       if (mounted) setState(() => _hablando = false);
     }
