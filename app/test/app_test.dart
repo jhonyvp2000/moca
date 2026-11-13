@@ -924,6 +924,42 @@ Future<void> desplegar(WidgetTester tester, String titulo) async {
   await tocar(tester, find.text(titulo));
 }
 
+/// El botón de filtros del Historial: «Filtrar» o «Filtrar (n)».
+final botonFiltrar = find.byWidgetPredicate(
+  (w) => w is Tooltip && (w.message ?? '').startsWith(Textos.filtrar),
+);
+
+/// «Transacciones» en la hoja de filtros del Historial (entrega 71): marca
+/// las pastillas dadas y aplica.
+Future<void> filtrarTransacciones(
+  WidgetTester tester,
+  List<String> pastillas,
+) async {
+  Finder enLaHoja(Finder f) =>
+      find.descendant(of: find.byType(HojaFiltros), matching: f);
+  // Que se vaya el aviso de «Guardado»: tapa el botón de la hoja.
+  await tester.pump(const Duration(seconds: 8));
+  await esperar(tester);
+  await tocar(tester, botonFiltrar);
+  expect(enLaHoja(find.text(Textos.filtroTransacciones)), findsOneWidget);
+  for (final p in pastillas) {
+    await tocar(tester, enLaHoja(find.text(p)));
+  }
+  await tocar(tester, enLaHoja(find.byType(FilledButton)));
+}
+
+/// Quita todos los filtros desde la hoja.
+Future<void> quitarFiltros(WidgetTester tester) async {
+  await tocar(tester, botonFiltrar);
+  await tocar(
+    tester,
+    find.descendant(
+      of: find.byType(HojaFiltros),
+      matching: find.text(Textos.quitarFiltros),
+    ),
+  );
+}
+
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
   await tocar(tester, find.byTooltip(Textos.ajustes));
@@ -1244,7 +1280,7 @@ void main() {
     testWidgets('Cada pestaña dice en qué entrega llega', (tester) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.text(Textos.pestanaHistorial));
-      expect(find.text(Textos.filtroTodo), findsOneWidget);
+      expect(find.byTooltip(Textos.filtrar), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text(Textos.compartir), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaMoca).last);
@@ -2631,7 +2667,8 @@ void main() {
       );
       expect(find.text(Textos.esoEsTodo), findsOneWidget);
 
-      await tocar(tester, find.text(Textos.filtroPendientes(1)));
+      // «Te deben» está en la hoja de filtros (entrega 71).
+      await filtrarTransacciones(tester, [Textos.filtroTeDeben(1)]);
       expect(find.text('Doña Rosa'), findsOneWidget);
       // La venta pagada no está, y el día no suma lo fiado.
       expect(find.text('+ S/ 350'), findsNothing);
@@ -2657,13 +2694,36 @@ void main() {
       );
       expect(find.text('− S/ 80'), findsNWidgets(2));
 
-      await tocar(tester, find.text(Textos.entro));
+      // Sin pastillas arriba: «Transacciones» en la hoja (entrega 71).
+      expect(find.text(Textos.entro), findsNothing);
+      await filtrarTransacciones(tester, [Textos.entro]);
       expect(find.text('Bolsas'), findsNothing);
       expect(find.text('Venta del día'), findsOneWidget);
-      await tocar(tester, find.text(Textos.salio));
+      // Varias a la vez: Entró y Salió.
+      await filtrarTransacciones(tester, [Textos.salio]);
+      expect(find.text('Bolsas'), findsOneWidget);
+      expect(find.text('Venta del día'), findsOneWidget);
+      // Solo Salió.
+      await filtrarTransacciones(tester, [Textos.entro]);
       expect(find.text('Venta del día'), findsNothing);
-      await tocar(tester, find.text(Textos.filtroPorSubir(0)));
-      expect(find.text(Textos.nadaPorSubir), findsOneWidget);
+      expect(find.text('Bolsas'), findsOneWidget);
+      // Sin nada por subir, la hoja lo dice y no deja aplicar.
+      await tocar(tester, botonFiltrar);
+      await tocar(
+        tester,
+        find.descendant(
+          of: find.byType(HojaFiltros),
+          matching: find.text(Textos.salio),
+        ),
+      );
+      await tocar(
+        tester,
+        find.descendant(
+          of: find.byType(HojaFiltros),
+          matching: find.text(Textos.filtroPorSubir(0)),
+        ),
+      );
+      expect(find.text(Textos.ningunRegistroConFiltros), findsOneWidget);
     });
 
     testWidgets('Sin señal se avisa y lo guardado queda por subir', (
@@ -2689,7 +2749,10 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
 
       await abrirHistorial(tester);
+      // La cuenta de lo por subir, en la hoja de filtros (entrega 71).
+      await tocar(tester, find.byTooltip(Textos.filtrar));
       expect(find.text(Textos.filtroPorSubir(1)), findsOneWidget);
+      await tocar(tester, find.byTooltip(Textos.cerrar));
       // «Por subir» va en la segunda línea (entrega 68).
       expect(
         find.textContaining(
@@ -2755,7 +2818,7 @@ void main() {
       await tocar(tester, find.widgetWithText(TextButton, Textos.deshacer));
       expect(find.text(Textos.registroDeshecho), findsOneWidget);
       expect(find.text('Bolsas'), findsNothing);
-      expect(find.text(Textos.filtroTodo), findsOneWidget);
+      expect(find.byTooltip(Textos.filtrar), findsOneWidget);
     });
 
     testWidgets('«Ya lo pagué» pide cuenta y día y quita «Lo debes»', (
@@ -2945,9 +3008,10 @@ void main() {
         find.textContaining(' · ${Textos.efectivo}', findRichText: true),
         findsOneWidget,
       );
-      await tocar(tester, find.text(Textos.salio));
+      // Un ajuste no es ni entrada ni salida.
+      await filtrarTransacciones(tester, [Textos.entro]);
       expect(find.text(Textos.ajusteDelArqueo), findsNothing);
-      await tocar(tester, find.text(Textos.filtroTodo));
+      await quitarFiltros(tester);
 
       await tocar(tester, find.text(Textos.ajusteDelArqueo));
       expect(find.text(Textos.ajusteExplicacion), findsOneWidget);
@@ -6679,11 +6743,8 @@ void main() {
       await tocar(tester, mas);
       expect(find.text(Textos.verMenos), findsOneWidget);
       // Sin resultados: el botón lo dice y no se puede tocar.
-      await tocar(tester, find.byTooltip(Textos.cerrar));
-      await tocar(tester, find.textContaining('Entró').first);
-      await tocar(tester, find.byTooltip(Textos.filtrar));
-      await tester.ensureVisible(mas);
-      await tocar(tester, mas);
+      // Entró y Mercadería: no hay ninguno (entrega 71).
+      await tocar(tester, enLaHoja(find.text(Textos.entro)));
       final mercaderia = enLaHoja(find.text('Mercadería'));
       await tester.ensureVisible(mercaderia);
       await tocar(tester, mercaderia);

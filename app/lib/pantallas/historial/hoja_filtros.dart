@@ -58,6 +58,18 @@ class _EstadoHojaFiltros extends State<HojaFiltros> {
   void _cambiar(FiltrosDelHistorial nuevas) =>
       setState(() => _elegidas = nuevas);
 
+  /// Con cuántos hay, en lo que se debe y lo por subir.
+  String _nombre(Transaccion t) {
+    int cuantos() => widget.todas.where((f) => f.cumple(t)).length;
+    return switch (t) {
+      Transaccion.entro => Textos.entro,
+      Transaccion.salio => Textos.salio,
+      Transaccion.teDeben => Textos.filtroTeDeben(cuantos()),
+      Transaccion.debes => Textos.filtroDebes(cuantos()),
+      Transaccion.porSubir => Textos.filtroPorSubir(cuantos()),
+    };
+  }
+
   static Set<T> _alternar<T>(Set<T> conjunto, T valor) =>
       conjunto.contains(valor)
       ? ({...conjunto}..remove(valor))
@@ -244,6 +256,25 @@ class _EstadoHojaFiltros extends State<HojaFiltros> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Entró, salió, te deben, debes y por subir (entrega 71):
+                    // varias a la vez; ninguna es todo.
+                    const Text(
+                      Textos.filtroTransacciones,
+                      style: Tipografia.textoFuerte,
+                    ),
+                    const SizedBox(height: Medidas.e2),
+                    OpcionesVarias<Transaccion>(
+                      opciones: {
+                        for (final t in Transaccion.values) t: _nombre(t),
+                      },
+                      elegidas: _elegidas.transacciones,
+                      alTocar: (t) => _cambiar(
+                        _elegidas.con(
+                          transacciones: _alternar(_elegidas.transacciones, t),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Medidas.e4),
                     if (widget.conPeriodo) ...[
                       const Text(Textos.periodo, style: Tipografia.textoFuerte),
                       const SizedBox(height: Medidas.e2),

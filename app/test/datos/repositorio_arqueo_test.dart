@@ -118,7 +118,7 @@ void main() {
       final falta = ajustes.firstWhere((f) => f.cuenta == TipoCuenta.efectivo);
       expect(falta.tipo, TipoMovimiento.egreso);
       expect(falta.montoCentimos, 8000);
-      expect(falta.cumple(FiltroHistorial.salio), isFalse);
+      expect(falta.cumple(Transaccion.salio), isFalse);
       final detalle = (await historial.observarDetalle(falta.id).first)!;
       expect(detalle.ajuste?.motivo, MotivoArqueo.noLoSe);
       expect(detalle.ajuste?.calculadoCentimos, 135000);

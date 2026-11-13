@@ -30,8 +30,6 @@ class PantallaHistorial extends ConsumerStatefulWidget {
 }
 
 class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
-  FiltroHistorial _filtro = FiltroHistorial.todo;
-
   /// La búsqueda y la hoja «Filtrar» (entrega 39). Se borran al salir.
   final _buscar = TextEditingController();
   FiltrosDelHistorial _filtros = const FiltrosDelHistorial();
@@ -62,24 +60,12 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
         inicial: _filtros,
         hoy: hoy,
         conPeriodo: conPeriodo,
-        contar: (f) => todas
-            .where(
-              (x) =>
-                  x.cumple(_filtro) && f.cumple(x, cuenta: Textos.nombreCuenta),
-            )
-            .length,
+        contar: (f) =>
+            todas.where((x) => f.cumple(x, cuenta: Textos.nombreCuenta)).length,
       ),
     );
     if (aplicar != null) setState(() => _filtros = aplicar);
   }
-
-  static String _vacio(FiltroHistorial filtro) => switch (filtro) {
-    FiltroHistorial.todo => Textos.historialVacio,
-    FiltroHistorial.entro => Textos.sinEntradas,
-    FiltroHistorial.salio => Textos.sinSalidas,
-    FiltroHistorial.pendientes => Textos.sinPendientes,
-    FiltroHistorial.porSubir => Textos.nadaPorSubir,
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -98,11 +84,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
         resumen?.filas.where((f) => !soloHoy || deHoy(f)).toList() ??
         const <FilaHistorial>[];
     final filas = visibles
-        .where(
-          (f) =>
-              f.cumple(_filtro) &&
-              _filtros.cumple(f, cuenta: Textos.nombreCuenta),
-        )
+        .where((f) => _filtros.cumple(f, cuenta: Textos.nombreCuenta))
         .toList();
     final buscando = !_filtros.vacios;
     // Con la regla del total del día (entrega 56): sin lo que se debe, y lo
@@ -211,55 +193,8 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                 ),
               ),
             ),
-            // Los filtros rápidos se deslizan; el borde que se desvanece dice
-            // que hay más (mejora 01).
-            ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (r) => LinearGradient(
-                colors: [
-                  Colores.superficie,
-                  Colores.superficie,
-                  Colores.superficie.withValues(alpha: 0),
-                ],
-                stops: const [0, 0.88, 1],
-              ).createShader(r),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Medidas.margenLateral,
-                ),
-                child: Row(
-                  children: [
-                    for (final (i, filtro)
-                        in FiltroHistorial.values.indexed) ...[
-                      if (i > 0) const SizedBox(width: Medidas.e2),
-                      _Filtro(
-                        texto: switch (filtro) {
-                          FiltroHistorial.todo => Textos.filtroTodo,
-                          FiltroHistorial.entro => Textos.entro,
-                          FiltroHistorial.salio => Textos.salio,
-                          FiltroHistorial.pendientes => Textos.filtroPendientes(
-                            resumen?.pendientes ?? 0,
-                          ),
-                          FiltroHistorial.porSubir => Textos.filtroPorSubir(
-                            resumen?.porSubir ?? 0,
-                          ),
-                        },
-                        punto: switch (filtro) {
-                          FiltroHistorial.todo => null,
-                          FiltroHistorial.entro => Colores.ingreso,
-                          FiltroHistorial.salio => Colores.egreso,
-                          FiltroHistorial.pendientes => Colores.pendiente,
-                          FiltroHistorial.porSubir => Colores.neutro,
-                        },
-                        elegido: filtro == _filtro,
-                        alTocar: () => setState(() => _filtro = filtro),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+            // Entró, salió, te deben, debes y por subir están en la hoja de
+            // filtros, en «Transacciones» (entrega 71).
             const SizedBox(height: Medidas.e2),
             // Lo encontrado, con su suma, y cómo volver a ver todo.
             if (buscando && filas.isNotEmpty)
@@ -313,18 +248,18 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                   icono: buscando
                       ? Icons.search_off_rounded
                       : Icons.receipt_long_rounded,
-                  titulo: buscando ? Textos.sinResultados : _vacio(_filtro),
+                  titulo: buscando
+                      ? Textos.sinResultados
+                      : Textos.historialVacio,
                   accion: buscando
                       ? TextButton(
                           onPressed: _quitarFiltros,
                           child: const Text(Textos.quitarFiltros),
                         )
-                      : _filtro == FiltroHistorial.todo
-                      ? FilledButton(
+                      : FilledButton(
                           onPressed: () => context.push(Rutas.registrar),
                           child: const Text(Textos.registrar),
-                        )
-                      : null,
+                        ),
                 ),
               ),
             for (final MapEntry(key: dia, value: delDia) in dias.entries)
@@ -375,10 +310,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
               ),
             // El final de la lista: no hay más (mejora 01). El ayudante ve
             // solo lo de hoy, y eso ya se lo dice su aviso.
-            if (filas.isNotEmpty &&
-                !buscando &&
-                _filtro == FiltroHistorial.todo &&
-                !soloHoy)
+            if (filas.isNotEmpty && !buscando && !soloHoy)
               const Padding(
                 padding: EdgeInsets.fromLTRB(
                   Medidas.margenLateral,
@@ -488,78 +420,6 @@ class _EncabezadoDelDia extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Un filtro rápido (mejora 01): azul de marca cuando está elegido y, si
-/// tiene, el punto de su color.
-class _Filtro extends StatelessWidget {
-  const _Filtro({
-    required this.texto,
-    required this.elegido,
-    required this.alTocar,
-    this.punto,
-  });
-
-  final String texto;
-  final bool elegido;
-  final VoidCallback alTocar;
-  final Color? punto;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Medidas.radioPildora),
-      side: elegido
-          ? BorderSide.none
-          : const BorderSide(color: Colores.bordeTarjeta),
-    );
-    return Semantics(
-      selected: elegido,
-      button: true,
-      inMutuallyExclusiveGroup: true,
-      child: Material(
-        color: elegido ? Colores.marca : Colores.superficie,
-        shape: forma,
-        child: InkWell(
-          customBorder: forma,
-          onTap: alTocar,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: Medidas.objetivoTactilMinimo,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (punto case final color?) ...[
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: elegido ? Colores.sobreMarca : color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: Medidas.e2),
-                  ],
-                  Text(
-                    texto,
-                    style: Tipografia.etiquetaBarra.copyWith(
-                      fontWeight: elegido ? FontWeight.w700 : FontWeight.w600,
-                      color: elegido
-                          ? Colores.sobreMarca
-                          : Colores.textoPrincipal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

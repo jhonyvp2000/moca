@@ -3,7 +3,9 @@ import 'movimientos.dart';
 
 /// Los filtros rápidos del Historial. «Pendientes»: lo que te deben y lo
 /// que debes (mejora 01).
-enum FiltroHistorial { todo, entro, salio, pendientes, porSubir }
+/// «Transacciones» en la hoja de filtros del Historial (entrega 71): se
+/// pueden elegir varias; ninguna es todo.
+enum Transaccion { entro, salio, teDeben, debes, porSubir }
 
 /// Una fila del Historial (S10). Solo registros vigentes: lo deshecho o
 /// reemplazado por una corrección no aparece.
@@ -149,14 +151,14 @@ class FilaHistorial {
         esPago: esPago ?? this.esPago,
       );
 
-  bool cumple(FiltroHistorial filtro) => switch (filtro) {
-    FiltroHistorial.todo => true,
-    // Un pase no entra ni sale del negocio: solo en «Todo».
-    FiltroHistorial.entro => !ajusteArqueo && tipo.entraPlata,
-    FiltroHistorial.salio => !ajusteArqueo && !tipo.entraPlata && !tipo.esPase,
-    FiltroHistorial.pendientes => loDebes,
+  bool cumple(Transaccion transaccion) => switch (transaccion) {
+    // Un pase no entra ni sale del negocio: solo sin filtro.
+    Transaccion.entro => !ajusteArqueo && tipo.entraPlata,
+    Transaccion.salio => !ajusteArqueo && !tipo.entraPlata && !tipo.esPase,
+    Transaccion.teDeben => loDebes && teDeben,
+    Transaccion.debes => loDebes && !teDeben,
     // El registro sale una vez, aunque tenga la fila del día del pago.
-    FiltroHistorial.porSubir => porSubir && !esPago,
+    Transaccion.porSubir => porSubir && !esPago,
   };
 }
 
@@ -239,7 +241,12 @@ class FiltrosDelHistorial {
     this.categorias = const {},
     this.personas = const {},
     this.periodo,
+    this.transacciones = const {},
   });
+
+  /// Entró, salió, te deben, debes o por subir (entrega 71). Una fila pasa
+  /// si es de alguna de las elegidas.
+  final Set<Transaccion> transacciones;
 
   final String texto;
   final Set<TipoCuenta> cuentas;
@@ -258,14 +265,16 @@ class FiltrosDelHistorial {
       cuentas.isEmpty &&
       categorias.isEmpty &&
       personas.isEmpty &&
-      periodo == null;
+      periodo == null &&
+      transacciones.isEmpty;
 
   /// Cuántos de los filtros de la hoja «Filtrar» están puestos.
   int get puestos =>
       (periodo == null ? 0 : 1) +
       (cuentas.isEmpty ? 0 : 1) +
       (categorias.isEmpty ? 0 : 1) +
-      (personas.isEmpty ? 0 : 1);
+      (personas.isEmpty ? 0 : 1) +
+      (transacciones.isEmpty ? 0 : 1);
 
   FiltrosDelHistorial conTexto(String nuevo) => con(texto: nuevo);
 
@@ -277,7 +286,9 @@ class FiltrosDelHistorial {
     Set<String>? personas,
     PeriodoHistorial? periodo,
     bool sinPeriodo = false,
+    Set<Transaccion>? transacciones,
   }) => FiltrosDelHistorial(
+    transacciones: transacciones ?? this.transacciones,
     texto: texto ?? this.texto,
     cuentas: cuentas ?? this.cuentas,
     categorias: categorias ?? this.categorias,
@@ -293,6 +304,7 @@ class FiltrosDelHistorial {
 
   bool cumple(FilaHistorial f, {required String Function(TipoCuenta) cuenta}) {
     if (identical(this, _sinFiltro)) return true;
+    if (transacciones.isNotEmpty && !transacciones.any(f.cumple)) return false;
     if (periodo case final p? when !p.contiene(f.fecha)) return false;
     if (cuentas.isNotEmpty &&
         !cuentas.contains(f.cuenta) &&

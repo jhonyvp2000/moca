@@ -803,13 +803,12 @@ abstract final class Textos {
   static const seDeshizo = 'Listo, no se guardó.';
 
   // S10 · Historial
-  static const filtroTodo = 'Todo';
+  // «Transacciones» en los filtros (entrega 71).
+  static const filtroTransacciones = 'Transacciones';
   static String filtroPorSubir(int n) => n > 0 ? 'Por subir · $n' : 'Por subir';
-  static String filtroPendientes(int n) =>
-      n > 0 ? 'Pendientes · $n' : 'Pendientes';
+  static String filtroTeDeben(int n) => n > 0 ? 'Te deben · $n' : 'Te deben';
+  static String filtroDebes(int n) => n > 0 ? 'Debes · $n' : 'Debes';
   static const esoEsTodo = 'Eso es todo desde que empezaste con Moca';
-  static const sinPendientes =
-      'No hay nada pendiente: nadie te debe y no debes nada.';
   static const marcaPorSubir = 'por subir';
   static const porSubirEtiqueta = 'Por subir';
   static const loDebes = 'Lo debes';
@@ -817,9 +816,6 @@ abstract final class Textos {
   static const aporteNoCuenta = 'No cuenta como venta';
   static const historialVacio =
       'Todavía no hay registros. Lo que anotes aparece aquí.';
-  static const sinEntradas = 'Todavía no hay registros de plata que entró.';
-  static const sinSalidas = 'Todavía no hay registros de plata que salió.';
-  static const nadaPorSubir = 'No hay nada por subir.';
 
   // Detalle del movimiento (no dibujado)
   static const tituloDetalle = 'Registro';

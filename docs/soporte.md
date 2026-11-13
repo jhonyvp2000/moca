@@ -217,6 +217,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
+**«Ya no veo los botones Entró, Salió y Pendientes en el Historial»** (entrega 71): están en el botón **Filtrar** del Historial, en la sección **«Transacciones»**. «Pendientes» ahora son dos: **Te deben** y **Debes**. Se pueden marcar varios a la vez.
+
+> En el Historial, toca **Filtrar** (arriba, a la derecha). En «Transacciones» elige Entró, Salió, Te deben, Debes o Por subir (puedes marcar varios) y toca «Ver registros».
+
 **«No puedo dejar de usar una caja: dice que hace falta señal»** (corregido en la entrega 70): en versiones anteriores pasaba en la Demo o sin cuenta, aunque hubiera señal. Desde la entrega 70 solo se revisa con el servidor si el negocio tiene varias personas; ahí sí hace falta señal, porque la caja podría ser de alguien del equipo.
 
 > Actualiza Moca a la última versión. Si tu negocio tiene varias personas, conéctate a internet y vuelve a intentarlo.

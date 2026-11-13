@@ -128,8 +128,8 @@ void main() {
     final fila = (await historial()).filas.firstWhere((f) => f.id == id);
     expect(fila.proveedor, 'Distribuidora San Martín');
     expect(fila.loDebes, isTrue);
-    expect(fila.cumple(FiltroHistorial.salio), isTrue);
-    expect(fila.cumple(FiltroHistorial.entro), isFalse);
+    expect(fila.cumple(Transaccion.salio), isTrue);
+    expect(fila.cumple(Transaccion.entro), isFalse);
   });
 
   test('Lo guardado sin señal queda por subir y no cambia', () async {
@@ -998,7 +998,7 @@ void main() {
       );
       // En «Por subir» sale una sola vez.
       expect(
-        filas.where((f) => f.cumple(FiltroHistorial.porSubir)).length,
+        filas.where((f) => f.cumple(Transaccion.porSubir)).length,
         lessThanOrEqualTo(1),
       );
     });
