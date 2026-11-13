@@ -10,7 +10,7 @@ Los umbrales de «suficientemente bueno» no están fijados; se acuerdan con Jho
 
 | # | Prueba | Qué se necesita | Qué se mide | Qué decide |
 |---|---|---|---|---|
-| 1 | Lectura de comprobantes por foto | Unos 200 comprobantes reales de los pilotos: boletas, facturas, tickets, vouchers, notas de venta | Exactitud por campo (total, fecha, emisor, ítems) y por tipo de comprobante; costo de IA por comprobante con un modelo económico y con uno mayor | Qué modelo usar, cuándo escalar al mayor, tope de fotos y precio |
+| 1 | Lectura de comprobantes por foto | Unos 200 comprobantes reales de los pilotos: boletas, facturas, tickets, vouchers, notas de venta | Exactitud por campo (total, fecha, emisor, ítems) y por tipo de comprobante; costo de IA por comprobante con un modelo económico y con uno mayor | Qué modelo usar, cuándo escalar al mayor, tope de fotos y precio. Desde la entrega 14, el servidor anota cada lectura del piloto (tabla `lecturas`: modelo, si escaló, lo que leyó, costo y tiempo; sin la foto), para comparar con el comprobante que guardó el dueño |
 | 2 | Contenido del QR | Comprobantes electrónicos de los pilotos | Qué campos trae el QR en la práctica y en qué proporción de comprobantes aparece | Cuánto trabajo le quita el QR a la lectura por foto |
 | 3 | Registro por voz | Frases reales grabadas por dueños («hoy vendí 350», «pagué 80 de luz») | Exactitud del monto, del tipo de movimiento y de la cuenta; costo por registro | Si la voz puede ser la entrada principal del modo Simple y qué tope lleva |
 | 4 | Archivos SIRE | Archivos de muestra de los 3 contadores | Formato real, campos, variantes entre ventas y compras | Diseño de la importación y de la conciliación (V2) |

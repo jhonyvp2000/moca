@@ -45,6 +45,28 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     final ahora = _a.ahora();
     final cuentas = await _a.cuentas(empresa.id);
     final movimientos = await _a.movimientos(empresa.id);
+
+    // Las cifras del servidor, si valen (entrega 13).
+    if (await _a.cifrasDelServidor() case final cifras?) {
+      final i = cifras.inicio;
+      return ResumenInicio(
+        nombreNegocio: empresa.nombre,
+        saldosPorCuenta: cifras.saldos,
+        semanaEntroCentimos: i.semanaEntroCentimos,
+        semanaSalioCentimos: i.semanaSalioCentimos,
+        semanaRetirosCentimos: i.semanaRetirosCentimos,
+        semanaAportesCentimos: i.semanaAportesCentimos,
+        semanaConMovimientos: i.semanaConMovimientos,
+        diferenciaConSemanaAnteriorCentimos:
+            i.diferenciaConSemanaAnteriorCentimos,
+        ventaDeHoyCentimos: i.ventaDeHoyCentimos,
+        // Lo fiado de hoy sale de lo que tiene el teléfono (entrega 51).
+        fiadoDeHoyCentimos: await _fiadoDeHoy(empresa.id, movimientos),
+        mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
+        estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
+      );
+    }
+
     final paraCalculo = movimientos.map(AccesoLocal.paraSaldo).toList();
 
     final lunes = inicioDeSemana(ahora);
@@ -73,14 +95,36 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       ),
       semanaEntroCentimos: semana.entroCentimos,
       semanaSalioCentimos: semana.salioCentimos,
+      semanaRetirosCentimos: semana.retirosCentimos,
+      semanaAportesCentimos: semana.aportesCentimos,
       semanaConMovimientos: semana.cantidad > 0,
       diferenciaConSemanaAnteriorCentimos: semanaPasadaCompleta.cantidad > 0
           ? semana.quedoCentimos - semanaPasadaHastaHoy.quedoCentimos
           : null,
       ventaDeHoyCentimos: await _ventaDeHoy(empresa.id, movimientos),
+      fiadoDeHoyCentimos: await _fiadoDeHoy(empresa.id, movimientos),
       mostrarPrimerDia: await _esPrimeraSemana(empresa.id, movimientos),
       estadoArqueo: await _a.estadoArqueo(empresa.id, movimientos),
     );
+  }
+
+  /// De la venta de hoy, lo que se fió y falta cobrar (entrega 51): lo
+  /// mismo que cuenta «Lo que te deben».
+  Future<int> _fiadoDeHoy(String empresaId, List<Movimiento> movs) async {
+    final venta = await _categoriaVentaDelDia(empresaId);
+    final hoy = inicioDelDia(_a.ahora());
+    return movs
+        .where(
+          (m) =>
+              m.estado == EstadoRegistro.vigente &&
+              m.categoriaId == venta.id &&
+              m.estadoPago != EstadoPago.pagado &&
+              inicioDelDia(m.fechaMovimiento) == hoy,
+        )
+        .fold<int>(
+          0,
+          (suma, m) => suma + m.montoCentimos - m.montoPagadoCentimos,
+        );
   }
 
   Future<int> _ventaDeHoy(String empresaId, List<Movimiento> movs) async {
@@ -117,7 +161,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
   @override
   Future<List<CategoriaVista>> categorias(TipoMovimiento tipo) async {
     final empresa = await _a.empresa();
-    if (empresa == null || tipo == TipoMovimiento.retiro) return const [];
+    if (empresa == null || tipo.delDueno) return const [];
     final filas =
         await (_base.select(_base.categorias)
               ..where(
@@ -147,9 +191,11 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     final saldos = await _a.saldos(empresa.id);
     final actual = saldos[m.cuenta] ?? 0;
     return switch (m.tipo) {
-      TipoMovimiento.ingreso => actual + m.montoCentimos,
+      TipoMovimiento.ingreso ||
+      TipoMovimiento.aporte => actual + m.montoCentimos,
       TipoMovimiento.egreso ||
-      TipoMovimiento.retiro => actual - m.montoCentimos,
+      TipoMovimiento.retiro ||
+      TipoMovimiento.transferencia => actual - m.montoCentimos,
     };
   }
 
@@ -158,18 +204,35 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     if (m.montoCentimos <= 0) {
       throw ArgumentError('El monto tiene que ser mayor que cero.');
     }
-    if (m.tipo != TipoMovimiento.retiro && m.categoriaId == null) {
+    if (!m.tipo.sinCategoria && m.categoriaId == null) {
       throw ArgumentError('Entró y salió llevan categoría.');
+    }
+    if (m.tipo.esPase &&
+        (m.cuentaDestino == null || m.cuentaDestino == m.cuenta)) {
+      throw ArgumentError('Un pase va de una cuenta a otra distinta.');
+    }
+    if (m.faltaQuienDebe) {
+      throw ArgumentError('Una venta a crédito lleva quién la debe.');
     }
     return _base.transaction(() async {
       final id = await _insertar(
         tipo: m.tipo,
         cuenta: m.cuenta,
         montoCentimos: m.montoCentimos,
-        // Un retiro para el dueño no lleva categoría.
-        categoriaId: m.tipo == TipoMovimiento.retiro ? null : m.categoriaId,
+        cuentaDestino: m.tipo.esPase ? m.cuentaDestino : null,
+        // La plata entre el dueño y el negocio y los pases no llevan
+        // categoría.
+        categoriaId: m.tipo.sinCategoria ? null : m.categoriaId,
         nota: m.nota?.trim().isEmpty ?? true ? null : m.nota!.trim(),
         fuente: m.fuente,
+        pendiente: m.pendiente,
+        // Con quién y con qué documento, solo en Entró y Salió (entrega 66).
+        contraparte: m.tipo.sinCategoria ? null : m.nombreContraparte,
+        celular: m.pendiente ? m.celularContraparte : null,
+        documentoTipo: m.tipo.sinCategoria ? null : _limpio(m.documentoTipo),
+        documentoNumero: m.tipo.sinCategoria
+            ? null
+            : _limpio(m.documentoNumero),
       );
       return Guardado(ids: [id], tienesHoyCentimos: await _tienesHoy());
     });
@@ -179,9 +242,14 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
   Future<Guardado> anotarVentaDelDia(
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
+    FiadoDelDia? fiado,
   }) {
-    if (!ventaPorCuenta.values.any((monto) => monto > 0)) {
+    final conFiado = fiado != null && fiado.montoCentimos > 0;
+    if (!ventaPorCuenta.values.any((monto) => monto > 0) && !conFiado) {
       throw ArgumentError('La venta necesita al menos un monto.');
+    }
+    if (conFiado && fiado.quien.trim().isEmpty) {
+      throw ArgumentError('Lo fiado necesita a quién.');
     }
     return _base.transaction(() async {
       final empresa = (await _a.empresa())!;
@@ -200,6 +268,21 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
           ),
         );
       }
+      // Lo fiado (entrega 52): una venta que todavía te deben.
+      if (conFiado) {
+        ids.add(
+          await _insertar(
+            tipo: TipoMovimiento.ingreso,
+            cuenta: fiado.cuenta,
+            montoCentimos: fiado.montoCentimos,
+            categoriaId: venta.id,
+            fuente: fuente,
+            pendiente: true,
+            contraparte: fiado.quien.trim(),
+            celular: fiado.celular,
+          ),
+        );
+      }
       return Guardado(ids: ids, tienesHoyCentimos: await _tienesHoy());
     });
   }
@@ -208,17 +291,35 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     required TipoMovimiento tipo,
     required TipoCuenta cuenta,
     required int montoCentimos,
+    TipoCuenta? cuentaDestino,
     String? categoriaId,
     String? nota,
     Fuente fuente = Fuente.texto,
+    bool pendiente = false,
+    String? contraparte,
+    String? celular,
+    String? documentoTipo,
+    String? documentoNumero,
   }) async {
     final empresa = (await _a.empresa())!;
     final usuario = await _a.usuario();
-    final cuentaId = (await _a.cuentas(empresa.id))
-        .firstWhere((c) => c.tipo == cuenta)
-        .id;
+    final cuentas = await _a.cuentas(empresa.id);
+    final cuentaId = cuentas.firstWhere((c) => c.tipo == cuenta).id;
+    final destinoId = cuentaDestino == null
+        ? null
+        : cuentas.firstWhere((c) => c.tipo == cuentaDestino).id;
     final ahora = _a.ahora();
     final id = _a.nuevoId();
+    final contraparteId = contraparte != null
+        ? await _a.contraparte(
+            empresa.id,
+            tipo: tipo == TipoMovimiento.ingreso
+                ? TipoContraparte.cliente
+                : TipoContraparte.proveedor,
+            nombre: contraparte,
+            celular: celular,
+          )
+        : null;
     await _base
         .into(_base.movimientos)
         .insert(
@@ -227,13 +328,19 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             empresaId: empresa.id,
             tipo: tipo,
             cuentaId: cuentaId,
+            cuentaDestinoId: Value(destinoId),
             montoCentimos: montoCentimos,
             fechaMovimiento: ahora,
-            estadoPago: EstadoPago.pagado,
-            montoPagadoCentimos: montoCentimos,
-            fechaPago: Value(ahora),
+            // Lo que se debe (entrega 41) o te deben (entrega 42) no ha
+            // movido ninguna cuenta todavía: la cuenta se elige al pagarlo.
+            estadoPago: pendiente ? EstadoPago.pendiente : EstadoPago.pagado,
+            montoPagadoCentimos: pendiente ? 0 : montoCentimos,
+            fechaPago: Value(pendiente ? null : ahora),
+            contraparteId: Value(contraparteId),
             categoriaId: Value(categoriaId),
             nota: Value(nota),
+            documentoTipo: Value(documentoTipo),
+            documentoNumero: Value(documentoNumero),
             // Escrito o dicho por el dueño, sin comprobante: nivel D.
             nivelConfianza: NivelConfianza.d,
             fuente: fuente,
@@ -252,10 +359,15 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       nuevo: {
         'tipo': tipo.name,
         'cuenta': cuenta.name,
+        'cuentaDestino': ?cuentaDestino?.name,
         'montoCentimos': montoCentimos,
         'categoriaId': categoriaId,
         'nota': nota,
         'fuente': fuente.name,
+        if (pendiente) 'pagado': false,
+        'documentoTipo': ?documentoTipo,
+        'documentoNumero': ?documentoNumero,
+        'contraparte': ?contraparte,
       },
     );
     return id;
@@ -294,4 +406,34 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
       );
     }
   });
+
+  static String? _limpio(String? texto) {
+    final t = texto?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  @override
+  Future<List<String>> nombresDeContrapartes() async {
+    final empresa = await _a.empresa();
+    if (empresa == null) return const [];
+    final enUso = {
+      for (final m
+          in await (_base.select(_base.movimientos)..where(
+                (m) =>
+                    m.empresaId.equals(empresa.id) &
+                    m.estado.equalsValue(EstadoRegistro.vigente) &
+                    m.contraparteId.isNotNull(),
+              ))
+              .get())
+        m.contraparteId!,
+    };
+    final filas = await (_base.select(
+      _base.contrapartes,
+    )..where((c) => c.empresaId.equals(empresa.id))).get();
+    final nombres = {
+      for (final c in filas)
+        if (enUso.contains(c.id)) c.nombre,
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return nombres;
+  }
 }

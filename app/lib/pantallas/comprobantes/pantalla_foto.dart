@@ -17,10 +17,11 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../../dominio/medicion.dart';
 
-enum _Fase { abriendoCamara, sinPermiso, leyendo, ilegible }
+enum _Fase { abriendoCamara, sinPermiso, leyendo, ilegible, noLeida }
 
-/// «Tomar foto»: abre la cámara, lee el comprobante (simulado en el
-/// prototipo) y pasa a S08, o muestra S17 si la foto salió borrosa.
+/// «Tomar foto»: abre la cámara, lee el comprobante (el QR de la foto o la
+/// IA; en la Demo, uno de ejemplo) y pasa a S08, o muestra S17 si la foto
+/// salió borrosa, o por qué no se pudo leer.
 class PantallaFoto extends ConsumerStatefulWidget {
   const PantallaFoto({super.key});
 
@@ -31,6 +32,8 @@ class PantallaFoto extends ConsumerStatefulWidget {
 class _EstadoFoto extends ConsumerState<PantallaFoto> {
   _Fase _fase = _Fase.abriendoCamara;
   LecturaComprobante? _lectura;
+  ProblemaLectura? _problema;
+  String? _ruta;
 
   @override
   void initState() {
@@ -48,18 +51,29 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
       case CamaraSinPermiso():
         setState(() => _fase = _Fase.sinPermiso);
       case FotoTomada(:final ruta):
-        setState(() => _fase = _Fase.leyendo);
-        final lectura = await ref.read(lectorFotoProvider).leer(ruta);
-        if (!mounted) return;
-        if (lectura.legible) {
-          context.pushReplacement(Rutas.confirmarLectura, extra: lectura);
-        } else {
-          setState(() {
-            _lectura = lectura;
-            _fase = _Fase.ilegible;
-            ref.read(medicionProvider).anotar(EventoMedicion.fotoIlegible);
-          });
-        }
+        _ruta = ruta;
+        await _leer();
+    }
+  }
+
+  Future<void> _leer() async {
+    setState(() => _fase = _Fase.leyendo);
+    final resultado = await ref.read(lectorFotoProvider).leer(_ruta!);
+    if (!mounted) return;
+    switch (resultado) {
+      case FotoLeida(:final lectura) when lectura.legible:
+        context.pushReplacement(Rutas.confirmarLectura, extra: lectura);
+      case FotoLeida(:final lectura):
+        setState(() {
+          _lectura = lectura;
+          _fase = _Fase.ilegible;
+          ref.read(medicionProvider).anotar(EventoMedicion.fotoIlegible);
+        });
+      case FotoNoLeida(:final problema):
+        setState(() {
+          _problema = problema;
+          _fase = _Fase.noLeida;
+        });
     }
   }
 
@@ -76,6 +90,19 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
         _Fase.leyendo => const [_Esperando(Textos.leyendoComprobante)],
         _Fase.sinPermiso => const [Aviso(texto: Textos.sinPermisoCamara)],
         _Fase.ilegible => _ilegible(_lectura!),
+        _Fase.noLeida => [
+          Aviso(
+            texto: switch (_problema!) {
+              ProblemaLectura.sinSenal => Textos.fotoSinSenal,
+              ProblemaLectura.noEsComprobante => Textos.fotoNoEsComprobante,
+              ProblemaLectura.sinCuenta => Textos.fotoSinCuenta,
+              ProblemaLectura.limiteDiario => Textos.fotoLimiteDiario,
+              ProblemaLectura.pruebasAgotadas => Textos.fotosDePruebaAgotadas(
+                fotosDePruebaPorTelefono,
+              ),
+            },
+          ),
+        ],
       },
       acciones: [
         if (ilegible) ...[
@@ -116,8 +143,42 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
             onPressed: () => context.pushReplacement(Rutas.escribir),
             child: const Text(Textos.escribirlo),
           ),
+        if (_fase == _Fase.noLeida) ..._accionesNoLeida(_problema!),
       ],
     );
+  }
+
+  /// Qué hacer cuando no se pudo leer: siempre se puede escribir.
+  List<Widget> _accionesNoLeida(ProblemaLectura problema) {
+    void escribir() => context.pushReplacement(Rutas.escribir);
+    final principal = switch (problema) {
+      ProblemaLectura.sinSenal => FilledButton(
+        onPressed: _leer,
+        child: const Text(Textos.intentarOtraVez),
+      ),
+      ProblemaLectura.noEsComprobante => FilledButton.icon(
+        onPressed: _tomarFoto,
+        icon: const IconoTrazo(Icono.camara, color: Colores.sobreMarca),
+        label: const Text(Textos.tomarOtraFoto),
+      ),
+      ProblemaLectura.sinCuenta ||
+      ProblemaLectura.pruebasAgotadas => FilledButton(
+        onPressed: () => context.pushReplacement(Rutas.cuenta),
+        child: const Text(Textos.guardarMiAvance),
+      ),
+      ProblemaLectura.limiteDiario => FilledButton(
+        onPressed: escribir,
+        child: const Text(Textos.escribirlo),
+      ),
+    };
+    return [
+      principal,
+      if (problema != ProblemaLectura.limiteDiario)
+        OutlinedButton(
+          onPressed: escribir,
+          child: const Text(Textos.escribirloYo),
+        ),
+    ];
   }
 
   /// S17 · Foto ilegible: lo que sí se leyó, «No se lee» en lo demás y
@@ -153,7 +214,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
       child: Row(
         children: [
           const IconoTrazo(Icono.check, color: Colores.marca, tamano: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: Medidas.e3),
           Expanded(child: Text(texto, style: Tipografia.texto)),
         ],
       ),
@@ -162,7 +223,10 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
     final ruta = l.rutaImagen;
     return [
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: Medidas.e4,
+        ),
         decoration: BoxDecoration(
           color: Colores.avisoFondo,
           borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
@@ -180,9 +244,11 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                     Textos.fotoBorrosa,
                     style: Tipografia.tituloTarjeta,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
-                    Textos.fotoBorrosaDetalle,
+                    l.totalCentimos == null
+                        ? Textos.fotoNoSeLeyoTodo
+                        : Textos.fotoBorrosaDetalle,
                     style: Tipografia.texto.copyWith(
                       color: Colores.avisoTextoFuerte,
                     ),
@@ -193,9 +259,9 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: Medidas.e4),
       Tarjeta(
-        relleno: const EdgeInsets.all(14),
+        relleno: const EdgeInsets.all(Medidas.e4),
         child: Row(
           children: [
             Container(
@@ -203,7 +269,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
               height: 100,
               decoration: BoxDecoration(
                 color: Colores.fondo,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Medidas.e2),
                 border: Border.all(color: Colores.bordeCampo),
               ),
               clipBehavior: Clip.antiAlias,
@@ -213,7 +279,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                       child: Text(Textos.foto, style: Tipografia.secundario),
                     ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: Medidas.e4),
             Expanded(
               child: Column(
                 children: [
@@ -236,7 +302,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
           ],
         ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: Medidas.e4),
       Tarjeta(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +313,7 @@ class _EstadoFoto extends ConsumerState<PantallaFoto> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: Medidas.e2),
             consejo(Textos.consejoMesa),
             consejo(Textos.consejoCompleto),
             consejo(Textos.consejoSombra),

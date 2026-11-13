@@ -15,4 +15,16 @@ class CompartidorAndroid implements Compartidor {
       title: asunto,
     ),
   );
+
+  @override
+  Future<void> compartirArchivos(
+    List<(String ruta, String tipo)> archivos, {
+    required String asunto,
+  }) => SharePlus.instance.share(
+    ShareParams(
+      files: [for (final (ruta, tipo) in archivos) XFile(ruta, mimeType: tipo)],
+      subject: asunto,
+      title: asunto,
+    ),
+  );
 }

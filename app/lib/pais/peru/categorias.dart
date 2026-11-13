@@ -1,3 +1,4 @@
+import '../../dominio/informe.dart';
 import '../../dominio/modelos.dart';
 
 // Categorías provisionales de docs/prototipo-v1.md, hasta que la Fase 0
@@ -5,17 +6,42 @@ import '../../dominio/modelos.dart';
 
 const categoriaVentaDelDia = 'Venta del día';
 
-const categoriasComunesIngreso = [categoriaVentaDelDia, 'Otro ingreso'];
+const categoriaCobroDeFiado = 'Cobro de fiado';
+const categoriaCuotaDePrestamo = 'Cuota de préstamo';
+
+/// Antes iba en «Movilidad del negocio» (entrega 14.14.1).
+const categoriaCombustible = 'Combustible';
+
+/// Las del flujo que piden las entidades de crédito (docs/credito/,
+/// entrega 14.14): cada fila del flujo sale de una categoría.
+const categoriasComunesIngreso = [
+  categoriaVentaDelDia,
+  categoriaCobroDeFiado,
+  'Otro ingreso',
+  'Ingreso ocasional',
+];
 
 const categoriasComunesEgreso = [
   'Alquiler',
   'Servicios (luz, agua, internet, teléfono)',
-  'Personal',
-  'Transporte',
+  'Sueldos del personal',
+  'Movilidad del negocio',
+  categoriaCombustible,
+  'Flete',
+  'Publicidad',
+  'Contador o gestoría',
   'Mantenimiento y reparaciones',
   'Impuestos y trámites',
+  categoriaCuotaDePrestamo,
   'Otros',
 ];
+
+/// Nombres que cambiaron (entrega 14.14): «Personal» se confundía con un
+/// gasto personal del dueño, que es un retiro.
+const categoriasRenombradas = {
+  'Personal': 'Sueldos del personal',
+  'Transporte': 'Movilidad del negocio',
+};
 
 const categoriasEgresoPorNegocio = {
   TipoNegocio.bodega: ['Mercadería', 'Bolsas y envases'],
@@ -27,9 +53,80 @@ const categoriasEgresoPorNegocio = {
   ],
   TipoNegocio.servicios: ['Materiales', 'Herramientas y repuestos'],
   TipoNegocio.otro: ['Mercadería'],
+  // Entrega 48.
+  TipoNegocio.mercado: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.comida: ['Insumos de cocina', 'Bebidas', 'Gas', 'Descartables'],
+  TipoNegocio.panaderia: ['Insumos de panadería', 'Gas', 'Bolsas y envases'],
+  TipoNegocio.ferreteria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.farmacia: ['Medicamentos y productos', 'Bolsas y envases'],
+  TipoNegocio.agroveterinaria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.libreria: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.ropa: ['Mercadería', 'Bolsas y envases'],
+  TipoNegocio.celulares: ['Mercadería', 'Repuestos'],
+  TipoNegocio.peluqueria: ['Productos e insumos', 'Herramientas y equipos'],
+  TipoNegocio.taller: ['Repuestos', 'Herramientas y equipos'],
+  TipoNegocio.transporte: ['Repuestos', 'Peajes y cocheras'],
 };
 
 /// Las categorías de compras para vender. El informe advierte cuando suben
 /// mucho, porque bajan la ganancia del mes aunque la mercadería siga en la
 /// tienda.
-const categoriasDeMercaderia = {'Mercadería', 'Insumos de cocina'};
+const categoriasDeMercaderia = {
+  'Mercadería',
+  'Insumos de cocina',
+  // Entrega 48.
+  'Insumos de panadería',
+  'Medicamentos y productos',
+  'Productos e insumos',
+};
+
+/// Categoría → fila del flujo que pide la caja (docs/credito/, entrega
+/// 14.15). Una entrada sin categoría o con otra va a «Otros ingresos
+/// operativos»; una salida, a «Otros gastos fijos». La cuota de préstamo
+/// tiene filas propias, por entidad.
+const filaDelFlujo = {
+  categoriaVentaDelDia: FilaFlujo.ventasContado,
+  categoriaCobroDeFiado: FilaFlujo.ventasCreditoCobradas,
+  'Otro ingreso': FilaFlujo.otrosIngresos,
+  'Ingreso ocasional': FilaFlujo.ingresosExtraordinarios,
+  'Mercadería': FilaFlujo.mercaderia,
+  'Insumos de cocina': FilaFlujo.mercaderia,
+  'Bebidas': FilaFlujo.mercaderia,
+  'Gas': FilaFlujo.mercaderia,
+  'Materiales': FilaFlujo.mercaderia,
+  // Entrega 48.
+  'Insumos de panadería': FilaFlujo.mercaderia,
+  'Medicamentos y productos': FilaFlujo.mercaderia,
+  'Productos e insumos': FilaFlujo.mercaderia,
+  'Repuestos': FilaFlujo.mantenimiento,
+  'Herramientas y equipos': FilaFlujo.mantenimiento,
+  'Bolsas y envases': FilaFlujo.envases,
+  'Descartables': FilaFlujo.envases,
+  'Flete': FilaFlujo.fletes,
+  'Alquiler': FilaFlujo.alquiler,
+  'Servicios (luz, agua, internet, teléfono)': FilaFlujo.servicios,
+  'Sueldos del personal': FilaFlujo.sueldos,
+  'Publicidad': FilaFlujo.publicidad,
+  'Mantenimiento y reparaciones': FilaFlujo.mantenimiento,
+  'Herramientas y repuestos': FilaFlujo.mantenimiento,
+  'Contador o gestoría': FilaFlujo.contabilidad,
+  'Movilidad del negocio': FilaFlujo.otrosGastosFijos,
+  // La plantilla de la caja no tiene fila de combustible.
+  categoriaCombustible: FilaFlujo.otrosGastosFijos,
+  'Impuestos y trámites': FilaFlujo.otrosGastosFijos,
+  'Otros': FilaFlujo.otrosGastosFijos,
+};
+
+/// El nombre corto de una categoría, solo para mostrarla en «Escribirlo»
+/// (mejora 01). Lo guardado no cambia.
+const _nombresCortos = {
+  'Servicios (luz, agua, internet, teléfono)': 'Servicios',
+  'Sueldos del personal': 'Sueldos',
+  'Movilidad del negocio': 'Movilidad',
+  'Contador o gestoría': 'Contador',
+  'Mantenimiento y reparaciones': 'Mantenimiento',
+  'Impuestos y trámites': 'Impuestos',
+};
+
+String nombreCortoDeCategoria(String nombre) =>
+    _nombresCortos[nombre] ?? nombre;

@@ -20,13 +20,16 @@ Persona que entra con su celular y un código. Campos: celular, nombre, fecha de
 Campos: nombre, tipo de negocio (bodega, restaurante, servicios, otro), modo (Simple o Formal), país, régimen tributario, moneda, hora de cierre, identificación fiscal (opcional en Simple).
 
 ### Membresía
-Une Usuario y Empresa, de muchos a muchos. Campos: rol (dueño, contador, empleado) y permisos. En la V1 solo existe el rol dueño, pero la tabla nace completa.
+Une Usuario y Empresa, de muchos a muchos. Campos: rol y permisos. Roles desde la entrega 17 (decisiones.md, 29-10-2026): **dueño** (uno o más; el titular, quien creó el negocio, es el único que puede borrarlo todo), **encargado**, **ayudante** y **contador** (solo lectura). Hasta 3 personas por negocio. Una persona pertenece a un solo negocio, salvo el contador, que puede estar en varios. También guarda el nombre con que el negocio llama a la persona, cuándo aceptó el uso de sus datos y, si la quitaron, cuándo (nada se borra).
+
+### Invitación
+Desde la entrega 17. Un dueño invita a un número de celular con un rol y un nombre. Vence a los 7 días; el dueño la puede anular. Se acepta una vez, con el consentimiento de la Ley 29733.
 
 ### Cuenta
-Dónde está la plata. Campos: tipo (efectivo, Yape, banco y, si el dueño las usa, Plin, Sip u otra billetera con el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta.
+Dónde está la plata. Campos: tipo (efectivo, Yape, BCP —el tipo `banco`— y, si el dueño los usa, Plin, Sip u otra billetera, e Interbank, BBVA, Scotiabank u otro banco o caja; la otra billetera y el otro banco llevan el nombre que él ponga), nombre, saldo inicial y fecha del saldo inicial. Cada movimiento pertenece a una cuenta. Desde la entrega 21 puede haber varias cajas de efectivo con nombre, cada una con una o varias personas responsables; Yape, Plin y banco son del negocio. Pasar plata de una caja o cuenta a otra es un movimiento propio, ni venta ni gasto. Ninguna cuenta se borra: desde la entrega 58 lleva `en_uso` (falso si el dueño la dejó de usar, con saldo S/ 0; Efectivo siempre en uso).
 
 ### Contraparte
-Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo. Su saldo pendiente se calcula a partir de los movimientos.
+Cliente o proveedor. Campos: nombre, identificación fiscal (opcional), tipo, celular (opcional, entrega 53) y cuándo se le recordó por WhatsApp (`recordado_en`). Su saldo pendiente se calcula a partir de los movimientos. Solo los dueños cambian el celular y `recordado_en`: el servidor ignora lo que los demás roles suban en esas columnas, y el celular se lo manda vacío.
 
 ### Comprobante
 Documento que sustenta uno o más movimientos. Campos: emisor, tipo, serie, número, fecha de emisión, subtotal, impuesto, total, imagen, origen de la lectura (QR, foto, SIRE) y resultado de las validaciones. Llave única por empresa: emisor + tipo + serie + número. Cuando un comprobante llega por SIRE y por foto, la foto enriquece el registro; no crea otro.
@@ -43,8 +46,9 @@ La unidad de todo informe. Campos:
 - fecha del movimiento y fecha del comprobante
 - estado de pago: pagado, pendiente o parcial; monto pagado; fecha de vencimiento
 - categoría
-- contraparte (opcional)
+- contraparte (opcional): desde la entrega 66 también en lo pagado, como «institución» (el cliente si entró plata, el proveedor si salió)
 - comprobante (opcional)
+- documento (opcional, entrega 66): tipo (Factura, Boleta, Guía de remisión, Nota de crédito, Nota de débito, Liquidación de compra u Otro, del paquete de Perú) y número libre («0045J»), en `documento_tipo` y `documento_numero`. Si el registro vino de un comprobante leído, lo anotado manda sobre lo leído
 - nivel de confianza: A, B, C o D
 - fuente: voz, texto, foto, QR, SIRE
 - autor
@@ -74,13 +78,28 @@ Quién cambió qué y cuándo, con el valor anterior y el nuevo. Acciones: crear
 ## Lo que sale del modelo
 
 - **Flujo de caja:** movimientos por fecha de pago y cuenta.
-- **Resultados:** movimientos por fecha del comprobante, sin los retiros del dueño.
+- **Resultados:** movimientos por fecha del comprobante, sin los retiros del dueño. Desde la entrega 14.9 el informe del mes no los usa: muestra el flujo de caja, que cuadra con el saldo; los resultados vuelven cuando Moca sepa cuánta mercadería queda.
 - **Lo que te deben y lo que debes:** movimientos pendientes o parciales, por contraparte.
 - **Qué tan seguras son las cuentas:** proporción de montos por nivel de confianza.
 
 ## Régimen tributario
 
 Cambia el cálculo de la ganancia: en NRUS el IGV pagado es costo; en MYPE o régimen general no lo es. Esta regla vive en el paquete de país.
+
+## Cómo quedó en el servidor (entrega 10)
+
+La primera migración (`servidor/migraciones/001_esquema_inicial.sql`) crea todas las entidades de arriba, con estos ajustes respecto al borrador:
+
+- Los valores fijos usan los mismos nombres que la app (`plin`, `retiroParaMi`, `paraTenerEnCuenta`), para que la sincronización no traduzca nada.
+- `items_comprobante` y `arqueo_cuentas` también llevan `empresa_id`, como toda tabla de negocio.
+- Se suman, del prototipo: los días cerrados («Hoy no abrí»), la clave de cada aviso (para no repetirlo) y la fuente «arqueo» en los movimientos.
+- El movimiento guarda cuándo llegó al servidor; el estado «por subir» vive solo en el teléfono.
+- Las referencias entre tablas incluyen la empresa, y un `DELETE` falla en toda tabla de negocio.
+- Entrega 13: las alertas suben solo cuando el dueño marca un aviso «Entendido». En el teléfono su id es la clave del aviso; en el servidor el id se deriva de la empresa y la clave (uuid v5), así repetir la subida no duplica.
+- Entrega 14.11: el movimiento tiene un tipo más, `aporte` («Puse de mi bolsillo»): sube el saldo pero no es venta ni lleva categoría; y el arqueo, la razón `puseYo` (migración 010).
+- Entrega 14.10: dos tipos de cuenta más, `bbvaPlin` y `scotiabankPlin` (migración 009); `plin` es el Plin de Interbank y `yape` se muestra como «BCP Yape».
+- Entrega 14.8: única excepción a «un `DELETE` falla»: el dueño puede borrar para siempre su negocio y todo lo suyo (`POST /cuenta/borrar-datos`). Solo vale dentro de esa transacción y para las filas de ese negocio; el usuario (el número) no se borra. Queda anotado en `borrados` (usuario, empresa, fecha).
+- Entrega 14.6: `videos_vistos` guarda los videos de ayuda que abrió cada negocio (número del video, desde dónde y cuándo), para saber en el piloto cuáles se ven. Es lo único de la medición que se sube; no se modifica ni se borra.
 
 ## Entidades que llegan después
 

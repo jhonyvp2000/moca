@@ -8,6 +8,17 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/preguntale/pantalla_preguntale.dart';
+import 'pantallas/informe/pantalla_de_categoria.dart';
+import 'pantallas/informe/pantalla_lo_que_debes.dart';
+import 'pantallas/ajustes/pantalla_sin_acceso.dart';
+import 'pantallas/version/version.dart';
+import 'pantallas/cobro/pantalla_mis_pagos.dart';
+import 'pantallas/ajustes/pantalla_categorias.dart';
+import 'pantallas/ajustes/pantalla_ajustes.dart';
+import 'pantallas/ajustes/pantalla_datos_negocio.dart';
+import 'pantallas/cobro/pantalla_errores.dart';
+import 'pantallas/cobro/pantalla_cobros.dart';
 import 'pantallas/alta/pantalla_alta.dart';
 import 'pantallas/arqueo/pantalla_arqueo.dart';
 import 'pantallas/bienvenida/pantalla_bienvenida.dart';
@@ -15,6 +26,7 @@ import 'pantallas/comprobantes/pantalla_confirmar_lectura.dart';
 import 'pantallas/comprobantes/pantalla_escaner_qr.dart';
 import 'pantallas/comprobantes/pantalla_foto.dart';
 import 'pantallas/cuentas/pantalla_mis_cuentas.dart';
+import 'pantallas/guardar_avance/modo_cuenta.dart';
 import 'pantallas/guardar_avance/pantalla_codigo.dart';
 import 'pantallas/guardar_avance/pantalla_guardar_avance.dart';
 import 'pantallas/historial/pantalla_detalle_movimiento.dart';
@@ -25,19 +37,38 @@ import 'pantallas/moca/pantalla_moca.dart';
 import 'pantallas/registrar/pantalla_escribir.dart';
 import 'pantallas/registrar/pantalla_registrar.dart';
 import 'pantallas/venta_de_hoy/pantalla_venta_de_hoy.dart';
+import 'pantallas/equipo/pantalla_equipo.dart';
+import 'pantallas/equipo/pantalla_invitacion.dart';
+import 'pantallas/equipo/pantalla_invitar.dart';
+import 'pantallas/equipo/pantalla_negocios.dart';
+import 'pantallas/moca/pantalla_borrar_negocio.dart';
 import 'pantallas/voz/pantalla_voz.dart';
 import 'tema/colores.dart';
+import 'tema/tipografia.dart';
+import 'textos/textos.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'dominio/equipo.dart';
 import 'dominio/medicion.dart';
+import 'dominio/version.dart';
 import 'inyeccion.dart';
+import 'tema/medidas.dart';
 
 abstract final class Rutas {
   static const cargando = '/cargando';
   static const bienvenida = '/bienvenida';
   static const ventaDeHoy = '/bienvenida/venta-de-hoy';
   static const vozPrimeraVenta = '/bienvenida/voz';
+
+  /// «Ya tengo cuenta» (entrega 12).
+  static const entrar = '/bienvenida/entrar';
+  static const entrarCodigo = '/bienvenida/entrar/codigo';
+
+  /// «Me invitaron a un negocio» (entrega 19).
+  static const invitado = '/bienvenida/invitado';
+  static const invitadoCodigo = '/bienvenida/invitado/codigo';
+  static const invitadoAceptar = '/bienvenida/invitado/aceptar';
   static const guardarAvance = '/guardar-avance';
   static const codigo = '/guardar-avance/codigo';
   static const alta = '/alta';
@@ -57,6 +88,53 @@ abstract final class Rutas {
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
 
+  /// «Pregúntale a Moca» (entrega 74).
+  static const preguntale = '/preguntale';
+
+  /// «Ajustes» y «Datos del negocio» (entregas 29 y 29.1).
+  static const ajustes = '/ajustes';
+  static const datosDelNegocio = '/ajustes/negocio';
+
+  /// «Mis categorías» y una categoría propia, nueva (`?tipo=`) o la que se
+  /// cambia (`?id=`) (entrega 31).
+  static const categorias = '/ajustes/categorias';
+
+  /// «Lo que debes» y los registros de una categoría del informe (entrega
+  /// 38).
+  static const loQueDebes = '/informes/lo-que-debes';
+  static const loQueTeDeben = '/informes/lo-que-te-deben';
+  static const deCategoria = '/informes/categoria';
+
+  /// Sin acceso al negocio (entrega 37).
+  static const sinAcceso = '/sin-acceso';
+
+  /// «Actualiza Moca para seguir anotando» (entrega 34).
+  static const actualizar = '/actualizar';
+
+  /// «Mis pagos de Moca» (entrega 33).
+  static const misPagos = '/ajustes/pagos';
+  static const categoria = '/ajustes/categoria';
+  static String categoriaNueva(TipoMovimiento? tipo) => Uri(
+    path: categoria,
+    queryParameters: {if (tipo != null) 'tipo': tipo.name},
+  ).toString();
+  static String categoriaPropia(String id) =>
+      Uri(path: categoria, queryParameters: {'id': id}).toString();
+
+  /// «Mis negocios» (entrega 22).
+  static const negocios = '/negocios';
+
+  /// «Borrar mi negocio» (entrega 16.1).
+  static const borrarNegocio = '/borrar-negocio';
+
+  /// «Mi equipo» (entrega 19).
+  static const equipo = '/equipo';
+  static const invitar = '/equipo/invitar';
+
+  /// «Guarda tu avance» desde la tarjeta de Moca (entrega 11).
+  static const cuenta = '/cuenta';
+  static const cuentaCodigo = '/cuenta/codigo';
+
   /// El detalle de un movimiento del Historial.
   static String detalleMovimiento(String id) =>
       Uri(path: movimiento, queryParameters: {'id': id}).toString();
@@ -67,6 +145,12 @@ abstract final class Rutas {
     queryParameters: {'modo': ModoVoz.ventaDelDia.name},
   ).toString();
   static const operador = '/operador';
+
+  /// La pantalla de cobros de Jhony, desde el ajuste oculto (entrega 26).
+  static const cobros = '/operador/cobros';
+
+  /// Lo que falló en los teléfonos (entrega 27).
+  static const errores = '/operador/errores';
 }
 
 /// Qué rutas se pueden ver en cada etapa del primer día. Si la ruta actual
@@ -78,8 +162,15 @@ final _rutasPorEtapa = {
     Rutas.bienvenida,
     Rutas.ventaDeHoy,
     Rutas.vozPrimeraVenta,
+    Rutas.entrar,
+    Rutas.entrarCodigo,
+    Rutas.invitado,
+    Rutas.invitadoCodigo,
+    Rutas.invitadoAceptar,
   ],
   EtapaInicio.guardarAvance: [Rutas.guardarAvance, Rutas.codigo],
+  // Sin nada del negocio detrás: qué pasó, sus negocios y volver a entrar.
+  EtapaInicio.sinAcceso: [Rutas.sinAcceso, Rutas.negocios],
   EtapaInicio.alta: [Rutas.alta],
   EtapaInicio.listo: [
     Rutas.inicio,
@@ -97,22 +188,63 @@ final _rutasPorEtapa = {
     Rutas.corregir,
     Rutas.arqueo,
     Rutas.cuentas,
+    Rutas.cuenta,
+    Rutas.cuentaCodigo,
+    Rutas.equipo,
+    Rutas.invitar,
+    Rutas.negocios,
+    Rutas.borrarNegocio,
+    Rutas.ajustes,
+    Rutas.datosDelNegocio,
+    Rutas.categorias,
+    Rutas.categoria,
+    Rutas.misPagos,
+    Rutas.actualizar,
+    Rutas.loQueDebes,
+    Rutas.loQueTeDeben,
+    Rutas.deCategoria,
+    Rutas.preguntale,
   ],
+};
+
+/// Lo que anota: con una versión obligatoria vencida, lleva a actualizar
+/// (entrega 34). Ver, el Historial, los informes y el Excel siguen.
+const rutasQueAnotan = {
+  Rutas.registrar,
+  Rutas.escribir,
+  Rutas.ventaDelDia,
+  Rutas.voz,
+  Rutas.foto,
+  Rutas.qr,
+  Rutas.confirmarLectura,
+  Rutas.corregir,
+  Rutas.arqueo,
 };
 
 String? redirigirSegunEtapa(EtapaInicio? etapa, String ruta) {
   // El ajuste oculto se puede abrir siempre.
-  if (ruta == Rutas.operador) return null;
+  if (ruta == Rutas.operador || ruta == Rutas.cobros || ruta == Rutas.errores) {
+    return null;
+  }
   if (etapa == null) return ruta == Rutas.cargando ? null : Rutas.cargando;
   final permitidas = _rutasPorEtapa[etapa]!;
   return permitidas.contains(ruta) ? null : permitidas.first;
 }
 
-GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
+GoRouter crearRutas(
+  ValueNotifier<EtapaInicio?> etapa, [
+  ValueNotifier<bool>? bloqueadoPorVersion,
+]) => GoRouter(
   initialLocation: Rutas.cargando,
-  refreshListenable: etapa,
-  redirect: (context, estado) =>
-      redirigirSegunEtapa(etapa.value, estado.matchedLocation),
+  refreshListenable: Listenable.merge([etapa, ?bloqueadoPorVersion]),
+  redirect: (context, estado) {
+    final ruta = estado.matchedLocation;
+    if ((bloqueadoPorVersion?.value ?? false) &&
+        rutasQueAnotan.contains(ruta)) {
+      return Rutas.actualizar;
+    }
+    return redirigirSegunEtapa(etapa.value, ruta);
+  },
   routes: [
     GoRoute(
       path: Rutas.cargando,
@@ -133,6 +265,38 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
           path: 'voz',
           builder: (context, estado) =>
               const PantallaVoz(modo: ModoVoz.primeraVenta),
+        ),
+        GoRoute(
+          path: 'entrar',
+          builder: (context, estado) =>
+              const PantallaGuardarAvance(modo: ModoCuenta.entrar),
+          routes: [
+            GoRoute(
+              path: 'codigo',
+              builder: (context, estado) => PantallaCodigo(
+                celular: estado.extra as String? ?? '',
+                modo: ModoCuenta.entrar,
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'invitado',
+          builder: (context, estado) =>
+              const PantallaGuardarAvance(modo: ModoCuenta.invitado),
+          routes: [
+            GoRoute(
+              path: 'codigo',
+              builder: (context, estado) => PantallaCodigo(
+                celular: estado.extra as String? ?? '',
+                modo: ModoCuenta.invitado,
+              ),
+            ),
+            GoRoute(
+              path: 'aceptar',
+              builder: (context, estado) => const PantallaInvitacion(),
+            ),
+          ],
         ),
       ],
     ),
@@ -224,12 +388,106 @@ GoRouter crearRutas(ValueNotifier<EtapaInicio?> etapa) => GoRouter(
       builder: (context, estado) => const PantallaArqueo(),
     ),
     GoRoute(
+      path: Rutas.cuenta,
+      builder: (context, estado) => PantallaGuardarAvance(
+        celularInicial: estado.extra as String?,
+        modo: ModoCuenta.desdeMoca,
+      ),
+      routes: [
+        GoRoute(
+          path: 'codigo',
+          builder: (context, estado) => PantallaCodigo(
+            celular: estado.extra as String? ?? '',
+            modo: ModoCuenta.desdeMoca,
+          ),
+        ),
+      ],
+    ),
+    GoRoute(
       path: Rutas.cuentas,
       builder: (context, estado) => const PantallaMisCuentas(),
     ),
     GoRoute(
+      path: Rutas.negocios,
+      builder: (context, estado) => const PantallaNegocios(),
+    ),
+    GoRoute(
+      path: Rutas.ajustes,
+      builder: (context, estado) => const PantallaAjustes(),
+    ),
+    GoRoute(
+      path: Rutas.preguntale,
+      builder: (context, estado) => const PantallaPreguntale(),
+    ),
+    GoRoute(
+      path: Rutas.datosDelNegocio,
+      builder: (context, estado) => const PantallaDatosNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.loQueDebes,
+      builder: (context, estado) => const PantallaLoQueDebes(),
+    ),
+    GoRoute(
+      path: Rutas.loQueTeDeben,
+      builder: (context, estado) => const PantallaLoQueDebes(teDeben: true),
+    ),
+    GoRoute(
+      path: Rutas.deCategoria,
+      builder: (context, estado) =>
+          PantallaDeCategoria(consulta: estado.extra! as ConsultaDeCategoria),
+    ),
+    GoRoute(
+      path: Rutas.sinAcceso,
+      builder: (context, estado) => const PantallaSinAcceso(),
+    ),
+    GoRoute(
+      path: Rutas.actualizar,
+      builder: (context, estado) => const PantallaActualizar(),
+    ),
+    GoRoute(
+      path: Rutas.misPagos,
+      builder: (context, estado) => const PantallaMisPagos(),
+    ),
+    GoRoute(
+      path: Rutas.categorias,
+      builder: (context, estado) => const PantallaCategorias(),
+    ),
+    GoRoute(
+      path: Rutas.categoria,
+      builder: (context, estado) {
+        final tipo = estado.uri.queryParameters['tipo'];
+        return PantallaCategoria(
+          id: estado.uri.queryParameters['id'],
+          tipo: TipoMovimiento.values.where((t) => t.name == tipo).firstOrNull,
+        );
+      },
+    ),
+    GoRoute(
+      path: Rutas.borrarNegocio,
+      builder: (context, estado) => const PantallaBorrarNegocio(),
+    ),
+    GoRoute(
+      path: Rutas.equipo,
+      builder: (context, estado) => const PantallaEquipo(),
+      routes: [
+        GoRoute(
+          path: 'invitar',
+          builder: (context, estado) =>
+              PantallaInvitar(equipo: estado.extra as Equipo?),
+        ),
+      ],
+    ),
+    GoRoute(
       path: Rutas.operador,
       builder: (context, estado) => const PantallaOperador(),
+    ),
+    GoRoute(
+      path: Rutas.cobros,
+      builder: (context, estado) => const PantallaCobros(),
+    ),
+    GoRoute(
+      path: Rutas.errores,
+      builder: (context, estado) => const PantallaErrores(),
     ),
   ],
 );
@@ -245,9 +503,26 @@ class _ConBarraInferior extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    // Quien no ve los informes no se queda en esa pestaña (entrega 20).
+    if (!permisos.veInformes && ramas.currentIndex == 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => ramas.goBranch(0));
+    }
+    final simulado = ref.watch(verComoProvider).value;
     return Scaffold(
-      body: ramas,
+      // Simulando otro rol desde el ajuste oculto: se avisa siempre
+      // (entrega 20.1).
+      body: simulado == null
+          ? ramas
+          : Column(
+              children: [
+                _FranjaVerComo(rol: simulado),
+                Expanded(child: ramas),
+              ],
+            ),
       bottomNavigationBar: BarraInferior(
+        conInformes: permisos.veInformes,
+        conRegistrar: permisos.anota,
         pestanaActual: ramas.currentIndex,
         alElegirPestana: (indice) {
           // Medición: cuándo se mira el informe y la pestaña Moca.
@@ -261,7 +536,48 @@ class _ConBarraInferior extends ConsumerWidget {
           }
           ramas.goBranch(indice, initialLocation: indice == ramas.currentIndex);
         },
-        alRegistrar: () => context.push(Rutas.registrar),
+        // El + abre la hoja «¿Cómo lo anotas?» (mejora 01). Con una versión
+        // obligatoria vencida, la ruta lleva a actualizar (entrega 34).
+        alRegistrar: () =>
+            ref.read(bloqueoPorVersionProvider) == BloqueoPorVersion.bloqueado
+            ? context.push(Rutas.registrar)
+            : mostrarHojaRegistrar(context),
+      ),
+    );
+  }
+}
+
+class _FranjaVerComo extends ConsumerWidget {
+  const _FranjaVerComo({required this.rol});
+
+  final Rol rol;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: Colores.tinteAzul,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, Medidas.e2, 8, Medidas.e2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Textos.viendoComo(Textos.nombreRol(rol)),
+                  style: Tipografia.secundario.copyWith(
+                    color: Colores.azulOscuro,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () =>
+                    ref.read(repositorioOperadorProvider).verComo(null),
+                child: const Text(Textos.volverADueno),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

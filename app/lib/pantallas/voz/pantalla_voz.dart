@@ -10,6 +10,7 @@ import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
 import '../../comun/opciones.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/tono.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../dominio/voz.dart';
@@ -24,6 +25,9 @@ import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 import '../registrar/franja_sin_senal.dart';
+import '../../dominio/cuentas.dart';
+import '../../dominio/equipo.dart';
+import '../../dominio/historial.dart';
 import '../../dominio/medicion.dart';
 
 /// En qué modo se abre la voz.
@@ -66,6 +70,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   ReconocedorVoz? _reconocedor;
   bool _guardando = false;
   final _otroMonto = TextEditingController();
+
+  /// Quién debe, en lo que se debe (entrega 49): se puede corregir.
+  final _quien = TextEditingController();
   bool _escribiendoMonto = false;
 
   bool get _esVenta => widget.modo != ModoVoz.libre;
@@ -89,6 +96,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     _escucha?.cancel();
     _reconocedor?.detener();
     _otroMonto.dispose();
+    _quien.dispose();
     super.dispose();
   }
 
@@ -141,15 +149,27 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       case VozFinal(:final alternativas):
         // La frase de ejemplo del operador se usa una sola vez.
         ref.read(fraseElegidaProvider.notifier).usar();
-        final lectura = interpretarVoz(
+        var lectura = interpretarVoz(
           alternativas,
           soloVenta: widget.modo == ModoVoz.primeraVenta,
-        );
+        ).conPlinDelNegocio({...ref.read(tiposDeCuentaProvider)});
+        final permisos = ref.read(permisosProvider).value ?? Permisos.delDueno;
+        // Quien no es dueño no anota retiros ni aportes: se le pregunta.
+        if ((lectura.tipo?.delDueno ?? false) && !permisos.anotaLoDelDueno) {
+          lectura = lectura.sinTipo();
+        }
+        // «En efectivo» de un encargado o ayudante es su caja (entrega 21).
+        for (final (i, p) in lectura.partidas.indexed) {
+          if (p.cuenta case final cuenta? when !permisos.puedeUsar(cuenta)) {
+            lectura = lectura.conCuenta(i, permisos.misCajas!.first);
+          }
+        }
         setState(() {
           _lectura = widget.modo == ModoVoz.ventaDelDia && lectura.tipo == null
               ? lectura.conTipo(TipoMovimiento.ingreso)
               : lectura;
           _parcial = lectura.textoDicho;
+          _quien.text = lectura.contraparte ?? '';
           _fase = lectura.entendida ? _Fase.revisando : _Fase.noEntendio;
         });
       case VozFallida(:final motivo):
@@ -199,11 +219,18 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   }
 
   bool get _esVentaDelDia =>
+      !_lectura.debe &&
       _lectura.tipo == TipoMovimiento.ingreso &&
       _lectura.categoria == categoriaVentaDelDia;
 
   void _corregir(List<CategoriaVista> categorias) {
     ref.read(medicionProvider).anotar(EventoMedicion.vozCorregida);
+    // Un cobro o pago de una deuda se corrige desde la deuda, con «Ya me
+    // pagó» o «Ya lo pagué» (entrega 50).
+    if (_lectura.abono case final deuda?) {
+      context.pushReplacement(Rutas.detalleMovimiento(deuda.deudas.first.id));
+      return;
+    }
     if (_esVentaDelDia || widget.modo == ModoVoz.primeraVenta) {
       _escribir(montos: _montosPorCuenta);
       return;
@@ -212,12 +239,23 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     _escribir(
       borrador: BorradorMovimiento(
         tipo: _lectura.tipo,
-        montoCentimos: partida?.centimos,
-        cuenta: partida?.cuenta,
+        cuentaDestino: _lectura.cuentaDestino,
+        montoCentimos: _lectura.debe ? _total : partida?.centimos,
+        cuenta: _lectura.debe ? null : partida?.cuenta,
         categoriaId: _idCategoria(categorias),
+        pagado: !_lectura.debe,
+        contraparte: _lectura.debe ? _quien.text.trim() : null,
       ),
     );
   }
+
+  /// Una venta a crédito no se guarda sin saber quién debe (entrega 49).
+  bool get _faltaElNombre =>
+      _lectura.debe &&
+      _lectura.tipo == TipoMovimiento.ingreso &&
+      _quien.text.trim().isEmpty;
+
+  int get _total => _lectura.partidas.fold(0, (s, p) => s + p.centimos);
 
   String? _idCategoria(List<CategoriaVista> categorias) {
     for (final c in categorias) {
@@ -252,6 +290,31 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
           'modo': 'voz',
         });
+      } else if (_lectura.abono case final deuda?) {
+        // El cobro o el pago de una deuda (entrega 50): como «Ya me pagó»,
+        // primero la más antigua.
+        await _abonar(deuda);
+        return;
+      } else if (_lectura.debe) {
+        // Lo que se debe (entrega 49): una sola deuda, sin mover la plata.
+        // Como al escribirlo: la caja, o la de quien anota.
+        final permisos = ref.read(permisosProvider).value;
+        final cuenta =
+            permisos == null || permisos.puedeUsar(TipoCuenta.efectivo)
+            ? TipoCuenta.efectivo
+            : permisos.misCajas!.first;
+        final quien = _quien.text.trim();
+        guardado = await repo.registrar(
+          NuevoMovimiento(
+            tipo: _lectura.tipo!,
+            montoCentimos: _total,
+            cuenta: cuenta,
+            categoriaId: _idCategoria(categorias),
+            fuente: Fuente.voz,
+            pagado: false,
+            contraparte: quien.isEmpty ? null : quien,
+          ),
+        );
       } else {
         final movimientos = [
           for (final p in _lectura.partidas)
@@ -259,6 +322,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
               tipo: _lectura.tipo!,
               montoCentimos: p.centimos,
               cuenta: p.cuenta!,
+              cuentaDestino: _lectura.tipo!.esPase
+                  ? _lectura.cuentaDestino
+                  : null,
               categoriaId: _idCategoria(categorias),
               fuente: Fuente.voz,
             ),
@@ -286,6 +352,64 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
+  }
+
+  Future<void> _abonar(DeudaDePersona deuda) async {
+    final cuenta = _lectura.partidas.single.cuenta!;
+    final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+    final monto = _total;
+    // Moca pregunta antes de dejar una cuenta en negativo.
+    if (!cobro) {
+      final quedaria = await ref
+          .read(repositorioMovimientosProvider)
+          .saldoSiSeGuarda(
+            NuevoMovimiento(
+              tipo: TipoMovimiento.egreso,
+              montoCentimos: monto,
+              cuenta: cuenta,
+              fuente: Fuente.voz,
+            ),
+          );
+      if (quedaria < 0 && mounted) {
+        if (!await _preguntarNegativo(cuenta, quedaria)) return;
+      }
+    }
+    final historial = ref.read(repositorioHistorialProvider);
+    final ahora = ref.read(relojProvider)();
+    var saldo = 0;
+    for (final (fila, parte) in repartirAbono(deuda, monto)) {
+      saldo = await historial.pagar(
+        fila.id,
+        cuenta: cuenta,
+        dia: ahora,
+        parteCentimos: parte,
+      );
+    }
+    if (!mounted) return;
+    final falta = deuda.totalCentimos - monto;
+    final mensajes = ScaffoldMessenger.of(context);
+    context.pop();
+    mensajes
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(switch (falta) {
+            > 0 when cobro => Textos.cobradoParte(
+              formatearSolesComprobante(monto),
+              deuda.nombre,
+              formatearSolesComprobante(falta),
+            ),
+            > 0 => Textos.pagadoParte(
+              formatearSolesComprobante(monto),
+              formatearSolesComprobante(falta),
+            ),
+            _ => (cobro ? Textos.cobradoAhoraTienes : Textos.pagadoAhoraTienes)(
+              formatearSoles(saldo),
+              Textos.nombreCuenta(cuenta),
+            ),
+          }),
+        ),
+      );
   }
 
   Future<bool> _preguntarNegativo(TipoCuenta cuenta, int quedaria) async {
@@ -319,10 +443,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
   @override
   Widget build(BuildContext context) {
     final tipo = _lectura.tipo;
-    final categorias = tipo == null || tipo == TipoMovimiento.retiro
+    final categorias = tipo == null || tipo.delDueno
         ? const <CategoriaVista>[]
         : ref.watch(categoriasProvider(tipo)).value ?? const <CategoriaVista>[];
     final validas = {for (final c in categorias) c.nombre};
+    final deudas = _deudas();
     final pregunta = _fase == _Fase.revisando
         ? siguientePregunta(
             _lectura,
@@ -330,6 +455,13 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 ? {categoriaVentaDelDia}
                 : validas,
             cuentasValidas: {...ref.watch(tiposDeCuentaProvider)},
+            // Un pase puede ir a cualquier cuenta del negocio (entrega 21.1).
+            destinosValidos: {
+              for (final c
+                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+                if (c.enUso) c.tipo,
+            },
+            deudasPosibles: deudasPosibles(_lectura, deudas),
           )
         : null;
     final completo = _fase == _Fase.revisando && pregunta == null;
@@ -359,7 +491,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
         if (completo)
           FilledButton(
-            onPressed: _guardando ? null : () => _guardar(categorias),
+            onPressed: _guardando || _faltaElNombre
+                ? null
+                : () => _guardar(categorias),
             child: const Text(Textos.guardar),
           ),
         if (completo)
@@ -379,6 +513,29 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
       ],
     );
+  }
+
+  /// Lo que se debe y quien anota puede cobrar o pagar (entrega 50): lo que
+  /// te deben si entró plata, lo que debes si salió.
+  List<DeudaDePersona> _deudas() {
+    if (widget.modo != ModoVoz.libre) return const [];
+    // Se leen desde que se abre, para tenerlas al terminar de hablar.
+    final teDeben = ref.watch(loQueTeDebenProvider).value;
+    final debes = ref.watch(loQueDebesProvider).value;
+    if (!_lectura.buscaDeuda) return const [];
+    final filas = switch (_lectura.tipo) {
+      TipoMovimiento.ingreso => teDeben,
+      TipoMovimiento.egreso => debes,
+      _ => null,
+    };
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    final ahora = ref.watch(relojProvider)();
+    bool delDia(DateTime f) =>
+        f.year == ahora.year && f.month == ahora.month && f.day == ahora.day;
+    return agruparDeudas([
+      for (final f in filas ?? const <FilaHistorial>[])
+        if (permisos.puedeCambiar(deOtro: f.deOtro, delDia: delDia(f.fecha))) f,
+    ]);
   }
 
   List<Widget> _detalle(
@@ -403,8 +560,17 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
       case _Fase.noEntendio:
         return const [TarjetaMoca(texto: Textos.noTeEntendi)];
       case _Fase.revisando:
-        if (pregunta != null) return [_pregunta(pregunta, categorias)];
-        return _entendido(categorias);
+        return [
+          // Un préstamo no es venta (entrega 14.14).
+          if (_lectura.prestamo) ...[
+            const Aviso(texto: Textos.prestamoNoEsVenta),
+            const SizedBox(height: 12),
+          ],
+          if (pregunta != null)
+            _pregunta(pregunta, categorias)
+          else
+            ..._entendido(categorias),
+        ];
     }
   }
 
@@ -448,7 +614,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                 )
               : Opciones<int>(
                   opciones: {
-                    for (final o in opciones) o: formatearSoles(o),
+                    for (final o in opciones) o: formatearSolesComprobante(o),
                     -1: Textos.otroMonto,
                   },
                   elegida: null,
@@ -465,10 +631,15 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         return _TarjetaPregunta(
           texto: Textos.entroOSalio,
           hijo: Opciones<TipoMovimiento>(
-            opciones: const {
+            opciones: {
               TipoMovimiento.ingreso: Textos.entro,
               TipoMovimiento.egreso: Textos.salio,
-              TipoMovimiento.retiro: Textos.retiroParaMi,
+              // Retiros y aportes, solo los dueños (entrega 20).
+              if ((ref.watch(permisosProvider).value ?? Permisos.delDueno)
+                  .anotaLoDelDueno) ...{
+                TipoMovimiento.retiro: Textos.retiroParaMi,
+                TipoMovimiento.aporte: Textos.puseDeMiBolsillo,
+              },
             },
             elegida: null,
             alElegir: (t) => setState(() {
@@ -480,9 +651,11 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
           ),
         );
       case PreguntaCuenta(:final indicePartida):
-        final monto = formatearSoles(_lectura.partidas[indicePartida].centimos);
+        final monto = formatearSolesComprobante(
+          _lectura.partidas[indicePartida].centimos,
+        );
         return _TarjetaPregunta(
-          texto: _lectura.tipo == TipoMovimiento.ingreso
+          texto: _lectura.tipo?.entraPlata ?? false
               ? Textos.dondeEntro(monto)
               : Textos.deDondeSalioMonto(monto),
           hijo: Opciones<TipoCuenta>(
@@ -493,6 +666,123 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             elegida: null,
             alElegir: (c) =>
                 setState(() => _lectura = _lectura.conCuenta(indicePartida, c)),
+          ),
+        );
+      case PreguntaDestino():
+        final origen = _lectura.partidas.firstOrNull?.cuenta;
+        return _TarjetaPregunta(
+          texto: Textos.aDondeVaPase,
+          hijo: Opciones<TipoCuenta>(
+            opciones: {
+              for (final c
+                  in ref.watch(cuentasProvider).value ?? const <CuentaVista>[])
+                if (c.enUso && c.tipo != origen)
+                  c.tipo: Textos.nombreCuenta(c.tipo),
+            },
+            elegida: null,
+            alElegir: (c) => setState(() => _lectura = _lectura.conDestino(c)),
+          ),
+        );
+      case PreguntaQuienDebe():
+        return _TarjetaPregunta(
+          texto: Textos.quienTeDebe,
+          hijo: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _quien,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: Textos.quienTeDebeEjemplo,
+                ),
+              ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _quien.text.trim().isEmpty
+                    ? null
+                    : () => setState(
+                        () => _lectura = _lectura.conContraparte(_quien.text),
+                      ),
+                child: const Text(Textos.continuar),
+              ),
+            ],
+          ),
+        );
+      case PreguntaDeuda(:final opciones):
+        final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+        if (opciones.length == 1) {
+          final deuda = opciones.single;
+          final monto = formatearSolesComprobante(deuda.totalCentimos);
+          return _TarjetaPregunta(
+            texto: cobro
+                ? Textos.teDebeEsDeEsa(deuda.nombre, monto)
+                : Textos.leDebesEsDeEsa(deuda.nombre, monto),
+            hijo: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton(
+                  onPressed: () =>
+                      setState(() => _lectura = _lectura.conAbono(deuda)),
+                  child: const Text(Textos.siDeEsaDeuda),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () =>
+                      setState(() => _lectura = _lectura.comoAparte()),
+                  child: const Text(Textos.noAnotarloAparte),
+                ),
+              ],
+            ),
+          );
+        }
+        return _TarjetaPregunta(
+          texto: cobro ? Textos.deQuienEsElCobro : Textos.aQuienLePagaste,
+          hijo: Opciones<int>(
+            opciones: {
+              for (final (i, d) in opciones.indexed)
+                i: Textos.quienYCuanto(
+                  d.nombre,
+                  formatearSolesComprobante(d.totalCentimos),
+                ),
+              -1: Textos.anotarloAparte,
+            },
+            elegida: null,
+            alElegir: (i) => setState(
+              () => _lectura = i < 0
+                  ? _lectura.comoAparte()
+                  : _lectura.conAbono(opciones[i]),
+            ),
+          ),
+        );
+      case PreguntaMasDeLoQueSeDebe(:final deuda):
+        final cobro = _lectura.tipo == TipoMovimiento.ingreso;
+        final debe = formatearSolesComprobante(deuda.totalCentimos);
+        final dicho = formatearSolesComprobante(_total);
+        return _TarjetaPregunta(
+          texto: cobro
+              ? Textos.teDebeNoTanto(deuda.nombre, debe, dicho)
+              : Textos.leDebesNoTanto(deuda.nombre, debe, dicho),
+          pie: Textos.mocaNuncaAdivina,
+          hijo: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton(
+                onPressed: () => setState(
+                  () => _lectura = _lectura.conMonto(deuda.totalCentimos),
+                ),
+                child: Text(
+                  cobro ? Textos.cobrarLos(debe) : Textos.pagarLos(debe),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () =>
+                    setState(() => _lectura = _lectura.comoAparte()),
+                child: const Text(Textos.anotarloAparte),
+              ),
+            ],
           ),
         );
       case PreguntaCategoria():
@@ -514,6 +804,8 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
     final tipo = _lectura.tipo!;
     final titulo = switch (tipo) {
       TipoMovimiento.retiro => Textos.retiroParaMi,
+      TipoMovimiento.aporte => Textos.puseDeMiBolsillo,
+      TipoMovimiento.transferencia => Textos.pasePlata,
       _ => _lectura.categoria ?? '',
     };
     final total = _lectura.partidas.fold<int>(0, (s, p) => s + p.centimos);
@@ -522,37 +814,104 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         children: [
           const IconoTrazo(Icono.check, color: Colores.azulOscuro, tamano: 18),
           const SizedBox(width: 8),
-          Text(
-            Textos.mocaEntendio,
-            style: Tipografia.etiquetaMoca.copyWith(fontSize: 14),
-          ),
+          Text(Textos.mocaEntendio, style: Tipografia.etiquetaMoca),
         ],
       ),
       const SizedBox(height: 8),
-      for (final p in _lectura.partidas) ...[
+      // El cobro o el pago de una deuda (entrega 50).
+      if (_lectura.abono case final deuda?) ...[
         _TarjetaPartida(
-          icono: tipo == TipoMovimiento.ingreso ? Icono.entro : Icono.salio,
-          titulo: titulo,
-          detalle: '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
-          monto: formatearSoles(p.centimos),
+          icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+          tono: tipo.esPase
+              ? Tono.neutro
+              : tipo.entraPlata
+              ? Tono.ingreso
+              : Tono.egreso,
+          titulo: tipo == TipoMovimiento.ingreso
+              ? Textos.cobroDeLoQueTeDebe(deuda.nombre)
+              : Textos.pagoDeLoQueLeDebes(deuda.nombre),
+          detalle:
+              '${Textos.nombreCuenta(_lectura.partidas.single.cuenta!)}'
+              ' · ${switch (deuda.totalCentimos - _total) {
+                <= 0 when tipo == TipoMovimiento.ingreso => Textos.yaNoDebeNada,
+                <= 0 => Textos.yaNoLeDebesNada,
+                final falta when tipo == TipoMovimiento.ingreso => Textos.leQueda(formatearSolesComprobante(falta)),
+                final falta => Textos.teFalta(formatearSolesComprobante(falta)),
+              }}',
+          monto: formatearSolesComprobante(_total),
         ),
-        const SizedBox(height: 8),
-      ],
+      ] else
+      // Lo que se debe (entrega 49): un total, sin cuenta, con quién.
+      if (_lectura.debe) ...[
+        _TarjetaPartida(
+          icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+          tono: tipo.esPase
+              ? Tono.neutro
+              : tipo.entraPlata
+              ? Tono.ingreso
+              : Tono.egreso,
+          titulo: titulo,
+          detalle: tipo == TipoMovimiento.ingreso
+              ? Textos.todaviaMeDebe
+              : Textos.todaviaLoDebo,
+          monto: formatearSolesComprobante(_total),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          tipo == TipoMovimiento.ingreso
+              ? Textos.quienTeDebe
+              : Textos.aQuienLeDebes,
+          style: Tipografia.textoFuerte,
+        ),
+        const SizedBox(height: Medidas.e2),
+        TextField(
+          controller: _quien,
+          textCapitalization: TextCapitalization.words,
+          onChanged: (_) => setState(() {}),
+          decoration: InputDecoration(
+            hintText: tipo == TipoMovimiento.ingreso
+                ? Textos.quienTeDebeEjemplo
+                : Textos.aQuienLeDebesEjemplo,
+          ),
+        ),
+      ] else
+        for (final p in _lectura.partidas) ...[
+          _TarjetaPartida(
+            icono: tipo.entraPlata ? Icono.entro : Icono.salio,
+            tono: tipo.esPase
+                ? Tono.neutro
+                : tipo.entraPlata
+                ? Tono.ingreso
+                : Tono.egreso,
+            titulo: titulo,
+            detalle: switch (_lectura.cuentaDestino) {
+              // «Efectivo → BCP» (entrega 21.1).
+              final destino? when tipo.esPase =>
+                '${Textos.pase(Textos.nombreCuenta(p.cuenta!), Textos.nombreCuenta(destino))}'
+                    ' · ${Textos.loQueDijiste}',
+              _ => '${Textos.nombreCuenta(p.cuenta!)} · ${Textos.loQueDijiste}',
+            },
+            monto: formatearSolesComprobante(p.centimos),
+          ),
+          const SizedBox(height: 8),
+        ],
       if (_lectura.partidas.length > 1)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          padding: const EdgeInsets.fromLTRB(16, Medidas.e2, 16, 0),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  tipo == TipoMovimiento.ingreso
+                  tipo.entraPlata
                       ? Textos.totalQueEntroHoy
                       : Textos.totalQueSale,
-                  style: Tipografia.secundario.copyWith(fontSize: 15),
+                  style: Tipografia.texto.copyWith(
+                    color: Colores.textoSecundario,
+                  ),
                 ),
               ),
               Text(
-                formatearSoles(total),
+                formatearSolesComprobante(total),
                 style: Tipografia.cifra(
                   Tipografia.textoFuerte.copyWith(fontWeight: FontWeight.w700),
                 ),
@@ -625,8 +984,7 @@ class _TarjetaMicrofono extends StatelessWidget {
             Text(
               '«$textoDicho»',
               textAlign: TextAlign.center,
-              style: Tipografia.texto.copyWith(
-                fontSize: 19,
+              style: Tipografia.tituloDestacado.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -668,11 +1026,12 @@ class _TarjetaPregunta extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Quien habla es Moca, no la pestaña (mejora 01).
                         const Text(
-                          Textos.pestanaMoca,
+                          Textos.nombreApp,
                           style: Tipografia.etiquetaMoca,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: Medidas.e1),
                         Text(texto, style: Tipografia.textoFuerte),
                       ],
                     ),
@@ -685,7 +1044,7 @@ class _TarjetaPregunta extends StatelessWidget {
           ),
         ),
         if (pie != null) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: Medidas.e3),
           Text(pie!, style: Tipografia.secundario),
         ],
       ],
@@ -693,56 +1052,57 @@ class _TarjetaPregunta extends StatelessWidget {
   }
 }
 
+/// Lo que Moca entendió (mejora 01): el icono en su cuadro de color (azul si
+/// entró, coral si salió), qué fue, de dónde, y el monto con su color.
 class _TarjetaPartida extends StatelessWidget {
   const _TarjetaPartida({
     required this.icono,
     required this.titulo,
     required this.detalle,
     required this.monto,
+    this.tono = Tono.marca,
   });
 
   final Icono icono;
   final String titulo;
   final String detalle;
   final String monto;
+  final Tono tono;
 
   @override
   Widget build(BuildContext context) {
     return Tarjeta(
-      relleno: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      relleno: const EdgeInsets.all(Medidas.e4),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colores.tinteAzul,
-              borderRadius: BorderRadius.circular(Medidas.radioBoton),
+              color: tono.fondo(context),
+              borderRadius: BorderRadius.circular(Medidas.radioChico),
             ),
             child: Center(
-              child: IconoTrazo(icono, color: Colores.azulOscuro, tamano: 20),
+              child: IconoTrazo(icono, color: tono.color(context), tamano: 22),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Medidas.e3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  titulo,
-                  style: Tipografia.textoFuerte.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text(titulo, style: Tipografia.tituloTarjeta),
                 Text(detalle, style: Tipografia.secundario),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: Medidas.e3),
           Text(
             monto,
             style: Tipografia.cifra(
-              Tipografia.tituloTarjeta.copyWith(fontSize: 18),
+              Tipografia.tituloDestacado.copyWith(
+                color: tono == Tono.marca ? null : tono.color(context),
+              ),
             ),
           ),
         ],

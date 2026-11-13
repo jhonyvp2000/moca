@@ -17,6 +17,8 @@ import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
+import '../../rutas.dart';
+import '../../dominio/equipo.dart';
 import '../../textos/textos.dart';
 import '../registrar/confirmacion.dart';
 
@@ -62,10 +64,12 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
 
   int get _totalCentimos => leerSolesConCentimos(_total.text) ?? 0;
 
+  // Lo que se debe no sale de ninguna cuenta todavía: la cuenta se elige
+  // al marcar «Ya lo pagué» (entrega 14.10.1).
   bool get _completo =>
       _totalCentimos > 0 &&
-      _cuenta != null &&
       _pagado != null &&
+      (_pagado == false || _cuenta != null) &&
       _categoriaId != null;
 
   Future<void> _guardar() async {
@@ -74,7 +78,8 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
     final compra = CompraConfirmada(
       lectura: l,
       totalCentimos: _totalCentimos,
-      cuenta: _cuenta!,
+      // Una deuda guarda el efectivo solo como sugerencia para el pago.
+      cuenta: _pagado! ? _cuenta! : TipoCuenta.efectivo,
       pagado: _pagado!,
       categoriaId: _categoriaId!,
       emisorNombre: _aQuien.text.trim().isEmpty ? null : _aQuien.text.trim(),
@@ -172,12 +177,36 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                     : null,
                 onTap: () => Navigator.of(context).pop(c.id),
               ),
+            // Una categoría propia de lo que sale (entrega 31).
+            if ((ref.read(permisosProvider).value ?? Permisos.delDueno)
+                .cambiaCategorias)
+              ListTile(
+                minTileHeight: Medidas.objetivoTactilMinimo + 8,
+                title: Text(
+                  Textos.otraCategoria,
+                  style: Tipografia.texto.copyWith(
+                    color: Colores.marca,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => Navigator.of(context).pop(_otra),
+              ),
           ],
         ),
       ),
     );
+    if (elegida == _otra) {
+      if (!mounted) return;
+      final id = await context.push<String>(
+        Rutas.categoriaNueva(TipoMovimiento.egreso),
+      );
+      if (id != null && mounted) setState(() => _categoriaId = id);
+      return;
+    }
     if (elegida != null) setState(() => _categoriaId = elegida);
   }
+
+  static const _otra = '+';
 
   @override
   Widget build(BuildContext context) {
@@ -196,12 +225,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
         .firstOrNull;
     final fecha = l.fechaEmision ?? ref.read(relojProvider)();
 
-    const etiqueta = TextStyle(
-      fontFamily: Tipografia.familia,
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: Colores.textoPrincipal,
-    );
+    const etiqueta = Tipografia.tituloSeccion;
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
@@ -209,12 +233,16 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
         alVolver: () => context.pop(),
       ),
       contenido: [
+        if (l.fotoDePrueba case final n?) ...[
+          Aviso(texto: Textos.fotoDePrueba(n, fotosDePruebaPorTelefono)),
+          const SizedBox(height: Medidas.e4),
+        ],
         Tarjeta(
-          relleno: const EdgeInsets.all(14),
+          relleno: const EdgeInsets.all(Medidas.e4),
           child: Row(
             children: [
               _Miniatura(lectura: l),
-              const SizedBox(width: 14),
+              const SizedBox(width: Medidas.e4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +254,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                           color: Colores.textoSecundario,
                           tamano: 16,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: Medidas.e2),
                         Flexible(
                           child: Text(
                             Textos.salioCompra,
@@ -250,9 +278,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                           ),
                         ],
                         onChanged: (_) => setState(() {}),
-                        style: Tipografia.cifra(
-                          Tipografia.tituloPantalla.copyWith(fontSize: 24),
-                        ),
+                        style: Tipografia.cifra(Tipografia.encabezado),
                         decoration: const InputDecoration(
                           prefixText: 'S/ ',
                           hintText: '0.00',
@@ -265,10 +291,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                         child: Text(
                           formatearSolesComprobante(_totalCentimos),
                           style: Tipografia.cifra(
-                            Tipografia.tituloPantalla.copyWith(
-                              fontSize: 32,
-                              height: 1.1,
-                            ),
+                            Tipografia.montoDetalle.copyWith(height: 1.1),
                           ),
                         ),
                       ),
@@ -283,7 +306,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: Medidas.e4),
         Tarjeta(
           relleno: EdgeInsets.zero,
           child: Column(
@@ -344,7 +367,7 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: Medidas.e2),
                       const IconoTrazo(
                         Icono.abajo,
                         color: Colores.textoPrincipal,
@@ -357,18 +380,8 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        const Text(Textos.deDondeSalio, style: etiqueta),
-        const SizedBox(height: 8),
-        OpcionesRejilla<TipoCuenta>(
-          opciones: {
-            for (final c in ref.watch(tiposDeCuentaProvider))
-              c: Textos.nombreCuenta(c),
-          },
-          elegida: _cuenta,
-          alElegir: (c) => setState(() => _cuenta = c),
-        ),
-        const SizedBox(height: 14),
+        const SizedBox(height: Medidas.e4),
+        // Primero si ya se pagó; de dónde salió, solo si se pagó.
         const Text(Textos.yaLoPagaste, style: etiqueta),
         const SizedBox(height: 8),
         OpcionesRejilla<bool>(
@@ -376,7 +389,24 @@ class _EstadoConfirmarLectura extends ConsumerState<PantallaConfirmarLectura> {
           elegida: _pagado,
           alElegir: (p) => setState(() => _pagado = p),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: Medidas.e4),
+        if (_pagado == true) ...[
+          const Text(Textos.deDondeSalio, style: etiqueta),
+          const SizedBox(height: 8),
+          OpcionesRejilla<TipoCuenta>(
+            opciones: {
+              for (final c in ref.watch(tiposDeCuentaProvider))
+                c: Textos.nombreCuenta(c),
+            },
+            elegida: _cuenta,
+            alElegir: (c) => setState(() => _cuenta = c),
+          ),
+          const SizedBox(height: Medidas.e4),
+        ],
+        if (_pagado == false) ...[
+          const Text(Textos.cuentaAlPagar, style: Tipografia.secundario),
+          const SizedBox(height: Medidas.e4),
+        ],
         _Nota(
           texto: !l.legible
               ? Textos.completadoAMano
@@ -414,7 +444,7 @@ class _Miniatura extends StatelessWidget {
       height: 100,
       decoration: BoxDecoration(
         color: Colores.fondo,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Medidas.e2),
         border: Border.all(color: Colores.bordeCampo),
       ),
       clipBehavior: Clip.antiAlias,
@@ -467,7 +497,7 @@ class _Nota extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Medidas.e4, vertical: 12),
       decoration: BoxDecoration(
         color: Colores.tinteAzul,
         borderRadius: BorderRadius.circular(Medidas.radioBoton),
@@ -475,7 +505,7 @@ class _Nota extends StatelessWidget {
       child: Row(
         children: [
           const IconoTrazo(Icono.check, color: Colores.azulOscuro, tamano: 18),
-          const SizedBox(width: 10),
+          const SizedBox(width: Medidas.e3),
           Expanded(
             child: Text(
               texto,

@@ -213,7 +213,10 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         anterior: {'celular': usuario.celular},
         nuevo: {'celular': celular},
       );
-      await _pasarA(EtapaInicio.alta);
+      // Desde la tarjeta de Moca, el camino del primer día ya terminó.
+      if (await _a.leerAjuste(_claveEtapa) == EtapaInicio.guardarAvance.name) {
+        await _pasarA(EtapaInicio.alta);
+      }
     });
   }
 
@@ -261,7 +264,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
         TipoMovimiento.egreso,
         categoriasEgresoPorNegocio[datos.tipoNegocio]!,
       );
-      // Las billeteras que usa además de Yape.
+      // Las billeteras y los bancos que usa además de Yape y el BCP.
       final existentes = await _a.cuentas(empresa.id);
       var orden = existentes.length;
       for (final MapEntry(key: tipo, value: nombre)
@@ -271,7 +274,7 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
           empresaId: empresa.id,
           autorId: usuario.id,
           tipo: tipo,
-          nombre: tipo == TipoCuenta.otra && nombre.trim().isNotEmpty
+          nombre: tipo.conNombrePropio && nombre.trim().isNotEmpty
               ? nombre.trim()
               : _nombresCuenta[tipo]!,
           orden: orden++,
@@ -360,11 +363,12 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
             ))
             .getSingleOrNull();
 
-    final tienesHoy = AccesoLocal.saldosPorCuenta(
+    final saldos = AccesoLocal.saldosPorCuenta(
       cuentas,
       movimientos,
       ajustes: await _a.ajustes(empresa.id),
-    ).values.fold(0, (suma, saldo) => suma + saldo);
+    );
+    final tienesHoy = saldos.values.fold(0, (suma, saldo) => suma + saldo);
 
     final hoy = inicioDelDia(_ahora());
     final ventas = movimientos.where(
@@ -377,19 +381,38 @@ class RepositorioPrimerDiaLocal implements RepositorioPrimerDia {
     final ventaDeHoy = ventas
         .where((m) => inicioDelDia(m.fechaMovimiento) == hoy)
         .fold(0, (suma, m) => suma + m.montoCentimos);
+    // Lo fiado de hoy que falta cobrar (entrega 51).
+    final fiadoDeHoy = ventas
+        .where(
+          (m) =>
+              inicioDelDia(m.fechaMovimiento) == hoy &&
+              m.estadoPago != EstadoPago.pagado,
+        )
+        .fold(0, (suma, m) => suma + m.montoCentimos - m.montoPagadoCentimos);
     final dias = ventas.map((m) => inicioDelDia(m.fechaMovimiento)).toSet();
 
     return ResumenPrimerDia(
       nombreNegocio: empresa.nombre,
       tienesHoyCentimos: tienesHoy,
+      saldosPorCuenta: saldos,
       saldoPendiente: cuentas.any((c) => c.saldoInicialCentimos == null),
       ventaDeHoyCentimos: ventaDeHoy,
+      fiadoDeHoyCentimos: fiadoDeHoy,
       diasConVenta: dias.length,
       conOtrosMovimientos: movimientos.any(
         (m) =>
             m.estado == EstadoRegistro.vigente &&
             (ventaDelDia == null || m.categoriaId != ventaDelDia.id),
       ),
+      gastoConComprobante: movimientos.any(
+        (m) =>
+            m.estado == EstadoRegistro.vigente &&
+            m.tipo == TipoMovimiento.egreso &&
+            (m.fuente == Fuente.foto || m.fuente == Fuente.qr),
+      ),
+      arqueoHecho: (await (_base.select(
+        _base.arqueos,
+      )..where((a) => a.empresaId.equals(empresa.id))).get()).isNotEmpty,
     );
   }
 }

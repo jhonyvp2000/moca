@@ -30,13 +30,13 @@ Moca te recuerda anotar la venta a tu hora de cierre (9:00 p. m., o la que elija
 
 A tu hora de cierre llega «¿Cuánto vendiste hoy en efectivo?»:
 
-- **Escribirlo**: escribe el monto ahí mismo, por ejemplo `350`, y envía. Luego pregunta por Yape y, si los usaste en el último mes, por Plin, Sip u otra billetera y por el banco.
+- **Escribirlo**: escribe el monto ahí mismo, por ejemplo `350`, y envía. Luego pregunta por Yape y, si los usaste en el último mes, por Plin, Sip u otra billetera y por cada banco.
 - **Decirlo**: abre Moca para decirlo con tu voz.
 - **Hoy no abrí**: si ese día no atendiste.
 
-## 5. Plin, Sip u otra billetera
+## 5. Plin, Sip, otros bancos
 
-Si cobras por Plin, Sip u otra billetera, elígela al empezar o agrégala después en la pestaña **Moca**, en **Mis cuentas**. Cada una lleva su propio saldo.
+Si cobras por Plin, Sip u otra billetera, o tienes cuenta en otro banco además del BCP (Interbank, BBVA, Scotiabank, una caja), elígelos al empezar o agrégalos después en la pestaña **Moca**, en **Mis cuentas**. Cada uno lleva su propio saldo.
 
 ## 6. Si algo falla
 

@@ -35,7 +35,7 @@ class PantallaPendiente extends StatelessWidget {
         children: [
           cabecera ??
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: Medidas.e3),
                 child: Text(titulo ?? '', style: Tipografia.tituloPantalla),
               ),
           const SizedBox(height: 12),

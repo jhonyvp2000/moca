@@ -1,345 +1,146 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../comun/icono_trazo.dart';
-import '../../comun/tarjeta.dart';
-import '../../dominio/arqueo.dart';
-import '../../dominio/moca.dart';
+import '../../dominio/cuenta_real.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
-import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
-import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
-import '../moca/avisos.dart';
+import '../preguntale/barra_preguntale.dart';
+import 'desglose_cuentas.dart';
+import 'encabezado_negocio.dart';
+import '../../inyeccion.dart';
+import 'tarjeta_tienes_hoy.dart';
 
 /// S04 · Inicio. Sin la franja de planes ni «Lo que viene» (ajustes respecto
 /// al mockup), y sin la flecha para cambiar de empresa.
-class PantallaInicioCompleta extends StatefulWidget {
+class PantallaInicioCompleta extends ConsumerStatefulWidget {
   const PantallaInicioCompleta({
     super.key,
     required this.resumen,
-    required this.alAnotarVenta,
-    required this.alHacerArqueo,
-    this.aviso,
     this.tarjetaAvisos,
+    this.actualizado,
+    this.permisos = Permisos.delDueno,
   });
 
   final ResumenInicio resumen;
-  final VoidCallback alAnotarVenta;
-  final VoidCallback alHacerArqueo;
-
-  /// El aviso más importante, si hay alguno.
-  final Aviso? aviso;
 
   /// El permiso de avisos, si falta pedirlo.
   final Widget? tarjetaAvisos;
 
+  /// «Actualizado hace 5 min», si hay varias personas (entrega 18).
+  final String? actualizado;
+
+  /// Lo que el rol deja ver y hacer (entrega 20).
+  final Permisos permisos;
+
   @override
-  State<PantallaInicioCompleta> createState() => _EstadoInicioCompleta();
+  ConsumerState<PantallaInicioCompleta> createState() =>
+      _EstadoInicioCompleta();
 }
 
-class _EstadoInicioCompleta extends State<PantallaInicioCompleta> {
+class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
   bool _ocultar = false;
-
-  String _soles(int centimos) =>
-      _ocultar ? Textos.montoOculto : formatearSoles(centimos);
-
-  /// Filas de tres; la última se completa con huecos para que las columnas
-  /// queden alineadas.
-  static List<List<TipoCuenta?>> _enFilas(List<TipoCuenta> cuentas) => [
-    for (var i = 0; i < cuentas.length; i += 3)
-      [for (var j = i; j < i + 3; j++) j < cuentas.length ? cuentas[j] : null],
-  ];
 
   @override
   Widget build(BuildContext context) {
     final r = widget.resumen;
-    final cuentas = r.saldosPorCuenta.isEmpty
-        ? TipoCuenta.basicas
-        : r.saldosPorCuenta.keys.toList();
+    final permisos = widget.permisos;
+    // El encargado y el ayudante ven solo sus cajas (entrega 21).
+    final misCajas = permisos.misCajas;
+    // Las que se dejaron de usar no salen (entrega 58).
+    final enDesuso = ref.watch(cuentasEnDesusoProvider);
+    final saldos = {
+      for (final e in r.saldosPorCuenta.entries)
+        if ((misCajas == null || misCajas.contains(e.key)) &&
+            !enDesuso.contains(e.key))
+          e.key: e.value,
+    };
+    final total = misCajas == null
+        ? r.tienesHoyCentimos
+        : saldos.values.fold(0, (s, v) => s + v);
+    final hoy = _ocultar
+        ? Textos.montoOculto
+        : formatearSoles(r.ventaDeHoyCentimos);
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Medidas.margenLateral,
-              16,
-              Medidas.margenLateral,
-              8,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    r.nombreNegocio,
-                    style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-                  ),
-                ),
-                _BotonOjo(
-                  ocultando: _ocultar,
-                  alTocar: () => setState(() => _ocultar = !_ocultar),
-                ),
-              ],
-            ),
-          ),
-          ?widget.tarjetaAvisos,
-          _conMargen(
-            Tarjeta(
-              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    Textos.tienesHoy,
-                    style: Tipografia.textoFuerte.copyWith(
-                      color: Colores.textoSecundario,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _soles(r.tienesHoyCentimos),
-                      maxLines: 1,
-                      style: Tipografia.cifra(
-                        const TextStyle(
-                          fontFamily: Tipografia.familia,
-                          fontSize: 46,
-                          height: 1.05,
-                          fontWeight: FontWeight.w700,
-                          color: Colores.textoPrincipal,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Una columna por cuenta; con más de tres, en filas de
-                  // tres.
-                  for (final (f, fila) in _enFilas(cuentas).indexed) ...[
-                    if (f > 0) const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        for (final cuenta in fila)
-                          Expanded(
-                            child: cuenta == null
-                                ? const SizedBox.shrink()
-                                : Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        Textos.nombreCuenta(cuenta),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Tipografia.secundario,
-                                      ),
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          _soles(
-                                            r.saldosPorCuenta[cuenta] ?? 0,
-                                          ),
-                                          maxLines: 1,
-                                          style: Tipografia.cifra(
-                                            Tipografia.textoFuerte.copyWith(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                      ],
-                    ),
-                  ],
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: widget.alHacerArqueo,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(
-                          0,
-                          Medidas.objetivoTactilMinimo,
-                        ),
-                        foregroundColor: Colores.marca,
-                        textStyle: Tipografia.textoFuerte,
-                      ),
-                      child: const Text(Textos.hacerArqueo),
-                    ),
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  ..._semana(r),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          _conMargen(
-            FilledButton.icon(
-              onPressed: widget.alAnotarVenta,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                ),
-              ),
-              icon: const IconoTrazo(
-                Icono.microfono,
-                color: Colores.sobreMarca,
-              ),
-              label: const Text(Textos.anotarVentaDeHoy),
-            ),
-          ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          // El aviso más importante; si no hay, la venta de hoy y el arqueo.
-          _conMargen(_tarjetaMoca(r)),
-        ],
-      ),
-    );
-  }
-
-  Widget _tarjetaMoca(ResumenInicio r) {
-    if (widget.aviso case final aviso?) {
-      return TarjetaMoca(
-        texto: textoAvisoEnInicio(aviso),
-        accion: FilledButton(
-          onPressed: () => abrirAviso(context, aviso),
-          child: Text(accionAviso(aviso)),
-        ),
-      );
-    }
-    final venta = r.ventaDeHoyCentimos > 0
-        ? Textos.mocaYaAnotasteHoy
-        : Textos.mocaFaltaVentaDeHoy;
-    final boton = FilledButton(
-      onPressed: widget.alHacerArqueo,
-      child: const Text(Textos.hacerArqueo),
-    );
-    return switch (r.estadoArqueo) {
-      EstadoArqueo.falta => TarjetaMoca(
-        texto: Textos.mocaFaltaArqueo,
-        accion: boton,
-      ),
-      EstadoArqueo.toca => TarjetaMoca(
-        texto: Textos.mocaTocaArqueo,
-        accion: boton,
-      ),
-      EstadoArqueo.hecho => TarjetaMoca(
-        texto: '$venta ${Textos.mocaArqueoHecho}',
-      ),
-      EstadoArqueo.nada => TarjetaMoca(texto: venta),
-    };
-  }
-
-  List<Widget> _semana(ResumenInicio r) {
-    if (!r.semanaConMovimientos) {
-      return const [Text(Textos.semanaSinMovimientos, style: Tipografia.texto)];
-    }
-    final diferencia = r.diferenciaConSemanaAnteriorCentimos;
-    return [
-      Text.rich(
-        TextSpan(
-          style: Tipografia.texto,
+      // Todo armado de una vez: el Inicio es corto, y así lo de abajo
+      // (los pasos, la tarjeta de Moca) existe aunque no se vea todavía.
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        // Espacio para el + que sobresale de la barra.
+        padding: const EdgeInsets.only(bottom: Medidas.e8 + Medidas.e4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const TextSpan(text: Textos.estaSemanaTeQuedo),
-            TextSpan(
-              text: _soles(r.semanaQuedoCentimos),
-              style: Tipografia.cifra(
-                const TextStyle(fontWeight: FontWeight.w700),
+            EncabezadoNegocio(
+              nombre: r.nombreNegocio,
+              detalle: widget.actualizado,
+            ),
+            ?widget.tarjetaAvisos,
+            _conMargen(
+              TarjetaTienesHoy(
+                etiqueta: switch (misCajas?.length) {
+                  null => Textos.tienesHoy,
+                  1 => Textos.enTuCaja,
+                  _ => Textos.enTusCajas,
+                },
+                centimos: total,
+                ocultar: _ocultar,
+                // El ojo vive en la tarjeta desde la entrega 61.
+                alOcultar: () => setState(() => _ocultar = !_ocultar),
+                explicacion: Textos.notaConMovimientos,
+                // El ayudante ve siempre lo que anotó hoy (entrega 20).
+                pildora: _pildora(r, permisos, hoy),
               ),
             ),
-          ],
-        ),
-      ),
-      if (diferencia != null) ...[
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            if (diferencia != 0) ...[
-              IconoTrazo(
-                diferencia > 0 ? Icono.entro : Icono.salio,
-                color: Colores.azulOscuro,
-                tamano: 16,
-              ),
-              const SizedBox(width: 6),
+            // «Pregúntale a Moca» (entrega 74): solo el dueño con cuenta.
+            if (permisos.rol == Rol.dueno &&
+                ref.watch(situacionCuentaProvider).value?.estado ==
+                    EstadoCuenta.guardada) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              _conMargen(const BarraPreguntale()),
             ],
-            Expanded(
-              child: Text(
-                diferencia > 0
-                    ? Textos.masQueLaSemanaPasada(_soles(diferencia))
-                    : diferencia < 0
-                    ? Textos.menosQueLaSemanaPasada(_soles(-diferencia))
-                    : Textos.igualQueLaSemanaPasada,
-                style: Tipografia.cifra(
-                  Tipografia.secundario.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colores.azulOscuro,
-                  ),
-                ),
+            // Las cuentas, siempre a la vista (entrega 65): sin la fila
+            // «Ver por cuenta / Ocultar».
+            if (misCajas == null || saldos.length > 1) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              DesgloseDeCuentas(
+                saldos: saldos,
+                ocultar: _ocultar,
+                conVerTodas: permisos.cambiaCuentas,
               ),
-            ),
+            ],
+            // La tarjeta de Moca salió del Inicio (entrega 64): el aviso va
+            // en Informes y en el Asistente; la venta de hoy y el arqueo, en
+            // el +. «Te deben» y «Debes» viven en Informes (entrega 63).
           ],
         ),
-      ],
-      const SizedBox(height: 4),
-      Text(
-        Textos.entroSalio(
-          _soles(r.semanaEntroCentimos),
-          _soles(r.semanaSalioCentimos),
-        ),
-        style: Tipografia.cifra(Tipografia.secundario),
       ),
-    ];
+    );
+  }
+
+  /// Lo de hoy, en la píldora de «Tienes hoy»: lo que anotó el ayudante o
+  /// lo vendido, con lo que se fió (entrega 51): «Vendiste hoy S/ 480 ·
+  /// S/ 130 al fiado».
+  String? _pildora(ResumenInicio r, Permisos permisos, String hoy) {
+    final base = permisos.rol == Rol.ayudante
+        ? '${Textos.hoyAnotaste}: $hoy'
+        : r.ventaDeHoyCentimos > 0
+        ? Textos.vendisteHoy(hoy)
+        : null;
+    if (base == null || r.fiadoDeHoyCentimos <= 0) return base;
+    final fiado = _ocultar
+        ? Textos.montoOculto
+        : formatearSoles(r.fiadoDeHoyCentimos);
+    return '$base · ${Textos.alFiado(fiado)}';
   }
 
   Widget _conMargen(Widget hijo) => Padding(
     padding: const EdgeInsets.symmetric(horizontal: Medidas.margenLateral),
     child: hijo,
   );
-}
-
-class _BotonOjo extends StatelessWidget {
-  const _BotonOjo({required this.ocultando, required this.alTocar});
-
-  final bool ocultando;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Medidas.radioBoton),
-      side: const BorderSide(color: Colores.bordeTarjeta),
-    );
-    return Tooltip(
-      message: ocultando ? Textos.mostrarMontos : Textos.ocultarMontos,
-      child: Material(
-        color: Colores.superficie,
-        shape: forma,
-        child: InkWell(
-          customBorder: forma,
-          onTap: alTocar,
-          child: SizedBox.square(
-            dimension: Medidas.objetivoTactilMinimo,
-            child: Center(
-              child: IconoTrazo(
-                ocultando ? Icono.ojoTachado : Icono.ojo,
-                color: Colores.textoPrincipal,
-                tamano: 20,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

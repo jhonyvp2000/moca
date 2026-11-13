@@ -1,6 +1,15 @@
 import 'modelos.dart';
 
-enum TipoAviso { faltaArqueo, diferenciaArqueo, diasSinRegistrar, gastoAtipico }
+enum TipoAviso {
+  faltaArqueo,
+  diferenciaArqueo,
+  diasSinRegistrar,
+  gastoAtipico,
+
+  /// Un cliente que debe hace una semana o más y no se le recordó
+  /// (entrega 54). Solo para los dueños.
+  cobrarCliente,
+}
 
 /// Un aviso de la pestaña Moca. Lo disparan reglas sobre los datos; el texto
 /// lo arma la pantalla con plantillas.
@@ -15,6 +24,7 @@ class Aviso {
     this.categoria,
     this.dias,
     this.destinoId,
+    this.cliente,
   });
 
   /// Identifica el aviso para no volver a mostrarlo si se marcó «Entendido».
@@ -29,12 +39,18 @@ class Aviso {
   /// Días seguidos sin anotar.
   final int? dias;
 
-  /// El movimiento o el ajuste del arqueo al que lleva.
+  /// El movimiento o el ajuste del arqueo al que lleva; en «cobrarCliente»,
+  /// el cliente.
   final String? destinoId;
+
+  /// El nombre del cliente que debe (entrega 54).
+  final String? cliente;
 
   /// Los que se resuelven solos (arqueo, días sin anotar) no se descartan.
   bool get descartable =>
-      tipo == TipoAviso.diferenciaArqueo || tipo == TipoAviso.gastoAtipico;
+      tipo == TipoAviso.diferenciaArqueo ||
+      tipo == TipoAviso.gastoAtipico ||
+      tipo == TipoAviso.cobrarCliente;
 }
 
 /// El resumen de la semana para la tarjeta de arriba de la pestaña Moca.

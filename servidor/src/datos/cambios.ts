@@ -1,0 +1,100 @@
+import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
+import type { FastifyInstance } from 'fastify';
+import type { Pool } from '../base/conexion.js';
+import { enviarJson } from '../cifras/rutas.js';
+import { cajasDe, miembroDe, motivoSinAcceso } from '../equipo/miembros.js';
+import { empresaPedida, equipoVisible, leerTabla, ultimoCambio } from './bajar.js';
+import { autenticar, columnasEmpresa, tablas } from './subir.js';
+
+/**
+ * Lo nuevo de la empresa desde el cambio [desde] que el rol puede ver
+ * (entrega 17): así cada teléfono baja lo que anotaron los demás sin bajar
+ * todo. Nulo si el usuario ya no está en la empresa.
+ */
+export async function cambiosDesde(
+  pool: Pool,
+  usuarioId: string,
+  desde: number,
+  empresaId?: string,
+): Promise<Record<string, unknown> | null> {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const miembro = await miembroDe(cliente, usuarioId, empresaId);
+    if (!miembro) {
+      await cliente.query('COMMIT');
+      return null;
+    }
+    await cliente.query(`SELECT set_config('app.empresa_id', $1, true)`, [miembro.empresaId]);
+    const hasta = await ultimoCambio(cliente, miembro.empresaId);
+    const empresa = (
+      await cliente.query(
+        `SELECT ${columnasEmpresa.join(', ')} FROM empresas WHERE cambio > $1`,
+        [desde],
+      )
+    ).rows[0];
+    // Cuántas personas hay: con más de una, el Inicio dice cuándo se
+    // actualizó (entrega 18).
+    const personas = await cliente.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM membresias WHERE quitada_en IS NULL AND empresa_id = $1',
+      [miembro.empresaId],
+    );
+    const cambios: Record<string, unknown> = {
+      empresa_id: miembro.empresaId,
+      rol: miembro.rol,
+      titular: miembro.titular,
+      mis_cajas: await cajasDe(cliente, miembro),
+      personas: personas.rows[0]?.n ?? 1,
+      equipo: await equipoVisible(cliente, miembro.empresaId),
+      hasta,
+      ...(empresa ? { empresa } : {}),
+    };
+    for (const [tabla, columnas] of Object.entries(tablas)) {
+      const filas = await leerTabla(cliente, tabla, columnas, miembro, usuarioId, desde);
+      if (filas.length) cambios[tabla] = filas;
+    }
+    await cliente.query('COMMIT');
+    return cambios;
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}
+
+export function rutasCambios(
+  app: FastifyInstance,
+  pool: Pool,
+  ahora: () => Date,
+  cobro: ConfigCobro,
+): void {
+  app.get('/datos/cambios', async (peticion, respuesta) => {
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+    const desde = Number((peticion.query as { desde?: unknown } | undefined)?.desde ?? 0);
+    if (!Number.isSafeInteger(desde) || desde < 0) {
+      return respuesta.code(400).send({ error: 'datos_invalidos' });
+    }
+    const cambios = await cambiosDesde(pool, usuarioId, desde, empresaPedida(peticion.query));
+    // Sin negocio activo: se borró, lo quitaron del equipo o nunca entró
+    // (entrega 37: el motivo exacto, para que el teléfono lo diga).
+    if (!cambios) {
+      const cliente = await pool.connect();
+      try {
+        await cliente.query('BEGIN');
+        const motivo = await motivoSinAcceso(cliente, usuarioId, empresaPedida(peticion.query));
+        await cliente.query('COMMIT');
+        return respuesta.code(403).send({ error: motivo });
+      } finally {
+        cliente.release();
+      }
+    }
+    // El estado del cobro va siempre: cambia con los días (entrega 24).
+    const empresaId = String(cambios.empresa_id);
+    return enviarJson(peticion, respuesta, {
+      ...cambios,
+      cobro: await cobroParaElTelefono(pool, cobro, usuarioId, empresaId, ahora()),
+    });
+  });
+}

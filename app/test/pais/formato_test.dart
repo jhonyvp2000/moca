@@ -74,4 +74,51 @@ void main() {
       'Ayer · sábado 31',
     );
   });
+
+  test(
+    'El celular de un cliente: 9 cifras que empiezan con 9 (entrega 53)',
+    () {
+      expect(celularDeCliente('987 654 321'), '987654321');
+      expect(celularDeCliente('+51 987-654-321'), '987654321');
+      expect(celularDeCliente('51987654321'), '987654321');
+      expect(celularDeCliente('87654321'), isNull);
+      expect(celularDeCliente('887654321'), isNull);
+      expect(celularDeCliente('9876543210'), isNull);
+      expect(celularDeCliente(''), isNull);
+      expect(celularParaWhatsApp('987654321'), '51987654321');
+    },
+  );
+
+  test('Entrega 62: el día y la hora de «Tienes hoy»', () {
+    // 12 de noviembre de 2026 es jueves.
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 12, 12, 13)),
+      'Jueves 12:13\u00A0p. m.',
+    );
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 15, 0, 5)),
+      'Domingo 12:05\u00A0a. m.',
+    );
+    expect(
+      formatearDiaYHora(DateTime(2026, 11, 18, 9, 0)),
+      'Miércoles 9:00\u00A0a. m.',
+    );
+  });
+
+  test('Entrega 73: los montos como se dicen en voz alta', () {
+    const n = '\u00A0';
+    expect(montosParaDecir('Entró S/${n}30.'), 'Entró 30 soles.');
+    expect(montosParaDecir('S/${n}1,350'), '1350 soles');
+    expect(montosParaDecir('S/ 1'), 'un sol');
+    expect(montosParaDecir('S/${n}3.40'), '3 soles con 40 céntimos');
+    expect(montosParaDecir('S/${n}0.50'), '50 céntimos');
+    expect(montosParaDecir('S/${n}2.01'), '2 soles con un céntimo');
+    expect(montosParaDecir('−S/${n}50'), 'menos 50 soles');
+    expect(montosParaDecir('− S/${n}1,200,000'), 'menos 1200000 soles');
+    expect(
+      montosParaDecir('Entró S/${n}480 y salió S/${n}130.'),
+      'Entró 480 soles y salió 130 soles.',
+    );
+    expect(montosParaDecir('Sin montos.'), 'Sin montos.');
+  });
 }

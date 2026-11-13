@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
+import '../../comun/videos.dart';
+import '../../dominio/cuenta_real.dart';
+import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
@@ -12,10 +15,21 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'modo_cuenta.dart';
 
 /// S01 · Guarda tu avance. Sin la franja de Moca Plus: en la V1 no hay planes.
+/// Desde la entrega 11 el código llega de verdad por SMS. También se abre
+/// desde la tarjeta de la pestaña Moca, con el celular ya escrito si lo
+/// había, y para entrar a una cuenta desde «Ya tengo cuenta» (entrega 12).
 class PantallaGuardarAvance extends ConsumerStatefulWidget {
-  const PantallaGuardarAvance({super.key});
+  const PantallaGuardarAvance({
+    super.key,
+    this.celularInicial,
+    this.modo = ModoCuenta.primerDia,
+  });
+
+  final String? celularInicial;
+  final ModoCuenta modo;
 
   @override
   ConsumerState<PantallaGuardarAvance> createState() => _EstadoGuardarAvance();
@@ -23,6 +37,14 @@ class PantallaGuardarAvance extends ConsumerStatefulWidget {
 
 class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
   final _celular = TextEditingController();
+  bool _enviando = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _celular.text = formatearCelular(widget.celularInicial ?? '');
+  }
 
   @override
   void dispose() {
@@ -45,87 +67,87 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
     final valido = esCelularValido(_digitos);
 
     return PantallaConAcciones(
-      rellenoSuperior: 40,
+      encabezado: _primerDia
+          ? null
+          : EncabezadoConVolver(titulo: _titulo, alVolver: () => context.pop()),
+      rellenoSuperior: _primerDia ? 40 : 4,
       contenido: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colores.tinteAzul,
-            borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Colores.marca,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: IconoTrazo(
-                    Icono.check,
-                    color: Colores.sobreMarca,
-                    grosor: 2.6,
+        if (_primerDia) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colores.tinteAzul,
+              borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Colores.marca,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: IconoTrazo(
+                      Icono.check,
+                      color: Colores.sobreMarca,
+                      grosor: 2.6,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      Textos.primeraVentaAnotada,
-                      style: Tipografia.tituloTarjeta,
-                    ),
-                    if (resumen != null)
-                      Text(
-                        Textos.hoyEntraron(
-                          formatearSoles(resumen.ventaDeHoyCentimos),
-                        ),
-                        style: Tipografia.cifra(
-                          Tipografia.textoFuerte.copyWith(
-                            color: Colores.azulOscuro,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        Textos.primeraVentaAnotada,
+                        style: Tipografia.tituloTarjeta,
+                      ),
+                      if (resumen != null)
+                        Text(
+                          Textos.hoyEntraron(
+                            formatearSoles(resumen.ventaDeHoyCentimos),
+                          ),
+                          style: Tipografia.cifra(
+                            Tipografia.textoFuerte.copyWith(
+                              color: Colores.azulOscuro,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
+        ],
         Semantics(
           header: true,
           child: Text(
-            Textos.guardaTuAvance,
-            style: Tipografia.tituloPantalla.copyWith(
-              fontSize: 26,
-              height: 1.2,
-            ),
+            _titulo,
+            style: Tipografia.tituloPantalla.copyWith(height: 1.2),
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          Textos.sinCorreoNiContrasena,
-          style: Tipografia.secundario.copyWith(fontSize: 15),
-        ),
+        const SizedBox(height: Medidas.e2),
+        Text(switch (widget.modo) {
+          ModoCuenta.entrar => Textos.entraATuCuentaDetalle,
+          ModoCuenta.invitado => Textos.entraAlNegocioDetalle,
+          _ => Textos.sinCorreoNiContrasena,
+        }, style: Tipografia.texto.copyWith(color: Colores.textoSecundario)),
         const SizedBox(height: 20),
         Text(
           Textos.tuNumeroDeCelular,
-          style: Tipografia.textoFuerte.copyWith(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Tipografia.apoyo.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Container(
               height: 54,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colores.superficie,
@@ -138,10 +160,10 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
             Expanded(
               child: TextField(
                 controller: _celular,
-                autofocus: true,
+                autofocus: widget.celularInicial == null,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [_FormateadorCelular()],
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => setState(() => _error = null),
                 onSubmitted: valido ? (_) => _enviarCodigo() : null,
                 style: Tipografia.cifra(_estiloCelular),
                 decoration: InputDecoration(
@@ -151,7 +173,7 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
                     fontWeight: FontWeight.w400,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: Medidas.e4,
                     vertical: 15,
                   ),
                   border: _borde(Colores.bordeCampo, 1),
@@ -172,28 +194,81 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           const SizedBox(height: 8),
           const TextoError(Textos.celularInvalido),
         ],
+        if (_error case final error?) ...[
+          const SizedBox(height: 12),
+          Aviso(texto: error),
+        ],
+        if (!_entrar) ...[
+          const SizedBox(height: 8),
+          const EnlaceVerComo(
+            video: VideoTutoria.guardarAvance,
+            desde: DesdeVideo.guardarAvance,
+          ),
+        ],
       ],
       acciones: [
         FilledButton(
-          onPressed: valido ? _enviarCodigo : null,
-          child: const Text(Textos.enviarmeCodigo),
+          onPressed: valido && !_enviando ? _enviarCodigo : null,
+          child: Text(_enviando ? Textos.enviando : Textos.enviarmeCodigo),
         ),
         BotonTexto(
-          texto: Textos.ahoraNo,
-          alTocar: () =>
-              ref.read(repositorioPrimerDiaProvider).seguirSinCuenta(),
+          texto: _entrar ? Textos.volver : Textos.ahoraNo,
+          alTocar: _primerDia
+              ? () => ref.read(repositorioPrimerDiaProvider).seguirSinCuenta()
+              : () => context.pop(),
         ),
       ],
     );
   }
 
-  void _enviarCodigo() => context.push(Rutas.codigo, extra: _digitos);
+  bool get _primerDia => widget.modo == ModoCuenta.primerDia;
 
-  static const _estiloCelular = TextStyle(
-    fontFamily: Tipografia.familia,
-    fontSize: 18,
+  /// «Ya tengo cuenta» o «Me invitaron»: entra a algo que ya existe.
+  bool get _entrar =>
+      widget.modo == ModoCuenta.entrar || widget.modo == ModoCuenta.invitado;
+
+  String get _titulo => switch (widget.modo) {
+    ModoCuenta.entrar => Textos.entraATuCuenta,
+    ModoCuenta.invitado => Textos.entraAlNegocio,
+    _ => Textos.guardaTuAvance,
+  };
+
+  Future<void> _enviarCodigo() async {
+    final celular = _digitos;
+    setState(() {
+      _enviando = true;
+      _error = null;
+    });
+    final resultado = await ref
+        .read(servicioCuentaProvider)
+        .pedirCodigo(celular);
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    switch (resultado) {
+      case ResultadoPedido.enviado:
+        context.push(switch (widget.modo) {
+          ModoCuenta.primerDia => Rutas.codigo,
+          ModoCuenta.desdeMoca => Rutas.cuentaCodigo,
+          ModoCuenta.entrar => Rutas.entrarCodigo,
+          ModoCuenta.invitado => Rutas.invitadoCodigo,
+        }, extra: celular);
+      case ResultadoPedido.sinSenal:
+        setState(
+          () => _error = _entrar
+              ? Textos.necesitasSenalParaEntrar
+              : Textos.necesitasSenalParaGuardar,
+        );
+      case ResultadoPedido.demasiados:
+        setState(() => _error = Textos.demasiadosCodigos);
+      case ResultadoPedido.invalido:
+        setState(() => _error = Textos.celularInvalido);
+      case ResultadoPedido.error:
+        setState(() => _error = Textos.noPudimosEnviar);
+    }
+  }
+
+  static final _estiloCelular = Tipografia.tituloDestacado.copyWith(
     fontWeight: FontWeight.w600,
-    color: Colores.textoPrincipal,
   );
 
   static OutlineInputBorder _borde(Color color, double grosor) =>

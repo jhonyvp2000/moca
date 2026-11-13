@@ -1339,6 +1339,19 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _enUsoMeta = const VerificationMeta('enUso');
+  @override
+  late final GeneratedColumn<bool> enUso = GeneratedColumn<bool>(
+    'en_uso',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("en_uso" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1348,6 +1361,7 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     saldoInicialCentimos,
     fechaSaldoInicial,
     orden,
+    enUso,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1408,6 +1422,12 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
     } else if (isInserting) {
       context.missing(_ordenMeta);
     }
+    if (data.containsKey('en_uso')) {
+      context.handle(
+        _enUsoMeta,
+        enUso.isAcceptableOrUnknown(data['en_uso']!, _enUsoMeta),
+      );
+    }
     return context;
   }
 
@@ -1447,6 +1467,10 @@ class $CuentasTable extends Cuentas with TableInfo<$CuentasTable, Cuenta> {
         DriftSqlType.int,
         data['${effectivePrefix}orden'],
       )!,
+      enUso: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}en_uso'],
+      )!,
     );
   }
 
@@ -1469,6 +1493,10 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
   final int? saldoInicialCentimos;
   final DateTime? fechaSaldoInicial;
   final int orden;
+
+  /// Falso si el dueño la dejó de usar (entrega 58): no sale para anotar,
+  /// en el Inicio, el cierre ni el arqueo; sus registros se quedan.
+  final bool enUso;
   const Cuenta({
     required this.id,
     required this.empresaId,
@@ -1477,6 +1505,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     this.saldoInicialCentimos,
     this.fechaSaldoInicial,
     required this.orden,
+    required this.enUso,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1494,6 +1523,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
       map['fecha_saldo_inicial'] = Variable<DateTime>(fechaSaldoInicial);
     }
     map['orden'] = Variable<int>(orden);
+    map['en_uso'] = Variable<bool>(enUso);
     return map;
   }
 
@@ -1510,6 +1540,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ? const Value.absent()
           : Value(fechaSaldoInicial),
       orden: Value(orden),
+      enUso: Value(enUso),
     );
   }
 
@@ -1532,6 +1563,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
         json['fechaSaldoInicial'],
       ),
       orden: serializer.fromJson<int>(json['orden']),
+      enUso: serializer.fromJson<bool>(json['enUso']),
     );
   }
   @override
@@ -1547,6 +1579,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
       'saldoInicialCentimos': serializer.toJson<int?>(saldoInicialCentimos),
       'fechaSaldoInicial': serializer.toJson<DateTime?>(fechaSaldoInicial),
       'orden': serializer.toJson<int>(orden),
+      'enUso': serializer.toJson<bool>(enUso),
     };
   }
 
@@ -1558,6 +1591,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     Value<int?> saldoInicialCentimos = const Value.absent(),
     Value<DateTime?> fechaSaldoInicial = const Value.absent(),
     int? orden,
+    bool? enUso,
   }) => Cuenta(
     id: id ?? this.id,
     empresaId: empresaId ?? this.empresaId,
@@ -1570,6 +1604,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
         ? fechaSaldoInicial.value
         : this.fechaSaldoInicial,
     orden: orden ?? this.orden,
+    enUso: enUso ?? this.enUso,
   );
   Cuenta copyWithCompanion(CuentasCompanion data) {
     return Cuenta(
@@ -1584,6 +1619,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ? data.fechaSaldoInicial.value
           : this.fechaSaldoInicial,
       orden: data.orden.present ? data.orden.value : this.orden,
+      enUso: data.enUso.present ? data.enUso.value : this.enUso,
     );
   }
 
@@ -1596,7 +1632,8 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           ..write('nombre: $nombre, ')
           ..write('saldoInicialCentimos: $saldoInicialCentimos, ')
           ..write('fechaSaldoInicial: $fechaSaldoInicial, ')
-          ..write('orden: $orden')
+          ..write('orden: $orden, ')
+          ..write('enUso: $enUso')
           ..write(')'))
         .toString();
   }
@@ -1610,6 +1647,7 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
     saldoInicialCentimos,
     fechaSaldoInicial,
     orden,
+    enUso,
   );
   @override
   bool operator ==(Object other) =>
@@ -1621,7 +1659,8 @@ class Cuenta extends DataClass implements Insertable<Cuenta> {
           other.nombre == this.nombre &&
           other.saldoInicialCentimos == this.saldoInicialCentimos &&
           other.fechaSaldoInicial == this.fechaSaldoInicial &&
-          other.orden == this.orden);
+          other.orden == this.orden &&
+          other.enUso == this.enUso);
 }
 
 class CuentasCompanion extends UpdateCompanion<Cuenta> {
@@ -1632,6 +1671,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
   final Value<int?> saldoInicialCentimos;
   final Value<DateTime?> fechaSaldoInicial;
   final Value<int> orden;
+  final Value<bool> enUso;
   final Value<int> rowid;
   const CuentasCompanion({
     this.id = const Value.absent(),
@@ -1641,6 +1681,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     this.saldoInicialCentimos = const Value.absent(),
     this.fechaSaldoInicial = const Value.absent(),
     this.orden = const Value.absent(),
+    this.enUso = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CuentasCompanion.insert({
@@ -1651,6 +1692,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     this.saldoInicialCentimos = const Value.absent(),
     this.fechaSaldoInicial = const Value.absent(),
     required int orden,
+    this.enUso = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        empresaId = Value(empresaId),
@@ -1665,6 +1707,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     Expression<int>? saldoInicialCentimos,
     Expression<DateTime>? fechaSaldoInicial,
     Expression<int>? orden,
+    Expression<bool>? enUso,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1676,6 +1719,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
         'saldo_inicial_centimos': saldoInicialCentimos,
       if (fechaSaldoInicial != null) 'fecha_saldo_inicial': fechaSaldoInicial,
       if (orden != null) 'orden': orden,
+      if (enUso != null) 'en_uso': enUso,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1688,6 +1732,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     Value<int?>? saldoInicialCentimos,
     Value<DateTime?>? fechaSaldoInicial,
     Value<int>? orden,
+    Value<bool>? enUso,
     Value<int>? rowid,
   }) {
     return CuentasCompanion(
@@ -1698,6 +1743,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
       saldoInicialCentimos: saldoInicialCentimos ?? this.saldoInicialCentimos,
       fechaSaldoInicial: fechaSaldoInicial ?? this.fechaSaldoInicial,
       orden: orden ?? this.orden,
+      enUso: enUso ?? this.enUso,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1728,6 +1774,9 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
     if (orden.present) {
       map['orden'] = Variable<int>(orden.value);
     }
+    if (enUso.present) {
+      map['en_uso'] = Variable<bool>(enUso.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1744,6 +1793,7 @@ class CuentasCompanion extends UpdateCompanion<Cuenta> {
           ..write('saldoInicialCentimos: $saldoInicialCentimos, ')
           ..write('fechaSaldoInicial: $fechaSaldoInicial, ')
           ..write('orden: $orden, ')
+          ..write('enUso: $enUso, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1808,6 +1858,28 @@ class $ContrapartesTable extends Contrapartes
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TipoContraparte>($ContrapartesTable.$convertertipo);
+  static const VerificationMeta _celularMeta = const VerificationMeta(
+    'celular',
+  );
+  @override
+  late final GeneratedColumn<String> celular = GeneratedColumn<String>(
+    'celular',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recordadoEnMeta = const VerificationMeta(
+    'recordadoEn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recordadoEn = GeneratedColumn<DateTime>(
+    'recordado_en',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1815,6 +1887,8 @@ class $ContrapartesTable extends Contrapartes
     nombre,
     identificacionFiscal,
     tipo,
+    celular,
+    recordadoEn,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1858,6 +1932,21 @@ class $ContrapartesTable extends Contrapartes
         ),
       );
     }
+    if (data.containsKey('celular')) {
+      context.handle(
+        _celularMeta,
+        celular.isAcceptableOrUnknown(data['celular']!, _celularMeta),
+      );
+    }
+    if (data.containsKey('recordado_en')) {
+      context.handle(
+        _recordadoEnMeta,
+        recordadoEn.isAcceptableOrUnknown(
+          data['recordado_en']!,
+          _recordadoEnMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1889,6 +1978,14 @@ class $ContrapartesTable extends Contrapartes
           data['${effectivePrefix}tipo'],
         )!,
       ),
+      celular: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}celular'],
+      ),
+      recordadoEn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recordado_en'],
+      ),
     );
   }
 
@@ -1907,12 +2004,20 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
   final String nombre;
   final String? identificacionFiscal;
   final TipoContraparte tipo;
+
+  /// El celular del cliente, para recordarle por WhatsApp, y cuándo se le
+  /// recordó por última vez (entrega 53). Solo los dueños lo tienen: a los
+  /// demás roles el servidor se lo manda vacío.
+  final String? celular;
+  final DateTime? recordadoEn;
   const Contraparte({
     required this.id,
     required this.empresaId,
     required this.nombre,
     this.identificacionFiscal,
     required this.tipo,
+    this.celular,
+    this.recordadoEn,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1928,6 +2033,12 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
         $ContrapartesTable.$convertertipo.toSql(tipo),
       );
     }
+    if (!nullToAbsent || celular != null) {
+      map['celular'] = Variable<String>(celular);
+    }
+    if (!nullToAbsent || recordadoEn != null) {
+      map['recordado_en'] = Variable<DateTime>(recordadoEn);
+    }
     return map;
   }
 
@@ -1940,6 +2051,12 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ? const Value.absent()
           : Value(identificacionFiscal),
       tipo: Value(tipo),
+      celular: celular == null && nullToAbsent
+          ? const Value.absent()
+          : Value(celular),
+      recordadoEn: recordadoEn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recordadoEn),
     );
   }
 
@@ -1958,6 +2075,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
       tipo: $ContrapartesTable.$convertertipo.fromJson(
         serializer.fromJson<String>(json['tipo']),
       ),
+      celular: serializer.fromJson<String?>(json['celular']),
+      recordadoEn: serializer.fromJson<DateTime?>(json['recordadoEn']),
     );
   }
   @override
@@ -1971,6 +2090,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
       'tipo': serializer.toJson<String>(
         $ContrapartesTable.$convertertipo.toJson(tipo),
       ),
+      'celular': serializer.toJson<String?>(celular),
+      'recordadoEn': serializer.toJson<DateTime?>(recordadoEn),
     };
   }
 
@@ -1980,6 +2101,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
     String? nombre,
     Value<String?> identificacionFiscal = const Value.absent(),
     TipoContraparte? tipo,
+    Value<String?> celular = const Value.absent(),
+    Value<DateTime?> recordadoEn = const Value.absent(),
   }) => Contraparte(
     id: id ?? this.id,
     empresaId: empresaId ?? this.empresaId,
@@ -1988,6 +2111,8 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
         ? identificacionFiscal.value
         : this.identificacionFiscal,
     tipo: tipo ?? this.tipo,
+    celular: celular.present ? celular.value : this.celular,
+    recordadoEn: recordadoEn.present ? recordadoEn.value : this.recordadoEn,
   );
   Contraparte copyWithCompanion(ContrapartesCompanion data) {
     return Contraparte(
@@ -1998,6 +2123,10 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ? data.identificacionFiscal.value
           : this.identificacionFiscal,
       tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      celular: data.celular.present ? data.celular.value : this.celular,
+      recordadoEn: data.recordadoEn.present
+          ? data.recordadoEn.value
+          : this.recordadoEn,
     );
   }
 
@@ -2008,14 +2137,23 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           ..write('empresaId: $empresaId, ')
           ..write('nombre: $nombre, ')
           ..write('identificacionFiscal: $identificacionFiscal, ')
-          ..write('tipo: $tipo')
+          ..write('tipo: $tipo, ')
+          ..write('celular: $celular, ')
+          ..write('recordadoEn: $recordadoEn')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, empresaId, nombre, identificacionFiscal, tipo);
+  int get hashCode => Object.hash(
+    id,
+    empresaId,
+    nombre,
+    identificacionFiscal,
+    tipo,
+    celular,
+    recordadoEn,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2024,7 +2162,9 @@ class Contraparte extends DataClass implements Insertable<Contraparte> {
           other.empresaId == this.empresaId &&
           other.nombre == this.nombre &&
           other.identificacionFiscal == this.identificacionFiscal &&
-          other.tipo == this.tipo);
+          other.tipo == this.tipo &&
+          other.celular == this.celular &&
+          other.recordadoEn == this.recordadoEn);
 }
 
 class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
@@ -2033,6 +2173,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
   final Value<String> nombre;
   final Value<String?> identificacionFiscal;
   final Value<TipoContraparte> tipo;
+  final Value<String?> celular;
+  final Value<DateTime?> recordadoEn;
   final Value<int> rowid;
   const ContrapartesCompanion({
     this.id = const Value.absent(),
@@ -2040,6 +2182,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     this.nombre = const Value.absent(),
     this.identificacionFiscal = const Value.absent(),
     this.tipo = const Value.absent(),
+    this.celular = const Value.absent(),
+    this.recordadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ContrapartesCompanion.insert({
@@ -2048,6 +2192,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     required String nombre,
     this.identificacionFiscal = const Value.absent(),
     required TipoContraparte tipo,
+    this.celular = const Value.absent(),
+    this.recordadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        empresaId = Value(empresaId),
@@ -2059,6 +2205,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     Expression<String>? nombre,
     Expression<String>? identificacionFiscal,
     Expression<String>? tipo,
+    Expression<String>? celular,
+    Expression<DateTime>? recordadoEn,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2068,6 +2216,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
       if (identificacionFiscal != null)
         'identificacion_fiscal': identificacionFiscal,
       if (tipo != null) 'tipo': tipo,
+      if (celular != null) 'celular': celular,
+      if (recordadoEn != null) 'recordado_en': recordadoEn,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2078,6 +2228,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
     Value<String>? nombre,
     Value<String?>? identificacionFiscal,
     Value<TipoContraparte>? tipo,
+    Value<String?>? celular,
+    Value<DateTime?>? recordadoEn,
     Value<int>? rowid,
   }) {
     return ContrapartesCompanion(
@@ -2086,6 +2238,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
       nombre: nombre ?? this.nombre,
       identificacionFiscal: identificacionFiscal ?? this.identificacionFiscal,
       tipo: tipo ?? this.tipo,
+      celular: celular ?? this.celular,
+      recordadoEn: recordadoEn ?? this.recordadoEn,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2112,6 +2266,12 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
         $ContrapartesTable.$convertertipo.toSql(tipo.value),
       );
     }
+    if (celular.present) {
+      map['celular'] = Variable<String>(celular.value);
+    }
+    if (recordadoEn.present) {
+      map['recordado_en'] = Variable<DateTime>(recordadoEn.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2126,6 +2286,8 @@ class ContrapartesCompanion extends UpdateCompanion<Contraparte> {
           ..write('nombre: $nombre, ')
           ..write('identificacionFiscal: $identificacionFiscal, ')
           ..write('tipo: $tipo, ')
+          ..write('celular: $celular, ')
+          ..write('recordadoEn: $recordadoEn, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3910,6 +4072,20 @@ class $MovimientosTable extends Movimientos
       'REFERENCES cuentas (id)',
     ),
   );
+  static const VerificationMeta _cuentaDestinoIdMeta = const VerificationMeta(
+    'cuentaDestinoId',
+  );
+  @override
+  late final GeneratedColumn<String> cuentaDestinoId = GeneratedColumn<String>(
+    'cuenta_destino_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES cuentas (id)',
+    ),
+  );
   static const VerificationMeta _montoCentimosMeta = const VerificationMeta(
     'montoCentimos',
   );
@@ -4090,6 +4266,37 @@ class $MovimientosTable extends Movimientos
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _abonaAMeta = const VerificationMeta('abonaA');
+  @override
+  late final GeneratedColumn<String> abonaA = GeneratedColumn<String>(
+    'abona_a',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _documentoTipoMeta = const VerificationMeta(
+    'documentoTipo',
+  );
+  @override
+  late final GeneratedColumn<String> documentoTipo = GeneratedColumn<String>(
+    'documento_tipo',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _documentoNumeroMeta = const VerificationMeta(
+    'documentoNumero',
+  );
+  @override
+  late final GeneratedColumn<String> documentoNumero = GeneratedColumn<String>(
+    'documento_numero',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<EstadoSincronizacion, String>
   estadoSincronizacion =
@@ -4119,6 +4326,7 @@ class $MovimientosTable extends Movimientos
     empresaId,
     tipo,
     cuentaId,
+    cuentaDestinoId,
     montoCentimos,
     fechaMovimiento,
     fechaComprobante,
@@ -4135,6 +4343,9 @@ class $MovimientosTable extends Movimientos
     nota,
     estado,
     reemplazaA,
+    abonaA,
+    documentoTipo,
+    documentoNumero,
     estadoSincronizacion,
     creadoEn,
   ];
@@ -4170,6 +4381,15 @@ class $MovimientosTable extends Movimientos
       );
     } else if (isInserting) {
       context.missing(_cuentaIdMeta);
+    }
+    if (data.containsKey('cuenta_destino_id')) {
+      context.handle(
+        _cuentaDestinoIdMeta,
+        cuentaDestinoId.isAcceptableOrUnknown(
+          data['cuenta_destino_id']!,
+          _cuentaDestinoIdMeta,
+        ),
+      );
     }
     if (data.containsKey('monto_centimos')) {
       context.handle(
@@ -4275,6 +4495,30 @@ class $MovimientosTable extends Movimientos
         reemplazaA.isAcceptableOrUnknown(data['reemplaza_a']!, _reemplazaAMeta),
       );
     }
+    if (data.containsKey('abona_a')) {
+      context.handle(
+        _abonaAMeta,
+        abonaA.isAcceptableOrUnknown(data['abona_a']!, _abonaAMeta),
+      );
+    }
+    if (data.containsKey('documento_tipo')) {
+      context.handle(
+        _documentoTipoMeta,
+        documentoTipo.isAcceptableOrUnknown(
+          data['documento_tipo']!,
+          _documentoTipoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('documento_numero')) {
+      context.handle(
+        _documentoNumeroMeta,
+        documentoNumero.isAcceptableOrUnknown(
+          data['documento_numero']!,
+          _documentoNumeroMeta,
+        ),
+      );
+    }
     if (data.containsKey('creado_en')) {
       context.handle(
         _creadoEnMeta,
@@ -4310,6 +4554,10 @@ class $MovimientosTable extends Movimientos
         DriftSqlType.string,
         data['${effectivePrefix}cuenta_id'],
       )!,
+      cuentaDestinoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cuenta_destino_id'],
+      ),
       montoCentimos: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}monto_centimos'],
@@ -4382,6 +4630,18 @@ class $MovimientosTable extends Movimientos
         DriftSqlType.string,
         data['${effectivePrefix}reemplaza_a'],
       ),
+      abonaA: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}abona_a'],
+      ),
+      documentoTipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documento_tipo'],
+      ),
+      documentoNumero: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documento_numero'],
+      ),
       estadoSincronizacion: $MovimientosTable.$converterestadoSincronizacion
           .fromSql(
             attachedDatabase.typeMapping.read(
@@ -4425,6 +4685,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
   final String empresaId;
   final TipoMovimiento tipo;
   final String cuentaId;
+
+  /// A dónde fue la plata en un pase de una cuenta a otra (entrega 21.1).
+  final String? cuentaDestinoId;
   final int montoCentimos;
   final DateTime fechaMovimiento;
   final DateTime? fechaComprobante;
@@ -4445,6 +4708,15 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
 
   /// En una edición, el movimiento anulado que este reemplaza.
   final String? reemplazaA;
+
+  /// Un pago en parte (entrega 44): la deuda de la que es parte. La deuda
+  /// se queda con lo que falta.
+  final String? abonaA;
+
+  /// El documento del registro (entrega 66), opcional: «Factura» y su
+  /// número libre, «0045J». La institución va en [contraparteId].
+  final String? documentoTipo;
+  final String? documentoNumero;
   final EstadoSincronizacion estadoSincronizacion;
   final DateTime creadoEn;
   const Movimiento({
@@ -4452,6 +4724,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     required this.empresaId,
     required this.tipo,
     required this.cuentaId,
+    this.cuentaDestinoId,
     required this.montoCentimos,
     required this.fechaMovimiento,
     this.fechaComprobante,
@@ -4468,6 +4741,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     this.nota,
     required this.estado,
     this.reemplazaA,
+    this.abonaA,
+    this.documentoTipo,
+    this.documentoNumero,
     required this.estadoSincronizacion,
     required this.creadoEn,
   });
@@ -4482,6 +4758,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       );
     }
     map['cuenta_id'] = Variable<String>(cuentaId);
+    if (!nullToAbsent || cuentaDestinoId != null) {
+      map['cuenta_destino_id'] = Variable<String>(cuentaDestinoId);
+    }
     map['monto_centimos'] = Variable<int>(montoCentimos);
     map['fecha_movimiento'] = Variable<DateTime>(fechaMovimiento);
     if (!nullToAbsent || fechaComprobante != null) {
@@ -4530,6 +4809,15 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     if (!nullToAbsent || reemplazaA != null) {
       map['reemplaza_a'] = Variable<String>(reemplazaA);
     }
+    if (!nullToAbsent || abonaA != null) {
+      map['abona_a'] = Variable<String>(abonaA);
+    }
+    if (!nullToAbsent || documentoTipo != null) {
+      map['documento_tipo'] = Variable<String>(documentoTipo);
+    }
+    if (!nullToAbsent || documentoNumero != null) {
+      map['documento_numero'] = Variable<String>(documentoNumero);
+    }
     {
       map['estado_sincronizacion'] = Variable<String>(
         $MovimientosTable.$converterestadoSincronizacion.toSql(
@@ -4547,6 +4835,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       empresaId: Value(empresaId),
       tipo: Value(tipo),
       cuentaId: Value(cuentaId),
+      cuentaDestinoId: cuentaDestinoId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cuentaDestinoId),
       montoCentimos: Value(montoCentimos),
       fechaMovimiento: Value(fechaMovimiento),
       fechaComprobante: fechaComprobante == null && nullToAbsent
@@ -4577,6 +4868,15 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       reemplazaA: reemplazaA == null && nullToAbsent
           ? const Value.absent()
           : Value(reemplazaA),
+      abonaA: abonaA == null && nullToAbsent
+          ? const Value.absent()
+          : Value(abonaA),
+      documentoTipo: documentoTipo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentoTipo),
+      documentoNumero: documentoNumero == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documentoNumero),
       estadoSincronizacion: Value(estadoSincronizacion),
       creadoEn: Value(creadoEn),
     );
@@ -4594,6 +4894,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         serializer.fromJson<String>(json['tipo']),
       ),
       cuentaId: serializer.fromJson<String>(json['cuentaId']),
+      cuentaDestinoId: serializer.fromJson<String?>(json['cuentaDestinoId']),
       montoCentimos: serializer.fromJson<int>(json['montoCentimos']),
       fechaMovimiento: serializer.fromJson<DateTime>(json['fechaMovimiento']),
       fechaComprobante: serializer.fromJson<DateTime?>(
@@ -4624,6 +4925,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         serializer.fromJson<String>(json['estado']),
       ),
       reemplazaA: serializer.fromJson<String?>(json['reemplazaA']),
+      abonaA: serializer.fromJson<String?>(json['abonaA']),
+      documentoTipo: serializer.fromJson<String?>(json['documentoTipo']),
+      documentoNumero: serializer.fromJson<String?>(json['documentoNumero']),
       estadoSincronizacion: $MovimientosTable.$converterestadoSincronizacion
           .fromJson(serializer.fromJson<String>(json['estadoSincronizacion'])),
       creadoEn: serializer.fromJson<DateTime>(json['creadoEn']),
@@ -4639,6 +4943,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         $MovimientosTable.$convertertipo.toJson(tipo),
       ),
       'cuentaId': serializer.toJson<String>(cuentaId),
+      'cuentaDestinoId': serializer.toJson<String?>(cuentaDestinoId),
       'montoCentimos': serializer.toJson<int>(montoCentimos),
       'fechaMovimiento': serializer.toJson<DateTime>(fechaMovimiento),
       'fechaComprobante': serializer.toJson<DateTime?>(fechaComprobante),
@@ -4663,6 +4968,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
         $MovimientosTable.$converterestado.toJson(estado),
       ),
       'reemplazaA': serializer.toJson<String?>(reemplazaA),
+      'abonaA': serializer.toJson<String?>(abonaA),
+      'documentoTipo': serializer.toJson<String?>(documentoTipo),
+      'documentoNumero': serializer.toJson<String?>(documentoNumero),
       'estadoSincronizacion': serializer.toJson<String>(
         $MovimientosTable.$converterestadoSincronizacion.toJson(
           estadoSincronizacion,
@@ -4677,6 +4985,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     String? empresaId,
     TipoMovimiento? tipo,
     String? cuentaId,
+    Value<String?> cuentaDestinoId = const Value.absent(),
     int? montoCentimos,
     DateTime? fechaMovimiento,
     Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -4693,6 +5002,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     Value<String?> nota = const Value.absent(),
     EstadoRegistro? estado,
     Value<String?> reemplazaA = const Value.absent(),
+    Value<String?> abonaA = const Value.absent(),
+    Value<String?> documentoTipo = const Value.absent(),
+    Value<String?> documentoNumero = const Value.absent(),
     EstadoSincronizacion? estadoSincronizacion,
     DateTime? creadoEn,
   }) => Movimiento(
@@ -4700,6 +5012,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     empresaId: empresaId ?? this.empresaId,
     tipo: tipo ?? this.tipo,
     cuentaId: cuentaId ?? this.cuentaId,
+    cuentaDestinoId: cuentaDestinoId.present
+        ? cuentaDestinoId.value
+        : this.cuentaDestinoId,
     montoCentimos: montoCentimos ?? this.montoCentimos,
     fechaMovimiento: fechaMovimiento ?? this.fechaMovimiento,
     fechaComprobante: fechaComprobante.present
@@ -4724,6 +5039,13 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     nota: nota.present ? nota.value : this.nota,
     estado: estado ?? this.estado,
     reemplazaA: reemplazaA.present ? reemplazaA.value : this.reemplazaA,
+    abonaA: abonaA.present ? abonaA.value : this.abonaA,
+    documentoTipo: documentoTipo.present
+        ? documentoTipo.value
+        : this.documentoTipo,
+    documentoNumero: documentoNumero.present
+        ? documentoNumero.value
+        : this.documentoNumero,
     estadoSincronizacion: estadoSincronizacion ?? this.estadoSincronizacion,
     creadoEn: creadoEn ?? this.creadoEn,
   );
@@ -4733,6 +5055,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       empresaId: data.empresaId.present ? data.empresaId.value : this.empresaId,
       tipo: data.tipo.present ? data.tipo.value : this.tipo,
       cuentaId: data.cuentaId.present ? data.cuentaId.value : this.cuentaId,
+      cuentaDestinoId: data.cuentaDestinoId.present
+          ? data.cuentaDestinoId.value
+          : this.cuentaDestinoId,
       montoCentimos: data.montoCentimos.present
           ? data.montoCentimos.value
           : this.montoCentimos,
@@ -4771,6 +5096,13 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
       reemplazaA: data.reemplazaA.present
           ? data.reemplazaA.value
           : this.reemplazaA,
+      abonaA: data.abonaA.present ? data.abonaA.value : this.abonaA,
+      documentoTipo: data.documentoTipo.present
+          ? data.documentoTipo.value
+          : this.documentoTipo,
+      documentoNumero: data.documentoNumero.present
+          ? data.documentoNumero.value
+          : this.documentoNumero,
       estadoSincronizacion: data.estadoSincronizacion.present
           ? data.estadoSincronizacion.value
           : this.estadoSincronizacion,
@@ -4785,6 +5117,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           ..write('empresaId: $empresaId, ')
           ..write('tipo: $tipo, ')
           ..write('cuentaId: $cuentaId, ')
+          ..write('cuentaDestinoId: $cuentaDestinoId, ')
           ..write('montoCentimos: $montoCentimos, ')
           ..write('fechaMovimiento: $fechaMovimiento, ')
           ..write('fechaComprobante: $fechaComprobante, ')
@@ -4801,6 +5134,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           ..write('nota: $nota, ')
           ..write('estado: $estado, ')
           ..write('reemplazaA: $reemplazaA, ')
+          ..write('abonaA: $abonaA, ')
+          ..write('documentoTipo: $documentoTipo, ')
+          ..write('documentoNumero: $documentoNumero, ')
           ..write('estadoSincronizacion: $estadoSincronizacion, ')
           ..write('creadoEn: $creadoEn')
           ..write(')'))
@@ -4813,6 +5149,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     empresaId,
     tipo,
     cuentaId,
+    cuentaDestinoId,
     montoCentimos,
     fechaMovimiento,
     fechaComprobante,
@@ -4829,6 +5166,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
     nota,
     estado,
     reemplazaA,
+    abonaA,
+    documentoTipo,
+    documentoNumero,
     estadoSincronizacion,
     creadoEn,
   ]);
@@ -4840,6 +5180,7 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           other.empresaId == this.empresaId &&
           other.tipo == this.tipo &&
           other.cuentaId == this.cuentaId &&
+          other.cuentaDestinoId == this.cuentaDestinoId &&
           other.montoCentimos == this.montoCentimos &&
           other.fechaMovimiento == this.fechaMovimiento &&
           other.fechaComprobante == this.fechaComprobante &&
@@ -4856,6 +5197,9 @@ class Movimiento extends DataClass implements Insertable<Movimiento> {
           other.nota == this.nota &&
           other.estado == this.estado &&
           other.reemplazaA == this.reemplazaA &&
+          other.abonaA == this.abonaA &&
+          other.documentoTipo == this.documentoTipo &&
+          other.documentoNumero == this.documentoNumero &&
           other.estadoSincronizacion == this.estadoSincronizacion &&
           other.creadoEn == this.creadoEn);
 }
@@ -4865,6 +5209,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
   final Value<String> empresaId;
   final Value<TipoMovimiento> tipo;
   final Value<String> cuentaId;
+  final Value<String?> cuentaDestinoId;
   final Value<int> montoCentimos;
   final Value<DateTime> fechaMovimiento;
   final Value<DateTime?> fechaComprobante;
@@ -4881,6 +5226,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
   final Value<String?> nota;
   final Value<EstadoRegistro> estado;
   final Value<String?> reemplazaA;
+  final Value<String?> abonaA;
+  final Value<String?> documentoTipo;
+  final Value<String?> documentoNumero;
   final Value<EstadoSincronizacion> estadoSincronizacion;
   final Value<DateTime> creadoEn;
   final Value<int> rowid;
@@ -4889,6 +5237,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     this.empresaId = const Value.absent(),
     this.tipo = const Value.absent(),
     this.cuentaId = const Value.absent(),
+    this.cuentaDestinoId = const Value.absent(),
     this.montoCentimos = const Value.absent(),
     this.fechaMovimiento = const Value.absent(),
     this.fechaComprobante = const Value.absent(),
@@ -4905,6 +5254,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     this.nota = const Value.absent(),
     this.estado = const Value.absent(),
     this.reemplazaA = const Value.absent(),
+    this.abonaA = const Value.absent(),
+    this.documentoTipo = const Value.absent(),
+    this.documentoNumero = const Value.absent(),
     this.estadoSincronizacion = const Value.absent(),
     this.creadoEn = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4914,6 +5266,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     required String empresaId,
     required TipoMovimiento tipo,
     required String cuentaId,
+    this.cuentaDestinoId = const Value.absent(),
     required int montoCentimos,
     required DateTime fechaMovimiento,
     this.fechaComprobante = const Value.absent(),
@@ -4930,6 +5283,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     this.nota = const Value.absent(),
     required EstadoRegistro estado,
     this.reemplazaA = const Value.absent(),
+    this.abonaA = const Value.absent(),
+    this.documentoTipo = const Value.absent(),
+    this.documentoNumero = const Value.absent(),
     required EstadoSincronizacion estadoSincronizacion,
     required DateTime creadoEn,
     this.rowid = const Value.absent(),
@@ -4952,6 +5308,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Expression<String>? empresaId,
     Expression<String>? tipo,
     Expression<String>? cuentaId,
+    Expression<String>? cuentaDestinoId,
     Expression<int>? montoCentimos,
     Expression<DateTime>? fechaMovimiento,
     Expression<DateTime>? fechaComprobante,
@@ -4968,6 +5325,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Expression<String>? nota,
     Expression<String>? estado,
     Expression<String>? reemplazaA,
+    Expression<String>? abonaA,
+    Expression<String>? documentoTipo,
+    Expression<String>? documentoNumero,
     Expression<String>? estadoSincronizacion,
     Expression<DateTime>? creadoEn,
     Expression<int>? rowid,
@@ -4977,6 +5337,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       if (empresaId != null) 'empresa_id': empresaId,
       if (tipo != null) 'tipo': tipo,
       if (cuentaId != null) 'cuenta_id': cuentaId,
+      if (cuentaDestinoId != null) 'cuenta_destino_id': cuentaDestinoId,
       if (montoCentimos != null) 'monto_centimos': montoCentimos,
       if (fechaMovimiento != null) 'fecha_movimiento': fechaMovimiento,
       if (fechaComprobante != null) 'fecha_comprobante': fechaComprobante,
@@ -4994,6 +5355,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       if (nota != null) 'nota': nota,
       if (estado != null) 'estado': estado,
       if (reemplazaA != null) 'reemplaza_a': reemplazaA,
+      if (abonaA != null) 'abona_a': abonaA,
+      if (documentoTipo != null) 'documento_tipo': documentoTipo,
+      if (documentoNumero != null) 'documento_numero': documentoNumero,
       if (estadoSincronizacion != null)
         'estado_sincronizacion': estadoSincronizacion,
       if (creadoEn != null) 'creado_en': creadoEn,
@@ -5006,6 +5370,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Value<String>? empresaId,
     Value<TipoMovimiento>? tipo,
     Value<String>? cuentaId,
+    Value<String?>? cuentaDestinoId,
     Value<int>? montoCentimos,
     Value<DateTime>? fechaMovimiento,
     Value<DateTime?>? fechaComprobante,
@@ -5022,6 +5387,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     Value<String?>? nota,
     Value<EstadoRegistro>? estado,
     Value<String?>? reemplazaA,
+    Value<String?>? abonaA,
+    Value<String?>? documentoTipo,
+    Value<String?>? documentoNumero,
     Value<EstadoSincronizacion>? estadoSincronizacion,
     Value<DateTime>? creadoEn,
     Value<int>? rowid,
@@ -5031,6 +5399,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       empresaId: empresaId ?? this.empresaId,
       tipo: tipo ?? this.tipo,
       cuentaId: cuentaId ?? this.cuentaId,
+      cuentaDestinoId: cuentaDestinoId ?? this.cuentaDestinoId,
       montoCentimos: montoCentimos ?? this.montoCentimos,
       fechaMovimiento: fechaMovimiento ?? this.fechaMovimiento,
       fechaComprobante: fechaComprobante ?? this.fechaComprobante,
@@ -5047,6 +5416,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
       nota: nota ?? this.nota,
       estado: estado ?? this.estado,
       reemplazaA: reemplazaA ?? this.reemplazaA,
+      abonaA: abonaA ?? this.abonaA,
+      documentoTipo: documentoTipo ?? this.documentoTipo,
+      documentoNumero: documentoNumero ?? this.documentoNumero,
       estadoSincronizacion: estadoSincronizacion ?? this.estadoSincronizacion,
       creadoEn: creadoEn ?? this.creadoEn,
       rowid: rowid ?? this.rowid,
@@ -5069,6 +5441,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     }
     if (cuentaId.present) {
       map['cuenta_id'] = Variable<String>(cuentaId.value);
+    }
+    if (cuentaDestinoId.present) {
+      map['cuenta_destino_id'] = Variable<String>(cuentaDestinoId.value);
     }
     if (montoCentimos.present) {
       map['monto_centimos'] = Variable<int>(montoCentimos.value);
@@ -5126,6 +5501,15 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
     if (reemplazaA.present) {
       map['reemplaza_a'] = Variable<String>(reemplazaA.value);
     }
+    if (abonaA.present) {
+      map['abona_a'] = Variable<String>(abonaA.value);
+    }
+    if (documentoTipo.present) {
+      map['documento_tipo'] = Variable<String>(documentoTipo.value);
+    }
+    if (documentoNumero.present) {
+      map['documento_numero'] = Variable<String>(documentoNumero.value);
+    }
     if (estadoSincronizacion.present) {
       map['estado_sincronizacion'] = Variable<String>(
         $MovimientosTable.$converterestadoSincronizacion.toSql(
@@ -5149,6 +5533,7 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
           ..write('empresaId: $empresaId, ')
           ..write('tipo: $tipo, ')
           ..write('cuentaId: $cuentaId, ')
+          ..write('cuentaDestinoId: $cuentaDestinoId, ')
           ..write('montoCentimos: $montoCentimos, ')
           ..write('fechaMovimiento: $fechaMovimiento, ')
           ..write('fechaComprobante: $fechaComprobante, ')
@@ -5165,6 +5550,9 @@ class MovimientosCompanion extends UpdateCompanion<Movimiento> {
           ..write('nota: $nota, ')
           ..write('estado: $estado, ')
           ..write('reemplazaA: $reemplazaA, ')
+          ..write('abonaA: $abonaA, ')
+          ..write('documentoTipo: $documentoTipo, ')
+          ..write('documentoNumero: $documentoNumero, ')
           ..write('estadoSincronizacion: $estadoSincronizacion, ')
           ..write('creadoEn: $creadoEn, ')
           ..write('rowid: $rowid')
@@ -7973,6 +8361,264 @@ class AjustesCompanion extends UpdateCompanion<Ajuste> {
   }
 }
 
+class $SubidasTable extends Subidas with TableInfo<$SubidasTable, Subida> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubidasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tablaMeta = const VerificationMeta('tabla');
+  @override
+  late final GeneratedColumn<String> tabla = GeneratedColumn<String>(
+    'tabla',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filaIdMeta = const VerificationMeta('filaId');
+  @override
+  late final GeneratedColumn<String> filaId = GeneratedColumn<String>(
+    'fila_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _huellaMeta = const VerificationMeta('huella');
+  @override
+  late final GeneratedColumn<String> huella = GeneratedColumn<String>(
+    'huella',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [tabla, filaId, huella];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subidas';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Subida> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tabla')) {
+      context.handle(
+        _tablaMeta,
+        tabla.isAcceptableOrUnknown(data['tabla']!, _tablaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tablaMeta);
+    }
+    if (data.containsKey('fila_id')) {
+      context.handle(
+        _filaIdMeta,
+        filaId.isAcceptableOrUnknown(data['fila_id']!, _filaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filaIdMeta);
+    }
+    if (data.containsKey('huella')) {
+      context.handle(
+        _huellaMeta,
+        huella.isAcceptableOrUnknown(data['huella']!, _huellaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_huellaMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tabla, filaId};
+  @override
+  Subida map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Subida(
+      tabla: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tabla'],
+      )!,
+      filaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fila_id'],
+      )!,
+      huella: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}huella'],
+      )!,
+    );
+  }
+
+  @override
+  $SubidasTable createAlias(String alias) {
+    return $SubidasTable(attachedDatabase, alias);
+  }
+}
+
+class Subida extends DataClass implements Insertable<Subida> {
+  final String tabla;
+  final String filaId;
+  final String huella;
+  const Subida({
+    required this.tabla,
+    required this.filaId,
+    required this.huella,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tabla'] = Variable<String>(tabla);
+    map['fila_id'] = Variable<String>(filaId);
+    map['huella'] = Variable<String>(huella);
+    return map;
+  }
+
+  SubidasCompanion toCompanion(bool nullToAbsent) {
+    return SubidasCompanion(
+      tabla: Value(tabla),
+      filaId: Value(filaId),
+      huella: Value(huella),
+    );
+  }
+
+  factory Subida.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Subida(
+      tabla: serializer.fromJson<String>(json['tabla']),
+      filaId: serializer.fromJson<String>(json['filaId']),
+      huella: serializer.fromJson<String>(json['huella']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tabla': serializer.toJson<String>(tabla),
+      'filaId': serializer.toJson<String>(filaId),
+      'huella': serializer.toJson<String>(huella),
+    };
+  }
+
+  Subida copyWith({String? tabla, String? filaId, String? huella}) => Subida(
+    tabla: tabla ?? this.tabla,
+    filaId: filaId ?? this.filaId,
+    huella: huella ?? this.huella,
+  );
+  Subida copyWithCompanion(SubidasCompanion data) {
+    return Subida(
+      tabla: data.tabla.present ? data.tabla.value : this.tabla,
+      filaId: data.filaId.present ? data.filaId.value : this.filaId,
+      huella: data.huella.present ? data.huella.value : this.huella,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Subida(')
+          ..write('tabla: $tabla, ')
+          ..write('filaId: $filaId, ')
+          ..write('huella: $huella')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tabla, filaId, huella);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Subida &&
+          other.tabla == this.tabla &&
+          other.filaId == this.filaId &&
+          other.huella == this.huella);
+}
+
+class SubidasCompanion extends UpdateCompanion<Subida> {
+  final Value<String> tabla;
+  final Value<String> filaId;
+  final Value<String> huella;
+  final Value<int> rowid;
+  const SubidasCompanion({
+    this.tabla = const Value.absent(),
+    this.filaId = const Value.absent(),
+    this.huella = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubidasCompanion.insert({
+    required String tabla,
+    required String filaId,
+    required String huella,
+    this.rowid = const Value.absent(),
+  }) : tabla = Value(tabla),
+       filaId = Value(filaId),
+       huella = Value(huella);
+  static Insertable<Subida> custom({
+    Expression<String>? tabla,
+    Expression<String>? filaId,
+    Expression<String>? huella,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tabla != null) 'tabla': tabla,
+      if (filaId != null) 'fila_id': filaId,
+      if (huella != null) 'huella': huella,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubidasCompanion copyWith({
+    Value<String>? tabla,
+    Value<String>? filaId,
+    Value<String>? huella,
+    Value<int>? rowid,
+  }) {
+    return SubidasCompanion(
+      tabla: tabla ?? this.tabla,
+      filaId: filaId ?? this.filaId,
+      huella: huella ?? this.huella,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tabla.present) {
+      map['tabla'] = Variable<String>(tabla.value);
+    }
+    if (filaId.present) {
+      map['fila_id'] = Variable<String>(filaId.value);
+    }
+    if (huella.present) {
+      map['huella'] = Variable<String>(huella.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubidasCompanion(')
+          ..write('tabla: $tabla, ')
+          ..write('filaId: $filaId, ')
+          ..write('huella: $huella, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$BaseLocal extends GeneratedDatabase {
   _$BaseLocal(QueryExecutor e) : super(e);
   $BaseLocalManager get managers => $BaseLocalManager(this);
@@ -7996,6 +8642,7 @@ abstract class _$BaseLocal extends GeneratedDatabase {
     this,
   );
   late final $AjustesTable ajustes = $AjustesTable(this);
+  late final $SubidasTable subidas = $SubidasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8017,6 +8664,7 @@ abstract class _$BaseLocal extends GeneratedDatabase {
     diasCerrados,
     eventosMedicion,
     ajustes,
+    subidas,
   ];
 }
 
@@ -10232,6 +10880,7 @@ typedef $$CuentasTableCreateCompanionBuilder = CuentasCompanion Function({
   Value<int?> saldoInicialCentimos,
   Value<DateTime?> fechaSaldoInicial,
   required int orden,
+  Value<bool> enUso,
   Value<int> rowid,
 });
 typedef $$CuentasTableUpdateCompanionBuilder = CuentasCompanion Function({
@@ -10242,6 +10891,7 @@ typedef $$CuentasTableUpdateCompanionBuilder = CuentasCompanion Function({
   Value<int?> saldoInicialCentimos,
   Value<DateTime?> fechaSaldoInicial,
   Value<int> orden,
+  Value<bool> enUso,
   Value<int> rowid,
 });
 
@@ -10263,24 +10913,6 @@ final class $$CuentasTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$MovimientosTable, List<Movimiento>>
-  _movimientosRefsTable(_$BaseLocal db) => MultiTypedResultKey.fromTable(
-    db.movimientos,
-    aliasName: 'cuentas__id__movimientos__cuenta_id',
-  );
-
-  $$MovimientosTableProcessedTableManager get movimientosRefs {
-    final manager = $$MovimientosTableTableManager(
-      $_db,
-      $_db.movimientos,
-    ).filter((f) => f.cuentaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_movimientosRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
@@ -10343,6 +10975,11 @@ class $$CuentasTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get enUso => $composableBuilder(
+    column: $table.enUso,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$EmpresasTableFilterComposer get empresaId {
     final $$EmpresasTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -10364,31 +11001,6 @@ class $$CuentasTableFilterComposer
           ),
     );
     return composer;
-  }
-
-  Expression<bool> movimientosRefs(
-    Expression<bool> Function($$MovimientosTableFilterComposer f) f,
-  ) {
-    final $$MovimientosTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.movimientos,
-      getReferencedColumn: (t) => t.cuentaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$MovimientosTableFilterComposer(
-            $db: $db,
-            $table: $db.movimientos,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
   }
 
   Expression<bool> arqueoCuentasRefs(
@@ -10456,6 +11068,11 @@ class $$CuentasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get enUso => $composableBuilder(
+    column: $table.enUso,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EmpresasTableOrderingComposer get empresaId {
     final $$EmpresasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -10511,6 +11128,9 @@ class $$CuentasTableAnnotationComposer
   GeneratedColumn<int> get orden =>
       $composableBuilder(column: $table.orden, builder: (column) => column);
 
+  GeneratedColumn<bool> get enUso =>
+      $composableBuilder(column: $table.enUso, builder: (column) => column);
+
   $$EmpresasTableAnnotationComposer get empresaId {
     final $$EmpresasTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -10532,31 +11152,6 @@ class $$CuentasTableAnnotationComposer
           ),
     );
     return composer;
-  }
-
-  Expression<T> movimientosRefs<T extends Object>(
-    Expression<T> Function($$MovimientosTableAnnotationComposer a) f,
-  ) {
-    final $$MovimientosTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.movimientos,
-      getReferencedColumn: (t) => t.cuentaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$MovimientosTableAnnotationComposer(
-            $db: $db,
-            $table: $db.movimientos,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
   }
 
   Expression<T> arqueoCuentasRefs<T extends Object>(
@@ -10598,11 +11193,7 @@ class $$CuentasTableTableManager
           $$CuentasTableUpdateCompanionBuilder,
           (Cuenta, $$CuentasTableReferences),
           Cuenta,
-          PrefetchHooks Function({
-            bool empresaId,
-            bool movimientosRefs,
-            bool arqueoCuentasRefs,
-          })
+          PrefetchHooks Function({bool empresaId, bool arqueoCuentasRefs})
         > {
   $$CuentasTableTableManager(_$BaseLocal db, $CuentasTable table)
     : super(
@@ -10624,6 +11215,7 @@ class $$CuentasTableTableManager
                 Value<int?> saldoInicialCentimos = const Value.absent(),
                 Value<DateTime?> fechaSaldoInicial = const Value.absent(),
                 Value<int> orden = const Value.absent(),
+                Value<bool> enUso = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CuentasCompanion(
                 id: id,
@@ -10633,6 +11225,7 @@ class $$CuentasTableTableManager
                 saldoInicialCentimos: saldoInicialCentimos,
                 fechaSaldoInicial: fechaSaldoInicial,
                 orden: orden,
+                enUso: enUso,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -10644,6 +11237,7 @@ class $$CuentasTableTableManager
                 Value<int?> saldoInicialCentimos = const Value.absent(),
                 Value<DateTime?> fechaSaldoInicial = const Value.absent(),
                 required int orden,
+                Value<bool> enUso = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CuentasCompanion.insert(
                 id: id,
@@ -10653,6 +11247,7 @@ class $$CuentasTableTableManager
                 saldoInicialCentimos: saldoInicialCentimos,
                 fechaSaldoInicial: fechaSaldoInicial,
                 orden: orden,
+                enUso: enUso,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -10664,15 +11259,10 @@ class $$CuentasTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({
-                empresaId = false,
-                movimientosRefs = false,
-                arqueoCuentasRefs = false,
-              }) {
+              ({empresaId = false, arqueoCuentasRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
-                    if (movimientosRefs) db.movimientos,
                     if (arqueoCuentasRefs) db.arqueoCuentas,
                   ],
                   addJoins:
@@ -10707,27 +11297,6 @@ class $$CuentasTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
-                      if (movimientosRefs)
-                        await $_getPrefetchedData<
-                          Cuenta,
-                          $CuentasTable,
-                          Movimiento
-                        >(
-                          currentTable: table,
-                          referencedTable: $$CuentasTableReferences
-                              ._movimientosRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$CuentasTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).movimientosRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.cuentaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (arqueoCuentasRefs)
                         await $_getPrefetchedData<
                           Cuenta,
@@ -10769,11 +11338,7 @@ typedef $$CuentasTableProcessedTableManager =
       $$CuentasTableUpdateCompanionBuilder,
       (Cuenta, $$CuentasTableReferences),
       Cuenta,
-      PrefetchHooks Function({
-        bool empresaId,
-        bool movimientosRefs,
-        bool arqueoCuentasRefs,
-      })
+      PrefetchHooks Function({bool empresaId, bool arqueoCuentasRefs})
     >;
 typedef $$ContrapartesTableCreateCompanionBuilder =
     ContrapartesCompanion Function({
@@ -10782,6 +11347,8 @@ typedef $$ContrapartesTableCreateCompanionBuilder =
       required String nombre,
       Value<String?> identificacionFiscal,
       required TipoContraparte tipo,
+      Value<String?> celular,
+      Value<DateTime?> recordadoEn,
       Value<int> rowid,
     });
 typedef $$ContrapartesTableUpdateCompanionBuilder =
@@ -10791,6 +11358,8 @@ typedef $$ContrapartesTableUpdateCompanionBuilder =
       Value<String> nombre,
       Value<String?> identificacionFiscal,
       Value<TipoContraparte> tipo,
+      Value<String?> celular,
+      Value<DateTime?> recordadoEn,
       Value<int> rowid,
     });
 
@@ -10862,6 +11431,16 @@ class $$ContrapartesTableFilterComposer
   get tipo => $composableBuilder(
     column: $table.tipo,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get celular => $composableBuilder(
+    column: $table.celular,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => ColumnFilters(column),
   );
 
   $$EmpresasTableFilterComposer get empresaId {
@@ -10942,6 +11521,16 @@ class $$ContrapartesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get celular => $composableBuilder(
+    column: $table.celular,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EmpresasTableOrderingComposer get empresaId {
     final $$EmpresasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -10988,6 +11577,14 @@ class $$ContrapartesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<TipoContraparte, String> get tipo =>
       $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<String> get celular =>
+      $composableBuilder(column: $table.celular, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordadoEn => $composableBuilder(
+    column: $table.recordadoEn,
+    builder: (column) => column,
+  );
 
   $$EmpresasTableAnnotationComposer get empresaId {
     final $$EmpresasTableAnnotationComposer composer = $composerBuilder(
@@ -11071,6 +11668,8 @@ class $$ContrapartesTableTableManager
                 Value<String> nombre = const Value.absent(),
                 Value<String?> identificacionFiscal = const Value.absent(),
                 Value<TipoContraparte> tipo = const Value.absent(),
+                Value<String?> celular = const Value.absent(),
+                Value<DateTime?> recordadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContrapartesCompanion(
                 id: id,
@@ -11078,6 +11677,8 @@ class $$ContrapartesTableTableManager
                 nombre: nombre,
                 identificacionFiscal: identificacionFiscal,
                 tipo: tipo,
+                celular: celular,
+                recordadoEn: recordadoEn,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11087,6 +11688,8 @@ class $$ContrapartesTableTableManager
                 required String nombre,
                 Value<String?> identificacionFiscal = const Value.absent(),
                 required TipoContraparte tipo,
+                Value<String?> celular = const Value.absent(),
+                Value<DateTime?> recordadoEn = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContrapartesCompanion.insert(
                 id: id,
@@ -11094,6 +11697,8 @@ class $$ContrapartesTableTableManager
                 nombre: nombre,
                 identificacionFiscal: identificacionFiscal,
                 tipo: tipo,
+                celular: celular,
+                recordadoEn: recordadoEn,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -12676,6 +13281,7 @@ typedef $$MovimientosTableCreateCompanionBuilder =
       required String empresaId,
       required TipoMovimiento tipo,
       required String cuentaId,
+      Value<String?> cuentaDestinoId,
       required int montoCentimos,
       required DateTime fechaMovimiento,
       Value<DateTime?> fechaComprobante,
@@ -12692,6 +13298,9 @@ typedef $$MovimientosTableCreateCompanionBuilder =
       Value<String?> nota,
       required EstadoRegistro estado,
       Value<String?> reemplazaA,
+      Value<String?> abonaA,
+      Value<String?> documentoTipo,
+      Value<String?> documentoNumero,
       required EstadoSincronizacion estadoSincronizacion,
       required DateTime creadoEn,
       Value<int> rowid,
@@ -12702,6 +13311,7 @@ typedef $$MovimientosTableUpdateCompanionBuilder =
       Value<String> empresaId,
       Value<TipoMovimiento> tipo,
       Value<String> cuentaId,
+      Value<String?> cuentaDestinoId,
       Value<int> montoCentimos,
       Value<DateTime> fechaMovimiento,
       Value<DateTime?> fechaComprobante,
@@ -12718,6 +13328,9 @@ typedef $$MovimientosTableUpdateCompanionBuilder =
       Value<String?> nota,
       Value<EstadoRegistro> estado,
       Value<String?> reemplazaA,
+      Value<String?> abonaA,
+      Value<String?> documentoTipo,
+      Value<String?> documentoNumero,
       Value<EstadoSincronizacion> estadoSincronizacion,
       Value<DateTime> creadoEn,
       Value<int> rowid,
@@ -12755,6 +13368,23 @@ final class $$MovimientosTableReferences
       $_db.cuentas,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_cuentaIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CuentasTable _cuentaDestinoIdTable(_$BaseLocal db) =>
+      db.cuentas.createAlias('movimientos__cuenta_destino_id__cuentas__id');
+
+  $$CuentasTableProcessedTableManager? get cuentaDestinoId {
+    final $_column = $_itemColumn<String>('cuenta_destino_id');
+    if ($_column == null) return null;
+    final manager = $$CuentasTableTableManager(
+      $_db,
+      $_db.cuentas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_cuentaDestinoIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -12934,6 +13564,21 @@ class $$MovimientosTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get abonaA => $composableBuilder(
+    column: $table.abonaA,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnWithTypeConverterFilters<
     EstadoSincronizacion,
     EstadoSincronizacion,
@@ -12976,6 +13621,29 @@ class $$MovimientosTableFilterComposer
     final $$CuentasTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.cuentaId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableFilterComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CuentasTableFilterComposer get cuentaDestinoId {
+    final $$CuentasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
       referencedTable: $db.cuentas,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -13192,6 +13860,21 @@ class $$MovimientosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get abonaA => $composableBuilder(
+    column: $table.abonaA,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get estadoSincronizacion => $composableBuilder(
     column: $table.estadoSincronizacion,
     builder: (column) => ColumnOrderings(column),
@@ -13229,6 +13912,29 @@ class $$MovimientosTableOrderingComposer
     final $$CuentasTableOrderingComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.cuentaId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableOrderingComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CuentasTableOrderingComposer get cuentaDestinoId {
+    final $$CuentasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
       referencedTable: $db.cuentas,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -13410,6 +14116,19 @@ class $$MovimientosTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get abonaA =>
+      $composableBuilder(column: $table.abonaA, builder: (column) => column);
+
+  GeneratedColumn<String> get documentoTipo => $composableBuilder(
+    column: $table.documentoTipo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get documentoNumero => $composableBuilder(
+    column: $table.documentoNumero,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<EstadoSincronizacion, String>
   get estadoSincronizacion => $composableBuilder(
     column: $table.estadoSincronizacion,
@@ -13446,6 +14165,29 @@ class $$MovimientosTableAnnotationComposer
     final $$CuentasTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.cuentaId,
+      referencedTable: $db.cuentas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CuentasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.cuentas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CuentasTableAnnotationComposer get cuentaDestinoId {
+    final $$CuentasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.cuentaDestinoId,
       referencedTable: $db.cuentas,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -13599,6 +14341,7 @@ class $$MovimientosTableTableManager
           PrefetchHooks Function({
             bool empresaId,
             bool cuentaId,
+            bool cuentaDestinoId,
             bool categoriaId,
             bool contraparteId,
             bool comprobanteId,
@@ -13623,6 +14366,7 @@ class $$MovimientosTableTableManager
                 Value<String> empresaId = const Value.absent(),
                 Value<TipoMovimiento> tipo = const Value.absent(),
                 Value<String> cuentaId = const Value.absent(),
+                Value<String?> cuentaDestinoId = const Value.absent(),
                 Value<int> montoCentimos = const Value.absent(),
                 Value<DateTime> fechaMovimiento = const Value.absent(),
                 Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -13639,6 +14383,9 @@ class $$MovimientosTableTableManager
                 Value<String?> nota = const Value.absent(),
                 Value<EstadoRegistro> estado = const Value.absent(),
                 Value<String?> reemplazaA = const Value.absent(),
+                Value<String?> abonaA = const Value.absent(),
+                Value<String?> documentoTipo = const Value.absent(),
+                Value<String?> documentoNumero = const Value.absent(),
                 Value<EstadoSincronizacion> estadoSincronizacion =
                     const Value.absent(),
                 Value<DateTime> creadoEn = const Value.absent(),
@@ -13648,6 +14395,7 @@ class $$MovimientosTableTableManager
                 empresaId: empresaId,
                 tipo: tipo,
                 cuentaId: cuentaId,
+                cuentaDestinoId: cuentaDestinoId,
                 montoCentimos: montoCentimos,
                 fechaMovimiento: fechaMovimiento,
                 fechaComprobante: fechaComprobante,
@@ -13664,6 +14412,9 @@ class $$MovimientosTableTableManager
                 nota: nota,
                 estado: estado,
                 reemplazaA: reemplazaA,
+                abonaA: abonaA,
+                documentoTipo: documentoTipo,
+                documentoNumero: documentoNumero,
                 estadoSincronizacion: estadoSincronizacion,
                 creadoEn: creadoEn,
                 rowid: rowid,
@@ -13674,6 +14425,7 @@ class $$MovimientosTableTableManager
                 required String empresaId,
                 required TipoMovimiento tipo,
                 required String cuentaId,
+                Value<String?> cuentaDestinoId = const Value.absent(),
                 required int montoCentimos,
                 required DateTime fechaMovimiento,
                 Value<DateTime?> fechaComprobante = const Value.absent(),
@@ -13690,6 +14442,9 @@ class $$MovimientosTableTableManager
                 Value<String?> nota = const Value.absent(),
                 required EstadoRegistro estado,
                 Value<String?> reemplazaA = const Value.absent(),
+                Value<String?> abonaA = const Value.absent(),
+                Value<String?> documentoTipo = const Value.absent(),
+                Value<String?> documentoNumero = const Value.absent(),
                 required EstadoSincronizacion estadoSincronizacion,
                 required DateTime creadoEn,
                 Value<int> rowid = const Value.absent(),
@@ -13698,6 +14453,7 @@ class $$MovimientosTableTableManager
                 empresaId: empresaId,
                 tipo: tipo,
                 cuentaId: cuentaId,
+                cuentaDestinoId: cuentaDestinoId,
                 montoCentimos: montoCentimos,
                 fechaMovimiento: fechaMovimiento,
                 fechaComprobante: fechaComprobante,
@@ -13714,6 +14470,9 @@ class $$MovimientosTableTableManager
                 nota: nota,
                 estado: estado,
                 reemplazaA: reemplazaA,
+                abonaA: abonaA,
+                documentoTipo: documentoTipo,
+                documentoNumero: documentoNumero,
                 estadoSincronizacion: estadoSincronizacion,
                 creadoEn: creadoEn,
                 rowid: rowid,
@@ -13730,6 +14489,7 @@ class $$MovimientosTableTableManager
               ({
                 empresaId = false,
                 cuentaId = false,
+                cuentaDestinoId = false,
                 categoriaId = false,
                 contraparteId = false,
                 comprobanteId = false,
@@ -13776,6 +14536,17 @@ class $$MovimientosTableTableManager
                                 ._cuentaIdTable(db),
                             referencedColumn: $$MovimientosTableReferences
                                 ._cuentaIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (cuentaDestinoId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.cuentaDestinoId,
+                            referencedTable: $$MovimientosTableReferences
+                                ._cuentaDestinoIdTable(db),
+                            referencedColumn: $$MovimientosTableReferences
+                                ._cuentaDestinoIdTable(db)
                                 .id,
                           ) as T;
                         }
@@ -13872,6 +14643,7 @@ typedef $$MovimientosTableProcessedTableManager =
       PrefetchHooks Function({
         bool empresaId,
         bool cuentaId,
+        bool cuentaDestinoId,
         bool categoriaId,
         bool contraparteId,
         bool comprobanteId,
@@ -16401,6 +17173,169 @@ typedef $$AjustesTableProcessedTableManager =
       Ajuste,
       PrefetchHooks Function()
     >;
+typedef $$SubidasTableCreateCompanionBuilder = SubidasCompanion Function({
+  required String tabla,
+  required String filaId,
+  required String huella,
+  Value<int> rowid,
+});
+typedef $$SubidasTableUpdateCompanionBuilder = SubidasCompanion Function({
+  Value<String> tabla,
+  Value<String> filaId,
+  Value<String> huella,
+  Value<int> rowid,
+});
+
+class $$SubidasTableFilterComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tabla => $composableBuilder(
+    column: $table.tabla,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filaId => $composableBuilder(
+    column: $table.filaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get huella => $composableBuilder(
+    column: $table.huella,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SubidasTableOrderingComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tabla => $composableBuilder(
+    column: $table.tabla,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filaId => $composableBuilder(
+    column: $table.filaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get huella => $composableBuilder(
+    column: $table.huella,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SubidasTableAnnotationComposer
+    extends Composer<_$BaseLocal, $SubidasTable> {
+  $$SubidasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tabla =>
+      $composableBuilder(column: $table.tabla, builder: (column) => column);
+
+  GeneratedColumn<String> get filaId =>
+      $composableBuilder(column: $table.filaId, builder: (column) => column);
+
+  GeneratedColumn<String> get huella =>
+      $composableBuilder(column: $table.huella, builder: (column) => column);
+}
+
+class $$SubidasTableTableManager
+    extends
+        RootTableManager<
+          _$BaseLocal,
+          $SubidasTable,
+          Subida,
+          $$SubidasTableFilterComposer,
+          $$SubidasTableOrderingComposer,
+          $$SubidasTableAnnotationComposer,
+          $$SubidasTableCreateCompanionBuilder,
+          $$SubidasTableUpdateCompanionBuilder,
+          (Subida, BaseReferences<_$BaseLocal, $SubidasTable, Subida>),
+          Subida,
+          PrefetchHooks Function()
+        > {
+  $$SubidasTableTableManager(_$BaseLocal db, $SubidasTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubidasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubidasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubidasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> tabla = const Value.absent(),
+                Value<String> filaId = const Value.absent(),
+                Value<String> huella = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SubidasCompanion(
+                tabla: tabla,
+                filaId: filaId,
+                huella: huella,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tabla,
+                required String filaId,
+                required String huella,
+                Value<int> rowid = const Value.absent(),
+              }) => SubidasCompanion.insert(
+                tabla: tabla,
+                filaId: filaId,
+                huella: huella,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SubidasTable, Subida>(table),
+                  BaseReferences<_$BaseLocal, $SubidasTable, Subida>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SubidasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$BaseLocal,
+      $SubidasTable,
+      Subida,
+      $$SubidasTableFilterComposer,
+      $$SubidasTableOrderingComposer,
+      $$SubidasTableAnnotationComposer,
+      $$SubidasTableCreateCompanionBuilder,
+      $$SubidasTableUpdateCompanionBuilder,
+      (Subida, BaseReferences<_$BaseLocal, $SubidasTable, Subida>),
+      Subida,
+      PrefetchHooks Function()
+    >;
 
 class $BaseLocalManager {
   final _$BaseLocal _db;
@@ -16437,4 +17372,6 @@ class $BaseLocalManager {
       $$EventosMedicionTableTableManager(_db, _db.eventosMedicion);
   $$AjustesTableTableManager get ajustes =>
       $$AjustesTableTableManager(_db, _db.ajustes);
+  $$SubidasTableTableManager get subidas =>
+      $$SubidasTableTableManager(_db, _db.subidas);
 }

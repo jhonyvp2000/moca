@@ -33,8 +33,12 @@ int saldoDeCuenta({
       continue;
     }
     saldo += switch (m.tipo) {
-      TipoMovimiento.ingreso => m.montoCentimos,
-      TipoMovimiento.egreso || TipoMovimiento.retiro => -m.montoCentimos,
+      TipoMovimiento.ingreso || TipoMovimiento.aporte => m.montoCentimos,
+      TipoMovimiento.egreso ||
+      TipoMovimiento.retiro ||
+      // El pase resta en la cuenta de donde sale; en la de destino entra
+      // como ingreso (AccesoLocal.paraSaldoDestino).
+      TipoMovimiento.transferencia => -m.montoCentimos,
     };
   }
   return saldo;

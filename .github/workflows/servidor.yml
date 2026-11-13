@@ -1,0 +1,42 @@
+# Pruebas del servidor: corren con cada cambio en servidor/, contra un
+# PostgreSQL de verdad.
+name: Servidor de Moca
+
+on:
+  push:
+    paths:
+      - "servidor/**"
+      - ".github/workflows/servidor.yml"
+  pull_request:
+    paths:
+      - "servidor/**"
+      - ".github/workflows/servidor.yml"
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      MOCA_BASE_ADMIN: postgres://postgres:postgres@localhost:5432/postgres
+    defaults:
+      run:
+        working-directory: servidor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: servidor/package-lock.json
+      - run: npm ci
+      - run: npm run revisar
+      - run: npm run probar

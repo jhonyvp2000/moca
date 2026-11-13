@@ -28,7 +28,7 @@ Moca es una app Android, con panel web para contadores, que convierte comprobant
 | Ventas formales | Archivo exportado de SIRE, sin clave SOL; además foto y QR |
 | Registros sin comprobante | Permitidos, con nivel de confianza y arqueo semanal |
 | Inventario | Compras como gasto del mes, más una pregunta opcional de mercadería en el cierre mensual |
-| Usuarios | En Simple, solo el dueño; en Formal, dueño, contador y empleados que solo registran |
+| Usuarios | En Simple, dueños, encargado, ayudante y contador (desde el 29-10-2026). Desde el 09-11-2026, sin tope: el plan Básico incluye 1 persona y el Full 3, y cada persona más cuesta S/ 2.90 al mes; el contador no cuenta. En Formal, además el equipo con permisos |
 | Agente | Dentro de la app, totalmente proactivo, tono neutro y profesional |
 | Cobro | Por volumen de comprobantes leídos con IA o importados; registros manuales ilimitados |
 | Modo Simple | Plan Gratis con topes; plan de pago Moca Plus para el dueño informal |
@@ -190,7 +190,7 @@ La app se diseña para registrar en segundos y entender de un vistazo; el panel,
 - Atajo «Anotar la venta de hoy» y un botón central para registrar con voz, foto, QR o texto. Moca deduce si entró o salió plata.
 - Historial con edición y «Deshacer» tras cada guardado; indica qué registros están pendientes de subir cuando no hay señal.
 - Pestaña Moca: resumen semanal en texto y audio, avisos por prioridad y preguntas libres.
-- Informe del mes: ganancia comparada con el mes anterior, la categoría que cambió, qué tan seguras son las cuentas y opción de compartir en PDF.
+- Informe del mes: flujo de caja (cuánto creció o bajó la plata y cómo se movió, cuadrado con el saldo), comparado con el mes anterior, la categoría que cambió, qué tan seguras son las cuentas y opción de compartir en PDF. Desde el 29-10-2026 no habla de ganancia: sin saber cuánta mercadería queda, no es una ganancia real (decisiones.md).
 - Palabras del dueño, no del contador: «lo que te deben» en lugar de «cuentas por cobrar».
 - Montos en soles enteros; céntimos solo dentro del comprobante.
 - Estados diseñados para el primer día, la foto ilegible y la voz mal entendida.
@@ -208,6 +208,10 @@ La app se diseña para registrar en segundos y entender de un vistazo; el panel,
 - Código de referido visible para invitar empresas.
 
 ## Modelo comercial
+
+> **Cambio del 29-10-2026** (ver `decisiones.md`): ya no hay plan Gratis. La versión base se paga después de 7 días de prueba y Moca Plus es un adicional. La tabla y la lista de abajo se mantienen como historia; donde dicen «Gratis», hoy es la prueba de 7 días.
+>
+> **Cambio del 03-11-2026:** S/ 19.90 al mes por negocio (fundador S/ 14.90 de por vida para los primeros 50; anual S/ 199) y **14 días de prueba** desde el primer registro, con cobro manual por Yape mientras Moca se reparte como APK (ver `decisiones.md`).
 
 Hay tres planes. El dueño entra con una prueba completa de 14 días y luego elige; el contador usa el panel sin costo y vende el plan Formal a cambio de comisión.
 

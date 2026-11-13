@@ -7,7 +7,9 @@ import 'package:path_provider/path_provider.dart';
 
 import '../comun/icono_trazo.dart';
 import '../comun/tarjeta.dart';
+import '../dominio/cuenta_real.dart';
 import '../dominio/voz.dart';
+import '../dominio/modelos.dart';
 import '../inyeccion.dart';
 import '../pais/peru/formato.dart';
 import '../rutas.dart';
@@ -29,7 +31,20 @@ class PantallaOperador extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final conteo = ref.watch(conteoRegistrosProvider);
     final sinSenal = ref.watch(simularSinSenalProvider);
+    final videosSinEnlace = ref.watch(videosSinEnlaceProvider);
     final diasAdelantados = ref.watch(adelantoDelRelojProvider);
+    // Solo con la cuenta guardada hay algo que borrar en el servidor.
+    final cuenta = ref.watch(situacionCuentaProvider).value;
+    final conCuenta = cuenta?.estado == EstadoCuenta.guardada;
+    // Solo en el teléfono de quien registra los pagos (entrega 26).
+    final admin = ref.watch(cobroProvider).value?.admin ?? false;
+    // Si se llegó aquí por otro camino, no se muestra (entrega 26.2).
+    if (ref.watch(cobroProvider).hasValue && !admin) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted && context.canPop()) context.pop();
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -53,6 +68,10 @@ class PantallaOperador extends ConsumerWidget {
         ),
         children: [
           const Text(Textos.subtituloOperador, style: Tipografia.secundario),
+          const SizedBox(height: 4),
+          Text(switch (ref.watch(versionInstaladaProvider)) {
+            final v => Textos.versionConCommit(v.entrega, v.armado, v.commit),
+          }, style: Tipografia.secundario),
           const SizedBox(height: 16),
           Tarjeta(
             // Mientras se vuelve a contar, se mantiene la cifra anterior.
@@ -61,6 +80,26 @@ class PantallaOperador extends ConsumerWidget {
               null => Textos.contandoRegistros,
             }, style: Tipografia.texto),
           ),
+          if (admin) ...[
+            const SizedBox(height: Medidas.separacionTarjetas),
+            Tarjeta(
+              relleno: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _Opcion(
+                    titulo: Textos.cobros,
+                    detalle: Textos.cobrosDetalle,
+                    alTocar: () => context.push(Rutas.cobros),
+                  ),
+                  _Opcion(
+                    titulo: Textos.errores,
+                    detalle: Textos.erroresDetalle,
+                    alTocar: () => context.push(Rutas.errores),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: Medidas.separacionTarjetas),
           Tarjeta(
             relleno: EdgeInsets.zero,
@@ -71,6 +110,15 @@ class PantallaOperador extends ConsumerWidget {
                   detalle: Textos.borrarTodoDetalle,
                   alTocar: () => _borrarTodo(context, ref),
                 ),
+                if (conCuenta) ...[
+                  const Divider(),
+                  _Opcion(
+                    titulo: Textos.borrarEnServidor,
+                    detalle: Textos.borrarEnServidorDetalle,
+                    alTocar: () =>
+                        _borrarEnServidor(context, ref, cuenta?.celular),
+                  ),
+                ],
                 const Divider(),
                 _Opcion(
                   titulo: Textos.empezarPrimerDia,
@@ -92,6 +140,41 @@ class PantallaOperador extends ConsumerWidget {
                     await ref.read(repositorioOperadorProvider).pedirArqueo();
                     mensajes.showSnackBar(
                       const SnackBar(content: Text(Textos.arqueoPedido)),
+                    );
+                  },
+                ),
+                // Simular otra persona con un solo teléfono (entrega 20.1).
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.verComoRol,
+                  detalle: Textos.verComoRolDetalle,
+                  alTocar: () => _verComo(context, ref),
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.simularVentaDeOtro,
+                  detalle: Textos.simularVentaDeOtroDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref
+                        .read(repositorioOperadorProvider)
+                        .simularVentaDeOtro();
+                    mensajes.showSnackBar(
+                      const SnackBar(content: Text(Textos.ventaDeOtroSimulada)),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
+                  titulo: Textos.salirDeLaSimulacion,
+                  detalle: Textos.salirDeLaSimulacionDetalle,
+                  alTocar: () async {
+                    final mensajes = ScaffoldMessenger.of(context);
+                    await ref
+                        .read(repositorioOperadorProvider)
+                        .salirDeLaSimulacion();
+                    mensajes.showSnackBar(
+                      const SnackBar(content: Text(Textos.simulacionTerminada)),
                     );
                   },
                 ),
@@ -196,6 +279,23 @@ class PantallaOperador extends ConsumerWidget {
                 ),
                 const Divider(),
                 _Opcion(
+                  titulo: Textos.videosSinEnlace,
+                  detalle: Textos.videosSinEnlaceDetalle,
+                  alTocar: () {
+                    ref.read(videosSinEnlaceProvider.notifier).cambiar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          videosSinEnlace
+                              ? Textos.videosSinEnlaceDesactivado
+                              : Textos.videosSinEnlaceActivado,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                _Opcion(
                   titulo: Textos.exportarMedicion,
                   detalle: Textos.exportarMedicionDetalle,
                   alTocar: () => _exportarMedicion(ref),
@@ -206,6 +306,38 @@ class PantallaOperador extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _verComo(BuildContext context, WidgetRef ref) async {
+    final elegido = await showModalBottomSheet<Rol>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            for (final rol in Rol.values)
+              ListTile(
+                minTileHeight: Medidas.objetivoTactilMinimo + 12,
+                title: Text(
+                  Textos.nombreRol(rol),
+                  style: Tipografia.textoFuerte,
+                ),
+                subtitle: Text(
+                  Textos.detalleRol(rol),
+                  style: Tipografia.secundario,
+                ),
+                onTap: () => Navigator.of(context).pop(rol),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (elegido == null) return;
+    await ref
+        .read(repositorioOperadorProvider)
+        .verComo(elegido == Rol.dueno ? null : elegido);
+    if (context.mounted) context.go(Rutas.inicio);
   }
 
   Future<void> _elegirFrase(BuildContext context, WidgetRef ref) async {
@@ -374,6 +506,62 @@ class PantallaOperador extends ConsumerWidget {
     if (context.mounted) context.go(Rutas.bienvenida);
     mensajes.showSnackBar(const SnackBar(content: Text(Textos.seBorroTodo)));
   }
+
+  /// Dos pasos: el aviso y escribir BORRAR. Primero el servidor; el
+  /// teléfono se borra solo si el servidor ya borró (entrega 14.8).
+  Future<void> _borrarEnServidor(
+    BuildContext context,
+    WidgetRef ref,
+    String? celular,
+  ) async {
+    final seguir = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Textos.borrarEnServidorTitulo),
+        content: Text(
+          Textos.borrarEnServidorAviso(
+            celular == null ? '' : formatearCelular(celular),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(Textos.continuar),
+          ),
+        ],
+      ),
+    );
+    if (seguir != true || !context.mounted) return;
+    final resultado = await showDialog<ResultadoBorrado>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _DialogoBorrarParaSiempre(),
+    );
+    if (resultado == null || !context.mounted) return;
+    final mensajes = ScaffoldMessenger.of(context);
+    if (resultado != ResultadoBorrado.listo) {
+      mensajes.showSnackBar(
+        SnackBar(
+          content: Text(
+            resultado == ResultadoBorrado.sinSenal
+                ? Textos.borrarSinSenal
+                : Textos.borrarFallo,
+          ),
+        ),
+      );
+      return;
+    }
+    await ref.read(repositorioOperadorProvider).borrarTodo();
+    ref.invalidate(conteoRegistrosProvider);
+    if (context.mounted) context.go(Rutas.bienvenida);
+    mensajes.showSnackBar(
+      const SnackBar(content: Text(Textos.seBorroTodoEnServidor)),
+    );
+  }
 }
 
 class _Opcion extends StatelessWidget {
@@ -408,7 +596,7 @@ class _Opcion extends StatelessWidget {
                             : Colores.textoSecundario,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: Medidas.e1),
                     Text(detalle, style: Tipografia.secundario),
                   ],
                 ),
@@ -418,6 +606,62 @@ class _Opcion extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Hay que escribir BORRAR para que se active el botón. Borra en el
+/// servidor y devuelve cómo salió.
+class _DialogoBorrarParaSiempre extends ConsumerStatefulWidget {
+  const _DialogoBorrarParaSiempre();
+
+  @override
+  ConsumerState<_DialogoBorrarParaSiempre> createState() =>
+      _EstadoDialogoBorrar();
+}
+
+class _EstadoDialogoBorrar extends ConsumerState<_DialogoBorrarParaSiempre> {
+  final _texto = TextEditingController();
+  bool _borrando = false;
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  bool get _escrito => _texto.text.trim().toUpperCase() == 'BORRAR';
+
+  Future<void> _borrar() async {
+    setState(() => _borrando = true);
+    final resultado = await ref
+        .read(servicioCuentaProvider)
+        .borrarEnElServidor();
+    if (mounted) Navigator.of(context).pop(resultado);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text(Textos.borrarEnServidorTitulo),
+      content: TextField(
+        controller: _texto,
+        enabled: !_borrando,
+        autofocus: true,
+        textCapitalization: TextCapitalization.characters,
+        onChanged: (_) => setState(() {}),
+        decoration: const InputDecoration(labelText: Textos.escribeBorrar),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _borrando ? null : () => Navigator.of(context).pop(),
+          child: const Text(Textos.cancelar),
+        ),
+        TextButton(
+          onPressed: _escrito && !_borrando ? _borrar : null,
+          child: Text(_borrando ? Textos.borrando : Textos.borrarParaSiempre),
+        ),
+      ],
     );
   }
 }

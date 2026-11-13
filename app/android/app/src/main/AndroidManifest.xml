@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Desde la V1 real (entrega 11): la cuenta y la subida al servidor. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Micrófono para registrar por voz (entrega 4). No se guarda el audio. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Aviso de la hora de cierre (entrega 9): notificaciones programadas
@@ -8,6 +10,8 @@
     <application
         android:label="Moca"
         android:name="${applicationName}"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher">
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
@@ -41,6 +45,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- «Volver a Moca» desde la página de regreso de Mercado Pago
+             (entrega 32.1): abre Moca como el ícono y se cierra. -->
+        <activity
+            android:name=".VolverAMoca"
+            android:exported="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="moca" android:host="pago" />
+            </intent-filter>
+        </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -64,6 +84,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Los videos cortos de ayuda, en YouTube o el navegador (entrega 14.6). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>

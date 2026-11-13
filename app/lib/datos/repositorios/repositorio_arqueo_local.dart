@@ -26,12 +26,14 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
     final empresa = (await _a.empresa())!;
     final saldos = await _a.saldos(empresa.id);
     return [
+      // La que se dejó de usar no se cuenta (entrega 58): está en S/ 0.
       for (final c in await _a.cuentas(empresa.id))
-        CuentaArqueo(
-          cuenta: c.tipo,
-          calculadoCentimos: saldos[c.tipo] ?? 0,
-          puntoDePartida: c.saldoInicialCentimos == null,
-        ),
+        if (c.enUso)
+          CuentaArqueo(
+            cuenta: c.tipo,
+            calculadoCentimos: saldos[c.tipo] ?? 0,
+            puntoDePartida: c.saldoInicialCentimos == null,
+          ),
     ];
   }
 
@@ -89,6 +91,9 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
                 ...movimientos
                     .where((m) => m.cuentaId == cuenta.id)
                     .map(AccesoLocal.paraSaldo),
+                ...movimientos
+                    .where((m) => m.cuentaDestinoId == cuenta.id)
+                    .map(AccesoLocal.paraSaldoDestino),
                 for (final a in ajustes)
                   if (a.cuentaId == cuenta.id) a.paraSaldo,
               ],
@@ -122,6 +127,7 @@ class RepositorioArqueoLocal implements RepositorioArqueo {
               }
               final tipo = switch (motivo) {
                 MotivoArqueo.retiroParaMi => TipoMovimiento.retiro,
+                MotivoArqueo.puseYo => TipoMovimiento.aporte,
                 MotivoArqueo.gastoOlvidado => TipoMovimiento.egreso,
                 MotivoArqueo.ventaNoAnotada => TipoMovimiento.ingreso,
                 MotivoArqueo.errorDeVuelto || MotivoArqueo.noLoSe => null,

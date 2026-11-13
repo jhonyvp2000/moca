@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../dominio/arqueo.dart';
+import '../../dominio/cifras.dart';
+import '../../dominio/comprobantes.dart' show fotosDePruebaPorTelefono;
 import '../../dominio/modelos.dart';
 import '../calculos/saldos.dart';
 import '../calculos/semana.dart';
@@ -23,17 +25,293 @@ class AccesoLocal {
 
   String nuevoId() => _uuid.v4();
 
-  /// Lo guardado sin conexión queda «por subir» y la marca no cambia: en el
-  /// prototipo no hay servidor.
-  Future<EstadoSincronizacion> estadoAlGuardar() async => await _hayConexion()
-      ? EstadoSincronizacion.subido
-      : EstadoSincronizacion.porSubir;
+  /// El proveedor o el cliente por su RUC o su nombre: si ya existe se
+  /// reutiliza; si no, se crea. Nulo si no hay ni nombre ni RUC.
+  Future<String?> contraparte(
+    String empresaId, {
+    TipoContraparte tipo = TipoContraparte.proveedor,
+    String? nombre,
+    String? ruc,
+    String? celular,
+  }) async {
+    final n = nombre?.trim();
+    final conNombre = n != null && n.isNotEmpty;
+    if (!conNombre && ruc == null) return null;
+    final proveedores = await (base.select(
+      base.contrapartes,
+    )..where((c) => c.empresaId.equals(empresaId))).get();
+    final mismo = proveedores.where(
+      (c) =>
+          c.tipo == tipo &&
+          ((ruc != null && c.identificacionFiscal == ruc) ||
+              (conNombre && c.nombre.toLowerCase() == n.toLowerCase())),
+    );
+    if (mismo.isNotEmpty) {
+      // Un celular nuevo para un cliente que ya estaba (entrega 53).
+      if (celular != null && mismo.first.celular != celular) {
+        await (base.update(base.contrapartes)
+              ..where((c) => c.id.equals(mismo.first.id)))
+            .write(ContrapartesCompanion(celular: Value(celular)));
+      }
+      return mismo.first.id;
+    }
+    final id = nuevoId();
+    await base
+        .into(base.contrapartes)
+        .insert(
+          ContrapartesCompanion.insert(
+            id: id,
+            empresaId: empresaId,
+            nombre: conNombre ? n : 'RUC $ruc',
+            identificacionFiscal: Value(ruc),
+            tipo: tipo,
+            celular: Value(celular),
+          ),
+        );
+    return id;
+  }
+
+  /// Sin cuenta, lo guardado sin conexión queda «por subir» y la marca no
+  /// cambia, como en el prototipo.
+  Future<EstadoSincronizacion> estadoAlGuardar() async {
+    // Con cuenta, todo queda «por subir» hasta que el servidor lo recibe
+    // (entrega 11).
+    if (await leerAjuste(claveCuentaVerificada) != null) {
+      return EstadoSincronizacion.porSubir;
+    }
+    return await _hayConexion()
+        ? EstadoSincronizacion.subido
+        : EstadoSincronizacion.porSubir;
+  }
+
+  /// El celular verificado de verdad (entrega 11). Sin él, no hay cuenta.
+  static const claveCuentaVerificada = 'cuenta_verificada';
+
+  /// Quiénes están en el negocio (nombre, rol y titular), tal como bajó del
+  /// servidor: para «Lo anotó Rosa» (entrega 20).
+  static const claveEquipo = 'equipo';
+
+  /// La simulación del ajuste oculto (entrega 20.1): con qué rol se ve la
+  /// app y quién es «Pepe», la persona simulada. Lo de Pepe no se sube.
+  static const claveVerComo = 'ver_como';
+
+  /// Las cajas a cargo de quien usa el teléfono (ids), tal como bajaron del
+  /// servidor; sin el ajuste, todas (entrega 21).
+  static const claveMisCajas = 'mis_cajas';
+
+  /// La última versión publicada, el día en que se preguntó y el día en que
+  /// se dijo «Ahora no» (entrega 26.3).
+  static const claveVersion = 'version_publicada';
+  static const claveVersionRevisada = 'version_revisada';
+  static const claveVersionAhoraNo = 'version_ahora_no';
+
+  /// El último estado del cobro que mandó el servidor (entrega 25).
+  static const claveCobro = 'cobro';
+
+  /// Por qué el teléfono perdió el acceso al negocio (entrega 37).
+  static const claveSinAcceso = 'sin_acceso';
+
+  /// «Mis pagos de Moca» (entrega 33): la última lista, para verla sin señal.
+  static const claveMisPagos = 'mis_pagos';
+
+  /// «Pedir huella al abrir Moca» (entrega 16.3): «si» o nada.
+  static const clavePedirHuella = 'pedir_huella';
+  static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';
+  static const nombreSimulado = 'Pepe';
+
+  /// Fotos de prueba que le quedan al teléfono sin cuenta (entrega 14.2).
+  static const claveFotosDePrueba = 'fotos_de_prueba';
+  static const fotosDePruebaIniciales = fotosDePruebaPorTelefono;
+
+  /// Las fotos de prueba que quedan; nulo con cuenta o en la Demo, donde no
+  /// hay tope de prueba.
+  Future<int?> fotosDePrueba() async {
+    if (await leerAjuste(claveCuentaVerificada) != null) return null;
+    if (await enDemo()) return null;
+    return int.tryParse(await leerAjuste(claveFotosDePrueba) ?? '') ??
+        fotosDePruebaIniciales;
+  }
+
+  /// Las últimas cifras del servidor, con la huella de lo que tenía el
+  /// teléfono cuando llegaron (entrega 13).
+  static const claveCifras = 'cifras';
+
+  Future<void> guardarCifras(Map<String, Object?> cifras, String huella) =>
+      guardarAjuste(
+        claveCifras,
+        jsonEncode({'huella': huella, 'cifras': cifras}),
+      );
+
+  /// Lo último leído, para no volver a leer el mismo texto en cada cambio.
+  static String? _textoLeido;
+  static ({String huella, Cifras cifras})? _leidas;
+
+  /// Las cifras del servidor, si valen para lo que hay hoy en el teléfono:
+  /// con cuenta, fuera de la Demo, del mismo día y sin nada por subir. Si
+  /// no, nulas: el teléfono calcula lo mismo con las mismas reglas.
+  Future<Cifras?> cifrasDelServidor() async {
+    if (await leerAjuste(claveCuentaVerificada) == null) return null;
+    if (await enDemo()) return null;
+    final texto = await leerAjuste(claveCifras);
+    if (texto == null) return null;
+    if (texto != _textoLeido) {
+      try {
+        final guardado = jsonDecode(texto) as Map<String, Object?>;
+        _leidas = (
+          huella: guardado['huella']! as String,
+          cifras: Cifras.fromJson(guardado['cifras']! as Map<String, Object?>),
+        );
+      } on Object {
+        // Algo que esta versión de la app no entiende: se calcula aquí.
+        _leidas = null;
+      }
+      _textoLeido = texto;
+    }
+    final leidas = _leidas;
+    if (leidas == null) return null;
+    if (leidas.cifras.dia != Cifras.textoDia(ahora())) return null;
+    if (await hayPorSubir() || leidas.huella != await huella()) return null;
+    return leidas.cifras;
+  }
+
+  /// Si hay movimientos que el servidor todavía no tiene.
+  Future<bool> hayPorSubir() async =>
+      (await (base.select(base.movimientos)
+                ..where(
+                  (m) => m.estadoSincronizacion.equalsValue(
+                    EstadoSincronizacion.porSubir,
+                  ),
+                )
+                ..limit(1))
+              .get())
+          .isNotEmpty;
+
+  /// Cambia con cada cambio de lo que se sube: la bitácora registra cada
+  /// cambio; los días cerrados, los avisos vistos y la empresa se suman
+  /// aparte.
+  Future<String> huella() async {
+    Future<int> contar(TableInfo tabla) async {
+      final total = countAll();
+      final consulta = base.selectOnly(tabla)..addColumns([total]);
+      return (await consulta.getSingle()).read(total)!;
+    }
+
+    final empresa = await this.empresa();
+    // Un cambio de nombre de categoría (entrega 14.14) también se sube.
+    final categorias = await base
+        .customSelect(
+          'SELECT COUNT(*) AS n, COALESCE(SUM(activa), 0) AS activas, '
+          'COALESCE(SUM(LENGTH(nombre)), 0) AS largo FROM categorias',
+        )
+        .getSingle();
+    final recordados = await base
+        .customSelect(
+          'SELECT COUNT(recordado_en) AS n, '
+          'COALESCE(MAX(recordado_en), 0) AS ultimo FROM contrapartes',
+        )
+        .getSingle();
+    return [
+      await contar(base.bitacora),
+      await contar(base.movimientos),
+      await contar(base.diasCerrados),
+      await contar(base.cuentas),
+      await contar(base.alertas),
+      empresa?.nombre,
+      empresa?.tipoNegocio.name,
+      empresa?.horaCierreMinutos,
+      categorias.data.values.join('-'),
+      // Un recordatorio por WhatsApp cambia los avisos (entrega 54).
+      recordados.data.values.join('-'),
+    ].join('|');
+  }
 
   Future<Empresa?> empresa() =>
       (base.select(base.empresas)..limit(1)).getSingleOrNull();
 
-  Future<Usuario> usuario() =>
-      (base.select(base.usuarios)..limit(1)).getSingle();
+  /// Quien usa este teléfono: el de la membresía. Desde la entrega 18 el
+  /// teléfono guarda también a las otras personas del negocio (como autores
+  /// de lo que anotaron), sin membresía aquí.
+  Future<Usuario> usuario() async => (await usuarioONulo())!;
+
+  /// El rol de quien usa este teléfono; sin membresía todavía (antes del
+  /// alta), es el dueño.
+  Future<Rol> miRol() async {
+    if (Rol.values.asNameMap()[await leerAjuste(claveVerComo)]
+        case final simulado?) {
+      return simulado;
+    }
+    final yo = await usuarioONulo();
+    if (yo == null) return Rol.dueno;
+    final membresia = await (base.select(
+      base.membresias,
+    )..where((m) => m.usuarioId.equals(yo.id))).getSingleOrNull();
+    return membresia?.rol ?? Rol.dueno;
+  }
+
+  /// Si quien usa el teléfono creó el negocio (entrega 16.1). Sin el equipo
+  /// del servidor (un negocio de una sola persona que aún no lo bajó), el
+  /// dueño es el titular; el servidor lo revisa de nuevo al borrar.
+  Future<bool> soyTitular() async {
+    if (await miRol() != Rol.dueno) return false;
+    final texto = await leerAjuste(claveEquipo);
+    if (texto == null) return true;
+    final yo = (await usuarioONulo())?.id;
+    try {
+      for (final p in jsonDecode(texto) as List) {
+        if (p case {'usuario_id': final String id} when id == yo) {
+          return p['titular'] == true;
+        }
+      }
+    } on FormatException {
+      return false;
+    }
+    return false;
+  }
+
+  /// Las cajas a cargo de quien usa el teléfono; nulo: todas.
+  Future<Set<TipoCuenta>?> misCajas() async {
+    final texto = await leerAjuste(claveMisCajas);
+    final empresa = await this.empresa();
+    if (texto == null || empresa == null) return null;
+    try {
+      final ids = {for (final id in jsonDecode(texto) as List) id as String};
+      return {
+        for (final c in await cuentas(empresa.id))
+          if (ids.contains(c.id)) c.tipo,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Nombre y rol de cada persona del negocio, por usuario.
+  Future<Map<String, (String?, Rol?)>> equipo() async {
+    final texto = await leerAjuste(claveEquipo);
+    const simulado = {usuarioSimulado: (nombreSimulado, Rol.ayudante)};
+    if (texto == null) return simulado;
+    try {
+      return {
+        ...simulado,
+        for (final p in jsonDecode(texto) as List)
+          if (p case {'usuario_id': final String id})
+            id: (p['nombre'] as String?, Rol.values.asNameMap()[p['rol']]),
+      };
+    } on FormatException {
+      return simulado;
+    }
+  }
+
+  Future<Usuario?> usuarioONulo() async {
+    final propio = await (base.select(base.usuarios).join([
+      innerJoin(
+        base.membresias,
+        base.membresias.usuarioId.equalsExp(base.usuarios.id),
+      ),
+    ])..limit(1)).getSingleOrNull();
+    if (propio != null) return propio.readTable(base.usuarios);
+    // Antes del alta todavía no hay membresía: es el único usuario.
+    return (base.select(base.usuarios)..limit(1)).getSingleOrNull();
+  }
 
   Future<String?> leerAjuste(String clave) async {
     final fila = await (base.select(
@@ -76,11 +354,19 @@ class AccesoLocal {
   /// le puso el dueño.
   static const nombresCuenta = {
     TipoCuenta.efectivo: 'Efectivo',
-    TipoCuenta.yape: 'Yape',
-    TipoCuenta.banco: 'Banco',
-    TipoCuenta.plin: 'Plin',
+    TipoCuenta.caja2: 'Caja 2',
+    TipoCuenta.caja3: 'Caja 3',
+    TipoCuenta.yape: 'BCP Yape',
+    TipoCuenta.banco: 'BCP',
+    TipoCuenta.plin: 'Interbank Plin',
+    TipoCuenta.bbvaPlin: 'BBVA Plin',
+    TipoCuenta.scotiabankPlin: 'Scotiabank Plin',
     TipoCuenta.sip: 'Sip',
-    TipoCuenta.otra: 'Otra billetera',
+    TipoCuenta.otra: 'Otra',
+    TipoCuenta.interbank: 'Interbank',
+    TipoCuenta.bbva: 'BBVA',
+    TipoCuenta.scotiabank: 'Scotiabank',
+    TipoCuenta.otroBanco: 'Otro banco o caja',
   };
 
   /// Crea una cuenta del negocio y la deja en la bitácora.
@@ -141,6 +427,16 @@ class AccesoLocal {
     fecha: m.fechaPago ?? m.fechaMovimiento,
   );
 
+  /// Un pase visto desde la cuenta a la que llega: entra (entrega 21.1).
+  static MovimientoParaSaldo paraSaldoDestino(Movimiento m) =>
+      MovimientoParaSaldo(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: m.montoCentimos,
+        estado: m.estado,
+        estadoPago: m.estadoPago,
+        fecha: m.fechaPago ?? m.fechaMovimiento,
+      );
+
   /// Saldo de cada cuenta, calculado aquí y no en las pantallas. Los
   /// [ajustes] del arqueo cambian el saldo sin ser gasto ni ingreso.
   static Map<TipoCuenta, int> saldosPorCuenta(
@@ -154,6 +450,10 @@ class AccesoLocal {
         fechaSaldoInicial: cuenta.fechaSaldoInicial,
         movimientos: [
           ...movimientos.where((m) => m.cuentaId == cuenta.id).map(paraSaldo),
+          // Lo que llegó de un pase (entrega 21.1).
+          ...movimientos
+              .where((m) => m.cuentaDestinoId == cuenta.id)
+              .map(paraSaldoDestino),
           for (final a in ajustes)
             if (a.cuentaId == cuenta.id) a.paraSaldo,
         ],
@@ -177,6 +477,14 @@ class AccesoLocal {
     String empresaId,
     List<Movimiento> movimientos,
   ) async {
+    if (await cifrasDelServidor() case final cifras?) {
+      final estado = cifras.inicio.estadoArqueo;
+      if (estado == EstadoArqueo.nada &&
+          await leerAjuste(claveArqueoPedido) != null) {
+        return EstadoArqueo.toca;
+      }
+      return estado;
+    }
     final ahora = this.ahora();
     final lunes = inicioDeSemana(ahora);
     final arqueos = await (base.select(
@@ -206,6 +514,7 @@ class AccesoLocal {
 
   /// Saldo de cada cuenta de la empresa, con los ajustes del arqueo.
   Future<Map<TipoCuenta, int>> saldos(String empresaId) async =>
+      (await cifrasDelServidor())?.saldos ??
       saldosPorCuenta(
         await cuentas(empresaId),
         await movimientos(empresaId),
@@ -250,9 +559,14 @@ class AccesoLocal {
   Stream<void> cambios() => base
       .tableUpdates(
         TableUpdateQuery.onAllTables([
+          base.usuarios,
+          // El rol de la membresía cambia lo que se ve (entrega 20).
+          base.membresias,
           base.empresas,
           base.cuentas,
           base.movimientos,
+          // El celular del cliente (entrega 53) también se sube y se ve.
+          base.contrapartes,
           base.categorias,
           base.arqueos,
           base.ajustes,

@@ -1,3 +1,5 @@
+import 'modelos.dart';
+
 /// Una categoría en «En qué se fue la plata». Nulo en [nombre] es «Lo
 /// demás».
 class GastoPorCategoria {
@@ -30,17 +32,43 @@ class ConfianzaDelMes {
   final int sinPapel;
 }
 
-/// El informe de un mes (S14). Las cifras vienen calculadas de la capa de
-/// datos; la pantalla y el PDF solo las muestran.
+/// El informe de un mes (S14): el flujo de caja del mes, que cuadra con el
+/// saldo (decisiones.md, 29-10-2026). Todo cuenta el día en que la plata se
+/// movió. Moca no muestra ganancia: no sabe cuánta mercadería queda. Las
+/// cifras vienen calculadas de la capa de datos; la pantalla y el PDF solo
+/// las muestran.
+/// Una semana del mes en el gráfico de Informes (mejora 01): del día
+/// [desde] al [hasta], con lo que entró y salió del negocio. Futura si el
+/// mes está en curso y todavía no llega.
+class SemanaDelMes {
+  const SemanaDelMes({
+    required this.desde,
+    required this.hasta,
+    required this.entroCentimos,
+    required this.salioCentimos,
+    this.futura = false,
+  });
+
+  final int desde;
+  final int hasta;
+  final int entroCentimos;
+  final int salioCentimos;
+  final bool futura;
+}
+
 class InformeMes {
   const InformeMes({
     required this.mes,
     required this.enCurso,
     required this.sinRegistros,
+    required this.inicioCentimos,
     required this.entroCentimos,
     required this.salioCentimos,
     required this.retirosCentimos,
+    required this.ajustesCentimos,
     required this.gastos,
+    this.ingresos = const [],
+    this.aportesCentimos = 0,
     required this.loQueDebesCentimos,
     required this.advertenciaMercaderia,
     this.desdeDia,
@@ -50,7 +78,12 @@ class InformeMes {
     this.confianza,
     this.mesPrevio,
     this.mesSiguiente,
+    this.semanas = const [],
   });
+
+  /// Lo que entró y salió en cada semana del mes (1–7, 8–14, 15–21 y 22 al
+  /// fin), para el gráfico de Informes (mejora 01).
+  final List<SemanaDelMes> semanas;
 
   /// El primer día del mes.
   final DateTime mes;
@@ -63,16 +96,31 @@ class InformeMes {
   /// Nulo si es el primer mes con Moca.
   final DateTime? mesAnterior;
 
-  /// Ganancia menos la del mes anterior (hasta el mismo día si el mes está
-  /// en curso). Nulo sin mes anterior.
+  /// Cuánto más creció (o menos) la plata que en el mes anterior, hasta el
+  /// mismo día si el mes está en curso. Nulo sin mes anterior.
   final int? diferenciaConAnteriorCentimos;
 
+  /// La plata al empezar el mes (o al empezar con Moca, si fue a mitad).
+  final int inicioCentimos;
+
+  /// Lo que entró y salió del negocio, y lo que el dueño retiró para sí.
   final int entroCentimos;
   final int salioCentimos;
   final int retirosCentimos;
 
+  /// Lo que el dueño puso de su bolsillo (entrega 14.11): no es venta.
+  final int aportesCentimos;
+
+  /// Las diferencias del arqueo que cambiaron el saldo sin ser venta ni
+  /// gasto: positivo si sobró plata.
+  final int ajustesCentimos;
+
   /// De mayor a menor; a lo más cinco filas.
   final List<GastoPorCategoria> gastos;
+
+  /// «Con qué entró la plata» (entrega 35): lo que entró por categoría, de
+  /// mayor a menor, a lo más cinco filas. Suma lo mismo que [entroCentimos].
+  final List<GastoPorCategoria> ingresos;
 
   /// Nulo si no hay mes anterior. Si no hubo un cambio grande, [cambio] es
   /// nulo y [mesAnterior] no: «Casi nada cambió».
@@ -89,11 +137,342 @@ class InformeMes {
   final DateTime? mesPrevio;
   final DateTime? mesSiguiente;
 
-  int get gananciaCentimos => entroCentimos - salioCentimos;
-  int get quedoCentimos => gananciaCentimos - retirosCentimos;
+  /// Cuánto creció la plata en el mes; negativo si bajó.
+  int get crecioCentimos =>
+      entroCentimos +
+      aportesCentimos -
+      salioCentimos -
+      retirosCentimos +
+      ajustesCentimos;
+
+  /// La plata al terminar el mes; en el mes en curso, la de hoy.
+  int get finCentimos => inicioCentimos + crecioCentimos;
+}
+
+/// Para quién es el PDF del informe (entrega 14.12): los mismos datos,
+/// distinto detalle.
+enum DestinoInforme { dueno, contador, credito }
+
+/// Una compra que todavía se debe.
+class DeudaPendiente {
+  const DeudaPendiente({
+    required this.fecha,
+    required this.centimos,
+    this.proveedor,
+    this.categoria,
+    this.pagadoEnPartesCentimos = 0,
+  });
+
+  final DateTime fecha;
+
+  /// Lo que falta.
+  final int centimos;
+
+  /// El proveedor o, en lo que te deben, el cliente.
+  final String? proveedor;
+  final String? categoria;
+
+  /// Lo ya pagado en partes (entrega 44).
+  final int pagadoEnPartesCentimos;
+}
+
+/// Un comprobante del mes, por su fecha de emisión (para el contador).
+class ComprobanteDelMes {
+  const ComprobanteDelMes({
+    required this.fecha,
+    required this.totalCentimos,
+    required this.pagado,
+    this.tipo,
+    this.serie,
+    this.numero,
+    this.ruc,
+    this.proveedor,
+    this.igvCentimos,
+  });
+
+  final DateTime fecha;
+  final int totalCentimos;
+  final bool pagado;
+  final String? tipo;
+  final String? serie;
+  final String? numero;
+  final String? ruc;
+  final String? proveedor;
+  final int? igvCentimos;
+}
+
+/// Lo que el PDF muestra además del informe (entrega 14.12). Se calcula en
+/// el teléfono con lo anotado y las mismas reglas del informe.
+class DetalleParaPdf {
+  const DetalleParaPdf({
+    required this.desde,
+    required this.hasta,
+    required this.saldosAlCierre,
+    required this.ingresos,
+    required this.deudas,
+    this.teDeben = const [],
+    required this.comprobantes,
+    required this.meses,
+    this.operaciones = const [],
+  });
+
+  /// El primer y el último día que cubre el informe.
+  final DateTime desde;
+  final DateTime hasta;
+
+  /// Cuánto había en cada cuenta al terminar el periodo; suman
+  /// [InformeMes.finCentimos].
+  final Map<TipoCuenta, int> saldosAlCierre;
+
+  /// De dónde vino la plata que entró, por categoría.
+  final List<GastoPorCategoria> ingresos;
+
+  /// Todo lo que se debe hoy, de lo más antiguo a lo más nuevo.
+  final List<DeudaPendiente> deudas;
+
+  /// Todo lo que te deben hoy: las ventas a crédito (entrega 44.1).
+  final List<DeudaPendiente> teDeben;
+
+  int get loQueTeDebenCentimos => teDeben.fold(0, (s, x) => s + x.centimos);
+
+  /// Los comprobantes emitidos en el mes.
+  final List<ComprobanteDelMes> comprobantes;
+
+  /// Hasta seis meses, del más antiguo al del informe (para un crédito).
+  final List<InformeMes> meses;
+
+  /// Lo anotado en el periodo, por fecha (para el Excel, entrega 14.13).
+  final List<OperacionDelMes> operaciones;
+}
+
+/// Un movimiento vigente anotado en el periodo, con lo que el contador
+/// necesita para revisarlo.
+class OperacionDelMes {
+  const OperacionDelMes({
+    required this.fecha,
+    required this.tipo,
+    required this.cuenta,
+    this.cuentaDestino,
+    required this.centimos,
+    required this.estadoPago,
+    required this.fuente,
+    required this.confianza,
+    this.pagadoCentimos = 0,
+    this.fechaPago,
+    this.categoria,
+    this.nota,
+    this.proveedor,
+    this.ruc,
+    this.comprobante,
+    this.igvCentimos,
+  });
+
+  final DateTime fecha;
+  final TipoMovimiento tipo;
+  final TipoCuenta cuenta;
+
+  /// En un pase, a dónde fue la plata (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
+  final int centimos;
+  final EstadoPago estadoPago;
+  final int pagadoCentimos;
+  final DateTime? fechaPago;
+  final Fuente fuente;
+  final NivelConfianza confianza;
+  final String? categoria;
+  final String? nota;
+  final String? proveedor;
+  final String? ruc;
+
+  /// Tipo, serie y número, como «Factura F001-3108».
+  final String? comprobante;
+  final int? igvCentimos;
+}
+
+/// Las filas del flujo que piden las entidades de crédito (docs/credito/,
+/// entrega 14.15). Cada una sale de una o más categorías de Moca.
+enum FilaFlujo {
+  ventasContado,
+  ventasCreditoCobradas,
+  otrosIngresos,
+  ingresosExtraordinarios,
+  mercaderia,
+  envases,
+  fletes,
+  alquiler,
+  servicios,
+  sueldos,
+  publicidad,
+  mantenimiento,
+  contabilidad,
+  otrosGastosFijos,
+}
+
+enum EstadoMesFlujo {
+  /// Moca todavía no anotaba: lo completa el dueño.
+  antesDeMoca,
+
+  /// El mes en que empezó Moca, desde ese día.
+  incompleto,
+  completo,
+
+  /// El mes en curso, hasta hoy: solo va si no hay ningún mes completo
+  /// (entrega 14.15.1).
+  enCurso,
+}
+
+/// Un mes del flujo, en flujo de caja: cada pago cuenta el día que se pagó.
+class MesDelFlujo {
+  const MesDelFlujo({
+    required this.mes,
+    required this.estado,
+    this.centimos = const {},
+    this.cuotas = const [0, 0, 0],
+    this.retirosCentimos = 0,
+  });
+
+  final DateTime mes;
+  final EstadoMesFlujo estado;
+
+  /// Lo de cada fila; la que falta es cero.
+  final Map<FilaFlujo, int> centimos;
+
+  /// Lo pagado en cuotas a cada entidad de [FlujoParaCredito.entidades].
+  final List<int> cuotas;
+  final int retirosCentimos;
+}
+
+/// El flujo de los últimos seis meses completos, para la caja (Moca Plus).
+class FlujoParaCredito {
+  const FlujoParaCredito({
+    required this.meses,
+    this.entidades = const [],
+    this.propietario,
+    this.identificacionFiscal,
+    this.inicioMoca,
+    this.categoriasPorFila = const {},
+  });
+
+  /// Seis meses, del más antiguo al más nuevo; el mes en curso no va.
+  final List<MesDelFlujo> meses;
+
+  /// Hasta tres entidades a las que se pagan cuotas, de la que más se pagó
+  /// a la que menos; la tercera junta a las demás si hay más.
+  final List<String> entidades;
+  final String? propietario;
+  final String? identificacionFiscal;
+
+  /// El día desde el que Moca tiene lo anotado.
+  final DateTime? inicioMoca;
+
+  /// Las categorías del negocio que van a cada fila: el «de dónde sale».
+  final Map<FilaFlujo, List<String>> categoriasPorFila;
+
+  Iterable<MesDelFlujo> get conMoca =>
+      meses.where((m) => m.estado != EstadoMesFlujo.antesDeMoca);
+
+  bool get hayMesCompleto =>
+      meses.any((m) => m.estado == EstadoMesFlujo.completo);
+
+  /// Los meses que entran en el promedio: los completos y los de antes de
+  /// Moca que llene el dueño; si no hay ningún completo, todos.
+  bool entraEnPromedio(MesDelFlujo m) =>
+      !hayMesCompleto ||
+      m.estado == EstadoMesFlujo.completo ||
+      m.estado == EstadoMesFlujo.antesDeMoca;
+
+  /// Lo que retiró para él en promedio, en los meses de Moca que entran en
+  /// el promedio.
+  int? get retirosPromedioCentimos {
+    final cuentan = conMoca.where(entraEnPromedio);
+    if (cuentan.isEmpty) return null;
+    return cuentan.fold(0, (s, m) => s + m.retirosCentimos) ~/ cuentan.length;
+  }
+}
+
+/// Un mes en el resumen del año (entrega 40).
+enum EstadoMesDelAnio { antesDeMoca, completo, enCurso, porVenir }
+
+class MesDelAnio {
+  const MesDelAnio({
+    required this.mes,
+    required this.estado,
+    this.entroCentimos = 0,
+    this.salioCentimos = 0,
+    this.crecioCentimos = 0,
+  });
+
+  /// El primer día del mes.
+  final DateTime mes;
+  final EstadoMesDelAnio estado;
+  final int entroCentimos;
+  final int salioCentimos;
+
+  /// Cuánto creció (o bajó) la plata en el mes, como en su informe.
+  final int crecioCentimos;
+
+  bool get cuenta =>
+      estado == EstadoMesDelAnio.completo || estado == EstadoMesDelAnio.enCurso;
+}
+
+/// El resumen del año calendario (entrega 40): los 12 meses y el total, con
+/// las mismas reglas del informe de cada mes, que suman lo mismo que el año.
+class ResumenAnio {
+  const ResumenAnio({
+    required this.anio,
+    required this.meses,
+    required this.desde,
+    required this.enCurso,
+    required this.entroCentimos,
+    required this.salioCentimos,
+    required this.retirosCentimos,
+    required this.aportesCentimos,
+    required this.ajustesCentimos,
+    required this.crecioCentimos,
+    required this.ingresos,
+    required this.gastos,
+    this.anioPrevio,
+    this.anioSiguiente,
+  });
+
+  final int anio;
+
+  /// Enero a diciembre.
+  final List<MesDelAnio> meses;
+
+  /// Desde cuándo cuenta: el 1 de enero, o el día en que empezó con Moca.
+  final DateTime desde;
+
+  /// Es el año actual: va hasta hoy.
+  final bool enCurso;
+  final int entroCentimos;
+  final int salioCentimos;
+  final int retirosCentimos;
+  final int aportesCentimos;
+
+  /// Lo que sobró (positivo) o faltó en los arqueos del año.
+  final int ajustesCentimos;
+  final int crecioCentimos;
+
+  /// Con qué entró y en qué se fue la plata en el año, a lo más cinco filas.
+  final List<GastoPorCategoria> ingresos;
+  final List<GastoPorCategoria> gastos;
+
+  /// Nulo si no hay año antes con Moca, o después (es el actual).
+  final int? anioPrevio;
+  final int? anioSiguiente;
 }
 
 abstract interface class RepositorioInforme {
   /// El informe del mes que empieza en [mes]; nulo es el mes en curso.
   Stream<InformeMes> observarMes(DateTime? mes);
+
+  /// El resumen del año calendario [anio]; nulo es el actual (entrega 40).
+  Stream<ResumenAnio> observarAnio(int? anio);
+
+  /// Lo que el PDF necesita además del informe.
+  Future<DetalleParaPdf> detalleParaPdf(InformeMes informe);
+
+  /// El flujo de los últimos seis meses completos para la caja.
+  Future<FlujoParaCredito> flujoParaCredito();
 }

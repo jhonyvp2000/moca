@@ -5,15 +5,19 @@ import 'package:go_router/go_router.dart';
 import '../../comun/campo_monto.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
+import '../../tema/colores.dart';
+import '../../dominio/movimientos.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import '../registrar/franja_sin_senal.dart';
 import '../registrar/confirmacion.dart';
 import '../../dominio/medicion.dart';
+import '../../tema/medidas.dart';
 
 /// S07 · Venta de hoy, en su versión escrita. La voz llega en la entrega 4
 /// y llenará esta misma pantalla. Sirve para la primera venta (antes del
@@ -41,6 +45,12 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   bool _conBanco = false;
   bool _guardando = false;
 
+  /// Lo fiado de hoy, con a quién (entrega 52).
+  bool _conFiado = false;
+  final _fiado = TextEditingController();
+  final _quien = TextEditingController();
+  final _celular = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -50,7 +60,9 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     for (final MapEntry(key: cuenta, value: campo) in _campos.entries) {
       campo.text = soles(cuenta);
     }
-    _conBanco = _campos[TipoCuenta.banco]!.text.isNotEmpty;
+    _conBanco = _campos.entries.any(
+      (e) => e.key.esBanco && e.value.text.isNotEmpty,
+    );
     ref.read(medicionProvider).anotar(EventoMedicion.ventaAbierta, {
       'modo': 'escrita',
     });
@@ -61,13 +73,16 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
     for (final c in _campos.values) {
       c.dispose();
     }
+    _fiado.dispose();
+    _quien.dispose();
+    _celular.dispose();
     super.dispose();
   }
 
-  /// Efectivo, Yape y las billeteras que usa; el banco, si lo agregó.
+  /// Efectivo, Yape y las billeteras que usa; los bancos, si tocó «+ Banco».
   List<TipoCuenta> get _cuentasVisibles => [
     for (final c in ref.read(tiposDeCuentaProvider))
-      if (c != TipoCuenta.banco || _conBanco) c,
+      if (!c.esBanco || _conBanco) c,
   ];
 
   Map<TipoCuenta, int> get _ventaPorCuenta => {
@@ -76,6 +91,28 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
   };
 
   int get _total => _ventaPorCuenta.values.fold(0, (a, b) => a + b);
+
+  int get _fiadoCentimos =>
+      _conFiado ? leerSolesEnCentimos(_fiado.text) ?? 0 : 0;
+
+  /// Lo fiado lleva a quién, como en «Escribirlo» (entrega 42).
+  bool get _faltaQuien => _fiadoCentimos > 0 && _quien.text.trim().isEmpty;
+
+  /// El celular del cliente, solo los dueños (entrega 53).
+  bool get _pideCelular =>
+      (ref.read(permisosProvider).value ?? Permisos.delDueno).rol == Rol.dueno;
+
+  bool get _celularMal =>
+      _conFiado &&
+      _pideCelular &&
+      _celular.text.trim().isNotEmpty &&
+      celularDeCliente(_celular.text) == null;
+
+  bool get _sePuedeGuardar =>
+      (_total > 0 || _fiadoCentimos > 0) &&
+      !_faltaQuien &&
+      !_celularMal &&
+      !_guardando;
 
   Future<void> _guardar() async {
     setState(() => _guardando = true);
@@ -91,7 +128,22 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
         return;
       }
       final repo = ref.read(repositorioMovimientosProvider);
-      final guardado = await repo.anotarVentaDelDia(_ventaPorCuenta);
+      // Lo fiado queda en la caja de quien anota, sin mover su saldo.
+      final permisos = ref.read(permisosProvider).value;
+      final caja = permisos == null || permisos.puedeUsar(TipoCuenta.efectivo)
+          ? TipoCuenta.efectivo
+          : permisos.misCajas!.first;
+      final guardado = await repo.anotarVentaDelDia(
+        _ventaPorCuenta,
+        fiado: _fiadoCentimos > 0
+            ? FiadoDelDia(
+                montoCentimos: _fiadoCentimos,
+                quien: _quien.text.trim(),
+                cuenta: caja,
+                celular: _pideCelular ? celularDeCliente(_celular.text) : null,
+              )
+            : null,
+      );
       await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
         'modo': 'escrita',
       });
@@ -125,7 +177,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
       contenido: [
         const FranjaSinSenal(),
         const Text(Textos.cuantoVendisteHoy, style: Tipografia.tituloPantalla),
-        const SizedBox(height: 6),
+        const SizedBox(height: Medidas.e2),
         const Text(Textos.ventaPorCuentaDetalle, style: Tipografia.secundario),
         if (ventaYaAnotada > 0) ...[
           const SizedBox(height: 12),
@@ -138,6 +190,7 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
           filas: [
             for (final (i, cuenta) in cuentas.indexed)
               FilaMonto(
+                cuenta: cuenta,
                 etiqueta: Textos.nombreCuenta(cuenta),
                 controlador: _campos[cuenta]!,
                 alCambiar: actualizar,
@@ -149,14 +202,68 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
               ),
           ],
         ),
-        if (!_conBanco)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: () => setState(() => _conBanco = true),
-              child: const Text(Textos.agregarBanco),
+        // Lo fiado de hoy, aparte de lo cobrado (entrega 52). La primera
+        // venta, antes de la cuenta, no fía.
+        if (_conFiado) ...[
+          const SizedBox(height: Medidas.e3),
+          GrupoMontos(
+            filas: [
+              FilaMonto(
+                etiqueta: Textos.alFiadoEtiqueta,
+                controlador: _fiado,
+                alCambiar: actualizar,
+                autofocus: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: Medidas.e3),
+          Text(Textos.quienTeDebe, style: Tipografia.tituloSeccion),
+          const SizedBox(height: Medidas.e2),
+          TextField(
+            controller: _quien,
+            maxLength: 60,
+            textCapitalization: TextCapitalization.words,
+            style: Tipografia.texto,
+            onChanged: actualizar,
+            decoration: const InputDecoration(
+              hintText: Textos.quienTeDebeEjemplo,
+              counterText: '',
             ),
           ),
+          if (_pideCelular) ...[
+            const SizedBox(height: Medidas.e3),
+            Text(Textos.suCelularOpcional, style: Tipografia.tituloSeccion),
+            const SizedBox(height: Medidas.e2),
+            TextField(
+              controller: _celular,
+              maxLength: 15,
+              keyboardType: TextInputType.phone,
+              style: Tipografia.texto,
+              onChanged: actualizar,
+              decoration: InputDecoration(
+                hintText: Textos.celularEjemplo,
+                helperText: Textos.celularDelClienteAyuda,
+                errorText: _celularMal ? Textos.revisaElNumero : null,
+                counterText: '',
+              ),
+            ),
+          ],
+        ],
+        Wrap(
+          spacing: Medidas.e2,
+          children: [
+            if (!_conBanco)
+              TextButton(
+                onPressed: () => setState(() => _conBanco = true),
+                child: const Text(Textos.agregarBanco),
+              ),
+            if (!_conFiado && !widget.primeraVenta)
+              TextButton(
+                onPressed: () => setState(() => _conFiado = true),
+                child: const Text(Textos.agregarFiado),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
         Tarjeta(
           child: Row(
@@ -169,17 +276,36 @@ class _EstadoVentaDeHoy extends ConsumerState<PantallaVentaDeHoy> {
               ),
               Text(
                 formatearSoles(total),
-                style: Tipografia.cifra(
-                  Tipografia.tituloTarjeta.copyWith(fontSize: 18),
-                ),
+                style: Tipografia.cifra(Tipografia.tituloDestacado),
               ),
             ],
           ),
         ),
+        // Lo fiado no entró: va aparte del total (entrega 52).
+        if (_fiadoCentimos > 0) ...[
+          const SizedBox(height: Medidas.e2),
+          Text(
+            Textos.alFiadoResumen(formatearSoles(_fiadoCentimos), _quien.text),
+            style: Tipografia.cifra(
+              Tipografia.textoFuerte.copyWith(color: Colores.pendienteTexto),
+            ),
+          ),
+        ],
       ],
       acciones: [
+        if (_faltaQuien || _celularMal)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Medidas.e2),
+            child: Text(
+              Textos.falta([
+                if (_faltaQuien) Textos.faltaQuienTeDebe,
+                if (_celularMal) Textos.faltaRevisarElNumero,
+              ]),
+              style: Tipografia.apoyo.copyWith(color: Colores.pendienteTexto),
+            ),
+          ),
         FilledButton(
-          onPressed: total > 0 && !_guardando ? _guardar : null,
+          onPressed: _sePuedeGuardar ? _guardar : null,
           child: const Text(Textos.guardar),
         ),
         BotonTexto(texto: Textos.volver, alTocar: _volver),

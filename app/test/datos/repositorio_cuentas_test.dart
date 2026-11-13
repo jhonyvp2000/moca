@@ -1,11 +1,15 @@
+import 'package:drift/drift.dart' show Value, BooleanExpressionOperators;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/datos/local/base_local.dart';
+import 'package:moca/datos/repositorios/repositorio_arqueo_local.dart';
 import 'package:moca/datos/repositorios/repositorio_aviso_cierre_local.dart';
 import 'package:moca/datos/repositorios/repositorio_cuentas_local.dart';
 import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
+import 'package:moca/dominio/arqueo.dart';
 import 'package:moca/dominio/aviso_cierre.dart';
+import 'package:moca/dominio/cuentas.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/primer_dia.dart';
 
@@ -60,10 +64,10 @@ void main() {
     ]);
     expect(cuentas.map((c) => c.nombre), [
       'Efectivo',
-      'Yape',
-      'Plin',
+      'BCP Yape',
+      'Interbank Plin',
       'Bim',
-      'Banco',
+      'BCP',
     ]);
     expect(cuentas[2].saldoCentimos, 5000);
     expect(cuentas[3].saldoCentimos, 2000);
@@ -143,5 +147,219 @@ void main() {
     expect((banco as PreguntarCuenta).cuenta, TipoCuenta.banco);
     final listo = await aviso.responderVenta(TipoCuenta.banco, null);
     expect((listo as VentaLista).ventaDeHoyCentimos, 34000);
+  });
+
+  group('Entrega 14.1: bancos', () {
+    test('El alta crea los bancos elegidos después del BCP', () async {
+      await alta(
+        saldos: {TipoCuenta.efectivo: 100000, TipoCuenta.interbank: 30000},
+        billeteras: {
+          TipoCuenta.interbank: 'Interbank',
+          TipoCuenta.otroBanco: ' Caja Maynas ',
+        },
+      );
+      final cuentas = await repo.observar().first;
+      expect(cuentas.map((c) => c.nombre), [
+        'Efectivo',
+        'BCP Yape',
+        'BCP',
+        'Interbank',
+        'Caja Maynas',
+      ]);
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.interbank).saldoCentimos,
+        30000,
+      );
+    });
+
+    test('Un banco agregado después empieza en S/ 0 y no se repite', () async {
+      await alta();
+      await repo.agregarBilletera(TipoCuenta.bbva);
+      await repo.agregarBilletera(TipoCuenta.bbva);
+      await repo.agregarBilletera(TipoCuenta.otroBanco, nombre: 'Mibanco');
+      final cuentas = await repo.observar().first;
+      expect(cuentas.where((c) => c.tipo == TipoCuenta.bbva), hasLength(1));
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.bbva).saldoCentimos,
+        0,
+      );
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.otroBanco).nombre,
+        'Mibanco',
+      );
+    });
+
+    test('El banco guardado como «Banco» se muestra como BCP', () async {
+      await alta();
+      await (base.update(base.cuentas)
+            ..where((c) => c.tipo.equalsValue(TipoCuenta.banco)))
+          .write(const CuentasCompanion(nombre: Value('Banco')));
+      final cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.banco).nombre,
+        'BCP',
+      );
+    });
+
+    test('El aviso de cierre pregunta por cada banco con ventas', () async {
+      await alta();
+      await repo.agregarBilletera(TipoCuenta.interbank);
+      await repo.agregarBilletera(TipoCuenta.scotiabank);
+      await RepositorioMovimientosLocal(
+        base,
+        ahora: () => ahora,
+      ).anotarVentaDelDia({TipoCuenta.interbank: 6000});
+      ahora = DateTime(2026, 10, 13, 21, 5);
+      final aviso = RepositorioAvisoCierreLocal(base, ahora: () => ahora);
+      await aviso.responderVenta(TipoCuenta.efectivo, '300');
+      // El BCP no tuvo ventas y Scotiabank tampoco: solo Interbank.
+      final interbank = await aviso.responderVenta(TipoCuenta.yape, null);
+      expect((interbank as PreguntarCuenta).cuenta, TipoCuenta.interbank);
+      final listo = await aviso.responderVenta(TipoCuenta.interbank, null);
+      expect(listo, isA<VentaLista>());
+    });
+  });
+
+  group('Entrega 16.2: corregir el saldo con el que empezó', () {
+    test('Cambia el punto de partida sin crear ajustes y queda en la '
+        'bitácora', () async {
+      await alta(saldos: {TipoCuenta.efectivo: 100000, TipoCuenta.yape: 20000});
+      var efectivo = (await repo.observar().first).first;
+      expect(efectivo.inicialCentimos, 100000);
+      expect(efectivo.saldoCentimos, 135000);
+      expect(efectivo.seCorrigeElInicial, isTrue);
+      expect(efectivo.saldoConInicial(80000), 115000);
+      final antes = (await base.select(base.movimientos).get()).length;
+
+      expect(await repo.corregirSaldoInicial(efectivo.id, 80000), isTrue);
+      efectivo = (await repo.observar().first).first;
+      expect(efectivo.inicialCentimos, 80000);
+      expect(efectivo.saldoCentimos, 115000);
+      expect(await base.select(base.movimientos).get(), hasLength(antes));
+
+      final cambio =
+          (await (base.select(base.bitacora)..where(
+                    (b) =>
+                        b.entidadId.equals(efectivo.id) &
+                        b.accion.equalsValue(AccionBitacora.editar),
+                  ))
+                  .get())
+              .last;
+      expect(cambio.valorAnterior, contains('100000'));
+      expect(cambio.valorNuevo, contains('80000'));
+      expect(cambio.valorNuevo, contains('correccion'));
+    });
+
+    test('Después de un arqueo de esa cuenta ya no se corrige; otra sin '
+        'arqueo, sí', () async {
+      await alta(saldos: {TipoCuenta.efectivo: 100000});
+      final cuentas = await repo.observar().first;
+      final efectivo = cuentas.firstWhere((c) => c.tipo == TipoCuenta.efectivo);
+      final yape = cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape);
+      // El arqueo del encargado: solo su caja.
+      await RepositorioArqueoLocal(base, ahora: () => ahora).guardar(const [
+        ConteoCuenta(cuenta: TipoCuenta.efectivo, contadoCentimos: 135000),
+      ]);
+
+      final despues = await repo.observar().first;
+      expect(
+        despues
+            .firstWhere((c) => c.tipo == TipoCuenta.efectivo)
+            .seCorrigeElInicial,
+        isFalse,
+      );
+      expect(await repo.corregirSaldoInicial(efectivo.id, 1000), isFalse);
+      expect(
+        despues
+            .firstWhere((c) => c.tipo == TipoCuenta.efectivo)
+            .inicialCentimos,
+        100000,
+      );
+      expect(await repo.corregirSaldoInicial(yape.id, 5000), isTrue);
+      expect(
+        (await repo.observar().first)
+            .firstWhere((c) => c.tipo == TipoCuenta.yape)
+            .saldoCentimos,
+        5000,
+      );
+    });
+
+    test(
+      'Con el saldo pendiente no se corrige: se pone como siempre',
+      () async {
+        await alta(saldos: null);
+        final efectivo = (await repo.observar().first).first;
+        expect(efectivo.inicialCentimos, isNull);
+        expect(efectivo.seCorrigeElInicial, isFalse);
+        expect(await repo.corregirSaldoInicial(efectivo.id, 5000), isFalse);
+      },
+    );
+  });
+
+  group('Entrega 58: dejar de usar una cuenta', () {
+    Future<String> idDe(TipoCuenta tipo) async =>
+        (await repo.observar().first).firstWhere((c) => c.tipo == tipo).id;
+
+    test('Efectivo nunca; con saldo, no; en S/ 0, sí, y vuelve', () async {
+      await alta(billeteras: {TipoCuenta.plin: 'Plin'});
+      expect(
+        await repo.dejarDeUsar(await idDe(TipoCuenta.efectivo)),
+        ResultadoDejarDeUsar.esEfectivo,
+      );
+      await RepositorioMovimientosLocal(
+        base,
+        ahora: () => ahora,
+      ).anotarVentaDelDia({TipoCuenta.plin: 3000});
+      final plin = await idDe(TipoCuenta.plin);
+      expect(await repo.dejarDeUsar(plin), ResultadoDejarDeUsar.conSaldo);
+      // Yape, en S/ 0: sí.
+      final yape = await idDe(TipoCuenta.yape);
+      expect(await repo.dejarDeUsar(yape), ResultadoDejarDeUsar.listo);
+      var cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape).enUso,
+        isFalse,
+      );
+      // Sigue estando: ninguna se borra.
+      expect(cuentas.where((c) => c.tipo == TipoCuenta.yape), hasLength(1));
+      await repo.volverAUsar(yape);
+      cuentas = await repo.observar().first;
+      expect(
+        cuentas.firstWhere((c) => c.tipo == TipoCuenta.yape).enUso,
+        isTrue,
+      );
+    });
+
+    test(
+      'Agregar la billetera que se dejó de usar la reactiva, sin otra',
+      () async {
+        await alta(billeteras: {TipoCuenta.plin: 'Plin'});
+        final plin = await idDe(TipoCuenta.plin);
+        await repo.dejarDeUsar(plin);
+        await repo.agregarBilletera(TipoCuenta.plin);
+        final plines = (await repo.observar().first).where(
+          (c) => c.tipo == TipoCuenta.plin,
+        );
+        expect(plines.single.id, plin);
+        expect(plines.single.enUso, isTrue);
+      },
+    );
+
+    test('No sale en el arqueo ni en la pregunta del cierre', () async {
+      await alta();
+      await repo.dejarDeUsar(await idDe(TipoCuenta.yape));
+      final arqueo = await RepositorioArqueoLocal(
+        base,
+        ahora: () => ahora,
+      ).preparar();
+      expect(arqueo.map((c) => c.cuenta), isNot(contains(TipoCuenta.yape)));
+      ahora = DateTime(2026, 10, 13, 21, 5);
+      final aviso = RepositorioAvisoCierreLocal(base, ahora: () => ahora);
+      // Sin Yape, después del efectivo ya no pregunta «¿Y por Yape?».
+      expect(
+        await aviso.responderVenta(TipoCuenta.efectivo, '300'),
+        isA<VentaLista>(),
+      );
+    });
   });
 }

@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../preguntale/barra_preguntale.dart';
+import '../../inyeccion.dart';
+import '../../dominio/cuenta_real.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../comun/icono_trazo.dart';
-import '../../comun/isotipo.dart';
+import 'encabezado_negocio.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
 import '../../dominio/primer_dia.dart';
+import '../../dominio/tutoria.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'desglose_cuentas.dart';
+import 'tarjeta_tienes_hoy.dart';
 
 /// S03 · Primer día. Es el Inicio durante la primera semana, hasta el primer
 /// arqueo (prototipo-v1.md, «Comportamiento acordado»).
@@ -17,7 +28,6 @@ class PantallaPrimerDia extends StatelessWidget {
     super.key,
     required this.resumen,
     required this.alAnotarVenta,
-    required this.alAnotarGasto,
     required this.alDeclararSaldo,
     required this.alHacerArqueo,
     this.tarjetaAvisos,
@@ -25,7 +35,6 @@ class PantallaPrimerDia extends StatelessWidget {
 
   final ResumenPrimerDia resumen;
   final VoidCallback alAnotarVenta;
-  final VoidCallback alAnotarGasto;
   final VoidCallback alDeclararSaldo;
 
   /// Paso 4: el primer arqueo se puede hacer cualquier día.
@@ -46,139 +55,176 @@ class PantallaPrimerDia extends StatelessWidget {
         ? Textos.notaSaldoMasVenta
         : Textos.notaSoloSaldo;
 
+    // Cada paso se marca con lo anotado; el primero que falta es el actual
+    // (decisiones.md, 16-10-2026).
+    final hechos = [
+      !resumen.saldoPendiente,
+      resumen.diasConVenta >= _ventaDiasMeta,
+      resumen.gastoConComprobante,
+      resumen.arqueoHecho,
+    ];
+    final actual = hechos.indexOf(false);
+    _EstadoPaso estadoDelPaso(int i) => hechos[i]
+        ? _EstadoPaso.hecho
+        : i == actual
+        ? _EstadoPaso.actual
+        : _EstadoPaso.pendiente;
+
+    final hechosCuantos = hechos.where((h) => h).length;
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 16),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Medidas.margenLateral,
-              16,
-              Medidas.margenLateral,
-              8,
+      // Todo armado de una vez: el Inicio es corto, y así lo de abajo
+      // (los pasos, la tarjeta de Moca) existe aunque no se vea todavía.
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        // Espacio para el + que sobresale de la barra.
+        padding: const EdgeInsets.only(bottom: Medidas.e8 + Medidas.e4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            EncabezadoNegocio(
+              nombre: resumen.nombreNegocio,
+              detalle: Textos.tuPrimerDia,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 44),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        resumen.nombreNegocio,
-                        style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(Textos.tuPrimerDia, style: Tipografia.secundario),
-              ],
-            ),
-          ),
-          ?tarjetaAvisos,
-          _conMargen(
-            Tarjeta(
-              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    Textos.tienesHoy,
-                    style: Tipografia.textoFuerte.copyWith(
-                      color: Colores.textoSecundario,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      formatearSoles(resumen.tienesHoyCentimos),
-                      maxLines: 1,
-                      style: Tipografia.cifra(
-                        const TextStyle(
-                          fontFamily: Tipografia.familia,
-                          fontSize: 46,
-                          height: 1.05,
-                          fontWeight: FontWeight.w700,
-                          color: Colores.textoPrincipal,
+            ?tarjetaAvisos,
+            _conMargen(
+              TarjetaTienesHoy(
+                etiqueta: Textos.tienesHoy,
+                centimos: resumen.tienesHoyCentimos,
+                explicacion: nota,
+                pildora: resumen.ventaDeHoyAnotada
+                    ? [
+                        Textos.vendisteHoy(
+                          formatearSoles(resumen.ventaDeHoyCentimos),
                         ),
+                        // Cuánto de lo vendido hoy se fió (entrega 51).
+                        if (resumen.fiadoDeHoyCentimos > 0)
+                          Textos.alFiado(
+                            formatearSoles(resumen.fiadoDeHoyCentimos),
+                          ),
+                      ].join(' · ')
+                    : null,
+              ),
+            ),
+            // «Pregúntale a Moca» (entrega 74): el primer día es solo del
+            // dueño; hace falta su cuenta.
+            const _ConCuenta(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  Medidas.separacionTarjetas,
+                  Medidas.margenLateral,
+                  0,
+                ),
+                child: BarraPreguntale(),
+              ),
+            ),
+            // Qué hay en cada cuenta, como en el Inicio.
+            if (resumen.saldosPorCuenta.isNotEmpty) ...[
+              const SizedBox(height: Medidas.e5),
+              DesgloseDeCuentas(
+                saldos: resumen.saldosPorCuenta,
+                conVerTodas: true,
+              ),
+            ],
+            // «Te deben» y «Debes» viven en Informes (entrega 63).
+            const SizedBox(height: Medidas.separacionTarjetas),
+            // Moca no repite el +: la venta de hoy mientras falta y, ya
+            // anotada, «Escuchar mi semana» (mejora 01).
+            _conMargen(
+              TarjetaMoca(
+                texto: resumen.ventaDeHoyAnotada
+                    ? Textos.mocaYaAnotaste
+                    : Textos.mocaEmpiezaPorLaVenta,
+                accion: resumen.ventaDeHoyAnotada
+                    ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () =>
+                              StatefulNavigationShell.maybeOf(context)
+                                  ?.goBranch(3),
+                          iconAlignment: IconAlignment.end,
+                          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                          icon: const Icon(Icons.arrow_forward_rounded),
+                          label: const Text(Textos.escucharMiSemana),
+                        ),
+                      )
+                    : FilledButton.icon(
+                        onPressed: alAnotarVenta,
+                        icon: const Icon(Icons.mic_rounded),
+                        label: const Text(Textos.anotarVentaDeHoy),
+                      ),
+              ),
+            ),
+            const SizedBox(height: Medidas.separacionTarjetas),
+            _conMargen(
+              Tarjeta(
+                relleno: const EdgeInsets.all(Medidas.e5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            Textos.tusPrimerosPasos,
+                            style: Tipografia.tituloSeccion,
+                          ),
+                        ),
+                        Text(
+                          Textos.pasosHechos(hechosCuantos, hechos.length),
+                          style: Tipografia.apoyo.copyWith(
+                            color: Colores.marca,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Medidas.e3),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(Medidas.radioPildora),
+                      child: LinearProgressIndicator(
+                        value: hechosCuantos / hechos.length,
+                        minHeight: 8,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(nota, style: Tipografia.secundario),
-                ],
+                    const SizedBox(height: Medidas.e2),
+                    _Paso(
+                      numero: 1,
+                      texto: Textos.pasoDecirPlata,
+                      estado: estadoDelPaso(0),
+                      video: VideoTutoria.queEsMoca,
+                      alTocar: resumen.saldoPendiente ? alDeclararSaldo : null,
+                    ),
+                    _Paso(
+                      numero: 2,
+                      texto: Textos.pasoVentaCincoDias(resumen.diasConVenta),
+                      estado: estadoDelPaso(1),
+                      video: VideoTutoria.ventaDelDia,
+                    ),
+                    _Paso(
+                      numero: 3,
+                      texto: Textos.pasoPrimerGasto,
+                      estado: estadoDelPaso(2),
+                      video: VideoTutoria.gastoConFoto,
+                    ),
+                    _Paso(
+                      numero: 4,
+                      texto: Textos.pasoPrimerArqueo,
+                      estado: estadoDelPaso(3),
+                      video: VideoTutoria.arqueo,
+                      alTocar: alHacerArqueo,
+                    ),
+                    const SizedBox(height: Medidas.e1),
+                    const Text(
+                      Textos.conEstosPasos,
+                      style: Tipografia.secundario,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          _conMargen(
-            _TarjetaMocaConBoton(
-              texto: resumen.ventaDeHoyAnotada
-                  ? Textos.mocaYaAnotaste
-                  : Textos.mocaEmpiezaPorLaVenta,
-              boton: resumen.ventaDeHoyAnotada
-                  ? Textos.anotarUnGasto
-                  : Textos.anotarVentaDeHoy,
-              icono: resumen.ventaDeHoyAnotada ? Icono.mas : Icono.microfono,
-              alTocar: resumen.ventaDeHoyAnotada
-                  ? alAnotarGasto
-                  : alAnotarVenta,
-            ),
-          ),
-          const SizedBox(height: Medidas.separacionTarjetas),
-          _conMargen(
-            Tarjeta(
-              relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    Textos.tusPrimerosPasos,
-                    style: Tipografia.tituloTarjeta,
-                  ),
-                  const SizedBox(height: 4),
-                  _Paso(
-                    numero: 1,
-                    texto: Textos.pasoDecirPlata,
-                    estado: resumen.saldoPendiente
-                        ? _EstadoPaso.actual
-                        : _EstadoPaso.hecho,
-                    alTocar: resumen.saldoPendiente ? alDeclararSaldo : null,
-                  ),
-                  _Paso(
-                    numero: 2,
-                    texto: Textos.pasoVentaCincoDias(resumen.diasConVenta),
-                    estado: resumen.diasConVenta >= _ventaDiasMeta
-                        ? _EstadoPaso.hecho
-                        : resumen.saldoPendiente
-                        ? _EstadoPaso.pendiente
-                        : _EstadoPaso.actual,
-                  ),
-                  const _Paso(
-                    numero: 3,
-                    texto: Textos.pasoPrimerGasto,
-                    estado: _EstadoPaso.pendiente,
-                  ),
-                  _Paso(
-                    numero: 4,
-                    texto: Textos.pasoPrimerArqueo,
-                    estado: _EstadoPaso.pendiente,
-                    alTocar: alHacerArqueo,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    Textos.conEstosPasos,
-                    style: Tipografia.secundario,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -189,68 +235,6 @@ class PantallaPrimerDia extends StatelessWidget {
   );
 }
 
-class _TarjetaMocaConBoton extends StatelessWidget {
-  const _TarjetaMocaConBoton({
-    required this.texto,
-    required this.boton,
-    required this.icono,
-    required this.alTocar,
-  });
-
-  final String texto;
-  final String boton;
-  final Icono icono;
-  final VoidCallback alTocar;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colores.tinteAzul,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Isotipo(tamano: 32),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      Textos.pestanaMoca,
-                      style: Tipografia.etiquetaMoca,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(texto, style: Tipografia.texto),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: alTocar,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-              ),
-            ),
-            icon: IconoTrazo(icono, color: Colores.sobreMarca),
-            label: Text(boton),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 enum _EstadoPaso { hecho, actual, pendiente }
 
 class _Paso extends StatelessWidget {
@@ -258,12 +242,16 @@ class _Paso extends StatelessWidget {
     required this.numero,
     required this.texto,
     required this.estado,
+    required this.video,
     this.alTocar,
   });
 
   final int numero;
   final String texto;
   final _EstadoPaso estado;
+
+  /// «▶ Ver cómo» debajo del paso, mientras no esté hecho (entrega 14.6).
+  final VideoTutoria video;
   final VoidCallback? alTocar;
 
   @override
@@ -300,9 +288,7 @@ class _Paso extends StatelessWidget {
         child: Center(
           child: Text(
             '$numero',
-            style: TextStyle(
-              fontFamily: Tipografia.familia,
-              fontSize: 14,
+            style: Tipografia.apoyo.copyWith(
               fontWeight: FontWeight.w700,
               color: estado == _EstadoPaso.actual
                   ? Colores.azulOscuro
@@ -345,10 +331,34 @@ class _Paso extends StatelessWidget {
       ),
     );
 
-    return Semantics(
+    final paso = Semantics(
       button: alTocar != null,
       checked: estado == _EstadoPaso.hecho,
       child: alTocar == null ? fila : InkWell(onTap: alTocar, child: fila),
     );
+    if (estado == _EstadoPaso.hecho) return paso;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        paso,
+        Padding(
+          padding: const EdgeInsets.only(left: 40),
+          child: EnlaceVerComo(video: video, desde: DesdeVideo.pasos),
+        ),
+      ],
+    );
   }
+}
+
+/// Muestra [child] solo con la cuenta guardada (entrega 74).
+class _ConCuenta extends ConsumerWidget {
+  const _ConCuenta({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      ref.watch(situacionCuentaProvider).value?.estado == EstadoCuenta.guardada
+      ? child
+      : const SizedBox.shrink();
 }

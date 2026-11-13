@@ -13,7 +13,12 @@ enum EventoMedicion {
   fotoIlegible,
   arqueoAbierto,
   informeAbierto,
+
+  /// Lleva para quién era el PDF (entrega 14.12).
   pdfCompartido,
+
+  /// Se compartió el Excel de las operaciones (entrega 14.13).
+  excelCompartido,
   mocaAbierta,
   resumenEscuchado,
   avisoTocado,
@@ -21,6 +26,23 @@ enum EventoMedicion {
   /// Respuesta al aviso de cierre desde la notificación.
   notificacionRespondida,
   notificacionAbierta,
+
+  /// Se abrió un video de ayuda; lleva su número y desde dónde (entrega
+  /// 14.6). Es lo único de la medición que se sube al servidor.
+  videoAbierto,
+
+  /// Se comprobó el código de la cuenta; lleva si llegó solo del SMS
+  /// (entrega 14.7).
+  codigoComprobado,
+
+  /// Se abrió una sección plegada o una explicación; lleva cuál (entrega
+  /// 59), sin montos.
+  seccionAbierta,
+
+  /// «Pregúntale a Moca» (entrega 74): se abrió y se hizo una pregunta,
+  /// sin el texto.
+  preguntaleAbierto,
+  preguntaHecha,
 }
 
 abstract interface class Medicion {

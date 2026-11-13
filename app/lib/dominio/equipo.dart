@@ -1,0 +1,303 @@
+import 'cobro.dart';
+import 'modelos.dart';
+
+/// Varias personas en un mismo negocio (decisiones.md, 29-10-2026; entregas
+/// 17 a 23). Cada una entra con su propio celular, invitada por un dueño.
+
+/// Alguien que está en el negocio.
+class PersonaDelEquipo {
+  const PersonaDelEquipo({
+    required this.membresiaId,
+    required this.usuarioId,
+    required this.rol,
+    this.nombre,
+    this.celular,
+    this.titular = false,
+    this.soyYo = false,
+    this.cajas = const [],
+  });
+
+  final String membresiaId;
+  final String usuarioId;
+  final Rol rol;
+
+  /// Cómo lo llama el negocio («Rosa»); nulo para el titular.
+  final String? nombre;
+
+  /// Los 9 dígitos; solo los dueños los ven.
+  final String? celular;
+
+  /// Quien creó el negocio: nadie lo quita.
+  final bool titular;
+  final bool soyYo;
+
+  /// Las cajas a su cargo (ids de cuentas); vacío: la principal (entrega
+  /// 21).
+  final List<String> cajas;
+}
+
+/// Una invitación que todavía no se acepta.
+class InvitacionPendiente {
+  const InvitacionPendiente({
+    required this.id,
+    required this.celular,
+    required this.rol,
+    required this.venceEn,
+    this.nombre,
+  });
+
+  final String id;
+
+  /// Los 9 dígitos.
+  final String celular;
+  final Rol rol;
+  final String? nombre;
+  final DateTime venceEn;
+}
+
+class Equipo {
+  const Equipo({
+    required this.miRol,
+    required this.maximo,
+    required this.personas,
+    this.invitaciones = const [],
+    this.incluidas = 3,
+  });
+
+  /// Las personas que incluye el plan, con el titular (entrega 43): las
+  /// demás se cobran aparte. Ya no hay tope.
+  final int incluidas;
+
+  /// Personas e invitaciones vigentes, sin el contador.
+  int get ocupadas =>
+      personas.where((p) => p.rol != Rol.contador).length +
+      invitaciones.where((i) => i.rol != Rol.contador).length;
+
+  /// Una persona más (no contador) ya se cobraría aparte.
+  bool get siguienteSeCobra => ocupadas >= incluidas;
+
+  final Rol miRol;
+
+  /// Cuántas personas puede tener el negocio, con el titular; el contador
+  /// no cuenta.
+  final int maximo;
+  final List<PersonaDelEquipo> personas;
+
+  /// Solo los dueños las ven.
+  final List<InvitacionPendiente> invitaciones;
+
+  bool get soyDueno => miRol == Rol.dueno;
+
+  /// Lugares que quedan para dueños, encargados y ayudantes.
+  int get lugaresLibres =>
+      maximo -
+      personas.where((p) => p.rol != Rol.contador).length -
+      invitaciones.where((i) => i.rol != Rol.contador).length;
+}
+
+/// Una invitación que le llegó a quien entra por «Me invitaron».
+class InvitacionRecibida {
+  const InvitacionRecibida({
+    required this.id,
+    required this.negocio,
+    required this.rol,
+    required this.venceEn,
+    this.nombre,
+  });
+
+  final String id;
+  final String negocio;
+  final Rol rol;
+  final String? nombre;
+  final DateTime venceEn;
+}
+
+/// Un negocio en el que está la persona (entrega 22): el contador puede
+/// estar en varios y elige cuál mirar.
+class NegocioDelUsuario {
+  const NegocioDelUsuario({
+    required this.empresaId,
+    required this.nombre,
+    required this.rol,
+    this.actual = false,
+  });
+
+  final String empresaId;
+  final String nombre;
+  final Rol rol;
+
+  /// El que se ve ahora en este teléfono.
+  final bool actual;
+}
+
+enum ResultadoEquipo {
+  listo,
+  sinSenal,
+
+  /// Ya están las 3 personas.
+  sinLugar,
+
+  /// Esa persona ya está en el negocio.
+  yaEsta,
+
+  /// Quien acepta ya tiene su propio negocio (salvo el contador).
+  yaTieneNegocio,
+
+  /// La invitación venció o la anularon.
+  vencida,
+  sinPermiso,
+  error,
+}
+
+/// El equipo en el servidor (servidor/README.md, entrega 17).
+abstract interface class ServicioEquipo {
+  /// Quiénes están y, para los dueños, las invitaciones. Nulo sin señal o
+  /// sin cuenta.
+  Future<Equipo?> equipo();
+
+  Future<ResultadoEquipo> invitar({
+    required String celular,
+    required Rol rol,
+    String? nombre,
+  });
+
+  Future<ResultadoEquipo> anular(String invitacionId);
+
+  /// Quitar no borra nada: lo que la persona anotó se queda.
+  Future<ResultadoEquipo> quitar(String membresiaId);
+
+  /// Las cajas a cargo de un encargado o ayudante (entrega 21).
+  Future<ResultadoEquipo> asignarCajas(
+    String membresiaId,
+    List<String> cuentaIds,
+  );
+
+  /// Las invitaciones que llegaron al entrar por «Me invitaron».
+  List<InvitacionRecibida> get invitacionesRecibidas;
+
+  /// Acepta, con el consentimiento de la Ley 29733, y baja lo del negocio
+  /// que su rol puede ver.
+  Future<ResultadoEquipo> aceptar(String invitacionId);
+
+  /// Los negocios de la persona (entrega 22). Nulo sin señal.
+  Future<List<NegocioDelUsuario>?> misNegocios();
+
+  /// Pasa a ver otro de sus negocios: lo baja y reemplaza lo del teléfono
+  /// (el contador solo mira, no hay nada propio que perder).
+  Future<ResultadoEquipo> cambiarDeNegocio(String empresaId);
+
+  /// Las invitaciones que esperan, para aceptarlas desde la app (entrega
+  /// 22). Nulo sin señal.
+  Future<List<InvitacionRecibida>?> buscarInvitaciones();
+
+  /// Sale del negocio que se ve, como si un dueño lo quitara: lo que anotó
+  /// se queda (entrega 22.2). El titular no sale: borra.
+  Future<ResultadoEquipo> salir();
+}
+
+/// Lo que cada rol ve y hace en la app (decisiones.md, 29-10-2026; entrega
+/// 20). El servidor lo hace cumplir también: esto solo muestra lo que vale.
+class Permisos {
+  const Permisos(
+    this.rol, {
+    this._misCajas,
+    this.titular = false,
+    this.soloAnotar = false,
+  });
+
+  static const delDueno = Permisos(Rol.dueno);
+
+  final Rol rol;
+  final Set<TipoCuenta>? _misCajas;
+
+  /// Quien creó el negocio (entrega 17).
+  final bool titular;
+
+  /// La prueba o el pago vencieron: se anota y se baja el Excel; los
+  /// saldos, el arqueo, los informes y los avisos se cierran (entrega 25).
+  final bool soloAnotar;
+
+  /// Las cajas a su cargo (entrega 21); nulo para dueños y contador, que ven
+  /// todas. Sin ninguna asignada, la principal.
+  Set<TipoCuenta>? get misCajas => rol == Rol.dueno || rol == Rol.contador
+      ? null
+      : (_misCajas == null || _misCajas.isEmpty)
+      ? const {TipoCuenta.efectivo}
+      : _misCajas;
+
+  /// Si puede anotar o ver esta cuenta: las cajas, solo las suyas; Yape,
+  /// Plin y banco son del negocio.
+  bool puedeUsar(TipoCuenta cuenta) =>
+      misCajas == null || !cuenta.esCaja || misCajas!.contains(cuenta);
+
+  /// El contador solo mira.
+  bool get anota => rol != Rol.contador;
+
+  /// «Tienes hoy» y el saldo de cada cuenta del negocio; el encargado y el
+  /// ayudante ven el de sus cajas (entrega 21).
+  bool get veSaldos => misCajas == null && !soloAnotar;
+
+  bool get veInformes =>
+      (rol == Rol.dueno || rol == Rol.contador) && !soloAnotar;
+
+  /// Los avisos y el resumen de la semana de la pestaña Moca.
+  bool get veAvisos => (rol == Rol.dueno || rol == Rol.contador) && !soloAnotar;
+  bool get haceArqueo =>
+      (rol == Rol.dueno || rol == Rol.encargado) && !soloAnotar;
+  bool get cambiaCuentas => rol == Rol.dueno && !soloAnotar;
+
+  /// «Mis categorías» y «+ Otra categoría» al anotar (entrega 31).
+  bool get cambiaCategorias => rol == Rol.dueno && !soloAnotar;
+
+  /// «Retiro para mí» y «Puse de mi bolsillo» son de la plata del dueño.
+  bool get anotaLoDelDueno => rol == Rol.dueno;
+  bool get gestionaEquipo => rol == Rol.dueno;
+
+  /// «Borrar mi negocio»: solo el titular (entrega 16.1).
+  bool get borraElNegocio => rol == Rol.dueno && titular;
+
+  /// «Salir de este negocio»: todos menos el titular (entrega 22.2).
+  bool get saleDelNegocio => !titular;
+
+  /// El camino del primer día es del dueño que empieza su negocio.
+  bool get tienePrimerDia => rol == Rol.dueno;
+
+  /// El aviso de la hora de cierre y el de cada día.
+  bool get recibeAvisos => rol == Rol.dueno;
+
+  /// En el Historial, el ayudante ve solo lo que anotó hoy.
+  bool get soloLoDeHoy => rol == Rol.ayudante;
+
+  /// Corregir, deshacer o marcar «Ya lo pagué»: dueños y encargado, todo;
+  /// el ayudante, solo lo suyo del día; el contador, nada.
+  bool puedeCambiar({required bool deOtro, required bool delDia}) =>
+      switch (rol) {
+        Rol.dueno || Rol.encargado => true,
+        Rol.ayudante => !deOtro && delDia,
+        Rol.contador => false,
+      };
+}
+
+/// La pregunta del día 10 de la prueba (entrega 25) y el pago con Mercado
+/// Pago (entrega 32).
+abstract interface class ServicioCobro {
+  /// «Mis pagos de Moca» (entrega 33): del servidor y, sin señal, la última
+  /// lista que bajó. Nulo si nunca bajó.
+  Future<({MisPagos? pagos, bool alDia})> misPagos();
+
+  /// Pide la orden y la página de pago del mes.
+  /// El Básico o el Full (entrega 43).
+  Future<ResultadoInicioDePago> pagarConMercadoPago({
+    NivelDePlan nivel = NivelDePlan.full,
+    PeriodoDePlan periodo = PeriodoDePlan.mes,
+  });
+
+  /// Cómo va la orden; al quedar pagada, guarda el cobro nuevo.
+  Future<OrdenDePago> estadoDeOrden(String orden);
+
+  /// Manda la respuesta al servidor. Sin señal, `sinSenal`: no se guarda.
+  Future<ResultadoEquipo> responderPrecio(
+    RespuestaPrecio respuesta, {
+    String? motivo,
+  });
+}

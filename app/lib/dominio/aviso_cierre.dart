@@ -1,9 +1,28 @@
 import 'modelos.dart';
 
-enum TipoNotificacion { cierre, faltaArqueo, diasSinAnotar, resumenSemanal }
+enum TipoNotificacion {
+  cierre,
+  faltaArqueo,
+  diasSinAnotar,
+  resumenSemanal,
+
+  /// Tres días antes de que termine la prueba gratis (entrega 25).
+  cobroPorVencer,
+
+  /// Los clientes que deben hace una semana o más (entrega 54), sin
+  /// nombres ni montos: se ve en la pantalla bloqueada.
+  clientesPorCobrar,
+}
 
 /// A dónde lleva tocar una notificación.
-enum DestinoNotificacion { ventaPorVoz, ventaEscrita, arqueo, registrar, moca }
+enum DestinoNotificacion {
+  ventaPorVoz,
+  ventaEscrita,
+  arqueo,
+  registrar,
+  moca,
+  loQueTeDeben,
+}
 
 /// Una notificación que el teléfono mostrará a una hora. La app las vuelve
 /// a programar cada vez que se abre o cambian los datos.
@@ -13,6 +32,7 @@ class NotificacionProgramada {
     required this.cuando,
     required this.tipo,
     this.dias,
+    this.clientes,
   });
 
   final int id;
@@ -21,6 +41,9 @@ class NotificacionProgramada {
 
   /// En «días sin anotar».
   final int? dias;
+
+  /// En «clientes por cobrar».
+  final int? clientes;
 }
 
 /// Lo que sigue después de contestar el aviso de cierre.

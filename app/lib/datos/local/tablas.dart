@@ -50,6 +50,10 @@ class Cuentas extends Table with _ConId {
   IntColumn get saldoInicialCentimos => integer().nullable()();
   DateTimeColumn get fechaSaldoInicial => dateTime().nullable()();
   IntColumn get orden => integer()();
+
+  /// Falso si el dueño la dejó de usar (entrega 58): no sale para anotar,
+  /// en el Inicio, el cierre ni el arqueo; sus registros se quedan.
+  BoolColumn get enUso => boolean().withDefault(const Constant(true))();
 }
 
 class Contrapartes extends Table with _ConId {
@@ -57,6 +61,12 @@ class Contrapartes extends Table with _ConId {
   TextColumn get nombre => text()();
   TextColumn get identificacionFiscal => text().nullable()();
   TextColumn get tipo => textEnum<TipoContraparte>()();
+
+  /// El celular del cliente, para recordarle por WhatsApp, y cuándo se le
+  /// recordó por última vez (entrega 53). Solo los dueños lo tienen: a los
+  /// demás roles el servidor se lo manda vacío.
+  TextColumn get celular => text().nullable()();
+  DateTimeColumn get recordadoEn => dateTime().nullable()();
 }
 
 class Comprobantes extends Table with _ConId {
@@ -100,6 +110,10 @@ class Movimientos extends Table with _ConId {
   TextColumn get empresaId => text().references(Empresas, #id)();
   TextColumn get tipo => textEnum<TipoMovimiento>()();
   TextColumn get cuentaId => text().references(Cuentas, #id)();
+
+  /// A dónde fue la plata en un pase de una cuenta a otra (entrega 21.1).
+  TextColumn get cuentaDestinoId =>
+      text().nullable().references(Cuentas, #id)();
   IntColumn get montoCentimos => integer()();
   DateTimeColumn get fechaMovimiento => dateTime()();
   DateTimeColumn get fechaComprobante => dateTime().nullable()();
@@ -122,6 +136,15 @@ class Movimientos extends Table with _ConId {
 
   /// En una edición, el movimiento anulado que este reemplaza.
   TextColumn get reemplazaA => text().nullable()();
+
+  /// Un pago en parte (entrega 44): la deuda de la que es parte. La deuda
+  /// se queda con lo que falta.
+  TextColumn get abonaA => text().nullable()();
+
+  /// El documento del registro (entrega 66), opcional: «Factura» y su
+  /// número libre, «0045J». La institución va en [contraparteId].
+  TextColumn get documentoTipo => text().nullable()();
+  TextColumn get documentoNumero => text().nullable()();
   TextColumn get estadoSincronizacion => textEnum<EstadoSincronizacion>()();
   DateTimeColumn get creadoEn => dateTime()();
 }
@@ -192,4 +215,16 @@ class Ajustes extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {clave};
+}
+
+/// Lo que ya está en el servidor, fila por fila (entrega 18): la huella de
+/// cada fila tal como se subió o se bajó. Al subir, va solo lo que cambió;
+/// así un teléfono con una copia vieja no deshace lo que corrigió otro.
+class Subidas extends Table {
+  TextColumn get tabla => text()();
+  TextColumn get filaId => text()();
+  TextColumn get huella => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {tabla, filaId};
 }

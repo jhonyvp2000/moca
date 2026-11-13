@@ -1,5 +1,10 @@
+import '../dominio/cuenta_real.dart';
+import '../pais/peru/formato.dart';
+import '../dominio/cobro.dart';
 import '../dominio/aviso_cierre.dart';
+import '../dominio/historial.dart';
 import '../dominio/modelos.dart';
+import '../dominio/tutoria.dart';
 
 /// Todos los textos de la app, en español de Perú y en un solo lugar,
 /// para poder ajustarlos después de la prueba con pilotos.
@@ -11,14 +16,13 @@ abstract final class Textos {
   static const pestanaInicio = 'Inicio';
   static const pestanaHistorial = 'Historial';
   static const pestanaInformes = 'Informes';
-  static const pestanaMoca = 'Moca';
+  static const pestanaMoca = 'Asistente';
   static const registrar = 'Registrar';
 
   // Pantallas que llegan en entregas siguientes
   static const tituloInicio = 'Inicio';
   static const tituloHistorial = 'Historial';
   static const tituloInforme = 'Informe del mes';
-  static const subtituloMoca = 'Tu asistente de cuentas';
   static String llegaEnEntrega(int n) => 'Esta parte llega en la entrega $n.';
   static const entendido = 'Entendido';
 
@@ -32,14 +36,12 @@ abstract final class Textos {
   static const sinCrearCuenta = 'Sin crear cuenta. Te toma diez segundos.';
   static const verDemo = 'Ver una demo';
   static const yaTengoCuenta = 'Ya tengo cuenta';
+  static const meInvitaron = 'Me invitaron a un negocio';
   static const cargandoDemo = 'Preparando la demo…';
   static const estasViendoUnaDemo = 'Estás viendo una demo';
   static const salir = 'Salir';
   static const salirDeLaDemoTitulo = '¿Salir de la demo?';
   static const salirDeLaDemoTexto = 'Se borran los datos de ejemplo.';
-  static const cuentaEnTelefonoTitulo = 'Tu cuenta está en tu teléfono';
-  static const cuentaEnTelefono =
-      'En esta prueba tu cuenta vive en el teléfono donde la creaste.';
   static const empezar = 'Empezar';
 
   // S07 · Venta de hoy (escrita, hasta que llegue la voz)
@@ -48,21 +50,50 @@ abstract final class Textos {
   static const ventaPorCuentaDetalle =
       'Escribe cuánto entró en cada sitio. Lo que no usaste, déjalo vacío.';
   static const efectivo = 'Efectivo';
-  static const yape = 'Yape';
-  static const banco = 'Banco';
+  // Las billeteras con su banco (entrega 14.10).
+  static const yape = 'BCP Yape';
+  static const banco = 'BCP';
+  static const interbank = 'Interbank';
+  static const bbva = 'BBVA';
+  static const scotiabank = 'Scotiabank';
+  static const otroBanco = 'Otro banco o caja';
   static const agregarBanco = '+ Banco';
-  static const plin = 'Plin';
+  // Fiar en la venta de hoy (entrega 52)
+  static const agregarFiado = '+ Al fiado';
+  static const alFiadoEtiqueta = 'Al fiado';
+  static String alFiadoResumen(String monto, String quien) =>
+      quien.trim().isEmpty ? 'Al fiado: $monto' : 'Al fiado: $monto · $quien';
+  static const plin = 'Interbank Plin';
+  static const bbvaPlin = 'BBVA Plin';
+  static const scotiabankPlin = 'Scotiabank Plin';
   static const sip = 'Sip';
-  static const otraBilletera = 'Otra billetera';
-  static const usasOtraBilletera = '¿Usas otra billetera además de Yape?';
+  static const otraBilletera = 'Otra';
+  static const usasOtraBilletera = '¿Usas otra billetera además de BCP Yape?';
   static const puedesAgregarlaDespues =
       'Si no, déjalo así. Puedes agregarla después en Moca.';
   static const otra = 'Otra';
   static const nombreDeLaBilletera = 'Escribe el nombre de la billetera';
   static const misCuentas = 'Mis cuentas';
-  static const misCuentasDetalle = 'Saldo por cuenta y otras billeteras';
+
+  // Corregir el saldo con el que empezó (entrega 16.2).
+  static const corregirSaldoInicial = 'Corregir el saldo con el que empecé';
+  static String conCuantoEmpezaste(String cuenta) =>
+      '¿Con cuánto empezaste en $cuenta?';
+  static String saldoInicialDesde(String dia) =>
+      'El $dia, antes de lo que anotaste';
+  static String conEsteCambioTienes(String monto, String cuenta) =>
+      'Con este cambio, hoy tienes $monto en $cuenta.';
+  static String saldoInicialCorregido(String cuenta) =>
+      'Listo. Corregiste el saldo de $cuenta.';
+  static const yaHuboArqueoDeLaCuenta =
+      'Ya hiciste un arqueo de esta cuenta. Si el saldo no cuadra, haz otro '
+      'arqueo.';
+  static const misCuentasDetalle = 'Saldo por cuenta, billeteras y bancos';
   static const saldoPorPoner = 'Saldo por poner';
   static const agregarBilletera = 'Agregar una billetera';
+  static const agregarUnBanco = 'Agregar un banco';
+  static const usasOtroBanco = '¿Usas otro banco además del BCP?';
+  static const nombreDelBanco = 'Escribe el nombre del banco o la caja';
   static const billeteraEmpiezaEnCero =
       'Empieza en S/\u00A00 desde hoy. Las cuentas no se borran.';
   static const agregar = 'Agregar';
@@ -71,13 +102,42 @@ abstract final class Textos {
   /// El nombre que el dueño le puso a su otra billetera. Lo fija la app al
   /// leer las cuentas.
   static String nombreOtraBilletera = otraBilletera;
+
+  /// El nombre del otro banco o caja del dueño, igual que la otra billetera.
+  static String nombreOtroBanco = otroBanco;
+
+  /// Las otras cajas de efectivo, con el nombre que les puso el dueño
+  /// (entrega 21).
+  static const caja2 = 'Caja 2';
+  static const caja3 = 'Caja 3';
+  static String nombreCaja2 = caja2;
+  static String nombreCaja3 = caja3;
+
+  /// Fija los nombres propios al leer las cuentas.
+  static void recordarNombres(Iterable<({TipoCuenta tipo, String nombre})> c) {
+    for (final cuenta in c) {
+      if (cuenta.tipo == TipoCuenta.otra) nombreOtraBilletera = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.otroBanco) nombreOtroBanco = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.caja2) nombreCaja2 = cuenta.nombre;
+      if (cuenta.tipo == TipoCuenta.caja3) nombreCaja3 = cuenta.nombre;
+    }
+  }
+
   static String nombreCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => efectivo,
+    TipoCuenta.caja2 => nombreCaja2,
+    TipoCuenta.caja3 => nombreCaja3,
     TipoCuenta.yape => yape,
     TipoCuenta.banco => banco,
     TipoCuenta.plin => plin,
     TipoCuenta.sip => sip,
     TipoCuenta.otra => nombreOtraBilletera,
+    TipoCuenta.interbank => interbank,
+    TipoCuenta.bbva => bbva,
+    TipoCuenta.scotiabank => scotiabank,
+    TipoCuenta.otroBanco => nombreOtroBanco,
+    TipoCuenta.bbvaPlin => bbvaPlin,
+    TipoCuenta.scotiabankPlin => scotiabankPlin,
   };
   static const totalQueEntroHoy = 'Total que entró hoy';
   static const guardar = 'Guardar';
@@ -97,13 +157,304 @@ abstract final class Textos {
   static const enviarmeCodigo = 'Enviarme el código';
   static const ahoraNo = 'Ahora no, seguir probando';
 
-  // Código (no dibujado)
+  static const enviando = 'Enviando…';
+  static const necesitasSenalParaGuardar =
+      'Necesitas señal para guardar tu avance. Lo que anotaste sigue en tu '
+      'teléfono.';
+  static const demasiadosCodigos =
+      'Pediste muchos códigos. Intenta otra vez en una hora.';
+  static const noPudimosEnviar =
+      'No pudimos enviar el código. Intenta otra vez en un momento.';
+
+  // Código (no dibujado; estados de la entrega 11, aprobados el 14-10-2026)
   static const escribeElCodigo = 'Escribe el código';
-  static String codigoEnviadoA(String celular) => 'Te lo enviamos al $celular.';
-  static const codigoEnPrueba =
-      'En esta prueba no llega ningún mensaje: escribe cualquier número '
-      'de 6 dígitos.';
+  static String codigoEnviadoA(String celular) =>
+      'Te lo enviamos por SMS al $celular. Vale 10 minutos.';
   static const codigo = 'Código de 6 dígitos';
+  static const comprobando = 'Comprobando…';
+  static const codigoIncorrecto =
+      'Ese código no es. Revisa el mensaje e intenta otra vez.';
+  static const codigoVencido = 'El código venció. Te enviamos uno nuevo.';
+  static const codigoReenviado = 'Te enviamos un código nuevo.';
+  static const esperandoSms =
+      'Esperando el SMS… Si llega a este teléfono, el código se escribe solo.';
+  static const codigoLeidoDelSms = 'Código leído del SMS.';
+  static const reenviarCodigo = '¿No te llegó? Reenviar';
+  static String reenviarEn(int segundos) =>
+      '¿No te llegó? Reenviar en $segundos s';
+  static const noPudimosComprobar =
+      'No pudimos comprobar el código. Intenta otra vez en un momento.';
+  // Número que ya tiene cuenta (entrega 14.4, no dibujado)
+  static const numeroConCuenta = 'Este número ya tiene una cuenta de Moca';
+  static const numeroConCuentaDetalle =
+      'Puedes entrar a tu cuenta y sumarle lo que anotaste en este teléfono, '
+      'o empezar de cero con este número.';
+  static const entrarAMiCuenta = 'Entrar a mi cuenta';
+  static const empezarDeCero = 'Empezar de cero con este número';
+  static const seguirSinCuenta = 'Seguir sin cuenta';
+  static const juntandoLoAnotado = 'Juntando lo anotado…';
+  static const yaEstanJuntos =
+      'Listo: tu cuenta y lo anotado en este teléfono están juntos.';
+  static const empezarDeCeroPregunta = '¿Empezar de cero con este número?';
+  static const empezarDeCeroDetalle =
+      'Tu cuenta anterior queda guardada, pero ya no se verá en la app. Lo '
+      'anotado en este teléfono pasa a ser tu cuenta.';
+  static const empezarDeCeroSi = 'Empezar de cero';
+  static const pasoMuchoTiempo =
+      'Pasó mucho tiempo desde el código. Pide uno nuevo para seguir.';
+  static const guardandoLoAnotado = 'Guardando lo que anotaste…';
+
+  // «Ya tengo cuenta» (estados de la entrega 12, aprobados el 14-10-2026)
+  static const entraATuCuenta = 'Entra a tu cuenta';
+  static const entraATuCuentaDetalle =
+      'Escribe el celular con el que guardaste tu avance. Te llega un código '
+      'por SMS.';
+  static const necesitasSenalParaEntrar =
+      'Necesitas señal para entrar a tu cuenta.';
+  static const numeroSinCuenta =
+      'Este número no tiene una cuenta de Moca. Empieza anotando tu venta de '
+      'hoy.';
+  static const anotarMiPrimeraVenta = 'Anotar mi primera venta';
+  static const bajandoTusDatos = 'Bajando tus datos…';
+  static const seCortoLaSenal =
+      'Se cortó la señal. Intenta otra vez: no se perdió nada.';
+  static const noPudimosTraerTuCuenta =
+      'No pudimos traer tu cuenta. Intenta otra vez en unos minutos: no se '
+      'perdió nada.';
+  static const yaTienesTodo = 'Listo. Ya tienes aquí todo lo que anotaste.';
+  static const cuentaAbiertaEnOtro = 'Tu cuenta se abrió en otro teléfono';
+  static const cuentaAbiertaEnOtroDetalle =
+      'Lo que anotes aquí desde ahora no se guarda en tu cuenta.';
+  static const avanceGuardado = 'Listo. Tu avance está guardado.';
+  static const hoyAnotaste = 'Ventas que anotaste hoy';
+  static const loDemasLoVeElDueno =
+      'La plata del negocio la ve el dueño. Lo que anotas le llega solo.';
+  static String loAnoto(String? nombre, Rol? rol) => nombre != null
+      ? 'Lo anotó $nombre'
+      : switch (rol) {
+          Rol.dueno => 'Lo anotó el dueño',
+          Rol.encargado => 'Lo anotó el encargado',
+          Rol.ayudante => 'Lo anotó el ayudante',
+          _ => 'Lo anotó otra persona',
+        };
+  static const soloLoDeHoyAyudante =
+      'Aquí ves lo de hoy en tu caja y lo que anotaste. Lo de otros días lo '
+      've el dueño.';
+
+  // Simular otra persona (entrega 20.1)
+  static const verComoRol = 'Ver como…';
+  static const verComoRolDetalle =
+      'La app se ve como la de un encargado, un ayudante o un contador. No '
+      'cambia nada en el servidor.';
+  static String viendoComo(String rol) =>
+      'Viendo como $rol. Lo que anotes ahora es de verdad y queda a tu nombre.';
+  static const volverADueno = 'Volver';
+  static const simularVentaDeOtro = 'Simular una venta de Pepe';
+  static const simularVentaDeOtroDetalle =
+      'Aparece en el Historial «Lo anotó Pepe», como si viniera de otro '
+      'teléfono. No se sube.';
+  static const ventaDeOtroSimulada =
+      'Listo: en el Historial verás «Lo anotó Pepe».';
+  static const salirDeLaSimulacion = 'Salir de la simulación';
+  static const salirDeLaSimulacionDetalle =
+      'Quita la venta de Pepe y vuelve a verse como dueño.';
+  static const simulacionTerminada = 'Listo: todo vuelve a ser real.';
+
+  // «Pasé plata» (entrega 21.1)
+  static const pasePlata = 'Pasé plata';
+  static const pasePlataDetalle =
+      'De una caja o cuenta a otra. No es venta ni gasto: tu plata no cambia.';
+  static const deDondeSalePase = '¿De dónde sale?';
+  static const aDondeVaPase = '¿A dónde va?';
+  static String pase(String de, String a) => '$de → $a';
+  static const paseNoCuenta = 'Pase entre cuentas';
+
+  // Mis negocios (entrega 22)
+  static const misNegocios = 'Mis negocios';
+  static const misNegociosDetalle =
+      'Si eres contador de varios, o te invitaron a otro';
+  static const estasAqui = 'Estás aquí';
+  static const verEsteNegocio = 'Ver';
+  static String cambiandoA(String negocio) => 'Cambiando a $negocio…';
+  static String ahoraVes(String negocio) => 'Listo. Ahora ves $negocio.';
+  static const necesitasSenalParaNegocios =
+      'Necesitas señal para ver y cambiar de negocio.';
+  static const aceptar = 'Aceptar';
+  static const teInvitaronA = 'Te invitaron';
+  static const sinNegocios =
+      'Ya no estás en ningún negocio. Si un dueño te invita, la invitación '
+      'aparece aquí.';
+
+  // Cajas (entrega 21)
+  static const agregarUnaCaja = '¿Tienes otra caja de efectivo?';
+  static const otraCaja = 'Otra caja';
+  static const nombreDeLaCaja = 'Nombre de la caja: Caja delivery';
+  static const enTuCaja = 'En tu caja hoy';
+  static const enTusCajas = 'En tus cajas hoy';
+  static const cajasDe = 'Cajas';
+  static const cajaPrincipal = 'La caja principal';
+  static const elegirCajas = '¿Qué cajas tiene a cargo?';
+  static const elegirCajasDetalle =
+      'Anota y ve solo lo de esas cajas, además de Yape y banco. Sin '
+      'ninguna, la caja principal.';
+  static const cajasGuardadas = 'Listo. Sus cajas quedaron guardadas.';
+
+  // Equipo (entregas 17 a 19)
+  static const miEquipo = 'Mi equipo';
+  static const miEquipoDetalle = 'Quiénes anotan en tu negocio';
+  static const entraAlNegocio = 'Entra al negocio';
+  static const entraAlNegocioDetalle =
+      'Escribe el número con el que te invitó el dueño del negocio.';
+  static const sinInvitacion =
+      'Este número no tiene una invitación. Pídele al dueño que te invite con '
+      'este número desde «Mi equipo».';
+  static String teInvitaron(String negocio) => 'Te invitaron a $negocio';
+  static String comoRol(String rol) => 'Como $rol';
+  static const consentimientoInvitado =
+      'Al entrar, aceptas que Moca guarde tu número y lo que anotes en este '
+      'negocio para llevar sus cuentas, y que los dueños del negocio lo vean. '
+      'Si la app falla, Moca recibe el error, y también cómo la usas (qué '
+      'pantallas abres y cuánto tardas en anotar), sin lo que anotaste. '
+      'Puedes salir cuando quieras (Ley 29733 de Protección de Datos '
+      'Personales).';
+  static const aceptarYEntrar = 'Aceptar y entrar';
+  static const entrando = 'Entrando…';
+  static String yaEstasEn(String negocio) => 'Listo. Ya estás en $negocio.';
+  static const invitacionVencida =
+      'La invitación venció o el dueño la anuló. Pídele que te invite otra '
+      'vez.';
+  static const yaTienesNegocio =
+      'Ya tienes tu propio negocio en Moca con este número. Por ahora, una '
+      'persona está en un solo negocio.';
+  static const necesitasSenalParaEquipo =
+      'Necesitas señal para ver y cambiar tu equipo.';
+  static const tuEquipo = 'En tu negocio';
+  static const invitacionesPendientes = 'Invitaciones que esperan';
+  static String venceEl(String fecha) => 'Vence el $fecha';
+  static const tu = 'Tú';
+  static const titular = 'Titular';
+  static const sinNombre = 'Sin nombre';
+  static const invitarAAlguien = 'Invitar a alguien';
+  // Sin tope de personas (entrega 43): el plan incluye algunas y las demás
+  // se cobran aparte.
+  static String planIncluye(int incluidas) =>
+      'Tu plan incluye ${incluidas == 1 ? '1 persona' : '$incluidas personas'} '
+      'con el titular. Cada persona más: S/ 2.90 al mes. El contador no '
+      'cuenta.';
+  static const personaExtraTitulo = 'Esta persona se cobra aparte';
+  static String personaExtraDetalle(int incluidas) =>
+      'Tu plan incluye ${incluidas == 1 ? '1 persona' : '$incluidas personas'}. '
+      'Cada persona más suma S/ 2.90 al mes desde tu próximo pago.';
+  static const invitarIgual = 'Invitar igual';
+  static const quitar = 'Quitar';
+  static String quitarPregunta(String quien) => '¿Quitar a $quien del negocio?';
+  static const quitarDetalle =
+      'Lo que anotó se queda en el negocio. Su teléfono ya no podrá anotar ni '
+      'ver nada aquí.';
+  static const anularInvitacion = 'Anular';
+  static const nombreDeLaPersona = 'Nombre (opcional)';
+  static const nombrePersonaEjemplo = 'Por ejemplo: Rosa';
+  static const suNumero = 'Su número de celular';
+  static const queHaraEnTuNegocio = '¿Qué hará en tu negocio?';
+  static const enviarInvitacion = 'Invitar';
+  static const invitando = 'Invitando…';
+  static String invitacionEnviada(String quien) =>
+      'Listo. Dile a $quien que instale Moca y toque «$meInvitaron» con su '
+      'número. La invitación vale 7 días.';
+  // «Mis categorías» (entrega 31).
+  static const misCategorias = 'Mis categorías';
+  static const misCategoriasDetalle = 'Las de Moca y las que agregues';
+  static const categoriasDeMoca =
+      'Las de Moca no se cambian: de ellas salen el informe y el flujo para '
+      'el crédito. Las tuyas se cambian o se dejan de usar.';
+  static const deMoca = 'De Moca';
+  static const tuya = 'Tuya';
+  static const yaNoLaUsas = 'Tuya · ya no la usas';
+  static const agregarCategoria = 'Agregar una categoría';
+  static const otraCategoria = '+ Otra categoría';
+  static const categoriaNueva = 'Categoría nueva';
+  static const cambiarCategoria = 'Tu categoría';
+  static const nombreCategoria = '¿Cómo se llama?';
+  static const nombreCategoriaEjemplo = 'Por ejemplo: Hielo';
+  static const esDeLoQue = '¿Es de lo que entra o de lo que sale?';
+  static const loQueEntra = 'Lo que entra';
+  static const loQueSale = 'Lo que sale';
+  static const yaNoLaUso = 'Ya no la uso';
+  static const usarlaOtraVez = 'Usarla otra vez';
+  static const categoriaRepetida = 'Ya hay una categoría con ese nombre.';
+  static const noSePudoCategoria = 'No se pudo guardar. Intenta otra vez.';
+  static String sinLugarCategoria(int maximo, bool entra) =>
+      'Ya tienes $maximo categorías tuyas de lo que '
+      '${entra ? 'entra' : 'sale'}. Deja de usar una para agregar otra.';
+  static const categoriaAgregada = 'Listo. Agregaste la categoría.';
+  static const categoriaGuardada = 'Listo. Guardado.';
+  static const categoriaSinUso =
+      'Listo. Ya no se ofrece al anotar; lo anotado la conserva.';
+  static const categoriaOtraVez = 'Listo. Se ofrece otra vez al anotar.';
+
+  // La invitación por WhatsApp (entrega 30).
+  static const mandarInvitacionWhatsApp = 'Mandarle la invitación por WhatsApp';
+  static const mandarPorWhatsApp = 'Mandar por WhatsApp';
+  static const listoInvitar = 'Listo';
+  static String mensajeDeInvitacion({
+    required String? nombre,
+    required String negocio,
+    required Rol rol,
+    required String celular,
+    required String vence,
+    required String enlace,
+  }) =>
+      '${nombre == null ? 'Hola,' : 'Hola $nombre,'} te invité a $negocio en '
+      'Moca, como ${nombreRol(rol)}.\n'
+      '1. Instala Moca desde aquí: $enlace. Si el teléfono pregunta, permite '
+      'instalar desde esa fuente.\n'
+      '2. Abre Moca, toca «$meInvitaron» y pon tu número, $celular. Te llega '
+      'un código por SMS.\n\n'
+      'La invitación vale hasta el $vence.';
+  static const sinLugar =
+      'No hay lugar para otra persona. Quita a alguien o anula una '
+      'invitación.';
+  static const yaEstaEnElNegocio = 'Esa persona ya está en tu negocio.';
+  static const soloLosDuenos = 'Solo un dueño puede cambiar el equipo.';
+  static String nombreRol(Rol rol) => switch (rol) {
+    Rol.dueno => 'Dueño',
+    Rol.encargado => 'Encargado',
+    Rol.ayudante => 'Ayudante',
+    Rol.contador => 'Contador',
+  };
+  static String detalleRol(Rol rol) => switch (rol) {
+    Rol.dueno => 'Ve y hace todo, como tú.',
+    Rol.encargado =>
+      'Anota, corrige y hace el arqueo de sus cajas. No ve los informes.',
+    Rol.ayudante => 'Anota ventas y gastos. Ve lo que anotó hoy, no lo demás.',
+    Rol.contador => 'Solo mira: Historial, informes, PDF y Excel.',
+  };
+
+  static const fueraDelNegocio = 'Ya no estás en este negocio';
+  static const fueraDelNegocioDetalle =
+      'Un dueño te quitó del equipo. Lo que anotaste se queda en el negocio; '
+      'lo que anotes aquí desde ahora no se guarda allá.';
+
+  /// «Actualizado hace 5 min» (entrega 18).
+  static String actualizadoHace(DateTime cuando, DateTime ahora) {
+    final minutos = ahora.difference(cuando).inMinutes;
+    if (minutos < 1) return 'Actualizado hace un momento';
+    if (minutos < 60) return 'Actualizado hace $minutos min';
+    final horas = minutos ~/ 60;
+    if (horas < 24) return 'Actualizado hace $horas h';
+    final dias = horas ~/ 24;
+    return dias == 1 ? 'Actualizado ayer' : 'Actualizado hace $dias días';
+  }
+
+  // Tarjeta de la pestaña Moca (entrega 11)
+  static const confirmaTuNumero = 'Confirma tu número para guardar tu avance';
+  static const confirmaTuNumeroDetalle =
+      'En la prueba, el código era de ejemplo. Confírmalo para no perder lo '
+      'anotado si cambias de teléfono.';
+  static const confirmarMiNumero = 'Confirmar mi número';
+  static const guardaTuAvanceDetalle =
+      'Así no pierdes lo anotado si cambias de teléfono o se pierde.';
+  static const guardarMiAvance = 'Guardar mi avance';
   static const confirmar = 'Confirmar';
   static const cambiarNumero = 'Cambiar número';
 
@@ -117,6 +468,25 @@ abstract final class Textos {
   static const restaurante = 'Restaurante';
   static const servicios = 'Servicios';
   static const otro = 'Otro';
+  // Los tipos de negocio (entrega 48).
+  static String nombreTipoNegocio(TipoNegocio tipo) => switch (tipo) {
+    TipoNegocio.bodega => 'Bodega o minimarket',
+    TipoNegocio.mercado => 'Puesto de mercado (abarrotes, frutas, carnes)',
+    TipoNegocio.restaurante => 'Restaurante, menú o pollería',
+    TipoNegocio.comida => 'Comida al paso, juguería o cafetería',
+    TipoNegocio.panaderia => 'Panadería o pastelería',
+    TipoNegocio.ferreteria => 'Ferretería',
+    TipoNegocio.farmacia => 'Farmacia o botica',
+    TipoNegocio.agroveterinaria => 'Agroveterinaria',
+    TipoNegocio.libreria => 'Librería, bazar o útiles',
+    TipoNegocio.ropa => 'Ropa, calzado o accesorios',
+    TipoNegocio.celulares => 'Celulares y accesorios',
+    TipoNegocio.peluqueria => 'Peluquería, barbería o spa',
+    TipoNegocio.taller => 'Taller mecánico o de motos',
+    TipoNegocio.transporte => 'Transporte (mototaxi, taxi, carga)',
+    TipoNegocio.servicios => 'Servicios',
+    TipoNegocio.otro => 'Otro',
+  };
   static const cuantaPlataTienes = '¿Cuánta plata tienes hoy en cada sitio?';
   static const sinContarLaVenta =
       'Sin contar la venta que acabas de anotar. Un aproximado sirve. '
@@ -132,14 +502,36 @@ abstract final class Textos {
   // S03 · Primer día
   static const tuPrimerDia = 'Tu primer día';
   static const tienesHoy = 'Tienes hoy';
-  static const notaSaldoMasVenta =
-      'Es lo que tenías al empezar más tu venta de hoy. Desde aquí Moca '
-      'lleva la cuenta.';
+
+  // Notas del periodo bajo cada título (entrega 36): qué abarca cada cifra.
+  static const desdeQueEmpezaste = 'Desde que empezaste con Moca';
+  static const saldosDesdeQueEmpezaste = 'Saldos desde que empezaste con Moca';
+  static const deLunesAHoy = 'De lunes a hoy';
+  static const todoLoQueDebes = 'Todo lo que debes hoy, de cualquier mes';
+
+  /// «Del 1 al 6 de noviembre», «Todo octubre» o «Del 12 al 31 de octubre».
+  static String periodoDelMes(
+    DateTime mes, {
+    required bool enCurso,
+    required DateTime hoy,
+    int? desdeDia,
+  }) {
+    final nombre = nombreDelMes(mes);
+    final desde = desdeDia ?? 1;
+    final hasta = enCurso ? hoy.day : DateTime(mes.year, mes.month + 1, 0).day;
+    if (!enCurso && desdeDia == null) return 'Todo $nombre';
+    if (desde == hasta) return 'El $desde de $nombre';
+    return 'Del $desde al $hasta de $nombre';
+  }
+
+  // Lo fiado no es plata en la mano (entrega 51): las dos notas dicen lo
+  // mismo.
+  static const notaSaldoMasVenta = notaConMovimientos;
   static const notaSoloSaldo =
       'Es lo que anotaste al empezar. Desde aquí Moca lleva la cuenta.';
   static const notaConMovimientos =
-      'Es lo que tenías al empezar, más lo que entró y menos lo que salió. '
-      'Desde aquí Moca lleva la cuenta.';
+      'Es lo que tenías al empezar, más lo que te pagaron y menos lo que '
+      'pagaste. Lo fiado se suma cuando te paguen.';
   static const notaSaldoPendiente = 'Aún no pones cuánto tenías al empezar.';
   static const mocaEmpiezaPorLaVenta =
       'Empieza por lo más fácil: dime cuánto vendiste hoy. Toma menos de '
@@ -148,15 +540,51 @@ abstract final class Textos {
       'Ya anotaste la venta de hoy. Te recuerdo la siguiente a tu hora de '
       'cierre.';
   static const anotarVentaDeHoy = 'Anotar la venta de hoy';
-  static const anotarUnGasto = 'Anotar un gasto';
   static const tusPrimerosPasos = 'Tus primeros pasos';
+
+  // Inicio rediseñado (mejora 01)
+  static const tusCuentas = 'Tus cuentas';
+  static const verTodas = 'Ver todas';
+  // Menos ruido (entrega 59): lo que se ve a un toque.
+  static const ocultarSeccion = 'Ocultar';
+  static const verDetalleDelMes = 'Ver el detalle del mes';
+  static const verDetalleDelAnio = 'Ver el detalle del año';
+  static const fichaTeDeben = 'Te deben';
+  static const fichaDebes = 'Debes';
+  static String retirastePara(String monto) => 'retiraste $monto para ti';
+  static String pusisteDeTuBolsilloMonto(String monto) =>
+      'pusiste $monto de tu bolsillo';
+  static String enElArqueoSobro(String monto) => 'en el arqueo sobraron $monto';
+  static String enElArqueoFalto(String monto) => 'en el arqueo faltaron $monto';
+  static String tambien(List<String> partes) =>
+      'También ${switch (partes) {
+        [final una] => una,
+        [...final antes, final ultima] => '${antes.join(', ')} y $ultima',
+        _ => '',
+      }}.';
+  static const estaSemana = 'Esta semana';
+  static const escucharMiSemana = 'Escuchar mi semana';
+  static const queEsEstaCifra = '¿Qué es esta cifra?';
+  static String vendisteHoy(String monto) => 'Vendiste hoy $monto';
+  static String alFiado(String monto) => '$monto al fiado';
+  static String teDebenCuantos(int personas) => 'Te deben · $personas';
+  static String debesCuantos(int personas) => 'Debes · $personas';
+  static String pasosHechos(int hechos, int total) => '$hechos de $total';
+
+  /// «Marcos y Rosa», «Marcos, Rosa y 2 más».
+  static String nombresPendientes(List<String> nombres) => switch (nombres) {
+    [] => '',
+    [final uno] => uno,
+    [final a, final b] => '$a y $b',
+    [final a, final b, ...final resto] => '$a, $b y ${resto.length} más',
+  };
   static const pasoDecirPlata = 'Decir cuánta plata tienes';
   static String pasoVentaCincoDias(int llevas) =>
       'Anotar la venta 5 días · llevas $llevas';
   static const pasoPrimerGasto = 'Anotar tu primer gasto con una foto';
   static const pasoPrimerArqueo = 'Hacer tu primer arqueo el domingo';
   static const conEstosPasos =
-      'Con estos cuatro pasos Moca ya puede decirte si ganas o pierdes.';
+      'Con estos cuatro pasos Moca ya puede mostrarte cómo se mueve tu plata.';
 
   // Hoja del saldo (paso 1)
   static const cuantoTeniasAlEmpezar = '¿Cuánta plata tenías al empezar?';
@@ -245,8 +673,14 @@ abstract final class Textos {
   static const tipoDeGasto = 'Tipo de gasto';
   static const eligeTipoDeGasto = 'Elige';
   static const yaLoPagaste = '¿Ya lo pagaste?';
+  // Al escribir una compra que se debe (entrega 41).
+  static const aQuienLeDebes = '¿A quién le debes?';
+  static const aQuienLeDebesEjemplo = 'Puedes dejarlo vacío';
   static const siPagado = 'Sí, pagado';
   static const todaviaLoDebo = 'Todavía lo debo';
+  static const cuentaAlPagar =
+      'No baja tu plata todavía. Cuando lo pagues, márcalo en el Historial '
+      'con «Ya lo pagué» y elige de dónde salió.';
   static const total = 'Total';
   static const fecha = 'Fecha';
   static const leidoDelQr =
@@ -264,12 +698,40 @@ abstract final class Textos {
   static const fotoBorrosaDetalle =
       'Moca leyó el total, pero no el resto. No se guarda nada hasta que lo '
       'confirmes.';
+  static const fotoNoSeLeyoTodo =
+      'Moca no pudo leer todo. Lo que falta lo pones tú; no se guarda nada '
+      'hasta que lo confirmes.';
   static const noSeLee = 'No se lee';
   static const paraQueSalgaBien = 'Para que salga bien';
   static const consejoMesa = 'Apoya el papel en una mesa';
   static const consejoCompleto = 'Que se vea completo, sin dobleces';
   static const consejoSombra = 'Sin tu sombra encima';
   static const tomarOtraFoto = 'Tomar otra foto';
+
+  // Foto que no se pudo leer (entrega 14, no dibujado)
+  static const fotoSinSenal =
+      'No pudimos leer la foto. Revisa tu señal e inténtalo otra vez, o '
+      'escríbelo tú.';
+  static const fotoNoEsComprobante =
+      'Esto no parece un comprobante. Toma otra foto o escríbelo tú.';
+  static const fotoSinCuenta =
+      'Para leer fotos, guarda tu avance con tu número. Mientras, puedes '
+      'escribirlo.';
+  static const fotoLimiteDiario =
+      'Llegaste al límite de fotos de hoy. Puedes escribirlo; mañana Moca '
+      'vuelve a leer fotos.';
+  static const escribirloYo = 'Escribirlo yo';
+
+  // Fotos de prueba sin cuenta (entrega 14.2, no dibujado)
+  static String fotosDePruebaQuedan(int n) =>
+      n == 1 ? 'Te queda 1 foto de prueba' : 'Te quedan $n fotos de prueba';
+  static const guardaTuAvanceParaFotos = 'Guarda tu avance para leer fotos';
+  static String fotoDePrueba(int n, int de) =>
+      'Foto de prueba $n de $de. Guarda tu avance con tu número para leer '
+      'todas las que quieras.';
+  static String fotosDePruebaAgotadas(int n) =>
+      'Usaste tus $n fotos de prueba. Guarda tu avance con tu número para '
+      'seguir leyendo fotos.';
   static const completarAMano = 'Completar a mano';
 
   // S06 · Registrar
@@ -284,6 +746,10 @@ abstract final class Textos {
   static const leerQrDetalle = 'Lectura exacta de comprobantes electrónicos';
   static const escribirlo = 'Escribirlo';
   static const escribirloDetalle = 'Entró o salió, monto y cuenta';
+  // La hoja del + (mejora 01)
+  static const atajos = 'Atajos';
+  static const atajoVentaDelDia = 'Venta del día';
+  static const atajoUnGasto = 'Un gasto';
   static String llegaEnLaEntrega(int n) => 'Llega en la entrega $n';
 
   // «Escribirlo» (no dibujado)
@@ -291,9 +757,33 @@ abstract final class Textos {
   static const entro = 'Entró';
   static const salio = 'Salió';
   static const retiroParaMi = 'Retiro para mí';
+  // Plata que el dueño pone en el negocio (entrega 14.11).
+  static const prestamoNoEsVenta =
+      'Un préstamo no es venta: es plata que debes. Por ahora anótalo como '
+      '«Puse de mi bolsillo», así sube tu plata sin contar como venta. Los '
+      'préstamos llegan en una próxima versión.';
+  static const puseDeMiBolsillo = 'Puse de mi bolsillo';
   static const retiroDetalle =
       'Baja la plata de la cuenta, pero no cuenta como gasto del negocio.';
+  static const aporteDetalle =
+      'Plata que pones de tu bolsillo en el negocio: sube tu plata, pero no '
+      'cuenta como venta. Si te la prestaron, no es esto.';
   static const cuanto = '¿Cuánto?';
+  // «Escribirlo» rediseñado (mejora 01)
+  static const faltaElMonto = 'el monto';
+  static const faltaQueFue = 'qué fue';
+  static const faltaEnQueFue = 'en qué fue';
+  static const faltaDeQueFue = 'de qué fue';
+  static const faltaADondeVa = 'a dónde va';
+  static const faltaQuienTeDebe = 'quién te debe';
+
+  /// «Falta: el monto y en qué fue».
+  static String falta(List<String> que) =>
+      'Falta: ${switch (que) {
+        [] => '',
+        [final uno] => uno,
+        [...final antes, final ultimo] => '${antes.join(', ')} y $ultimo',
+      }}';
   static const deDondeSalio = '¿De dónde salió la plata?';
   static const aDondeEntro = '¿A dónde entró la plata?';
   static const enQue = '¿En qué?';
@@ -313,16 +803,85 @@ abstract final class Textos {
   static const seDeshizo = 'Listo, no se guardó.';
 
   // S10 · Historial
-  static const filtroTodo = 'Todo';
+  // «Pregúntale a Moca» (entrega 74).
+  static const preguntaleAMoca = 'Pregúntale a Moca';
+  static const preguntaleEjemplo = '«¿Cuánto vendí esta semana?»';
+  static const preguntaleSubtitulo = 'Sobre tu negocio, con tus cifras';
+  static const preguntaleSaludo =
+      'Hola, soy Moca. Pregúntame lo que quieras saber de tus cuentas. '
+      'Respondo con lo que anotaste.';
+  static const pruebaCon = 'Prueba con:';
+
+  /// Se muestran 4 que cambian cada día (entrega 75).
+  static const preguntasSugeridas = [
+    '¿Cuánto vendí esta semana?',
+    '¿Quién me debe más?',
+    '¿En qué gasté más este mes?',
+    '¿Cuánto tengo en total?',
+    '¿Cuál fue mi mejor día este mes?',
+    '¿Cuánto me entra por Yape y cuánto en efectivo?',
+    '¿Cuánto le compré a cada proveedor este mes?',
+    '¿Cuál fue mi gasto más grande del mes?',
+    '¿Cuánto me pagaron de fiado esta semana?',
+    '¿Cuál fue mi mejor mes del año?',
+    '¿Cómo salió mi último arqueo?',
+    '¿Hay algo que deba revisar?',
+  ];
+
+  /// Las 4 de hoy: cada día empiezan una más adelante.
+  static List<String> sugerenciasDelDia(DateTime hoy) {
+    final dia = DateTime.utc(
+      hoy.year,
+      hoy.month,
+      hoy.day,
+    ).difference(DateTime.utc(2026)).inDays;
+    return [
+      for (var i = 0; i < 4; i++)
+        preguntasSugeridas[(dia + i * 3) % preguntasSugeridas.length],
+    ];
+  }
+
+  static const verMisPagosDeMoca = 'Ver Mis pagos de Moca';
+  static const tuPregunta = 'Tu pregunta';
+  static const escribeTuPregunta = 'Escribe tu pregunta';
+  static const enviar = 'Enviar';
+  static const mocaPiensa = 'Moca está revisando tus cifras…';
+  static String conLoAnotadoHasta(String hora) =>
+      'Con lo anotado hasta hoy $hora';
+  static String preguntasQueQuedan(int n) => n == 1
+      ? 'Te queda 1 pregunta hoy · Necesita internet'
+      : 'Te quedan $n preguntas hoy · Necesita internet';
+  static const necesitaInternet = 'Necesita internet';
+  static const preguntaleSinSenal =
+      'Para preguntarle a Moca hace falta internet. Lo que anotes se sigue '
+      'guardando en tu teléfono.';
+  static const preguntaleNoDisponible =
+      'Ahora no puedo responder. Intenta en un rato.';
+  static const preguntaleSoloDuenos =
+      'Solo los dueños pueden preguntarle a Moca.';
+  static const topeDePreguntas = 'Ya hiciste tus 20 preguntas de hoy';
+  static const topeDePreguntasDetalle =
+      'Mañana puedes seguir preguntando. Mientras, todo está en el Historial '
+      'y en Informes.';
+  static const verEnElHistorial = 'Ver en el Historial';
+  static const verLoQueTeDeben = 'Ver lo que te deben';
+  static const verLoQueDebes = 'Ver lo que debes';
+  static const verElInformeDelMes = 'Ver el informe del mes';
+  static const verMisCuentas = 'Ver mis cuentas';
+
+  // «Transacciones» en los filtros (entrega 71).
+  static const filtroTransacciones = 'Transacciones';
   static String filtroPorSubir(int n) => n > 0 ? 'Por subir · $n' : 'Por subir';
+  static String filtroTeDeben(int n) => n > 0 ? 'Te deben · $n' : 'Te deben';
+  static String filtroDebes(int n) => n > 0 ? 'Debes · $n' : 'Debes';
+  static const esoEsTodo = 'Eso es todo desde que empezaste con Moca';
   static const marcaPorSubir = 'por subir';
+  static const porSubirEtiqueta = 'Por subir';
   static const loDebes = 'Lo debes';
   static const retiroNoCuenta = 'No cuenta como gasto del negocio';
+  static const aporteNoCuenta = 'No cuenta como venta';
   static const historialVacio =
       'Todavía no hay registros. Lo que anotes aparece aquí.';
-  static const sinEntradas = 'Todavía no hay registros de plata que entró.';
-  static const sinSalidas = 'Todavía no hay registros de plata que salió.';
-  static const nadaPorSubir = 'No hay nada por subir.';
 
   // Detalle del movimiento (no dibujado)
   static const tituloDetalle = 'Registro';
@@ -335,11 +894,28 @@ abstract final class Textos {
   static const etiquetaPago = 'Pago';
   static const etiquetaProveedor = 'Proveedor';
   static const etiquetaComprobante = 'Comprobante';
+  // Entrega 66.
+  static const etiquetaDocumento = 'Documento';
+  static const masDatosOpcional = 'Más datos (opcional)';
+  static const tipoDeDocumento = 'Tipo de documento';
+  static const sinDocumentoOpcion = 'Sin documento';
+  static const numeroDeDocumento = 'Número de documento';
+  static const numeroDocumentoEjemplo = 'Ej.: 0045J';
+  static const institucion = 'Institución';
+  static const institucionEjemplo = 'Ej.: Comercial Tarapoto';
+  static String institucionAyuda(TipoMovimiento tipo) =>
+      tipo == TipoMovimiento.ingreso
+      ? 'El cliente: a quién le vendiste.'
+      : 'El proveedor: a quién le compraste o pagaste.';
+  static String etiquetaInstitucion(TipoMovimiento tipo) =>
+      tipo == TipoMovimiento.ingreso ? 'Cliente' : 'Proveedor';
   static const etiquetaRuc = 'RUC';
   static String nombreTipo(TipoMovimiento tipo) => switch (tipo) {
     TipoMovimiento.ingreso => entro,
     TipoMovimiento.egreso => salio,
     TipoMovimiento.retiro => retiroParaMi,
+    TipoMovimiento.aporte => puseDeMiBolsillo,
+    TipoMovimiento.transferencia => pasePlata,
   };
   static String comoSeAnoto(Fuente fuente) => switch (fuente) {
     Fuente.voz => 'Lo dijiste por voz',
@@ -351,6 +927,12 @@ abstract final class Textos {
   };
   static const pagado = 'Pagado';
   static String pagadoEl(String fecha) => 'Pagado el $fecha';
+  // Lo cobrado o pagado otro día, en el día del pago (entrega 55).
+  static String cobradoEl(String fecha) => 'Cobrado el $fecha';
+  static String tePago(String? cliente) =>
+      cliente == null ? 'Te pagaron un fiado' : 'Te pagó $cliente';
+  static String lePagaste(String? proveedor) =>
+      proveedor == null ? 'Pagaste una deuda' : 'Le pagaste a $proveedor';
   static const todaviaLoDebes =
       'Todavía lo debes. No baja tu saldo hasta que lo pagues.';
   static const guardadoPorSubir =
@@ -358,6 +940,44 @@ abstract final class Textos {
   static const yaNoCuenta =
       'Este registro ya no cuenta: se deshizo o se corrigió.';
   static const yaLoPague = 'Ya lo pagué';
+
+  // Vender a crédito: «Lo que te deben» (entrega 42).
+  static const teDebe = 'Te debe';
+  static const yaTePagaron = '¿Ya te pagaron?';
+  static const siMePago = 'Sí, ya me pagó';
+  static const todaviaMeDebe = 'Todavía me debe';
+  static const cuentaAlCobrar =
+      'Eliges a dónde entró la plata cuando te pague.';
+  static const quienTeDebe = '¿Quién te debe?';
+  static const quienTeDebeEjemplo = 'Su nombre';
+  // El celular del cliente, para recordarle por WhatsApp (entrega 53).
+  static const suCelularOpcional = 'Su celular (opcional)';
+  static const agregarCelular = 'Agregar celular';
+  static const cambiarCelular = 'Cambiar celular';
+  static const revisaElNumero = 'Revisa el número';
+  static const faltaRevisarElNumero = 'revisar el número';
+  static const celularDelClienteAyuda =
+      'Solo lo ven los dueños. Sirve para recordarle por WhatsApp.';
+  static String celularDe(String cliente) => 'Celular de $cliente';
+  static String leRecordasteEl(String fecha) => 'Le recordaste el $fecha';
+  // Moca avisa a quién recordarle (entrega 54).
+  static String avisoTeDebe(String cliente, String monto, String fecha) =>
+      '$cliente te debe $monto desde el $fecha';
+  static String notificacionPorCobrar(int clientes) => clientes == 1
+      ? 'Un cliente te debe hace más de una semana.'
+      : '$clientes clientes te deben hace más de una semana.';
+  static const todaviaTeDebe =
+      'Todavía te deben esta venta. No sube tu saldo hasta que te paguen.';
+  static const yaMePago = 'Ya me pagó';
+  static const cuandoTePago = '¿Cuándo te pagó?';
+  static const loQueTeDebenTitulo = 'Lo que te deben';
+  static const todoLoQueTeDeben = 'Todo lo que te deben hoy, de cualquier mes';
+  static const nadieTeDebe = 'Nadie te debe nada.';
+  static const sinCliente = 'Sin nombre';
+  static String teDebenTotal(String monto, int ventas) =>
+      'Te deben $monto, de $ventas ${ventas == 1 ? 'venta' : 'ventas'}';
+  static String grupoTeDeben(String quien, String monto, int ventas) =>
+      '$quien · $monto · $ventas ${ventas == 1 ? 'venta' : 'ventas'}';
   static const corregir = 'Corregir';
   static const deshacerRegistro = 'Deshacer este registro';
   static const deshacerTitulo = '¿Deshacer este registro?';
@@ -392,10 +1012,102 @@ abstract final class Textos {
   static String cambiasteNota(String antes, String despues) =>
       'Cambiaste la nota: $antes → $despues';
   static const sinNota = 'sin nota';
+  // El documento y la institución (entrega 66).
+  static String cambiasteDocumento(String antes, String despues) =>
+      'Cambiaste el documento: $antes → $despues';
+  static String cambiasteInstitucion(String antes, String despues) =>
+      'Cambiaste la institución: $antes → $despues';
+  static const sinDocumento = 'sin documento';
+  static const sinInstitucion = 'sin institución';
   static const sinCategoria = 'sin categoría';
   static const corregisteSinCambios = 'Lo corregiste sin cambiar datos';
   static String pagaste(String cuenta, String fecha) =>
       'Marcaste que ya lo pagaste: $cuenta, $fecha';
+  // Recordarle al cliente por WhatsApp (entrega 45). De usted: es un
+  // mensaje del negocio a su cliente.
+  static const recordarPorWhatsApp = 'Recordar por WhatsApp';
+  static String recordatorioDeuda({
+    required String? cliente,
+    required String negocio,
+    required String falta,
+    required List<String> fechas,
+    String? total,
+  }) {
+    final saludo = cliente == null ? 'Hola.' : 'Hola, $cliente.';
+    String unir(List<String> partes) => partes.length == 1
+        ? partes.single
+        : '${partes.sublist(0, partes.length - 1).join(', ')} y '
+              '${partes.last}';
+    final de = fechas.length == 1
+        ? 'de su compra del ${fechas.single}'
+        : 'de sus compras ${unir([for (final f in fechas) 'del $f'])}';
+    final pendiente = total == null
+        ? 'tiene pendiente $falta'
+        : 'le queda pendiente $falta de $total';
+    return '$saludo Le escribimos de $negocio para recordarle que '
+        '$pendiente, $de. Cuando pueda, nos avisa cómo prefiere pagar. '
+        'Gracias.';
+  }
+
+  // Deshacer un cobro o un pago completo (entrega 44.2).
+  static const deshacerElCobro = 'Deshacer el cobro';
+  static const deshacerElPago = 'Deshacer el pago';
+  static String preguntaDeshacerCobro(String monto, String cuenta) =>
+      'La venta vuelve a «Lo que te deben» y salen $monto de '
+      '${cuenta.toLowerCase()}.';
+  static String preguntaDeshacerPago(String monto, String cuenta) =>
+      'La compra vuelve a «Lo que debes» y vuelven $monto a '
+      '${cuenta.toLowerCase()}.';
+  static String quedariaEn(String cuenta, String saldo) =>
+      '$cuenta quedaría en $saldo.';
+  static const cobroDeshecho = 'Listo. La venta volvió a «Lo que te deben».';
+  static const pagoDeshecho = 'Listo. La compra volvió a «Lo que debes».';
+  static const deshicisteCobro =
+      'Deshiciste el cobro: volvió a «Lo que te deben»';
+  static const deshicistePago = 'Deshiciste el pago: volvió a «Lo que debes»';
+  static String tePagaron(String cuenta, String fecha) =>
+      'Marcaste que ya cobraste: $cuenta, $fecha';
+  static String pagasteParte(String monto, String cuenta, String fecha) =>
+      'Pagaste una parte de $monto: $cuenta, $fecha';
+  static String tePagaronParte(String monto, String cuenta, String fecha) =>
+      'Cobraste una parte de $monto: $cuenta, $fecha';
+
+  // Cobros y pagos en partes (entrega 44).
+  static String todoElMonto(String monto) => 'Todo ($monto)';
+  static const unaParte = 'Una parte';
+  static const montoDeLaParte = 'Monto de la parte';
+  static String parteMenorQue(String monto) =>
+      'Tiene que ser más que cero y menos de $monto. Si es todo, elige '
+      '«Todo».';
+  static String cobradoParte(String parte, String quien, String falta) =>
+      'Cobrado $parte. $quien todavía te debe $falta.';
+  static String pagadoParte(String parte, String falta) =>
+      'Pagado $parte. Todavía debes $falta.';
+  static const pagoEnParte = 'Pago en parte';
+  static String pagoDeTotal(String pagado, String total) =>
+      'pagó $pagado de $total';
+  static const pagosEnPartes = 'Pagos en partes';
+  static String faltaPagar(String monto) =>
+      monto.isEmpty ? 'Falta' : 'Falta $monto';
+  static String parteDeUnaDeuda(bool cobro, String falta) => cobro
+      ? (falta.isEmpty
+            ? 'Es una parte de una venta a crédito, que ya está cobrada.'
+            : 'Es una parte de una venta a crédito. Todavía te deben $falta.')
+      : (falta.isEmpty
+            ? 'Es una parte de una compra que debías, que ya está pagada.'
+            : 'Es una parte de una compra que debes. Todavía debes $falta.');
+  static const verLaDeuda = 'Ver la deuda';
+  static const noSePuede = 'No se puede todavía';
+  static String traba(TrabaDelRegistro traba) => switch (traba) {
+    TrabaDelRegistro.tienePartes =>
+      'Tiene pagos en partes. Para corregirla o deshacerla, primero deshaz '
+          'sus partes, empezando por la más reciente.',
+    TrabaDelRegistro.esParte =>
+      'Un pago en parte no se corrige: deshazlo y anótalo otra vez.',
+    TrabaDelRegistro.noEsLaUltimaParte =>
+      'Solo se deshace la parte más reciente, mientras la deuda siga '
+          'abierta.',
+  };
   static const deshiciste = 'Lo deshiciste';
 
   // Corregir
@@ -415,6 +1127,34 @@ abstract final class Textos {
   static const otroDia = 'Otro día';
   static String pagadoAhoraTienes(String monto, String cuenta) =>
       'Pagado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
+  static String cobradoAhoraTienes(String monto, String cuenta) =>
+      'Cobrado. Ahora tienes $monto en ${cuenta.toLowerCase()}';
+
+  // Cobrar o pagar una deuda por voz (entrega 50)
+  static String teDebeEsDeEsa(String quien, String monto) =>
+      '$quien te debe $monto. ¿Es de esa deuda?';
+  static String leDebesEsDeEsa(String quien, String monto) =>
+      'A $quien le debes $monto. ¿Es de esa deuda?';
+  static const siDeEsaDeuda = 'Sí, de esa deuda';
+  static const noAnotarloAparte = 'No, anotarlo aparte';
+  static const anotarloAparte = 'Anotarlo aparte';
+  static const deQuienEsElCobro = '¿De quién es lo que cobraste?';
+  static const aQuienLePagaste = '¿A quién le pagaste?';
+  static String quienYCuanto(String quien, String monto) => '$quien · $monto';
+  static String teDebeNoTanto(String quien, String debe, String dicho) =>
+      '$quien te debe $debe, no $dicho.';
+  static String leDebesNoTanto(String quien, String debe, String dicho) =>
+      'A $quien le debes $debe, no $dicho.';
+  static String cobrarLos(String monto) => 'Cobrar los $monto';
+  static String pagarLos(String monto) => 'Pagar los $monto';
+  static String cobroDeLoQueTeDebe(String quien) =>
+      'Cobro de lo que te debe $quien';
+  static String pagoDeLoQueLeDebes(String quien) =>
+      'Pago de lo que le debes a $quien';
+  static String leQueda(String monto) => 'Le queda $monto';
+  static String teFalta(String monto) => 'Te falta $monto';
+  static const yaNoDebeNada = 'Ya no debe nada';
+  static const yaNoLeDebesNada = 'Ya no le debes nada';
 
   // S12 · Arqueo de la semana
   static const arqueoDeLaSemana = 'Arqueo de la semana';
@@ -435,6 +1175,7 @@ abstract final class Textos {
       'Sobran $monto en ${cuenta.toLowerCase()}. ¿De dónde salió esa plata?';
   static String motivoArqueo(MotivoArqueo motivo) => switch (motivo) {
     MotivoArqueo.retiroParaMi => 'La retiré para mí',
+    MotivoArqueo.puseYo => 'La puse yo',
     MotivoArqueo.gastoOlvidado => 'Un gasto que olvidé',
     MotivoArqueo.ventaNoAnotada => 'Una venta que no anoté',
     MotivoArqueo.errorDeVuelto => 'Di mal un vuelto',
@@ -443,8 +1184,9 @@ abstract final class Textos {
   static String notaMotivo(MotivoArqueo motivo, {required bool faltan}) =>
       switch (motivo) {
         MotivoArqueo.retiroParaMi =>
-          'Un retiro para ti no baja la ganancia del negocio; solo la plata '
-              'en caja.',
+          'Un retiro para ti baja tu plata, pero no es un gasto del negocio.',
+        MotivoArqueo.puseYo =>
+          'Se anota como plata que pusiste de tu bolsillo. No es una venta.',
         MotivoArqueo.gastoOlvidado => 'Se anota como un gasto de hoy.',
         MotivoArqueo.ventaNoAnotada => 'Se anota como una venta de hoy.',
         MotivoArqueo.errorDeVuelto =>
@@ -459,6 +1201,28 @@ abstract final class Textos {
   static String arqueoGuardado(String monto) =>
       'Arqueo guardado. Ahora tienes $monto';
   static const hacerArqueo = 'Hacer arqueo';
+  // Dejar de usar una cuenta (entrega 58).
+  static const dejarDeUsarEstaCuenta = 'Dejar de usar esta cuenta';
+  static const dejarDeUsar = 'Dejar de usar';
+  static const volverAUsar = 'Volver a usar';
+  static const yaNoUsas = 'Ya no usas';
+  static const yaNoUsasDetalle =
+      'No salen para anotar ni en el Inicio. Sus registros siguen en tu '
+      'Historial y en tus informes.';
+  static String preguntaDejarDeUsar(String cuenta) => '¿Dejar de usar $cuenta?';
+  static const dejarDeUsarDetalle =
+      'Sus registros se quedan en tu Historial y en tus informes. Puedes '
+      'volver a usarla cuando quieras, desde aquí.';
+  static String cuentaConSaldo(String cuenta, String monto) =>
+      '$cuenta tiene $monto. Pásalos a otra cuenta antes de dejar de usarla.';
+  static const pasarLaPlata = 'Pasar la plata';
+  static String esLaCajaDe(String quien) =>
+      'Esta cuenta es la caja de $quien. Cámbiala primero en «Mi equipo».';
+  static const sinSenalParaRevisarCaja =
+      'Para dejar de usar una caja, Moca revisa que no sea la de alguien de '
+      'tu equipo. Hace falta señal.';
+  static String dejasteDeUsar(String cuenta) => 'Dejaste de usar $cuenta.';
+  static String volvisteAUsar(String cuenta) => 'Volviste a usar $cuenta.';
   static const mocaTocaArqueo =
       'Hoy toca el arqueo de la semana. Son dos minutos.';
   static const mocaFaltaArqueo =
@@ -478,24 +1242,68 @@ abstract final class Textos {
   static const mesAnterior = 'Mes anterior';
   static const mesSiguiente = 'Mes siguiente';
   static const hastaHoy = 'Hasta hoy';
+
+  // Resumen del año (entrega 40)
+  static const verMes = 'Mes';
+  static const verAnio = 'Año';
+  static const anioAnterior = 'Año anterior';
+  static const anioSiguiente = 'Año siguiente';
+  static String enElAnioCrecio(int anio) => 'En $anio tu plata creció';
+  static String enElAnioBajo(int anio) => 'En $anio tu plata bajó';
+  static String enElAnioIgual(int anio) => 'En $anio tu plata quedó igual';
+  static const tocaUnMes = 'Toca un mes para ver su informe.';
+  static const antesDeMoca = 'Antes de Moca';
+  static const hastaHoyMinuscula = 'hasta hoy';
+  static const pusisteDeTuBolsillo = 'Pusiste de tu bolsillo';
+  static const salioDelNegocio = 'Salió del negocio';
+  static const retirasteParaTi = 'Retiraste para ti';
+  static const sobroEnLosArqueos = 'Sobró en los arqueos';
+  static const faltoEnLosArqueos = 'Faltó en los arqueos';
+  static const sinIngresosDelAnio = 'Este año aún no entra plata.';
+  static const sinGastosDelAnio = 'Este año aún no sale plata.';
+
+  /// «De enero a hoy», «Del 12 de octubre a hoy», «Todo 2025» o «Del 12 de
+  /// octubre al 31 de diciembre».
+  static String periodoDelAnio(DateTime desde, {required bool enCurso}) {
+    final todoElAnio = desde.month == 1 && desde.day == 1;
+    if (enCurso) {
+      return todoElAnio
+          ? 'De enero a hoy'
+          : 'Del ${desde.day} de ${nombreDelMes(desde)} a hoy';
+    }
+    return todoElAnio
+        ? 'Todo ${desde.year}'
+        : 'Del ${desde.day} de ${nombreDelMes(desde)} al 31 de diciembre';
+  }
+
   static String desdeElDia(int dia) => 'Desde el día $dia';
   static String desdeElDiaHastaHoy(int dia) => 'Desde el día $dia hasta hoy';
-  static const ganaste = 'Ganaste';
-  static const perdiste = 'Perdiste';
+  // El informe es el flujo de caja del mes, no la ganancia (entrega 14.9).
+  static const tuPlataCrecio = 'Este mes tu plata creció';
+  static const tuPlataBajo = 'Este mes tu plata bajó';
+  static const tuPlataIgual = 'Este mes tu plata quedó igual';
   static String masQueEn(String monto, String mes) => '$monto más que en $mes';
   static String menosQueEn(String monto, String mes) =>
       '$monto menos que en $mes';
   static String igualQueEn(String mes) => 'Lo mismo que en $mes';
   static const primerMesConMoca =
       'Es tu primer mes con Moca. El próximo mes verás la comparación.';
-  static const loQueGanasteYRetiraste = 'Lo que ganaste y lo que retiraste';
-  static const ganoElNegocio = 'Ganó el negocio';
-  static const perdioElNegocio = 'Perdió el negocio';
-  static const retirasteParaTi = 'Retiraste para ti';
-  static const quedoEnElNegocio = 'Quedó en el negocio';
-  static String sacasteMas(String monto) =>
-      'Sacaste $monto más de lo que ganó el negocio.';
+  static const comoSeMovio = 'Cómo se movió tu plata';
+  static const empezasteElMesCon = 'Empezaste el mes con';
+  static const empezasteCon = 'Empezaste con';
+  static const masEntro = '+ Entró';
+  static const masPusisteDeTuBolsillo = '+ Pusiste de tu bolsillo';
+  static const menosSalioDelNegocio = '− Salió del negocio';
+  static const menosRetirasteParaTi = '− Retiraste para ti';
+  static const masSobroEnElArqueo = '+ Sobró en el arqueo';
+  static const menosFaltoEnElArqueo = '− Faltó en el arqueo';
+  static const terminasteElMesCon = 'Terminaste el mes con';
+  static const cuentasDePlata =
+      'Cuenta la plata el día en que se movió: lo que todavía debes se cuenta '
+      'cuando lo pagas.';
   static const enQueSeFue = 'En qué se fue la plata';
+  static const conQueEntro = 'Con qué entró la plata';
+  static const sinIngresosDelMes = 'En este mes no entró plata.';
   static const loDemas = 'Lo demás';
   static const sinGastos = 'En este mes no hubo gastos.';
   static String subioFrente(String categoria, String monto, String mes) =>
@@ -509,11 +1317,190 @@ abstract final class Textos {
   static String conFoto(int n) => '$n% tiene foto o captura';
   static String sinPapel(int n) => '$n% lo dijiste tú, sin papel';
   static const advertenciaMercaderia =
-      'Compraste más mercadería que otros meses, así que la ganancia puede '
-      'verse más baja de lo real.';
+      'Compraste más mercadería que otros meses: tu plata bajó, pero esa '
+      'mercadería sigue en tu tienda.';
   static const mesSinRegistros = 'En este mes no hay registros.';
   static const armandoPdf = 'Armando el PDF…';
+
+  // El PDF en tres versiones (entrega 14.12)
+  static const paraQuienEsPdf = '¿Para quién es el informe?';
+  static const pdfParaMi = 'Para mí';
+  static const pdfParaMiDetalle = 'Una hoja: cómo se movió tu plata.';
+  static const pdfParaContador = 'Para mi contador';
+  static const pdfParaContadorDetalle =
+      'Con lo que debes y los comprobantes del mes.';
+  static const pdfParaCredito = 'Para pedir un crédito';
+  static const pdfParaCreditoDetalle =
+      'Tus últimos meses y el flujo en el formato de la caja.';
+  static const mocaPlus = 'Moca Plus';
+  static const flujoParaCajaTitulo = 'Para pedir un crédito';
+  static String flujoParaCaja(int meses, {String? hastaHoy}) =>
+      'Se comparten dos archivos: el resumen en PDF y el flujo de caja en el '
+      'formato que usan las cajas y financieras. '
+      '${hastaHoy != null ? 'Moca todavía no tiene un mes completo: va lo que llevas de $hastaHoy, hasta hoy. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.' : 'Moca llenó los 17 datos de tu negocio en $meses de los 6 meses que piden. Los meses antes de Moca y los gastos de tu hogar los completas tú con tu asesor.'}';
+  static const compartir = 'Compartir';
+  static const etiquetaParaContador = 'Para el contador';
+  static const etiquetaParaCredito = 'Para evaluar un crédito';
+  static String periodoDelAl(DateTime desde, DateTime hasta) =>
+      desde.day == hasta.day && desde.month == hasta.month
+      ? 'El ${desde.day} de ${_mes(desde)} de ${desde.year}'
+      : 'Del ${desde.day} al ${hasta.day} de ${_mes(hasta)} de ${hasta.year}';
+  static String periodoDeMeses(DateTime desde, DateTime hasta) =>
+      desde.year == hasta.year
+      ? 'De ${_mes(desde)} a ${_mes(hasta)} de ${hasta.year}'
+      : 'De ${_mes(desde)} de ${desde.year} a ${_mes(hasta)} de ${hasta.year}';
+  static String _mes(DateTime d) => const [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'setiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ][d.month - 1];
+  static const aclaracionPdf =
+      'Flujo de caja: cómo se movió la plata. No es un estado financiero ni '
+      'reemplaza la contabilidad.';
+  static String paginaDe(int pagina, int total) => 'Página $pagina de $total';
+  static const cuantoHayHoyEnCadaCuenta = 'Cuánto hay hoy en cada cuenta';
+  static const cuantoHabiaAlCierre = 'Cuánto había en cada cuenta al cierre';
+  // Desde la entrega 35 se llama igual que en el informe.
+  static const deDondeVino = conQueEntro;
+  static const sinIngresos = 'En este periodo no entró plata.';
+  static const noDebesNada = 'No debes nada.';
+
+  // Buscar y filtrar en el Historial (entrega 39).
+  static const buscarEnTuHistorial = 'Buscar por nombre, monto o categoría';
+  static const filtrar = 'Filtrar';
+  static String filtrarCon(int n) => 'Filtrar ($n)';
+  static const quitarFiltros = 'Quitar filtros';
+  static const verResultados = 'Ver resultados';
+  // Filtrar por fechas (entrega 56).
+  static const periodoTodo = 'Todo';
+  static const unDia = 'Un día';
+  static const unMes = 'Un mes';
+  static const unAnio = 'Un año';
+  static const entreFechas = 'Entre fechas';
+  static const diaAnterior = 'Día anterior';
+  static const diaSiguiente = 'Día siguiente';
+  static const elegirFechas = 'Elegir las fechas';
+  static String verRegistros(int n) =>
+      n == 1 ? 'Ver 1 registro' : 'Ver $n registros';
+  static const ningunRegistroConFiltros = 'No hay registros con estos filtros';
+  static String nMas(int n) => '+ $n más';
+  static const verMenos = 'Ver menos';
+  static String delAl(DateTime desde, DateTime hasta) {
+    String fecha(DateTime d, {bool conMes = true, bool conAnio = false}) =>
+        '${d.day}${conMes ? ' de ${_mes(d)}' : ''}${conAnio ? ' de ${d.year}' : ''}';
+    if (desde == hasta) return 'El ${fecha(desde)}';
+    final otroAnio = desde.year != hasta.year;
+    final mismoMes = !otroAnio && desde.month == hasta.month;
+    return 'Del ${fecha(desde, conMes: !mismoMes, conAnio: otroAnio)} '
+        'al ${fecha(hasta, conAnio: otroAnio)}';
+  }
+
+  static const quienAnoto = 'Quién lo anotó';
+  static const filtroCuenta = 'Cuenta';
+  static const filtroCategoria = 'Categoría';
+  static const otraPersona = 'Otra persona';
+  static const sinResultados = 'No hay registros con esa búsqueda.';
+  static String resumenDeBusqueda(int n, String entro, String salio) =>
+      '$n ${n == 1 ? 'registro' : 'registros'} · Entró $entro · Salió $salio';
+
+  // «Lo que debes» y los registros de una categoría (entrega 38).
+  static const verDetalle = 'Ver detalle';
+  static const sinProveedor = 'Sin proveedor';
+  static String debesTotal(String monto, int compras) =>
+      'Debes $monto, de $compras ${compras == 1 ? 'compra' : 'compras'}';
+  static String grupoDeuda(String aQuien, String monto, int compras) =>
+      '$aQuien · $monto · $compras ${compras == 1 ? 'compra' : 'compras'}';
+  static String totalDeRegistros(String monto, int registros) =>
+      '$monto · $registros ${registros == 1 ? 'registro' : 'registros'}';
+  static const columnaFecha = 'Fecha';
+  static const columnaProveedor = 'Proveedor';
+  static const columnaClienteOProveedor = 'Cliente o proveedor';
+  static const columnaDetalle = 'Detalle';
+  static const columnaMonto = 'Monto';
+  static const columnaComprobante = 'Comprobante';
+  static const columnaDocumento = 'Documento';
+  static const columnaRuc = 'RUC';
+  static const columnaIgv = 'IGV';
+  static const columnaTotal = 'Total';
+  static const columnaMes = 'Mes';
+  static const columnaEntro = 'Entró';
+  static const columnaPusiste = 'Pusiste';
+  static const columnaSalio = 'Salió';
+  static const columnaRetiraste = 'Retiraste';
+  static const columnaCrecio = 'Creció';
+  static const columnaAlCierre = 'Al cierre';
+  static const comprobantesDelMes = 'Comprobantes del mes';
+  static const sinComprobantes = 'En este mes no hay comprobantes.';
+  static const loDebesCorto = 'lo debes';
+  static String resumenDeMeses(int n) =>
+      n == 1 ? 'Resumen del mes' : 'Resumen de los últimos $n meses';
+  static const entroPorMes = 'Entró por mes, en promedio';
+  static const soloMesesCompletos =
+      'Solo con los meses completos (marcados sin *).';
+  static const mesIncompleto =
+      '* Mes incompleto: el primero con Moca o el que aún no termina.';
+  static const mesPorMes = 'Mes por mes';
+  static String confianzaEnUnaLinea(int a, int b, int c) =>
+      '$a% con comprobante · $b% con foto o captura · $c% sin papel';
+  static const notaCredito =
+      'Lo anotó el dueño en Moca, con su teléfono. No está verificado por '
+      'una entidad.';
   static const pdfNoSeArmo = 'No se pudo armar el PDF. Intenta otra vez.';
+
+  // Excel de las operaciones (entrega 14.13)
+  static const compartirExcel = 'Compartir Excel';
+  // La hoja «Compartir» de Informes (mejora 01)
+  static const compartirPdfDetalle =
+      'El resumen del mes: para ti, tu contador o un crédito';
+  static const compartirExcelDetalle = 'Cada operación del mes, una por fila';
+  static const porSemana = 'Por semana';
+  static const armandoExcel = 'Armando el Excel…';
+  static const excelNoSeArmo = 'No se pudo armar el Excel. Intenta otra vez.';
+  static String operacionesDe(String mes, int anio) =>
+      'Operaciones de $mes $anio';
+  static const hojaOperaciones = 'Operaciones';
+  static const hojaResumen = 'Resumen';
+  static const hojaSaldos = 'Saldos por cuenta';
+  static const hojaLoQueDebes = 'Lo que debes';
+  static const hojaLoQueTeDeben = 'Lo que te deben';
+  static const deudasTitulo = 'Lo que debes y lo que te deben';
+  static const columnaCliente = 'Cliente';
+  static const columnaPagadoEnPartes = 'Pagó en partes';
+  static String faltaDe(String falta, String pagado, String total) =>
+      '$falta (pagó $pagado de $total)';
+  static const columnaTipo = 'Tipo';
+  static const columnaCategoria = 'Categoría';
+  static const columnaNota = 'Nota';
+  static const columnaCuenta = 'Cuenta';
+  static const columnaPagado = 'Pagado';
+  static const columnaFechaPago = 'Fecha de pago';
+  static const columnaConfianza = 'Confianza';
+  static const columnaDesde = 'Desde';
+  static const columnaSaldo = 'Saldo';
+  static const si = 'Sí';
+  static String pagadoEnParte(String monto) => 'En parte: $monto';
+  static String nivelConfianza(NivelConfianza n) => switch (n) {
+    NivelConfianza.a => 'A: verificado con SUNAT',
+    NivelConfianza.b => 'B: con comprobante',
+    NivelConfianza.c => 'C: con foto o captura',
+    NivelConfianza.d => 'D: sin papel',
+  };
+  static const negocio = 'Negocio';
+  static const periodo = 'Periodo';
+  static const hechoElCorto = 'Hecho el';
+  static const notaCajaExcel =
+      'Las cifras son de caja: lo que debes cuenta cuando lo pagas y el '
+      'arqueo ajusta el saldo. Por eso la hoja Operaciones puede no sumar lo '
+      'mismo.';
   static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
   static String hechoEl(String fecha) => 'Hecho el $fecha';
   static const pieDelPdf = 'Hecho con Moca con lo que anotaste en tu teléfono.';
@@ -543,8 +1530,8 @@ abstract final class Textos {
   static const avisos = 'Avisos';
   static const importante = 'Importante';
   static const paraTenerEnCuenta = 'Para tener en cuenta';
-  static const sinAvisos =
-      'No tienes avisos. Moca te avisa cuando algo necesite tu atención.';
+  static const todoEnOrden = 'Todo en orden';
+  static const sinAvisos = 'Moca te avisa cuando algo necesite tu atención.';
   static const avisoFaltaArqueo = 'Falta el arqueo de esta semana';
   static String avisoDiferencia(String monto, String cuenta) =>
       'Quedaron $monto sin explicar en ${cuenta.toLowerCase()}';
@@ -564,7 +1551,6 @@ abstract final class Textos {
       'resumen de la semana.';
   static String preguntaVentaCuenta(TipoCuenta cuenta) => switch (cuenta) {
     TipoCuenta.efectivo => '¿Cuánto vendiste hoy en efectivo?',
-    TipoCuenta.banco => '¿Y por banco?',
     _ => '¿Y por ${nombreCuenta(cuenta)}?',
   };
   static String nadaPor(TipoCuenta cuenta) =>
@@ -655,6 +1641,8 @@ abstract final class Textos {
     TipoNotificacion.faltaArqueo => 'Falta el arqueo',
     TipoNotificacion.diasSinAnotar => 'Días sin anotar',
     TipoNotificacion.resumenSemanal => 'Resumen de la semana',
+    TipoNotificacion.cobroPorVencer => 'Fin de la prueba gratis',
+    TipoNotificacion.clientesPorCobrar => 'Clientes por cobrar',
   };
   static const otroAviso = 'Otro aviso';
   static const simularSinSenal = 'Simular sin señal';
@@ -676,6 +1664,612 @@ abstract final class Textos {
   static const confirmarDemoTitulo = '¿Empezar en «Demo»?';
   static const empezarDemoBoton = 'Borrar y cargar la demo';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';
+  // Borrar todo, también en el servidor (entrega 14.8)
+  static const borrarEnServidor = 'Borrar todo, también en el servidor';
+  static const borrarEnServidorDetalle =
+      'Borra para siempre los datos de este número en el servidor y en este '
+      'teléfono. Al entrar otra vez, todo empieza en blanco.';
+  static const borrarEnServidorTitulo = '¿Borrar todo para siempre?';
+  static String borrarEnServidorAviso(String celular) =>
+      'Se borran para siempre las ventas, gastos, comprobantes, arqueos y '
+      'saldos del número $celular, en el servidor y en este teléfono. No se '
+      'puede deshacer.';
+  static const continuar = 'Continuar';
+  static const escribeBorrar = 'Para confirmar, escribe BORRAR';
+
+  static const seguridad = 'Seguridad';
+
+  // «Ajustes» y «Datos del negocio» (entregas 29 y 29.1).
+  static const ajustes = 'Ajustes';
+  static const ajustesDetalle = 'Tu negocio, tu equipo y la seguridad';
+  static const tuNegocio = 'Tu negocio';
+  static const tuEquipoAjustes = 'Tu equipo';
+  static const datosDelNegocio = 'Datos del negocio';
+  static const datosDelNegocioDetalle = 'El nombre y la hora de cierre';
+  static const datosGuardados = 'Listo. Guardado.';
+
+  // La prueba en el Asistente (mejora 01)
+  static const pruebaGratisEtiqueta = 'PRUEBA GRATIS';
+  static String hastaEl(String fecha) => 'Hasta el $fecha';
+  static String cuantosDias(int dias) => dias == 1 ? '1 día' : '$dias días';
+  static String teQuedanDias(int dias) => dias == 1 ? 'te queda' : 'te quedan';
+  static const activarMiPlan = 'Activar mi plan';
+  static String pruebaGratisDias(int dias) =>
+      'Prueba gratis · ${dias == 1 ? '1 día' : '$dias días'}';
+  static const escucharResumen = 'Escuchar resumen';
+  static const laSemanaPasadaTeQuedo = 'La semana pasada te quedó';
+
+  // El cobro (entrega 25).
+  static String pruebaTeQuedan(int dias, String hasta) => switch (dias) {
+    0 => 'Hoy es el último día de tu prueba gratis.',
+    1 => 'Prueba gratis: te queda 1 día (hasta el $hasta).',
+    _ => 'Prueba gratis: te quedan $dias días (hasta el $hasta).',
+  };
+  static const pruebaSinEmpezar =
+      'Tu prueba gratis de 14 días empieza con tu primer registro.';
+  static String pagadoHasta(String hasta) =>
+      'Moca está pagada hasta el $hasta.';
+  static const pruebaTermino = 'Tu prueba gratis terminó';
+  static String pagoVencio(String hasta) => 'Tu mes de Moca venció el $hasta';
+  static String avisoPorVencer(bool enPrueba, int dias) {
+    final que = enPrueba ? 'Tu prueba gratis termina' : 'Tu mes de Moca vence';
+    return switch (dias) {
+      0 => '$que hoy.',
+      1 => '$que mañana.',
+      _ => '$que en $dias días.',
+    };
+  }
+
+  static const comoPagar = 'Cómo pagar';
+
+  // «Mis pagos de Moca» (entrega 33).
+  static const misPagos = 'Mis pagos de Moca';
+  static const misPagosDetalle = 'Cuándo pagaste y qué cubrió cada pago';
+  static const verMisPagos = 'Ver mis pagos';
+  static String resumenDeMisPagos(Cobro c) {
+    final hasta = c.hasta == null ? '' : formatearDiaYMes(c.hasta!);
+    return switch (c.estado) {
+      EstadoDelCobro.pagado => [
+        'Moca está pagada hasta el $hasta',
+        if (c.plan == 'fundador') 'Plan de fundador',
+        if (c.plan == 'anual') 'Plan anual',
+      ].join(' · '),
+      EstadoDelCobro.prueba when c.hasta == null => pruebaSinEmpezar,
+      EstadoDelCobro.prueba => pruebaTeQuedan(c.dias ?? 0, hasta),
+      EstadoDelCobro.vencido =>
+        c.plan == null ? '$pruebaTermino.' : '${pagoVencio(hasta)}.',
+      EstadoDelCobro.sinCobro => 'Moca todavía no cobra.',
+    };
+  }
+
+  static String planDelPago(PlanCobro plan, [int extras = 0]) =>
+      switch (plan) {
+        PlanCobro.basico => 'Un mes · Básico',
+        PlanCobro.basicoAnual => 'Un año · Básico',
+        PlanCobro.normal => 'Un mes · Full',
+        PlanCobro.fundador => 'Un mes · Full de fundador',
+        PlanCobro.anual => 'Un año · Full',
+      } +
+      (extras > 0 ? ' · ${masPersonas(extras)}' : '');
+  static String masPersonas(int n) => n == 1 ? '+ 1 persona' : '+ $n personas';
+  static String cubrio(String desde, String hasta) => 'Del $desde al $hasta';
+  static String porMercadoPago(String? operacion) => operacion == null
+      ? 'Mercado Pago'
+      : 'Mercado Pago · operación $operacion';
+  static const porYape = 'Yape';
+  static const pagoDevueltoNoCuenta = 'Anulado o devuelto: no cuenta';
+  static const pagoEnRevision =
+      'Tienes un pago de Mercado Pago en revisión. Te escribiremos por '
+      'WhatsApp.';
+  static const sinPagosTodavia = 'Todavía no hay pagos.';
+  static const misPagosSinSenal =
+      'Necesitas señal para ver tus pagos la primera vez.';
+  static String actualizadoEl(String dia) => 'Actualizado el $dia';
+  static const pagarOtroMes = 'Pagar otro mes';
+  static String pagoSumaUnMes(String hasta, String desde, String nuevo) =>
+      'Ya está pagada hasta el $hasta. Este pago suma un mes: del $desde al '
+      '$nuevo.';
+  static const pagaTuMes = 'Paga tu mes de Moca';
+
+  // Pagar con Mercado Pago (entrega 32).
+  static String pagaConMercadoPago(String monto) =>
+      'Paga $monto con Yape, tarjeta o PagoEfectivo en la página de Mercado '
+      'Pago.';
+  static const pagarConMercadoPago = 'Pagar con Mercado Pago';
+  static const abriendoMercadoPago = 'Abriendo Mercado Pago…';
+  static const oYapeaYMandaLaCaptura = 'O yapea y manda la captura:';
+  static const esperandoElPago = 'Esperando la confirmación del pago…';
+  static const seguirSinEsperar = 'Seguir sin esperar';
+  static const mocaPagada = 'Listo. Moca está pagada.';
+  static String mocaPagadaHasta(String dia) =>
+      'Listo. Moca está pagada hasta el $dia.';
+  static const pagoPorRevisar =
+      'Recibimos tu pago, pero hay que revisarlo. Te escribiremos por '
+      'WhatsApp.';
+  static const pagoDevuelto = 'Mercado Pago devolvió el pago. No se cobró.';
+  static const siYaPagaste =
+      'Si ya pagaste, Moca se activa sola en unos minutos. PagoEfectivo puede '
+      'tardar unas horas.';
+  static const pagoSinSenal = 'Necesitas señal para pagar.';
+  static const pagoNoDisponible =
+      'Por ahora no se puede pagar con Mercado Pago. Yapea y manda la captura.';
+  static const pagoSoloDuenos = 'Solo un dueño puede pagar Moca.';
+  static const pagoFallo =
+      'No se pudo abrir el pago. Intenta otra vez en un momento.';
+  static const noSeAbrioElPago = 'No se pudo abrir la página de pago.';
+  static String yapeaA(String monto, String numero, String nombre) =>
+      'Yapea $monto al $numero, a nombre de $nombre.';
+  static const precioDeFundador =
+      'Es tu precio de fundador: lo conservas mientras renueves a tiempo.';
+  static const luegoMandaLaCaptura =
+      'Luego manda la captura por WhatsApp. En cuanto la veamos, activamos tu '
+      'mes y aquí dirá hasta cuándo.';
+  static const copiarElNumero = 'Copiar el número';
+  static const numeroCopiado = 'Número copiado.';
+  static const mandarLaCaptura = 'Mandar la captura por WhatsApp';
+  static String mensajeDePago(String negocio, String celular, String plan) =>
+      'Hola, pagué Moca $plan para $negocio. Mi celular es $celular. Te mando '
+      'la captura.';
+
+  // Elegir el plan al pagar (entrega 43).
+  static const eligeTuPlan = 'Elige tu plan';
+  // «Elige tu plan» y «Pagar tu plan» (entrega 60).
+  static String avisoPruebaPlanes(int dias) => dias == 1
+      ? 'Te queda 1 día de prueba gratis. Si no eliges un plan, Moca sigue '
+            'guardando lo que anotes.'
+      : 'Te quedan $dias días de prueba gratis. Si no eliges un plan, Moca '
+            'sigue guardando lo que anotes.';
+  static const avisoVencidoPlanes =
+      'Moca sigue guardando lo que anotes. Elige un plan para volver a ver '
+      'todo.';
+  static String pagadaHastaPlanes(String fecha) =>
+      'Moca está pagada hasta el $fecha.';
+  static const mensual = 'Mensual';
+  static const anual = 'Anual';
+  static const ahorrasDosMeses = 'Ahorras 2 meses';
+  static const recomendado = 'Recomendado';
+  static const tuPlan = 'Tu plan';
+  static const fullPara = 'Para el negocio con equipo y para pedir un crédito.';
+  static const basicoPara = 'Para el dueño que lleva solo sus cuentas.';
+  static const alMes = 'al mes';
+  static const alAnio = 'al año';
+  static String equivaleAlMes(String monto, String ahorro) =>
+      'Equivale a $monto al mes · ahorras $ahorro';
+  static const elegirFull = 'Elegir Full';
+  static const elegirBasico = 'Elegir Básico';
+  static const fullTresPersonas = '3 personas: tú y 2 de tu equipo';
+  static const fullCredito =
+      'Para pedir un crédito: tu flujo de caja listo para la caja o el banco';
+  static const fullTodoElBasico = 'Todo lo del Básico';
+  static const basicoUnaPersona = '1 persona: tú';
+  static const basicoIncluye = [
+    'Anota por voz, foto, QR o escrito, aun sin señal',
+    'Tienes hoy, Historial e Informes del mes y del año',
+    'Lo que te deben, con recordatorio por WhatsApp',
+    'Arqueo semanal y avisos',
+    'PDF y Excel para ti y tu contador',
+  ];
+  static const basicoSinCredito = 'Para pedir un crédito';
+  static String cadaPersonaMas(String monto) => 'Cada persona más: $monto';
+  static const pieDePlanes =
+      'Puedes cambiar de plan o dejar de pagar cuando quieras. Lo que anotaste '
+      'no se borra y siempre lo puedes descargar.';
+  static const tuPrecioDeSiempre = 'Tu precio de siempre';
+  static const noIncluye = 'No incluye';
+  static const pagarTuPlan = 'Pagar tu plan';
+  static const etiquetaPlan = 'Plan';
+  static String planYPeriodo(String plan, {required bool anual}) =>
+      '$plan · ${anual ? 'anual' : 'mensual'}';
+  static String personasIncluidasEnPlan(int n) =>
+      n == 1 ? '1 persona incluida' : '$n personas incluidas';
+  static String personasDeMas(int n) =>
+      n == 1 ? '1 persona más' : '$n personas más';
+  static const totalAlMes = 'Total al mes';
+  static const totalAlAnio = 'Total al año';
+  static String cubreDelAl(String desde, String hasta) =>
+      'Cubre del $desde al $hasta.';
+  static const seActivaAlInstante = 'Se activa al instante';
+  static const mercadoPagoExplica =
+      'Pagas en Mercado Pago con Yape, tarjeta o PagoEfectivo, y Moca queda '
+      'activa apenas se confirma el pago.';
+  static String pagarMontoConMercadoPago(String monto) =>
+      'Pagar $monto con Mercado Pago';
+  static const prefieresYapear = '¿Prefieres yapear directo a Moca?';
+  static const yapeTardaMas =
+      'Tarda más: una persona revisa tu captura y activa tu plan.';
+  static const verComoYapear = 'Ver cómo yapear';
+  static const mercadoPagoSinTarjeta =
+      'Mercado Pago no le pasa a Moca los datos de tu tarjeta. Puedes cambiar '
+      'de plan o dejar de pagar cuando quieras.';
+  static const planBasico = 'Básico';
+  static const planFull = 'Full';
+  static const detalleBasico = '1 persona. Sin «Para pedir un crédito».';
+  static const detalleFull = '3 personas, con «Para pedir un crédito».';
+  static String cuentaDelPlan(
+    String plan,
+    String base,
+    int extras,
+    String porExtras,
+    String total, {
+    bool anual = false,
+  }) {
+    final periodo = anual ? 'al año' : 'al mes';
+    if (extras == 0) return '$plan $base $periodo';
+    final personas = extras == 1 ? '1 persona más' : '$extras personas más';
+    return '$plan $base + $personas $porExtras = $total $periodo';
+  }
+
+  static String conFullPagasMenos(String precio, {bool anual = false}) =>
+      'Con el Full pagas menos: $precio ${anual ? 'al año' : 'al mes'}, con 3 '
+      'personas y «Para pedir un crédito».';
+  static String conTusPersonas(
+    int personas,
+    String monto, {
+    required bool anual,
+  }) => 'Con tus $personas personas: $monto ${anual ? 'al año' : 'al mes'}';
+  static String avisoBasicoConExtras(int extras, String monto) =>
+      'Tu Básico incluye 1 persona. '
+      '${extras == 1 ? 'La otra suma' : 'Las otras $extras suman'} $monto al '
+      'mes hasta que las quites en «Mi equipo».';
+
+  // El crédito es del Full (entrega 43).
+  static const creditoEsDelFull = 'Está en el plan Full';
+  static const creditoEsDelFullDetalle =
+      '«Para pedir un crédito» viene con el plan Full: S/ 19.90 al mes, con '
+      '3 personas. Puedes cambiarte desde «Cómo pagar».';
+  static const pagoSinDatos =
+      'Muy pronto podrás pagar desde aquí. Te avisaremos.';
+  static const noSeAbrioWhatsApp = 'No se pudo abrir WhatsApp.';
+  static const soloAnotarDetalle =
+      'Sigues pudiendo anotar y bajar tus operaciones en Excel. Para ver tus '
+      'saldos, el arqueo y tus informes, paga tu mes.';
+  static const soloAnotarOtros =
+      'El negocio necesita renovar Moca. Sigues pudiendo anotar: avísale al '
+      'dueño.';
+  static const bajarMisOperaciones = 'Bajar mis operaciones del mes (Excel)';
+  static String preguntaPrecio(String monto) =>
+      '¿Seguirías usando Moca por $monto al mes?';
+  static const respuestaSi = 'Sí';
+  static const respuestaNoSe = 'No sé';
+  static const respuestaNo = 'No';
+  static const porQueOpcional = '¿Por qué? (opcional)';
+  static const enviarRespuesta = 'Enviar';
+  static const graciasPorResponder = 'Gracias. Tu respuesta nos ayuda mucho.';
+  static const necesitasSenalParaResponder =
+      'Necesitas señal para enviar tu respuesta.';
+  // Los errores de la app (entrega 27).
+  static const algoSalioMal = 'Algo salió mal en esta pantalla';
+  static const algoSalioMalDetalle =
+      'Ya nos llegó el aviso. Lo que anotaste está guardado.';
+  static const errores = 'Errores';
+  static const erroresDetalle =
+      'Lo que falló en los teléfonos, de los últimos 90 días.';
+  static const sinErrores = 'No hay errores en los últimos 90 días.';
+  static const necesitasSenalParaErrores =
+      'Necesitas señal para ver los errores.';
+  static String erroresVeces(int veces, int negocios) =>
+      '${veces == 1 ? '1 vez' : '$veces veces'} · '
+      '${negocios == 1 ? '1 negocio' : '$negocios negocios'}';
+  static const copiarDetalle = 'Copiar el detalle';
+  static const detalleCopiado = 'Detalle copiado.';
+
+  // La versión nueva (entrega 26.3).
+  static const hayVersionNueva = 'Hay una versión nueva de Moca';
+  static const hayVersionNuevaDetalle =
+      'Trae arreglos y mejoras. Se instala encima: no pierdes nada de lo que '
+      'anotaste.';
+  static const descargar = 'Descargar';
+  static const ahoraNoVersion = 'Ahora no';
+  static const actualizaMoca = 'Actualiza Moca para seguir';
+  static const actualizaParaAnotar =
+      'Para seguir anotando, instala la versión nueva. Lo que ya anotaste no '
+      'se pierde, y mientras tanto puedes ver tus saldos, tu historial y tus '
+      'informes.';
+  static const actualizaDesdeManana =
+      'Desde mañana tendrás que actualizar para seguir anotando. Toma un '
+      'minuto y no pierdes nada de lo anotado.';
+  static const actualizaMocaDetalle =
+      'Esta versión de Moca ya no funciona con el servidor. Lo que anotaste '
+      'está guardado en este teléfono y se sube cuando actualices.';
+  static const noSeAbrioLaDescarga = 'No se pudo abrir la descarga.';
+  static String versionDeMoca(String entrega, int armado) =>
+      entrega.isEmpty ? 'Moca, versión $armado' : 'Moca $entrega ($armado)';
+  static const versionDeDesarrollo = 'Moca, versión de desarrollo';
+  static String versionCorta(String entrega, int armado) =>
+      entrega.isEmpty ? 'armado $armado' : '$entrega ($armado)';
+
+  // «Ayuda» en Ajustes (entrega 46).
+  static const ayuda = 'Ayuda';
+  static const estadoDeEsteTelefono = 'Estado de este teléfono';
+  static const etiquetaCuentaAyuda = 'Cuenta';
+  static const etiquetaNegocioAyuda = 'Negocio';
+  static const etiquetaServidor = 'Servidor';
+  static const etiquetaVersion = 'Versión';
+  static String unidoATuCuenta(String celular) => 'Unido a tu cuenta: $celular';
+  static const sinCuentaAyuda =
+      'Sin cuenta: lo anotado vive solo en este teléfono';
+  static const porConfirmarAyuda = 'Falta confirmar tu número';
+  static const abiertaEnOtroAyuda = 'Tu cuenta se abrió en otro teléfono';
+  static const fueraAyuda = 'Te quitaron de este negocio';
+  static String negocioYRol(String negocio, String rol, bool titular) =>
+      '${negocio.isEmpty ? 'Tu negocio' : negocio} · $rol'
+      '${titular ? ' (titular)' : ''}';
+  static String actualizadoAyuda(String cuando) => 'Al día: $cuando';
+  static const sinActualizarAyuda = 'Todavía no se conectó';
+  static String porSubirAyuda(int n) =>
+      '${n == 1 ? '1 registro por subir' : '$n registros por subir'}: abre '
+      'Moca con señal';
+  static const abiertaEnOtroQueHacer =
+      'Usa Moca en el teléfono donde entraste último. Para volver a este, '
+      'entra con «Ya tengo cuenta» y tu número.';
+  static const fueraQueHacer =
+      'Pídele al dueño que te invite otra vez, o entra a otro negocio desde '
+      '«Mis negocios».';
+  static const pedirAyudaWhatsApp = 'Pedir ayuda por WhatsApp';
+  static String mensajeDeAyuda({
+    required String version,
+    required String cuenta,
+    required String negocio,
+    required String? codigo,
+    required String rol,
+    required int porSubir,
+  }) =>
+      'Hola, necesito ayuda con Moca.\n'
+      'Versión: $version · Cuenta: $cuenta · Negocio: $negocio'
+      '${codigo == null ? '' : ' (código $codigo)'} · Rol: $rol'
+      ' · Por subir: $porSubir';
+  static String versionConCommit(String entrega, int armado, String commit) =>
+      'Versión: ${entrega.isEmpty ? '—' : entrega} · armado $armado · '
+      'commit ${commit.isEmpty ? '—' : commit}';
+
+  // La pantalla de cobros de Jhony (entrega 26).
+  static const cobros = 'Cobros';
+  static const cobrosDetalle =
+      'Buscar un negocio, registrar un pago por Yape y ver lo que vence.';
+  static String fundadoresUsados(int usados, int maximo) =>
+      'Fundadores: $usados de $maximo.';
+  static const celularDelDueno = 'Celular de la persona';
+
+  // La ficha de soporte (entrega 47).
+  static const numeroSinCuenta47 =
+      'Ese número no tiene cuenta en Moca: nunca guardó su avance.';
+  static const sinNegociosActivos =
+      'Ese número tiene cuenta, pero no está en ningún negocio.';
+  static const enQueNegocios = 'Está en estos negocios:';
+  static String negocioYRolSoporte(String nombre, String rol, bool titular) =>
+      '$nombre · $rol${titular ? ' (titular)' : ''}';
+  static const personasSoporte = 'Personas';
+  static String personaSoporte({
+    required String rol,
+    required bool titular,
+    String? nombre,
+    String? celular,
+    String? version,
+    String? subio,
+  }) => [
+    ?nombre,
+    '$rol${titular ? ' (titular)' : ''}',
+    ?celular,
+    version ?? 'versión sin datos',
+    subio == null ? 'no subió todavía' : 'subió $subio',
+  ].join(' · ');
+  static const invitacionesSoporte = 'Invitaciones';
+  static String invitacionSoporte(
+    String celular,
+    String rol,
+    String estado,
+    String? nombre,
+  ) => [?nombre, celular, rol, estado].join(' · ');
+  static String registrosSoporte(int n) =>
+      n == 1 ? '1 registro' : '$n registros';
+  static const darDiasDePrueba = 'Dar días de prueba';
+  static String diasDePrueba(int dias) => '$dias días más';
+  static String diasDadosHasta(String hasta) =>
+      'Listo. La prueba va hasta el $hasta.';
+  static const borrarElNegocio = 'Borrar el negocio';
+  static String borrarElNegocioDetalle(String nombre) =>
+      'Se borra «$nombre» con todo lo que anotaron, también en el servidor. '
+      'Solo a pedido de su titular. Para confirmar, escribe el nombre del '
+      'negocio.';
+  static const negocioBorrado47 = 'Listo. El negocio se borró.';
+  static const yaPagoSoporte =
+      'Ese negocio ya pagó alguna vez: no se le dan días de prueba.';
+  static const demasiadosDiasSoporte =
+      'Ese negocio ya tiene muchos días de regalo.';
+  static const nombreNoCoincide = 'El nombre no coincide con el del negocio.';
+  static const buscar = 'Buscar';
+  static const sinNegocioConEseNumero = 'No hay un negocio con ese número.';
+  static const sinPermisoCobros = 'Este número no registra pagos.';
+  static const necesitasSenalParaCobros = 'Necesitas señal para los cobros.';
+  static const registrarPago = 'Registrar pago';
+  static String nombrePlan(PlanCobro plan) => switch (plan) {
+    PlanCobro.basico => 'Básico, S/ 14.90',
+    PlanCobro.basicoAnual => 'Básico al año, S/ 149',
+    PlanCobro.normal => 'Full, S/ 19.90',
+    PlanCobro.fundador => 'Full de fundador, S/ 14.90',
+    PlanCobro.anual => 'Full al año, S/ 199',
+  };
+  static String totalConPersonas(int personas, String total) =>
+      'Con ${personas == 1 ? '1 persona' : '$personas personas'}: $total';
+  static const notaDelPago = 'Nota (número de operación de Yape)';
+  static String confirmarPago(String plan, String negocio) =>
+      '¿Registrar «$plan» para $negocio?';
+  static String pagoRegistrado(String hasta) =>
+      'Listo. Pagado hasta el $hasta.';
+  static const perdioFundador =
+      'Renovó más de 30 días tarde: ya no es fundador. Registra el mes de '
+      'S/ 19.90.';
+  static const sinCupoFundador = 'Ya están los 50 fundadores.';
+  static const pagosRegistrados = 'Pagos';
+  static const anularPago = 'Anular';
+  static const anularPagoPregunta = '¿Anular este pago?';
+  static const anularPagoDetalle =
+      'Úsalo para un pago de prueba o registrado por error. El negocio vuelve '
+      'a como estaba antes de este pago; el pago queda en la lista, anulado.';
+  static const pagoAnulado = 'Listo. El pago quedó anulado.';
+  static const anulado = 'anulado';
+  static const noEsElUltimoPago = 'Solo se puede anular el último pago.';
+  static String pagoDe(String monto, String desde, String hasta) =>
+      '$monto · del $desde al $hasta';
+  static const respuestaDelDia10 = 'Respuesta del día 10';
+  static String respondio(String respuesta, String precio) =>
+      '$respuesta, con $precio';
+  static const vencenPronto = 'Vencen pronto o ya vencieron';
+
+  // El uso de cada negocio (entrega 28).
+  static const usoDeLaSemana = 'Uso de los últimos 7 días';
+  static String usoDias(int abrio, int anoto) =>
+      'Abrió Moca $abrio de 7 días · anotó $anoto de 7 días';
+  static String usoVentas(int ventas, int? segundos) => ventas == 0
+      ? 'No anotó la venta del día'
+      : '${ventas == 1 ? '1 venta del día' : '$ventas ventas del día'}'
+            '${segundos == null ? '' : ' · tarda unos $segundos s en anotarla'}';
+  static String usoVoz(int dudas, int corregidas, int fotos) =>
+      'Voz: dudó $dudas, corregida $corregidas · fotos ilegibles: $fotos';
+  static String usoAvisos(int respondidos, int abiertos) =>
+      'Aviso de cierre: respondió $respondidos, lo abrió $abiertos';
+  static String usoAbrio(int arqueos, int informes) =>
+      'Arqueos abiertos: $arqueos · informes abiertos: $informes';
+  static String ultimaVezQueAbrio(String cuando) =>
+      'Abrió Moca por última vez: $cuando';
+  static const nuncaAbrio = 'Sin datos de uso todavía';
+  static const sinAbrirMoca = 'Sin abrir Moca hace 3 días o más';
+  static const pagosPorRevisar = 'Pagos de Mercado Pago por revisar';
+  static String motivoPorRevisar(String motivo) => switch (motivo) {
+    'monto' => 'cobró menos de lo que vale',
+    'sin_cupo_fundador' => 'ya no había cupo de fundador',
+    'perdio_fundador' => 'ya no le tocaba el precio de fundador',
+    'devuelto' => 'devuelto, y no era su último pago',
+    _ => motivo,
+  };
+  static const todosAbren = 'Todos abrieron Moca en los últimos 3 días.';
+  static const nadaPorVencer = 'Nada vence en los próximos 3 días.';
+  static String estadoCorto(Cobro cobro) {
+    final hasta = cobro.hasta == null
+        ? ''
+        : '${cobro.hasta!.day}/${cobro.hasta!.month}';
+    return switch (cobro.estado) {
+      EstadoDelCobro.sinCobro => 'Sin cobro',
+      EstadoDelCobro.prueba when cobro.hasta == null => 'Prueba sin empezar',
+      EstadoDelCobro.prueba => 'Prueba hasta el $hasta',
+      EstadoDelCobro.pagado => 'Pagado hasta el $hasta',
+      EstadoDelCobro.vencido => 'Venció el $hasta',
+    };
+  }
+
+  static const notificacionCobro =
+      'Tu prueba gratis de Moca termina en 3 días. Toca para ver cómo pagar.';
+
+  // Salir de este negocio (entrega 22.2).
+  // Sin acceso al negocio (entrega 37).
+  static String sinAccesoTitulo(SinAcceso s) {
+    final negocio = s.negocio.isEmpty ? 'El negocio' : s.negocio;
+    return switch (s.motivo) {
+      MotivoSinAcceso.negocioBorrado => '$negocio ya no está en Moca',
+      MotivoSinAcceso.otroTelefono => 'Tu cuenta se abrió en otro teléfono',
+      MotivoSinAcceso.salio =>
+        s.negocio.isEmpty ? 'Saliste del negocio' : 'Saliste de ${s.negocio}',
+      _ =>
+        s.negocio.isEmpty
+            ? 'Ya no estás en este negocio'
+            : 'Ya no estás en ${s.negocio}',
+    };
+  }
+
+  static String sinAccesoDetalle(MotivoSinAcceso m) => switch (m) {
+    MotivoSinAcceso.negocioBorrado =>
+      'El dueño borró el negocio y sus datos. Tu cuenta sigue: puedes '
+          'empezar tu propio negocio o entrar a otro donde te inviten.',
+    MotivoSinAcceso.quitado =>
+      'Un dueño te quitó del equipo. Lo que anotaste se quedó en el negocio; '
+          'lo que anotaste sin señal después no se pudo guardar.',
+    MotivoSinAcceso.salio =>
+      'Lo que anotaste se quedó en el negocio. Para volver, un dueño tiene '
+          'que invitarte otra vez.',
+    MotivoSinAcceso.otroTelefono =>
+      'Por seguridad, aquí se borró lo del negocio. Si fuiste tú, vuelve a '
+          'entrar con tu número; lo anotado sigue guardado en tu cuenta.',
+    MotivoSinAcceso.sinNegocio =>
+      'Ya no tienes acceso a este negocio. Tu cuenta sigue: puedes empezar '
+          'tu propio negocio o entrar a otro donde te inviten.',
+  };
+  static const empezarMiNegocio = 'Empezar mi propio negocio';
+  static const verMisNegociosEInvitaciones = 'Ver mis negocios e invitaciones';
+  static const volverAEntrarConMiNumero = 'Volver a entrar con mi número';
+  static const empezarDeCeroAqui = 'Empezar de cero';
+  static const salirDeMocaAqui = 'Salir de Moca en este teléfono';
+
+  // Un teléfono sin la cuenta unida (entrega 45.1): siempre hay salida.
+  static const entrarConMiCelular = 'Entrar con mi celular';
+  static const entrarConMiCelularDetalle =
+      'Une este teléfono a tu cuenta, o guarda lo anotado con tu número.';
+  static const borrarEsteTelefono = 'Borrar todo en este teléfono';
+  static const borrarEsteTelefonoDetalle =
+      'Moca vuelve a empezar, como recién instalada.';
+  static const borrarEsteTelefonoPregunta = '¿Borrar todo en este teléfono?';
+  static const borrarEsteTelefonoTexto =
+      'Se borra lo anotado en este teléfono y Moca vuelve a la bienvenida, '
+      'donde puedes tocar «Ya tengo cuenta» o empezar de nuevo. No toca lo '
+      'guardado en el servidor.';
+  static const borrar = 'Borrar';
+  static const salirDeMocaAquiDetalle =
+      'Tu lugar en el negocio sigue; vuelves a entrar con tu número';
+  static const salirDeMocaAquiPregunta = '¿Salir de Moca en este teléfono?';
+  static const salirDeMocaAquiTexto =
+      'Se borra lo de Moca en este teléfono. Lo que ya subió sigue en el '
+      'negocio y vuelves a verlo al entrar con tu número.';
+  static const salirDeMocaSinSenal =
+      'Hay registros que todavía no suben y no hay señal. Prueba con señal '
+      'para no perderlos.';
+  static const salirDelNegocio = 'Salir de este negocio';
+  static const salirDelNegocioDetalle =
+      'Lo que anotaste se queda en el negocio';
+  static const salirDelNegocioPregunta = '¿Salir de este negocio?';
+  static const salirDelNegocioTexto =
+      'Ya no verás ni anotarás en este negocio. Lo que anotaste se queda. '
+      'Para volver, un dueño tiene que invitarte otra vez.';
+  static const salisteDelNegocio = 'Listo. Saliste del negocio.';
+  static const necesitasSenalParaSalir =
+      'Necesitas señal para salir del negocio. No cambió nada.';
+
+  // La huella al abrir Moca (entrega 16.3).
+  static const pedirHuella = 'Pedir huella al abrir Moca';
+  static const pedirHuellaDetalle =
+      'Usa el bloqueo de tu teléfono: huella, rostro, patrón o PIN.';
+  static const sinBloqueoEnElTelefono =
+      'Primero pon un bloqueo en tu teléfono (huella, patrón o PIN).';
+  static const huellaActivada = 'Listo. Moca pedirá tu huella al abrir.';
+  static const huellaDesactivada = 'Listo. Moca ya no pedirá tu huella.';
+  static const confirmaQueEresTu = 'Confirma que eres tú para abrir Moca';
+  static const mocaProtegida = 'Moca está protegida';
+  static const usarHuella = 'Usar huella';
+
+  // «Borrar mi negocio» (entrega 16.1).
+  static const borrarMiNegocio = 'Borrar mi negocio y mis datos';
+  static const borrarMiNegocioDetalle =
+      'Borra para siempre lo anotado y tu equipo';
+  static const queSeBorra =
+      'Se borra para siempre, en el servidor y en este teléfono:';
+  static const seBorraLoAnotado =
+      'Todo lo anotado: ventas, gastos, lo que te deben, lo que debes, '
+      'arqueos y saldos.';
+  static const seBorranLasFotos =
+      'Las fotos de los comprobantes que leyó Moca.';
+  static const seBorraElEquipo =
+      'Tu equipo: las personas que invitaste ya no podrán entrar.';
+  static const seGuardaElNumero =
+      'Tu número de celular se guarda, sin datos, para que los días de '
+      'prueba no se repitan.';
+  static const antesDeBorrar =
+      'No se puede deshacer. Si quieres quedarte con lo anotado, descarga '
+      'antes el Excel en Informes.';
+  static const borrarParaSiempre = 'Borrar para siempre';
+  static const borrando = 'Borrando…';
+  static const seBorroTodoEnServidor = 'Se borró todo, también en el servidor.';
+  static const borrarSinSenal =
+      'Necesitas señal para borrar en el servidor. No se borró nada.';
+  static const borrarFallo =
+      'No se pudo borrar en el servidor. No se borró nada; intenta otra vez.';
   static const confirmarBorrarTitulo = '¿Borrar todo?';
   static const confirmarBorrarTexto =
       'Se borran todos los datos guardados en este teléfono. '
@@ -684,4 +2278,35 @@ abstract final class Textos {
   static const borrarTodoBoton = 'Borrar todo';
   static const seBorroTodo =
       'Se borró todo. La app quedó como recién instalada.';
+
+  // Videos de ayuda (entrega 14.6)
+  static String verComo(int segundos) => 'Ver cómo · $segundos s';
+  static String primeraVez(int segundos) =>
+      '¿Primera vez? Mira cómo se hace en $segundos segundos.';
+  static const verVideo = 'Ver video';
+  static const aprendeEnTresMinutos = 'Aprende en 3 minutos';
+  static const aprendeDetalle =
+      'Videos cortos, uno por cada cosa que hace Moca.';
+  static String duracionVideo(int segundos) => '$segundos s';
+  static const videoVisto = 'Visto';
+  static const videoSinEnlace = 'Este video todavía no está listo.';
+  static const videoNoSeAbrio =
+      'No se pudo abrir el video. Revisa tu señal e intenta otra vez.';
+  static String tituloVideo(VideoTutoria video) => switch (video) {
+    VideoTutoria.queEsMoca => 'Qué es Moca',
+    VideoTutoria.ventaDelDia => 'Anotar la venta del día',
+    VideoTutoria.gastoConFoto => 'Anotar un gasto con foto o QR',
+    VideoTutoria.avisoDeLaNoche => 'Contestar el aviso de la noche',
+    VideoTutoria.arqueo => 'El arqueo del domingo',
+    VideoTutoria.informe => 'Entender tu informe del mes',
+    VideoTutoria.guardarAvance => 'Guardar tu avance con tu número',
+  };
+  static const videosSinEnlace = 'Ver los videos sin enlace';
+  static const videosSinEnlaceDetalle =
+      'Muestra los botones de los videos aunque todavía no estén subidos, '
+      'para probarlos.';
+  static const videosSinEnlaceActivado =
+      'Listo. Se ven los botones de los videos.';
+  static const videosSinEnlaceDesactivado =
+      'Listo. Solo se ven los videos que ya tienen enlace.';
 }

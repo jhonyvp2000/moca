@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../dominio/modelos.dart';
+import '../../comun/actualizar.dart';
+import '../../dominio/cuenta_real.dart';
+import '../../dominio/equipo.dart';
 import '../../inyeccion.dart';
 import '../../rutas.dart';
+import '../../textos/textos.dart';
+import '../cobro/cobro.dart';
+import '../version/version.dart';
 import 'hoja_saldo.dart';
 import 'pantalla_inicio_completa.dart';
 import 'pantalla_primer_dia.dart';
@@ -22,30 +27,64 @@ class PantallaInicio extends ConsumerWidget {
 
     void anotarVenta() => context.push(Rutas.vozVenta);
 
-    if (!inicio.mostrarPrimerDia) {
-      return PantallaInicioCompleta(
-        resumen: inicio,
+    // Con varias personas en el negocio, cuándo bajó lo de los demás
+    // (entrega 18).
+    final cuenta = ref.watch(situacionCuentaProvider).value;
+    final actualizado =
+        cuenta != null &&
+            cuenta.estado == EstadoCuenta.guardada &&
+            cuenta.variasPersonas &&
+            cuenta.actualizadoEn != null
+        ? Textos.actualizadoHace(
+            cuenta.actualizadoEn!,
+            ref.read(relojProvider)(),
+          )
+        : null;
+
+    // El primer día es del dueño que empieza; los demás roles ven el
+    // Inicio según lo que les toca (entrega 20).
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    // Una versión obligatoria ya no tapa el Inicio (entrega 34): el aviso
+    // va arriba y lo que anota lleva a actualizar.
+    // Al vencer la prueba o el pago, solo se anota (entrega 25).
+    if (permisos.soloAnotar) {
+      return InicioSoloAnotar(
         alAnotarVenta: anotarVenta,
-        alHacerArqueo: () => context.push(Rutas.arqueo),
-        aviso: ref.watch(avisosProvider).value?.firstOrNull,
-        tarjetaAvisos: const TarjetaPermisoAvisos(),
+        alBajarExcel: () => bajarExcelDelMes(context, ref),
+      );
+    }
+    // Lo de arriba del Inicio: el aviso del cobro y el permiso de avisos.
+    Widget arriba(bool conPermiso) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const AvisoDeVersion(),
+        const AvisoDelCobro(),
+        if (conPermiso) const TarjetaPermisoAvisos(),
+      ],
+    );
+    if (!inicio.mostrarPrimerDia || !permisos.tienePrimerDia) {
+      // Deslizar hacia abajo trae lo nuevo de los demás (entrega 18.1).
+      return ConActualizar(
+        child: PantallaInicioCompleta(
+          resumen: inicio,
+          actualizado: actualizado,
+          permisos: permisos,
+          tarjetaAvisos: arriba(permisos.recibeAvisos),
+        ),
       );
     }
 
     final primerDia = ref.watch(resumenPrimerDiaProvider).value;
     if (primerDia == null) return const SizedBox.shrink();
-    return PantallaPrimerDia(
-      resumen: primerDia,
-      alAnotarVenta: anotarVenta,
-      alAnotarGasto: () => context.push(
-        Uri(
-          path: Rutas.escribir,
-          queryParameters: {'tipo': TipoMovimiento.egreso.name},
-        ).toString(),
+    return ConActualizar(
+      child: PantallaPrimerDia(
+        resumen: primerDia,
+        alAnotarVenta: anotarVenta,
+        alDeclararSaldo: () => mostrarHojaSaldo(context),
+        alHacerArqueo: () => context.push(Rutas.arqueo),
+        tarjetaAvisos: arriba(true),
       ),
-      alDeclararSaldo: () => mostrarHojaSaldo(context),
-      alHacerArqueo: () => context.push(Rutas.arqueo),
-      tarjetaAvisos: const TarjetaPermisoAvisos(),
     );
   }
 }

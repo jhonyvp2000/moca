@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
+import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
 import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
@@ -62,6 +64,14 @@ class _EstadoTarjetaPermiso extends ConsumerState<TarjetaPermisoAvisos> {
                   OutlinedButton(
                     onPressed: _cerrar,
                     child: const Text(Textos.ahoraNoCorto),
+                  ),
+                  // Qué es el aviso de la noche (entrega 14.6).
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: EnlaceVerComo(
+                      video: VideoTutoria.avisoDeLaNoche,
+                      desde: DesdeVideo.permisoAvisos,
+                    ),
                   ),
                 ],
               ),

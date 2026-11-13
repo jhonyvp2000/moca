@@ -7,14 +7,24 @@ class NuevoMovimiento {
     required this.tipo,
     required this.montoCentimos,
     required this.cuenta,
+    this.cuentaDestino,
     this.categoriaId,
     this.nota,
     this.fuente = Fuente.texto,
+    this.pagado = true,
+    this.contraparte,
+    this.celularContraparte,
+    this.documentoTipo,
+    this.documentoNumero,
+    this.institucion,
   });
 
   final TipoMovimiento tipo;
   final int montoCentimos;
   final TipoCuenta cuenta;
+
+  /// En un pase, la cuenta a la que va la plata (entrega 21.1).
+  final TipoCuenta? cuentaDestino;
 
   /// Nula en un retiro para el dueño, que no lleva categoría.
   final String? categoriaId;
@@ -22,6 +32,42 @@ class NuevoMovimiento {
 
   /// Escrito o dicho por voz.
   final Fuente fuente;
+
+  /// Falso: una compra que todavía se debe (entrega 41) o una venta que
+  /// todavía te deben (entrega 42). No mueve la plata hasta que se paga;
+  /// solo vale para «Salió» y «Entró».
+  final bool pagado;
+
+  /// A quién se le debe (el proveedor) o quién te debe (el cliente).
+  final String? contraparte;
+
+  /// El celular de quien te debe, si el dueño lo puso (entrega 53).
+  final String? celularContraparte;
+
+  /// El documento del registro, opcional (entrega 66): «Factura» y su
+  /// número libre, «0045J».
+  final String? documentoTipo;
+  final String? documentoNumero;
+
+  /// La institución, opcional (entrega 66): el cliente si entró plata, el
+  /// proveedor si salió. En lo que se debe, el nombre es [contraparte].
+  final String? institucion;
+
+  /// El nombre del cliente o proveedor que se guarda con el registro.
+  String? get nombreContraparte {
+    final n = (pendiente ? contraparte : institucion)?.trim();
+    return n == null || n.isEmpty ? null : n;
+  }
+
+  bool get pendiente =>
+      (tipo == TipoMovimiento.egreso || tipo == TipoMovimiento.ingreso) &&
+      !pagado;
+
+  /// Una venta a crédito lleva el nombre de quién debe (entrega 42).
+  bool get faltaQuienDebe =>
+      pendiente &&
+      tipo == TipoMovimiento.ingreso &&
+      (contraparte?.trim().isEmpty ?? true);
 }
 
 /// Lo que ya se sabe de un movimiento para abrir «Escribirlo» con los datos
@@ -31,13 +77,39 @@ class BorradorMovimiento {
     this.tipo,
     this.montoCentimos,
     this.cuenta,
+    this.cuentaDestino,
     this.categoriaId,
+    this.pagado = true,
+    this.contraparte,
   });
 
   final TipoMovimiento? tipo;
   final int? montoCentimos;
   final TipoCuenta? cuenta;
+  final TipoCuenta? cuentaDestino;
   final String? categoriaId;
+
+  /// Falso: todavía se debe; y quién (entrega 49, desde la voz).
+  final bool pagado;
+  final String? contraparte;
+}
+
+/// Lo fiado en «Anotar la venta de hoy» (entrega 52): cuánto, a quién y la
+/// caja donde queda anotado (no mueve su saldo hasta que te paguen).
+class FiadoDelDia {
+  const FiadoDelDia({
+    required this.montoCentimos,
+    required this.quien,
+    this.cuenta = TipoCuenta.efectivo,
+    this.celular,
+  });
+
+  final int montoCentimos;
+  final String quien;
+  final TipoCuenta cuenta;
+
+  /// El celular de quien te debe (entrega 53).
+  final String? celular;
 }
 
 class CategoriaVista {
@@ -68,14 +140,28 @@ class ResumenInicio {
     required this.diferenciaConSemanaAnteriorCentimos,
     required this.ventaDeHoyCentimos,
     required this.mostrarPrimerDia,
+    this.semanaRetirosCentimos = 0,
+    this.semanaAportesCentimos = 0,
     this.estadoArqueo = EstadoArqueo.nada,
+    this.fiadoDeHoyCentimos = 0,
   });
+
+  /// De la venta de hoy, lo que se fió y todavía no se cobra (entrega 51):
+  /// «Vendiste hoy S/ 480 · S/ 130 al fiado».
+  final int fiadoDeHoyCentimos;
 
   final String nombreNegocio;
   final Map<TipoCuenta, int> saldosPorCuenta;
   final int semanaEntroCentimos;
   final int semanaSalioCentimos;
   final bool semanaConMovimientos;
+
+  /// Lo que el dueño retiró para sí esta semana; aparece en el Inicio si
+  /// hubo (entrega 14.9).
+  final int semanaRetirosCentimos;
+
+  /// Lo que el dueño puso de su bolsillo esta semana (entrega 14.11).
+  final int semanaAportesCentimos;
 
   /// Lo que quedó esta semana menos lo que quedó la semana pasada hasta el
   /// mismo día de la semana. Nulo si la semana pasada no hubo movimientos.
@@ -98,6 +184,11 @@ abstract interface class RepositorioMovimientos {
 
   Future<List<CategoriaVista>> categorias(TipoMovimiento tipo);
 
+  /// Los nombres ya usados, para sugerirlos (entrega 66): desde la entrega
+  /// 69, clientes y proveedores juntos, y solo los que tienen algún registro
+  /// vigente (un nombre que se corrigió deja de sugerirse).
+  Future<List<String>> nombresDeContrapartes();
+
   /// Cuánto quedaría en la cuenta si se guarda este movimiento. Moca
   /// pregunta antes de dejar una cuenta en negativo.
   Future<int> saldoSiSeGuarda(NuevoMovimiento movimiento);
@@ -106,9 +197,13 @@ abstract interface class RepositorioMovimientos {
 
   /// Venta del día por cuenta, después del primer día. Se suma a lo que ya
   /// se haya anotado hoy.
+  /// Con [fiado], también lo vendido a crédito ese día (entrega 52): una
+  /// venta que todavía te deben, en el mismo paso; «Deshacer» la anula
+  /// junto con lo demás.
   Future<Guardado> anotarVentaDelDia(
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
+    FiadoDelDia? fiado,
   });
 
   /// Anula lo guardado: no se borra, y el cambio queda en la bitácora.

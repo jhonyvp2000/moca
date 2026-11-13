@@ -1,0 +1,67 @@
+# Infraestructura de Moca en Render (docs/v1-real.md). Render lee este archivo
+# al crear el «Blueprint»: un servidor web y su base PostgreSQL.
+# Redis y el almacén de imágenes llegan con la lectura de fotos (entrega 14).
+services:
+  - type: web
+    name: moca-servidor
+    runtime: node
+    region: virginia
+    # Starter (0.5 CPU, 512 MB, USD 7 al mes): no se duerme, así el código
+    # y las subidas responden en segundos (14-10-2026).
+    plan: starter
+    rootDir: servidor
+    buildCommand: npm ci && npm run compilar
+    # Al arrancar migra la base y se niega a abrir si el rol se salta el
+    # aislamiento por empresa.
+    startCommand: npm run iniciar
+    healthCheckPath: /salud
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moca-base
+          property: connectionString
+      # Twilio Verify, para el código por SMS (entrega 11). Jhony los pega en
+      # Render; no van en el repositorio.
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_VERIFY_SID
+        sync: false
+      # Lectura de fotos con Claude (entrega 14). Jhony la pega en Render.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # El cobro manual por Yape (entrega 24). Jhony los pega en Render; no
+      # van en el repositorio. Sin MOCA_COBRO_DESDE («2026-11-10») no se
+      # cobra: se pone el día en que sale la entrega 25.
+      - key: MOCA_COBRO_DESDE
+        sync: false
+      - key: MOCA_ADMIN_CELULARES
+        sync: false
+      - key: MOCA_YAPE_NUMERO
+        sync: false
+      - key: MOCA_YAPE_NOMBRE
+        sync: false
+      # Pagar con Mercado Pago (entrega 32): el Access Token y la clave
+      # secreta del webhook, de la misma aplicación. Solo en el panel.
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      # «Actualiza Moca para seguir» (entrega 26.3): con un número de armado,
+      # las versiones más viejas solo pueden actualizarse. Vacía: nunca obliga.
+      - key: MOCA_APP_MINIMA
+        sync: false
+
+databases:
+  - name: moca-base
+    region: virginia
+    # 0.1 CPU y 256 MB (USD 6 al mes), «0.1c-256mb» en el panel de Render:
+    # no vence como la gratuita (14-10-2026).
+    plan: basic-256mb
+    databaseName: moca
+    postgresMajorVersion: "16"
+    # Solo el servidor de Render entra a la base; nadie desde internet.
+    ipAllowList: []

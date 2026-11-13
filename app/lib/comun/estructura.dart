@@ -88,7 +88,8 @@ class EncabezadoConVolver extends StatelessWidget {
           Expanded(
             child: Text(
               titulo,
-              style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+              // El título de pantalla grande, como en el diseño (mejora 01).
+              style: Tipografia.encabezado,
             ),
           ),
         ],
@@ -111,25 +112,21 @@ class BotonVolver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Material 3: la flecha sola, sin caja (mejora 01).
     return Semantics(
       button: true,
       label: MaterialLocalizations.of(context).backButtonTooltip,
-      child: Material(
-        color: Colores.superficie,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Medidas.radioBoton),
-          side: const BorderSide(color: Colores.bordeTarjeta),
-        ),
-        child: InkWell(
-          customBorder: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Medidas.radioBoton),
-          ),
-          onTap: alTocar,
-          child: SizedBox.square(
-            dimension: Medidas.objetivoTactilMinimo,
-            child: Center(
-              child: IconoTrazo(icono, color: Colores.textoPrincipal),
-            ),
+      child: InkResponse(
+        onTap: alTocar,
+        radius: Medidas.objetivoTactilMinimo / 2,
+        child: SizedBox.square(
+          dimension: Medidas.objetivoTactilMinimo,
+          child: Icon(
+            icono == Icono.cerrar
+                ? Icons.close_rounded
+                : Icons.arrow_back_rounded,
+            size: 26,
+            color: Colores.textoPrincipal,
           ),
         ),
       ),
@@ -147,7 +144,7 @@ class Aviso extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Medidas.e4, vertical: 12),
       decoration: BoxDecoration(
         color: Colores.avisoFondo,
         borderRadius: BorderRadius.circular(Medidas.radioBoton),

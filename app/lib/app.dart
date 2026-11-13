@@ -1,15 +1,22 @@
+import 'dominio/version.dart';
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'comun/actualizar.dart';
 import 'dominio/aviso_cierre.dart';
+import 'dominio/cuenta_real.dart';
 import 'dominio/cuentas.dart';
 import 'dominio/medicion.dart';
-import 'dominio/modelos.dart';
 import 'dominio/primer_dia.dart';
 import 'inyeccion.dart';
+import 'pantallas/cerradura/con_cerradura.dart';
 import 'rutas.dart';
+import 'servicios/registro_de_errores.dart';
 import 'tema/colores.dart';
 import 'tema/medidas.dart';
 import 'tema/tipografia.dart';
@@ -25,7 +32,11 @@ class MocaApp extends ConsumerStatefulWidget {
 
 class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
   final _etapa = ValueNotifier<EtapaInicio?>(null);
-  late final GoRouter _rutas = crearRutas(_etapa);
+
+  /// Una versión obligatoria vencida: lo que anota lleva a actualizar
+  /// (entrega 34).
+  final _bloqueado = ValueNotifier(false);
+  late final GoRouter _rutas = crearRutas(_etapa, _bloqueado);
 
   /// A dónde ir cuando se tocó una notificación antes de que la app
   /// terminara de abrir.
@@ -45,6 +56,13 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
       },
       fireImmediately: true,
     );
+    // El bloqueo por versión (entrega 34), después del primer cuadro: al
+    // abrir hay lecturas más urgentes.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.listenManual(bloqueoPorVersionProvider, (_, bloqueo) {
+        _bloqueado.value = bloqueo == BloqueoPorVersion.bloqueado;
+      }, fireImmediately: true),
+    );
     // Las notificaciones se vuelven a programar cada vez que cambian los
     // datos.
     ref.listenManual(planNotificacionesProvider, (_, plan) {
@@ -52,12 +70,88 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     }, fireImmediately: true);
     // El nombre que el dueño le puso a su otra billetera.
     ref.listenManual(cuentasProvider, (_, cuentas) {
-      for (final c in cuentas.value ?? const <CuentaVista>[]) {
-        if (c.tipo == TipoCuenta.otra) Textos.nombreOtraBilletera = c.nombre;
+      Textos.recordarNombres([
+        for (final c in cuentas.value ?? const <CuentaVista>[])
+          (tipo: c.tipo, nombre: c.nombre),
+      ]);
+    }, fireImmediately: true);
+    // Con cuenta, lo anotado se sube solo unos segundos después de cada
+    // cambio, al abrir la app y al volver a ella (entrega 11).
+    // Desde la entrega 18 también baja lo que anotaron los demás: al abrir,
+    // al volver a la app y cada pocos minutos.
+    ref.listenManual(situacionCuentaProvider, (_, situacion) {
+      if (situacion.value?.estado != EstadoCuenta.guardada) {
+        _paraTraer?.cancel();
+        _paraTraer = null;
+        return;
+      }
+      _paraTraer ??= Timer.periodic(cadaCuantoTraer, (_) {
+        // Solo con la app a la vista: en segundo plano no gasta datos.
+        final estado = WidgetsBinding.instance.lifecycleState;
+        if (estado == null || estado == AppLifecycleState.resumed) {
+          _sincronizar();
+        }
+      });
+      _subida?.cancel();
+      // La primera vez, tras la espera, también baja lo de los demás.
+      _subida = Timer(
+        esperaParaSubir,
+        () => _yaTrajo ? _subirSiHaceFalta() : _sincronizar(),
+      );
+    }, fireImmediately: true);
+    // En un teléfono que ya no abre el ajuste oculto, ninguna simulación
+    // puede quedar puesta (entrega 26.2).
+    ref.listenManual(cobroProvider, (_, cobro) {
+      if (cobro.value case final c? when !c.admin && !_simulacionRevisada) {
+        _simulacionRevisada = true;
+        ref.read(repositorioOperadorProvider).quitarSimulacionSiHay();
       }
     }, fireImmediately: true);
+    // Los errores van a la base desde ya, con la versión y la pantalla
+    // (entrega 27).
+    final instalada = ref.read(versionInstaladaProvider);
+    RegistroDeErrores.instancia
+      ..entrega = instalada.entrega.isEmpty ? null : instalada.entrega
+      ..armado = instalada.conocida ? instalada.armado : null
+      ..conectar(ref.read(repositorioErroresProvider).guardar);
+    _rutas.routerDelegate.addListener(() {
+      RegistroDeErrores.instancia.pantalla =
+          _rutas.routerDelegate.currentConfiguration.uri.path;
+    });
+    // La versión nueva, cada vez que se abre (entregas 26.3 y 34).
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.read(revisarVersionProvider)(),
+    );
     ref.read(notificadorProvider).iniciar(alAbrir: _abrir);
     ref.read(medicionProvider).anotar(EventoMedicion.appAbierta);
+  }
+
+  /// Tiempo sin cambios antes de subir: junta varios registros seguidos.
+  static const esperaParaSubir = Duration(seconds: 5);
+  Timer? _subida;
+
+  /// Cada cuánto se baja lo de los demás con la app abierta (entrega 18;
+  /// de 5 minutos a 30 segundos en la 18.1).
+  static const cadaCuantoTraer = Duration(seconds: 30);
+  Timer? _paraTraer;
+
+  bool _yaTrajo = false;
+  bool _simulacionRevisada = false;
+
+  /// Sube lo propio, baja lo de los demás y, si hace falta, pide las cifras.
+  Future<void> _sincronizar() async {
+    _yaTrajo = true;
+    await actualizarAhora(ref);
+  }
+
+  Future<void> _subirSiHaceFalta() async {
+    final servicio = ref.read(servicioCuentaProvider);
+    // Las cifras llegan con la subida; sin nada que subir, se piden.
+    if (await servicio.hayCambiosSinSubir()) {
+      await servicio.subirTodo();
+    } else {
+      await servicio.actualizarCifras();
+    }
   }
 
   @override
@@ -67,6 +161,8 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
     if (estado == AppLifecycleState.resumed) {
       final base = ref.read(baseLocalProvider);
       base.markTablesUpdated(base.allTables);
+      if (_paraTraer != null) _sincronizar();
+      ref.read(revisarVersionProvider)();
     }
   }
 
@@ -96,6 +192,8 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
         _rutas.push(Rutas.arqueo);
       case DestinoNotificacion.registrar:
         _rutas.push(Rutas.registrar);
+      case DestinoNotificacion.loQueTeDeben:
+        _rutas.push(Rutas.loQueTeDeben);
     }
   }
 
@@ -126,6 +224,8 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _subida?.cancel();
+    _paraTraer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _rutas.dispose();
     _etapa.dispose();
@@ -142,8 +242,10 @@ class _MocaAppState extends ConsumerState<MocaApp> with WidgetsBindingObserver {
       locale: const Locale('es', 'PE'),
       supportedLocales: const [Locale('es', 'PE'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      builder: (context, hijo) =>
-          _ConFranjaDemo(alSalir: _salirDeLaDemo, child: hijo!),
+      // La huella tapa todo, también los diálogos (entrega 16.3).
+      builder: (context, hijo) => ConCerradura(
+        child: _ConFranjaDemo(alSalir: _salirDeLaDemo, child: hijo!),
+      ),
     );
   }
 }
@@ -170,12 +272,7 @@ class _ConFranjaDemo extends ConsumerWidget {
                 const Expanded(
                   child: Text(
                     Textos.estasViendoUnaDemo,
-                    style: TextStyle(
-                      fontFamily: Tipografia.familia,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colores.sobreMarca,
-                    ),
+                    style: Tipografia.sobreMarca,
                   ),
                 ),
                 TextButton(

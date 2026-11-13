@@ -15,9 +15,9 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 
 **Objetivo:** un dueño informal anota su venta y sus gastos en segundos, sabe cuánta plata tiene y dónde, hace su arqueo semanal y ve si ganó o perdió en el mes.
 
-**Para quién:** los negocios piloto (bodegas, restaurantes, servicios) en modo Simple. Un solo usuario por empresa: el dueño.
+**Para quién:** los negocios piloto (bodegas, restaurantes, servicios) en modo Simple. Desde las entregas 17 a 23, hasta 3 personas por negocio con su rol (dueño, encargado, ayudante, contador); ver `decisiones.md`, 29-10-2026.
 
-**Sin cobro.** La V1 no tiene planes, topes ni pago. Sirve para los pilotos.
+**Cobro (cambio del 03-11-2026).** La V1 cobra S/ 19.90 al mes por negocio después de 14 días de prueba, con cobro manual por Yape mientras se reparte como APK; los topes de fotos y voz siguen sin definir (ver `decisiones.md`).
 
 ### Pantallas
 
@@ -32,9 +32,9 @@ La lista completa, con archivos, está en `diseno/indice.md`.
 | S06 | Registrar | Cuatro entradas: voz, foto, QR y texto. Moca deduce si entró o salió plata. |
 | S07 | Venta de hoy | Muestra lo que Moca entendió de la voz, por cuenta, y pide guardar o corregir. Funciona sin señal. |
 | S08 | Confirmar lectura | Resultado de la foto o del QR: monto, proveedor, tipo de gasto, cuenta de la que salió y si ya está pagado. Guarda solo tras confirmar. |
-| S10 | Historial | Movimientos por día con filtros (todo, entró, salió, por subir), edición y «Deshacer» tras guardar. |
+| S10 | Historial | Movimientos por día con filtros (todo, entró, salió, por subir), edición y «Deshacer» tras guardar. Desde la entrega 39 (09-11-2026), con buscador por palabras y filtros por cuenta, categoría y persona. Desde la entrega 41, una compra escrita también puede quedar «Todavía lo debo». |
 | S12 | Arqueo semanal | Propone el saldo esperado por cuenta; el dueño corrige. Ante una diferencia, ofrece respuestas rápidas: retiro para mí, gasto olvidado, error de vuelto, no lo sé. |
-| S14 | Informe del mes | Ganancia frente al mes anterior, ganancia frente a retiros, en qué se fue la plata, qué tan seguras son las cuentas (niveles de confianza) y compartir en PDF. |
+| S14 | Informe del mes | Flujo de caja del mes (desde la entrega 14.9): cuánto creció o bajó la plata frente al mes anterior; cómo se movió (empezaste con, entró, pusiste de tu bolsillo, salió del negocio, retiraste para ti, ajustes del arqueo, terminaste con), que cuadra con el saldo; en qué se fue la plata, qué tan seguras son las cuentas (niveles de confianza) y compartir en PDF, en tres versiones (para mí, para mi contador, para pedir un crédito; entrega 14.12) y las operaciones del mes en Excel (entrega 14.13); para pedir un crédito, también el flujo en el formato de la caja (entrega 14.15, Moca Plus). No muestra ganancia: Moca no sabe cuánta mercadería queda. Desde la entrega 40 (09-11-2026), «Mes · Año»: el resumen del año calendario, mes por mes. |
 | S16 | Moca | Resumen semanal en texto y audio, y avisos por prioridad. |
 | S17 | Foto ilegible | Muestra lo que sí se leyó, da consejos para repetir la foto y permite completar a mano o por voz. No guarda nada sin confirmación. |
 | S18 | Voz con duda | Cuando no se entendió el monto, Moca pregunta y ofrece opciones. Nunca adivina. |
@@ -63,8 +63,8 @@ Los mockups se dibujaron con el producto completo, así que varias pantallas de 
 | S05 | Acceso directo en la pantalla del teléfono | Se deja para después; en la V1 solo la notificación |
 | S05, S06, S07 | Pagos compartidos desde Yape | Depende de la prueba de viabilidad de la Fase 0 |
 | S06, S10, S16 | Ejemplos de fiado («Le fié 20 a doña Rosa») | Se omiten; el fiado llega en la V1.1 |
-| S14 | «Lo que te deben» y «Ver quiénes» | Se omite hasta la V1.1 |
-| S14 | «Lo que debes» y «Ver a quiénes» | Se muestra solo el total de compras marcadas «todavía lo debo», sin el enlace |
+| S14 | «Lo que te deben» y «Ver quiénes» | Se omitía hasta la V1.1. Desde la entrega 42 (09-11-2026), una venta escrita puede quedar «Todavía me debe» y el total abre la lista por cliente, con «Ya me pagó». Desde la entrega 44 (10-11-2026), se cobra y se paga en partes |
+| S14 | «Lo que debes» y «Ver a quiénes» | Se muestra solo el total de compras marcadas «todavía lo debo», sin el enlace. Desde la entrega 38 (07-11-2026), el total abre la lista por proveedor |
 | S14 | Botón «Cerrar el mes» | Se omite; llega con S15 en la V1.1 |
 | S14 | Botón «Usarlo para pedir crédito» | Se omite; queda para después |
 | S14 | Pregunta de mercadería que queda | Se mantiene solo la advertencia; la pregunta llega con el cierre de mes |
@@ -74,7 +74,7 @@ Los mockups se dibujaron con el producto completo, así que varias pantallas de 
 
 ### Fuera de la V1
 
-Planes y pago, fiado, pagos fijos y préstamos, cierre de mes guiado, retiro sugerido, apartados, modo Formal, panel del contador, varios usuarios por empresa, varias empresas por usuario en la interfaz, iOS.
+Planes y pago, fiado, pagos fijos y préstamos, cierre de mes guiado, retiro sugerido, apartados, modo Formal, panel del contador, más de 3 personas por negocio, varias empresas por usuario en la interfaz (salvo el contador), iOS.
 
 El modelo de datos sí debe nacer preparado para varias empresas, roles y modo Formal (ver `modelo-datos.md`), aunque la interfaz de la V1 no lo muestre.
 

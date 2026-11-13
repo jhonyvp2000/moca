@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/voz.dart';
 import 'package:moca/pais/peru/interprete_voz.dart';
+import 'package:moca/pais/peru/categorias.dart';
 
 LecturaVoz leer(
   String texto, {
@@ -160,5 +161,374 @@ void main() {
   test('Si no hay monto, no se entendió', () {
     expect(leer('hola cómo estás').entendida, isFalse);
     expect(interpretarVoz(const []).entendida, isFalse);
+  });
+
+  group('Entrega 14.1: bancos', () {
+    test('Cada banco por su nombre', () {
+      expect(partidas(leer('vendí 200 por Interbank')), [
+        (20000, TipoCuenta.interbank),
+      ]);
+      expect(partidas(leer('vendí 200 por BBVA')), [(20000, TipoCuenta.bbva)]);
+      expect(partidas(leer('vendí 200 por Scotiabank')), [
+        (20000, TipoCuenta.scotiabank),
+      ]);
+      expect(partidas(leer('vendí 200 por BCP')), [(20000, TipoCuenta.banco)]);
+    });
+
+    test('«Por transferencia» va al banco sin decir cuál', () {
+      final l = leer('me pagaron 200 por transferencia');
+      expect(partidas(l), [(20000, TipoCuenta.banco)]);
+      expect(l.partidas.single.bancoSinNombre, isTrue);
+      expect(leer('vendí 200 por BCP').partidas.single.bancoSinNombre, isFalse);
+    });
+
+    test('Con un solo banco no pregunta; con varios, pregunta cuál', () {
+      final l = leer('hoy vendí 200 por transferencia');
+      const basicas = {TipoCuenta.efectivo, TipoCuenta.yape, TipoCuenta.banco};
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: {l.categoria!},
+          cuentasValidas: basicas,
+        ),
+        isNull,
+      );
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: {l.categoria!},
+          cuentasValidas: {...basicas, TipoCuenta.interbank},
+        ),
+        isA<PreguntaCuenta>(),
+      );
+      // Nombrar un banco que el negocio no tiene también se pregunta.
+      final bbva = leer('hoy vendí 200 por BBVA');
+      expect(
+        siguientePregunta(
+          bbva,
+          categoriasValidas: {bbva.categoria!},
+          cuentasValidas: basicas,
+        ),
+        isA<PreguntaCuenta>(),
+      );
+    });
+  });
+
+  group('Entrega 14.10: billeteras Plin', () {
+    test('Plin con su banco, antes o después', () {
+      expect(partidas(leer('vendí 200 por BBVA Plin')), [
+        (20000, TipoCuenta.bbvaPlin),
+      ]);
+      expect(partidas(leer('vendí 200 por Plin de Scotiabank')), [
+        (20000, TipoCuenta.scotiabankPlin),
+      ]);
+      expect(partidas(leer('vendí 200 por Interbank Plin')), [
+        (20000, TipoCuenta.plin),
+      ]);
+      expect(
+        leer('vendí 200 por BBVA Plin').partidas.single.plinSinBanco,
+        isFalse,
+      );
+      // El banco solo sigue siendo el banco.
+      expect(partidas(leer('vendí 200 por BBVA')), [(20000, TipoCuenta.bbva)]);
+    });
+
+    test('«Por Plin» va al único Plin del negocio; con varios, pregunta', () {
+      final l = leer('hoy vendí 200 por Plin');
+      expect(l.partidas.single.plinSinBanco, isTrue);
+      const conBbvaPlin = {
+        TipoCuenta.efectivo,
+        TipoCuenta.yape,
+        TipoCuenta.banco,
+        TipoCuenta.bbvaPlin,
+      };
+      final una = l.conPlinDelNegocio(conBbvaPlin);
+      expect(partidas(una), [(20000, TipoCuenta.bbvaPlin)]);
+      expect(
+        siguientePregunta(
+          una,
+          categoriasValidas: {una.categoria!},
+          cuentasValidas: conBbvaPlin,
+        ),
+        isNull,
+      );
+
+      const conDos = {...conBbvaPlin, TipoCuenta.plin};
+      final dos = l.conPlinDelNegocio(conDos);
+      expect(
+        siguientePregunta(
+          dos,
+          categoriasValidas: {dos.categoria!},
+          cuentasValidas: conDos,
+        ),
+        isA<PreguntaCuenta>(),
+      );
+      // Al elegir, ya no pregunta.
+      final elegida = dos.conCuenta(0, TipoCuenta.plin);
+      expect(
+        siguientePregunta(
+          elegida,
+          categoriasValidas: {elegida.categoria!},
+          cuentasValidas: conDos,
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('Entrega 14.11: puse de mi bolsillo', () {
+    test('Se reconoce y no pide categoría', () {
+      for (final frase in [
+        'puse 300 de mi bolsillo',
+        'metí 200 al negocio',
+        'aporté 150 en efectivo',
+      ]) {
+        final l = leer(frase);
+        expect(l.tipo, TipoMovimiento.aporte, reason: frase);
+        expect(l.categoria, isNull, reason: frase);
+      }
+      final l = leer('puse 300 de mi bolsillo en efectivo');
+      expect(partidas(l), [(30000, TipoCuenta.efectivo)]);
+      expect(
+        siguientePregunta(
+          l,
+          categoriasValidas: const {},
+          cuentasValidas: {TipoCuenta.efectivo},
+        ),
+        isNull,
+      );
+      // Un retiro sigue siendo retiro.
+      expect(leer('retiré 100 para mí').tipo, TipoMovimiento.retiro);
+    });
+  });
+
+  group('Categorías del flujo para crédito (entrega 14.14)', () {
+    test('Sueldos, movilidad, flete, publicidad, contador y cuota', () {
+      String? categoria(String t) => leer(t).categoria;
+      expect(categoria('pagué 300 al ayudante'), 'Sueldos del personal');
+      expect(categoria('pagué 900 al personal'), 'Sueldos del personal');
+      expect(categoria('gasté 15 en mototaxi'), 'Movilidad del negocio');
+      // Entrega 14.14.1: el combustible tiene su categoría.
+      expect(categoria('gasté 50 en gasolina'), 'Combustible');
+      expect(categoria('pagué 80 de petróleo'), 'Combustible');
+      expect(categoria('gasté 60 en el grifo'), 'Combustible');
+      expect(categoria('gasté 40 en diesel'), 'Combustible');
+      expect(categoria('pagué 40 de flete'), 'Flete');
+      expect(categoria('pagué 50 de volantes'), 'Publicidad');
+      expect(categoria('pagué 200 al contador'), 'Contador o gestoría');
+      expect(categoria('pagué 450 de la cuota'), 'Cuota de préstamo');
+    });
+
+    test('«Gasto personal» es un retiro, no un sueldo', () {
+      final l = leer('gasté 80 en un gasto personal');
+      expect(l.tipo, TipoMovimiento.retiro);
+      expect(l.categoria, isNull);
+      // «Personal» solo no elige sueldos.
+      expect(leer('gasté 80 personal').categoria, isNull);
+      expect(leer('pagué 300 para mi personal').tipo, TipoMovimiento.egreso);
+    });
+
+    test('«Cobré el fiado» es cobro de fiado, no venta del día', () {
+      final l = leer('cobré 50 del fiado en efectivo');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.categoria, 'Cobro de fiado');
+      expect(leer('me pagaron 30 que me debían').categoria, 'Cobro de fiado');
+    });
+
+    test('La cuota de la Caja Piura no va al efectivo', () {
+      final l = leer('pagué 450 de la cuota de la Caja Piura por Yape');
+      expect(l.categoria, 'Cuota de préstamo');
+      expect(partidas(l), [(45000, TipoCuenta.yape)]);
+      expect(partidas(leer('pagué 450 de la cuota de la Caja Piura')), [
+        (45000, null),
+      ]);
+    });
+
+    test('«Me prestaron» avisa y sugiere «Puse de mi bolsillo»', () {
+      final l = leer('me prestaron 2000 en efectivo');
+      expect(l.prestamo, isTrue);
+      expect(l.tipo, TipoMovimiento.aporte);
+      expect(partidas(l), [(200000, TipoCuenta.efectivo)]);
+      expect(leer('saqué un préstamo de 3000').prestamo, isTrue);
+      // Pagar la cuota no es recibir un préstamo.
+      final cuota = leer('pagué 300 del préstamo');
+      expect(cuota.prestamo, isFalse);
+      expect(cuota.categoria, 'Cuota de préstamo');
+      // Y la marca sigue al responder lo que falta.
+      expect(l.conCuenta(0, TipoCuenta.yape).prestamo, isTrue);
+    });
+  });
+
+  group('«Pasé plata» (entrega 21.1)', () {
+    test('De la caja a Yape', () {
+      final l = leer('pasé 500 de la caja a Yape');
+      expect(l.tipo, TipoMovimiento.transferencia);
+      expect(partidas(l), [(50000, TipoCuenta.efectivo)]);
+      expect(l.cuentaDestino, TipoCuenta.yape);
+      expect(l.categoria, isNull);
+    });
+
+    test('Depositar en el banco sale del efectivo', () {
+      final l = leer('deposité 1000 al banco');
+      expect(l.tipo, TipoMovimiento.transferencia);
+      expect(partidas(l), [(100000, TipoCuenta.efectivo)]);
+      expect(l.cuentaDestino, TipoCuenta.banco);
+    });
+
+    test('Sin decir a dónde, Moca lo pregunta', () {
+      final l = leer('pasé 200 del efectivo');
+      expect(l.cuentaDestino, isNull);
+      expect(
+        siguientePregunta(l, categoriasValidas: const {}),
+        isA<PreguntaDestino>(),
+      );
+      expect(
+        siguientePregunta(
+          l.conDestino(TipoCuenta.yape),
+          categoriasValidas: const {},
+        ),
+        isNull,
+      );
+    });
+  });
+
+  group('Vender y comprar al crédito (entrega 49)', () {
+    test('«Le fié 50 a doña Rosa» es una venta que todavía me debe', () {
+      final l = leer('le fié 50 a doña rosa');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 5000);
+      expect(l.categoria, categoriaVentaDelDia);
+      expect(l.contraparte, 'Doña Rosa');
+      // No se pregunta la cuenta: no entró plata.
+      expect(
+        siguientePregunta(l, categoriasValidas: {categoriaVentaDelDia}),
+        isNull,
+      );
+    });
+
+    test('«Vendí 80 al crédito a Juan»', () {
+      final l = leer('vendí 80 al crédito a juan');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 8000);
+      expect(l.contraparte, 'Juan');
+    });
+
+    test('«Doña Rosa me quedó debiendo 30»', () {
+      final l = leer('doña rosa me quedó debiendo 30');
+      expect(l.debe, isTrue);
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.contraparte, 'Doña Rosa');
+    });
+
+    test('Sin nombre, Moca pregunta quién debe', () {
+      final l = leer('vendí 40 al fiado');
+      expect(l.debe, isTrue);
+      expect(l.contraparte, isNull);
+      expect(
+        siguientePregunta(l, categoriasValidas: {categoriaVentaDelDia}),
+        isA<PreguntaQuienDebe>(),
+      );
+      expect(
+        siguientePregunta(
+          l.conContraparte('Pedro'),
+          categoriasValidas: {categoriaVentaDelDia},
+        ),
+        isNull,
+      );
+    });
+
+    test('Una compra al crédito todavía se debe; el nombre es opcional', () {
+      final l = leer('compré 200 de mercadería al crédito');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.partidas.single.centimos, 20000);
+      expect(l.contraparte, isNull);
+      expect(l.faltaQuienDebe, isFalse);
+    });
+
+    test('«Me fiaron 150 en la distribuidora»', () {
+      final l = leer('me fiaron 150 en la distribuidora');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.contraparte, 'Distribuidora');
+    });
+
+    test('«Le debo 100 a don Pepe»', () {
+      final l = leer('le debo 100 a don pepe');
+      expect(l.tipo, TipoMovimiento.egreso);
+      expect(l.debe, isTrue);
+      expect(l.contraparte, 'Don Pepe');
+    });
+
+    test('Cobrar el fiado, pedir prestado o vender sigue igual', () {
+      final cobro = leer('cobré 50 del fiado en efectivo');
+      expect(cobro.debe, isFalse);
+      expect(cobro.categoria, 'Cobro de fiado');
+      expect(leer('me pagaron 30 que me debían').debe, isFalse);
+      expect(leer('me prestaron 2000 en efectivo').debe, isFalse);
+      final venta = leer('vendí 120 en efectivo');
+      expect(venta.debe, isFalse);
+      expect(venta.contraparte, isNull);
+    });
+
+    test('En «Anotar la venta de hoy» no se fía', () {
+      expect(leer('le fié 50 a doña rosa', soloVenta: true).debe, isFalse);
+    });
+  });
+
+  group('Cobrar o pagar lo que se debe (entrega 50)', () {
+    test('«Cobré 50 del fiado de doña Rosa»', () {
+      final l = leer('cobré 50 del fiado de doña rosa en efectivo');
+      expect(l.tipo, TipoMovimiento.ingreso);
+      expect(l.categoria, categoriaCobroDeFiado);
+      expect(l.pagaDeuda, isTrue);
+      expect(l.contraparte, 'Doña Rosa');
+      expect(l.debe, isFalse);
+      expect(l.buscaDeuda, isTrue);
+    });
+
+    test('«Doña Rosa me pagó 30» y «me yapeó Juan 80»', () {
+      final rosa = leer('Doña Rosa me pagó 30 en efectivo');
+      expect(rosa.tipo, TipoMovimiento.ingreso);
+      expect(rosa.contraparte, 'Doña Rosa');
+      expect(rosa.pagaDeuda, isFalse);
+      final juan = leer('me yapeó juan 80');
+      expect(juan.contraparte, 'Juan');
+      expect(juan.partidas.single.cuenta, TipoCuenta.yape);
+    });
+
+    test('«Cobré el fiado» sin nombre busca en todas las deudas', () {
+      final l = leer('cobré 50 del fiado');
+      expect(l.pagaDeuda, isTrue);
+      expect(l.contraparte, isNull);
+      expect(leer('me pagaron 30 que me debían').pagaDeuda, isTrue);
+    });
+
+    test(
+      '«Le pagué 100 a don Pepe», «pagué lo que debía a la distribuidora»',
+      () {
+        final pepe = leer('le pagué 100 a don pepe en efectivo');
+        expect(pepe.tipo, TipoMovimiento.egreso);
+        expect(pepe.contraparte, 'Don Pepe');
+        expect(pepe.debe, isFalse);
+        final dist = leer('pagué 150 de lo que debía a la distribuidora');
+        expect(dist.pagaDeuda, isTrue);
+        expect(dist.contraparte, 'Distribuidora');
+      },
+    );
+
+    test('Ventas y gastos de siempre no buscan deuda', () {
+      for (final frase in [
+        'vendí 200 en efectivo',
+        'me yapearon 200',
+        'pagué 80 de luz',
+        'pagué 300 al personal',
+        'vendí 50 a doña rosa',
+      ]) {
+        expect(leer(frase).buscaDeuda, isFalse, reason: frase);
+      }
+    });
   });
 }

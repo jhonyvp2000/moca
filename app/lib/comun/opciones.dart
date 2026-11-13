@@ -35,6 +35,39 @@ class Opciones<T> extends StatelessWidget {
   }
 }
 
+/// Una sola elección, una opción por fila, a todo el ancho: para listas
+/// largas como el tipo de negocio (entrega 48).
+class OpcionesEnLista<T> extends StatelessWidget {
+  const OpcionesEnLista({
+    super.key,
+    required this.opciones,
+    required this.elegida,
+    required this.alElegir,
+  });
+
+  final Map<T, String> opciones;
+  final T? elegida;
+  final ValueChanged<T> alElegir;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, MapEntry(key: valor, value: texto))
+            in opciones.entries.indexed) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _Opcion(
+            texto: texto,
+            elegida: valor == elegida,
+            alTocar: () => alElegir(valor),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Botones de varias elecciones, con la misma forma que [Opciones] (S02:
 /// «¿Usas otra billetera?»).
 class OpcionesVarias<T> extends StatelessWidget {
@@ -85,17 +118,17 @@ class _Opcion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(Medidas.radioPildora),
       side: elegida
           ? const BorderSide(color: Colores.marca, width: 2)
-          : const BorderSide(color: Colores.bordeBotonSecundario),
+          : const BorderSide(color: Colores.bordeTarjeta),
     );
     return Semantics(
       selected: elegida,
       button: true,
       inMutuallyExclusiveGroup: exclusiva,
       child: Material(
-        color: elegida ? Colores.tinteAzul : Colores.superficie,
+        color: elegida ? Colores.azul100 : Colores.superficie,
         shape: forma,
         child: InkWell(
           customBorder: forma,
@@ -104,21 +137,30 @@ class _Opcion extends StatelessWidget {
             constraints: const BoxConstraints(
               minHeight: Medidas.objetivoTactilMinimo,
             ),
+            // Como ChipSeleccion (mejora 01): elegida, con su ✓.
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  texto,
-                  style: TextStyle(
-                    fontFamily: Tipografia.familia,
-                    fontSize: 14,
-                    fontWeight: elegida ? FontWeight.w700 : FontWeight.w600,
-                    color: elegida
-                        ? Colores.azulOscuro
-                        : Colores.textoPrincipal,
+              padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      texto,
+                      style: Tipografia.etiquetaBarra.copyWith(
+                        fontWeight: elegida ? FontWeight.w700 : FontWeight.w600,
+                        color: elegida ? Colores.marca : Colores.textoPrincipal,
+                      ),
+                    ),
                   ),
-                ),
+                  if (elegida) ...[
+                    const SizedBox(width: Medidas.e2),
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 18,
+                      color: Colores.marca,
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -196,17 +238,17 @@ class _BotonRejilla extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final forma = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Medidas.radioBoton),
+      borderRadius: BorderRadius.circular(Medidas.radioMedio),
       side: elegida
           ? const BorderSide(color: Colores.marca, width: 2)
-          : const BorderSide(color: Colores.bordeBotonSecundario),
+          : const BorderSide(color: Colores.bordeTarjeta),
     );
     return Semantics(
       selected: elegida,
       button: true,
       inMutuallyExclusiveGroup: true,
       child: Material(
-        color: elegida ? Colores.tinteAzul : Colores.superficie,
+        color: elegida ? Colores.azul100 : Colores.superficie,
         shape: forma,
         child: InkWell(
           customBorder: forma,
@@ -218,17 +260,15 @@ class _BotonRejilla extends StatelessWidget {
             child: Center(
               heightFactor: 1,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Medidas.e2,
+                  vertical: Medidas.e2,
+                ),
                 child: Text(
                   texto,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: Tipografia.familia,
-                    fontSize: 15,
-                    fontWeight: elegida ? FontWeight.w700 : FontWeight.w600,
-                    color: elegida
-                        ? Colores.azulOscuro
-                        : Colores.textoPrincipal,
+                  style: Tipografia.textoFuerte.copyWith(
+                    color: elegida ? Colores.marca : Colores.textoPrincipal,
                   ),
                 ),
               ),

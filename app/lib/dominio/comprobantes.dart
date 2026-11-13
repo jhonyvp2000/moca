@@ -18,6 +18,7 @@ class LecturaComprobante {
     this.cantidadItems,
     this.categoria,
     this.rutaImagen,
+    this.fotoDePrueba,
   });
 
   final OrigenLectura origen;
@@ -41,6 +42,10 @@ class LecturaComprobante {
   /// Nombre de la categoría que sugiere la lectura, si sugiere una.
   final String? categoria;
   final String? rutaImagen;
+
+  /// Sin cuenta, el número de la foto de prueba (1 a 3) que se usó para
+  /// leerla (entrega 14.2).
+  final int? fotoDePrueba;
 
   /// Para la llave única: emisor + tipo + serie + número.
   bool get identificable =>
@@ -83,8 +88,47 @@ abstract interface class RepositorioComprobantes {
 }
 
 /// Lectura de fotos de comprobantes. En el prototipo es simulada.
+/// Las fotos que un teléfono sin cuenta puede leer con la IA (entrega 14.2).
+const fotosDePruebaPorTelefono = 3;
+
+/// Por qué no se pudo leer una foto (entrega 14).
+enum ProblemaLectura {
+  /// Sin señal, o el servidor no respondió.
+  sinSenal,
+  noEsComprobante,
+
+  /// Leer fotos usa IA: solo con cuenta.
+  sinCuenta,
+
+  /// El tope de fotos leídas por día.
+  limiteDiario,
+
+  /// Sin cuenta, ya usó sus fotos de prueba (entrega 14.2).
+  pruebasAgotadas,
+}
+
+sealed class ResultadoLectura {
+  const ResultadoLectura();
+}
+
+/// Leída, entera o en parte ([LecturaComprobante.legible]).
+final class FotoLeida extends ResultadoLectura {
+  const FotoLeida(this.lectura);
+  final LecturaComprobante lectura;
+}
+
+final class FotoNoLeida extends ResultadoLectura {
+  const FotoNoLeida(this.problema);
+  final ProblemaLectura problema;
+}
+
+/// Busca un código QR dentro de una foto, en el teléfono.
+abstract interface class BuscadorQr {
+  Future<String?> buscar(String rutaImagen);
+}
+
 abstract interface class LectorFoto {
-  Future<LecturaComprobante> leer(String rutaImagen);
+  Future<ResultadoLectura> leer(String rutaImagen);
 }
 
 sealed class ResultadoCamara {

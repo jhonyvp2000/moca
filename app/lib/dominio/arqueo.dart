@@ -59,6 +59,7 @@ List<MotivoArqueo> motivosPara(int diferencia) => diferencia < 0
       ]
     : const [
         MotivoArqueo.ventaNoAnotada,
+        MotivoArqueo.puseYo,
         MotivoArqueo.errorDeVuelto,
         MotivoArqueo.noLoSe,
       ];

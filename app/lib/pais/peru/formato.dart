@@ -63,6 +63,26 @@ String formatearSolesComprobante(int centimos) {
       '${resto.toString().padLeft(2, '0')}';
 }
 
+/// La fecha y la hora de una fila de lista sin días (entrega 68): «Hoy ·
+/// 10:33 a. m.», «Ayer · 7:38 p. m.», «10 nov. 2026 · 9:06 a. m.».
+String formatearFechaYHoraDeFila(DateTime momento, DateTime hoy) {
+  final d = DateTime(momento.year, momento.month, momento.day);
+  final h = DateTime(hoy.year, hoy.month, hoy.day);
+  final dia = d == h
+      ? 'Hoy'
+      : d == DateTime(h.year, h.month, h.day - 1)
+      ? 'Ayer'
+      : '${d.day} ${_meses[d.month - 1].substring(0, 3)}. ${d.year}';
+  return '$dia · ${formatearHora(momento.hour * 60 + momento.minute)}';
+}
+
+/// El momento en que se mira el Inicio (entrega 62): «Jueves 12:13 p. m.».
+String formatearDiaYHora(DateTime momento) {
+  final dia = _dias[momento.weekday - 1];
+  return '${dia[0].toUpperCase()}${dia.substring(1)} '
+      '${formatearHora(momento.hour * 60 + momento.minute)}';
+}
+
 const _dias = [
   'lunes',
   'martes',
@@ -93,6 +113,10 @@ String formatearFechaLarga(DateTime fecha) =>
 
 /// «octubre».
 String nombreDelMes(DateTime fecha) => _meses[fecha.month - 1];
+
+/// «Oct», «Set».
+String nombreDelMesCorto(DateTime fecha) =>
+    _mayuscula(nombreDelMes(fecha).substring(0, 3));
 
 /// «Octubre».
 String nombreDelMesConMayuscula(DateTime fecha) =>
@@ -127,3 +151,36 @@ int? leerSolesConCentimos(String texto) {
   return int.parse(m.group(1)!) * 100 +
       int.parse((m.group(2) ?? '').padRight(2, '0'));
 }
+
+/// El celular de un cliente (entrega 53), escrito como venga: «987 654 321»,
+/// «+51 987654321». Nulo si no es un celular de Perú (9 cifras que empiezan
+/// con 9).
+String? celularDeCliente(String texto) {
+  var cifras = texto.replaceAll(RegExp(r'[^0-9]'), '');
+  if (cifras.length == 11 && cifras.startsWith('51')) {
+    cifras = cifras.substring(2);
+  }
+  return RegExp(r'^9\d{8}$').hasMatch(cifras) ? cifras : null;
+}
+
+/// El número para el enlace de WhatsApp, con el código de Perú.
+String celularParaWhatsApp(String celular) => '51$celular';
+
+/// Los montos como se dicen en voz alta (entrega 73): «S/ 30» → «30 soles»,
+/// «S/ 1,350» → «1350 soles», «S/ 1» → «un sol», «S/ 3.40» → «3 soles con 40
+/// céntimos», «S/ 0.50» → «50 céntimos», «−S/ 50» → «menos 50 soles». Las
+/// cifras las pronuncia la voz del teléfono; lo demás no cambia.
+String montosParaDecir(String texto) => texto.replaceAllMapped(
+  RegExp(r'([−-][\s ]?)?S/[\s ]?(\d{1,3}(?:,\d{3})*|\d+)(?:\.(\d{1,2}))?'),
+  (m) {
+    final menos = m.group(1) == null ? '' : 'menos ';
+    final soles = int.parse(m.group(2)!.replaceAll(',', ''));
+    final centimos = int.parse((m.group(3) ?? '0').padRight(2, '0'));
+    String deSoles(int n) => n == 1 ? 'un sol' : '$n soles';
+    String deCentimos(int n) => n == 1 ? 'un céntimo' : '$n céntimos';
+    if (soles == 0 && centimos > 0) return '$menos${deCentimos(centimos)}';
+    return centimos > 0
+        ? '$menos${deSoles(soles)} con ${deCentimos(centimos)}'
+        : '$menos${deSoles(soles)}';
+  },
+);

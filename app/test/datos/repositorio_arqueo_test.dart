@@ -118,7 +118,7 @@ void main() {
       final falta = ajustes.firstWhere((f) => f.cuenta == TipoCuenta.efectivo);
       expect(falta.tipo, TipoMovimiento.egreso);
       expect(falta.montoCentimos, 8000);
-      expect(falta.cumple(FiltroHistorial.salio), isFalse);
+      expect(falta.cumple(Transaccion.salio), isFalse);
       final detalle = (await historial.observarDetalle(falta.id).first)!;
       expect(detalle.ajuste?.motivo, MotivoArqueo.noLoSe);
       expect(detalle.ajuste?.calculadoCentimos, 135000);
@@ -174,6 +174,24 @@ void main() {
     final inicio = await movimientos.observarInicio().first;
     expect(inicio.saldosPorCuenta[TipoCuenta.yape], 70000);
     expect(inicio.ventaDeHoyCentimos, 35000 + 8000);
+  });
+
+  test('«La puse yo» anota lo que puso de su bolsillo, no una venta '
+      '(entrega 14.11)', () async {
+    await empezar(saldos: conSaldos);
+    expect(motivosPara(8000), contains(MotivoArqueo.puseYo));
+    expect(motivosPara(-8000), isNot(contains(MotivoArqueo.puseYo)));
+    await repo.guardar(const [
+      ConteoCuenta(
+        cuenta: TipoCuenta.yape,
+        contadoCentimos: 70000,
+        motivo: MotivoArqueo.puseYo,
+      ),
+    ]);
+    final inicio = await movimientos.observarInicio().first;
+    expect(inicio.saldosPorCuenta[TipoCuenta.yape], 70000);
+    expect(inicio.ventaDeHoyCentimos, 35000);
+    expect(inicio.semanaAportesCentimos, 8000);
   });
 
   test('Sin saldo inicial, lo contado es el punto de partida', () async {

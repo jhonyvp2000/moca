@@ -3,18 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../cobro/cobro.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/isotipo.dart';
+import '../../comun/monto_text.dart';
+import '../../comun/seccion_titulo.dart';
 import '../../comun/tarjeta.dart';
+import '../../comun/videos.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
 import '../../inyeccion.dart';
+import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'avisos.dart';
+import 'tarjeta_guardar_avance.dart';
 import '../../dominio/medicion.dart';
 
 /// S16 · Moca: el resumen de la semana, que se puede escuchar, y los avisos
@@ -27,6 +34,7 @@ class PantallaMoca extends ConsumerStatefulWidget {
   static const esperaAjusteOculto = Duration(seconds: 3);
 
   static const claveIsotipo = Key('isotipo-moca');
+  static const claveAjustes = Key('ajustes-desde-moca');
   static const claveEscuchar = Key('escuchar-semana');
 
   @override
@@ -57,7 +65,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
     setState(() => _hablando = true);
     try {
       await ref.read(medicionProvider).anotar(EventoMedicion.resumenEscuchado);
-      await locutor.decir(texto);
+      // «S/ 30» se dice «30 soles» (entrega 73).
+      await locutor.decir(montosParaDecir(texto));
     } finally {
       if (mounted) setState(() => _hablando = false);
     }
@@ -65,7 +74,11 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
 
   @override
   Widget build(BuildContext context) {
-    final resumen = ref.watch(resumenSemanaProvider).value;
+    // El resumen y los avisos son del dueño y del contador (entrega 20).
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    final resumen = permisos.veAvisos
+        ? ref.watch(resumenSemanaProvider).value
+        : null;
     final avisos = ref.watch(avisosProvider).value;
 
     return SafeArea(
@@ -89,103 +102,126 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
                         () => LongPressGestureRecognizer(
                           duration: PantallaMoca.esperaAjusteOculto,
                         ),
-                        (reconocedor) =>
-                            reconocedor.onLongPress = () =>
-                                context.push(Rutas.operador),
+                        // Solo en el teléfono de quien registra los pagos
+                        // (entrega 26.2): para los demás no hace nada.
+                        (reconocedor) => reconocedor.onLongPress = () {
+                          if (ref.read(cobroProvider).value?.admin ?? false) {
+                            context.push(Rutas.operador);
+                          }
+                        },
                       ),
                 },
                 child: const Isotipo(
                   key: PantallaMoca.claveIsotipo,
-                  tamano: 40,
+                  tamano: 52,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: Medidas.e3),
+              // «Asistente» y el eslogan (mejora 01).
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(Textos.pestanaMoca, style: Tipografia.tituloPantalla),
-                    Text(Textos.subtituloMoca, style: Tipografia.secundario),
+                    Text(Textos.eslogan, style: Tipografia.secundario),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          if (resumen != null) _tarjetaSemana(resumenEnTexto(resumen)),
-          const SizedBox(height: 18),
-          Semantics(
-            header: true,
-            child: Text(
-              Textos.avisos,
-              style: Tipografia.secundario.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (avisos != null)
-            avisos.isEmpty
-                ? const Tarjeta(
-                    child: Text(Textos.sinAvisos, style: Tipografia.texto),
-                  )
-                : Tarjeta(
-                    relleno: EdgeInsets.zero,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                      child: Material(
-                        color: Colores.superficie,
-                        child: Column(
-                          children: [
-                            for (final (i, a) in avisos.indexed)
-                              _FilaAviso(
-                                aviso: a,
-                                conSeparador: i < avisos.length - 1,
-                                alDescartar: () => ref
-                                    .read(repositorioMocaProvider)
-                                    .descartar(a),
-                              ),
-                          ],
+          const SizedBox(height: Medidas.e4),
+          const TarjetaGuardarAvance(),
+          // La prueba o el pago, y la pregunta del día 10 (entrega 25).
+          const TarjetaCobro(),
+          const PreguntaDelPrecio(),
+          if (resumen != null) _tarjetaSemana(resumen, resumenEnTexto(resumen)),
+          if (permisos.veAvisos) ...[
+            const SizedBox(height: Medidas.e5),
+            Semantics(header: true, child: const SeccionTitulo(Textos.avisos)),
+            if (avisos != null)
+              avisos.isEmpty
+                  // Sin avisos, un estado amable (mejora 01).
+                  ? const Tarjeta(
+                      child: Row(
+                        children: [
+                          _Circulo(
+                            icono: Icons.check_rounded,
+                            color: Colores.marca,
+                            fondo: Colores.azul100,
+                          ),
+                          SizedBox(width: Medidas.e4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  Textos.todoEnOrden,
+                                  style: Tipografia.tituloSeccion,
+                                ),
+                                SizedBox(height: Medidas.e1),
+                                Text(
+                                  Textos.sinAvisos,
+                                  style: Tipografia.secundario,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Tarjeta(
+                      relleno: EdgeInsets.zero,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          Medidas.radioTarjeta,
+                        ),
+                        child: Material(
+                          color: Colores.superficie,
+                          child: Column(
+                            children: [
+                              for (final (i, a) in avisos.indexed)
+                                _FilaAviso(
+                                  aviso: a,
+                                  conSeparador: i < avisos.length - 1,
+                                  alDescartar: () => ref
+                                      .read(repositorioMocaProvider)
+                                      .descartar(a),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-          const SizedBox(height: 18),
+          ],
+          const SeccionAprende(),
+          // Ajustes también desde aquí (entrega 61): en el Inicio se abre
+          // tocando el nombre del negocio.
+          const SizedBox(height: Medidas.e5),
           Tarjeta(
             relleno: EdgeInsets.zero,
             child: Material(
               color: Colores.superficie,
               borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
-                onTap: () => context.push(Rutas.cuentas),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              Textos.misCuentas,
-                              style: Tipografia.textoFuerte,
-                            ),
-                            Text(
-                              Textos.misCuentasDetalle,
-                              style: Tipografia.secundario,
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconoTrazo(
-                        Icono.derecha,
-                        color: Colores.textoSecundario,
-                        tamano: 20,
-                      ),
-                    ],
-                  ),
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                key: PantallaMoca.claveAjustes,
+                minTileHeight: Medidas.objetivoTactilMinimo + Medidas.e2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
                 ),
+                leading: const Icon(
+                  Icons.settings_outlined,
+                  color: Colores.marca,
+                ),
+                title: const Text(
+                  Textos.ajustes,
+                  style: Tipografia.textoFuerte,
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colores.textoSecundario,
+                ),
+                onTap: () => context.push(Rutas.ajustes),
               ),
             ),
           ),
@@ -194,67 +230,152 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
     );
   }
 
-  Widget _tarjetaSemana(String texto) {
+  /// «Tu semana» (mejora 01): tarjeta azul con lo que te quedó en grande y
+  /// «Escuchar resumen» como acción.
+  Widget _tarjetaSemana(ResumenSemana resumen, String texto) {
     return Container(
-      padding: const EdgeInsets.all(Medidas.rellenoTarjeta),
+      padding: const EdgeInsets.all(Medidas.e5),
       decoration: BoxDecoration(
-        color: Colores.tinteAzul,
-        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        borderRadius: BorderRadius.circular(Medidas.radioMayor),
+        gradient: const LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [Colores.marca, Colores.azul400],
+        ),
+        boxShadow: Sombras.nivel2,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             Textos.tuSemanaEn(segundosDeLectura(texto)),
-            style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
+            style: Tipografia.tituloDestacado.copyWith(
+              color: Colores.sobreMarca,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Semantics(
-                button: true,
-                label: _hablando ? Textos.detener : Textos.escuchar,
-                child: Material(
-                  key: PantallaMoca.claveEscuchar,
-                  color: Colores.marca,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => _escuchar(texto),
-                    child: SizedBox.square(
-                      dimension: 52,
-                      child: Center(
-                        child: IconoTrazo(
-                          _hablando ? Icono.detener : Icono.reproducir,
-                          color: Colores.sobreMarca,
-                          tamano: 24,
+          // De qué periodo es (entrega 36). El lunes, el resumen es de la
+          // semana pasada, y el dato grande lo dice.
+          if (!resumen.semanaPasada)
+            Text(
+              Textos.deLunesAHoy,
+              style: Tipografia.secundario.copyWith(
+                color: Colores.sobreMarcaSuave,
+              ),
+            ),
+          if (resumen.conMovimientos) ...[
+            const SizedBox(height: Medidas.e4),
+            Text(
+              resumen.semanaPasada
+                  ? Textos.laSemanaPasadaTeQuedo
+                  : Textos.estaSemanaTeQuedo.trim(),
+              style: Tipografia.texto.copyWith(color: Colores.sobreMarcaSuave),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: MontoText(
+                resumen.quedoCentimos,
+                estilo: Tipografia.montoGrande,
+                color: Colores.sobreMarca,
+              ),
+            ),
+          ],
+          const SizedBox(height: Medidas.e4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Semantics(
+              button: true,
+              label: _hablando ? Textos.detener : Textos.escuchar,
+              child: Material(
+                key: PantallaMoca.claveEscuchar,
+                color: Colores.superficie,
+                shape: const StadiumBorder(),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: () => _escuchar(texto),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Medidas.e2,
+                      Medidas.e2,
+                      Medidas.e5,
+                      Medidas.e2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Colores.marca,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _hablando
+                                ? Icons.stop_rounded
+                                : Icons.play_arrow_rounded,
+                            color: Colores.sobreMarca,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: Medidas.e3),
+                        Flexible(
+                          child: ExcludeSemantics(
+                            child: Text(
+                              _hablando
+                                  ? Textos.detener
+                                  : Textos.escucharResumen,
+                              style: Tipografia.textoFuerte.copyWith(
+                                color: Colores.marca,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              ExcludeSemantics(
-                child: Text(
-                  _hablando ? Textos.detener : Textos.escuchar,
-                  style: Tipografia.textoFuerte.copyWith(
-                    color: Colores.textoSecundario,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(texto, style: Tipografia.cifra(Tipografia.texto)),
+          const SizedBox(height: Medidas.e3),
+          Text(
+            texto,
+            style: Tipografia.cifra(
+              Tipografia.secundario.copyWith(color: Colores.sobreMarcaSuave),
+            ),
+          ),
           if (_sinVoz) ...[
-            const SizedBox(height: 8),
-            const Text(Textos.sinVozEnEspanol, style: Tipografia.secundario),
+            const SizedBox(height: Medidas.e2),
+            Text(
+              Textos.sinVozEnEspanol,
+              style: Tipografia.secundario.copyWith(color: Colores.sobreMarca),
+            ),
           ],
         ],
       ),
     );
   }
+}
+
+/// Un icono en un círculo de color suave.
+class _Circulo extends StatelessWidget {
+  const _Circulo({
+    required this.icono,
+    required this.color,
+    required this.fondo,
+  });
+
+  final IconData icono;
+  final Color color;
+  final Color fondo;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 48,
+    height: 48,
+    decoration: BoxDecoration(color: fondo, shape: BoxShape.circle),
+    child: Icon(icono, color: color),
+  );
 }
 
 class _FilaAviso extends StatelessWidget {
@@ -282,35 +403,26 @@ class _FilaAviso extends StatelessWidget {
             : null,
         child: Row(
           children: [
-            importante
-                ? Transform.rotate(
-                    angle: 0.785398,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      color: Colores.avisoMarca,
-                    ),
-                  )
-                : Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: Colores.bordeCampo,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-            const SizedBox(width: 14),
+            // La prioridad con icono y color (mejora 01).
+            ExcludeSemantics(
+              child: _Circulo(
+                icono: importante
+                    ? Icons.priority_high_rounded
+                    : Icons.info_outline_rounded,
+                color: importante ? Colores.pendienteTexto : Colores.marca,
+                fondo: importante ? Colores.pendienteFondo : Colores.azul100,
+              ),
+            ),
+            const SizedBox(width: Medidas.e4),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     textoAviso(aviso),
-                    style: Tipografia.cifra(
-                      Tipografia.textoFuerte.copyWith(fontSize: 16),
-                    ),
+                    style: Tipografia.cifra(Tipografia.tituloTarjeta),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
                     importante ? Textos.importante : Textos.paraTenerEnCuenta,
                     style: Tipografia.secundario.copyWith(

@@ -7,6 +7,7 @@ import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/dominio/modelos.dart';
 import 'package:moca/dominio/movimientos.dart';
 import 'package:moca/dominio/primer_dia.dart';
+import 'package:moca/pais/peru/categorias.dart';
 
 void main() {
   late BaseLocal base;
@@ -53,9 +54,67 @@ void main() {
     expect(r.diferenciaConSemanaAnteriorCentimos, isNull);
   });
 
+  test('Entrega 51: de la venta de hoy, lo fiado que falta cobrar', () async {
+    final venta = await categoria(TipoMovimiento.ingreso, categoriaVentaDelDia);
+    await repo.registrar(
+      NuevoMovimiento(
+        tipo: TipoMovimiento.ingreso,
+        montoCentimos: 13000,
+        cuenta: TipoCuenta.efectivo,
+        categoriaId: venta,
+        pagado: false,
+        contraparte: 'Doña Rosa',
+      ),
+    );
+    final r = await inicio();
+    // La venta de hoy suma lo fiado; el saldo no.
+    expect(r.ventaDeHoyCentimos, 35000 + 13000);
+    expect(r.fiadoDeHoyCentimos, 13000);
+    expect(r.tienesHoyCentimos, 155000);
+    final primerDia = await RepositorioPrimerDiaLocal(
+      base,
+      ahora: () => ahora,
+    ).observarResumen().first;
+    expect(primerDia.fiadoDeHoyCentimos, 13000);
+  });
+
+  test('Entrega 52: la venta de hoy con lo fiado, en un paso; «Deshacer» '
+      'anula todo', () async {
+    final guardado = await repo.anotarVentaDelDia({
+      TipoCuenta.efectivo: 20000,
+    }, fiado: const FiadoDelDia(montoCentimos: 8000, quien: 'Doña Rosa'));
+    expect(guardado.ids, hasLength(2));
+    var r = await inicio();
+    expect(r.ventaDeHoyCentimos, 35000 + 20000 + 8000);
+    expect(r.fiadoDeHoyCentimos, 8000);
+    // Lo fiado no sube el saldo.
+    expect(r.tienesHoyCentimos, 155000 + 20000);
+
+    await repo.deshacer(guardado);
+    r = await inicio();
+    expect(r.ventaDeHoyCentimos, 35000);
+    expect(r.fiadoDeHoyCentimos, 0);
+  });
+
+  test('Entrega 52: solo lo fiado también se guarda; sin nombre, no', () async {
+    final solo = await repo.anotarVentaDelDia(
+      const {},
+      fiado: const FiadoDelDia(montoCentimos: 5000, quien: 'Juan'),
+    );
+    expect(solo.ids, hasLength(1));
+    expect((await inicio()).fiadoDeHoyCentimos, 5000);
+    expect(
+      () => repo.anotarVentaDelDia(
+        const {},
+        fiado: const FiadoDelDia(montoCentimos: 5000, quien: ' '),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('Las categorías dependen de si entró o salió', () async {
     final entro = await repo.categorias(TipoMovimiento.ingreso);
-    expect(entro.map((c) => c.nombre), ['Venta del día', 'Otro ingreso']);
+    expect(entro.map((c) => c.nombre), categoriasComunesIngreso);
     final salio = await repo.categorias(TipoMovimiento.egreso);
     expect(salio.map((c) => c.nombre), contains('Mercadería'));
     expect(await repo.categorias(TipoMovimiento.retiro), isEmpty);

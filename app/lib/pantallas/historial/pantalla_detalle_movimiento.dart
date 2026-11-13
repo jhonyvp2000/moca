@@ -4,14 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../comun/badge_estado.dart';
 import '../../comun/estructura.dart';
+import '../../comun/monto_text.dart';
+import '../../comun/tono.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/tarjeta.dart';
+import '../../dominio/equipo.dart';
 import '../../dominio/historial.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
+import '../../pais/peru/documentos.dart';
 import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
+import '../informe/recordatorio_whatsapp.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
@@ -53,6 +59,72 @@ class _EstadoDetalleMovimiento
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
     });
+  }
+
+  /// Por qué no se corrige o no se deshace todavía (entrega 44).
+  Future<void> _explicar(TrabaDelRegistro traba) => showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text(Textos.noSePuede),
+      content: Text(Textos.traba(traba), style: Tipografia.texto),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(Textos.entendido),
+        ),
+      ],
+    ),
+  );
+
+  /// «Deshacer el cobro» o «Deshacer el pago» (entrega 44.2): primero dice
+  /// qué pasa con la plata.
+  Future<void> _deshacerPago(DetalleMovimiento d) async {
+    final f = d.fila;
+    final cobro = f.tipo == TipoMovimiento.ingreso;
+    final monto = formatearSolesComprobante(f.montoCentimos);
+    final cuenta = Textos.nombreCuenta(f.cuenta);
+    final saldo = d.saldoSiSeDeshaceElPagoCentimos;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(cobro ? Textos.deshacerElCobro : Textos.deshacerElPago),
+        content: Text(
+          [
+            cobro
+                ? Textos.preguntaDeshacerCobro(monto, cuenta)
+                : Textos.preguntaDeshacerPago(monto, cuenta),
+            if (saldo != null && saldo < 0)
+              Textos.quedariaEn(cuenta, formatearSoles(saldo)),
+          ].join(' '),
+          style: Tipografia.texto,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(cobro ? Textos.deshacerElCobro : Textos.deshacerElPago),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    setState(() => _ocupado = true);
+    final mensajes = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(repositorioHistorialProvider).deshacerPago(f.id);
+      mensajes
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(cobro ? Textos.cobroDeshecho : Textos.pagoDeshecho),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
   }
 
   Future<void> _corregir(DetalleMovimiento d) async {
@@ -109,12 +181,25 @@ class _EstadoDetalleMovimiento
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            Textos.pagadoAhoraTienes(
-              formatearSoles(resultado.saldoCentimos),
-              Textos.nombreCuenta(resultado.cuenta),
+          content: Text(switch (resultado.parteCentimos) {
+            // Una parte (entrega 44): cuánto entró y lo que falta.
+            final parte? when d.fila.teDeben => Textos.cobradoParte(
+              formatearSolesComprobante(parte),
+              d.fila.proveedor ?? Textos.sinCliente,
+              formatearSolesComprobante(resultado.faltaCentimos),
             ),
-          ),
+            final parte? => Textos.pagadoParte(
+              formatearSolesComprobante(parte),
+              formatearSolesComprobante(resultado.faltaCentimos),
+            ),
+            null =>
+              (d.fila.teDeben
+                  ? Textos.cobradoAhoraTienes
+                  : Textos.pagadoAhoraTienes)(
+                formatearSoles(resultado.saldoCentimos),
+                Textos.nombreCuenta(resultado.cuenta),
+              ),
+          }),
         ),
       );
   }
@@ -134,6 +219,17 @@ class _EstadoDetalleMovimiento
     }
     final f = d.fila;
     final activo = d.vigente && !_ocupado;
+    // Quién puede corregir, deshacer o pagar esto (entrega 20).
+    final hoy = ref.watch(relojProvider)();
+    final anotado = f.anotadoEn ?? f.fecha;
+    final puedeCambiar =
+        (ref.watch(permisosProvider).value ?? Permisos.delDueno).puedeCambiar(
+          deOtro: f.deOtro,
+          delDia:
+              anotado.year == hoy.year &&
+              anotado.month == hoy.month &&
+              anotado.day == hoy.day,
+        );
 
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
@@ -141,31 +237,56 @@ class _EstadoDetalleMovimiento
         alVolver: () => context.pop(),
       ),
       contenido: [
+        // El registro arriba, como su fila del Historial (mejora 01): icono
+        // o inicial, el monto grande con signo y color, y su estado.
         Tarjeta(
-          relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          relleno: const EdgeInsets.all(Medidas.e5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  AvatarDeFila(fila: f),
+                  const SizedBox(width: Medidas.e3),
+                  Expanded(
+                    child: Text(tituloDeFila(f), style: Tipografia.tituloFila),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Medidas.e3),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  montoConSigno(f.tipo, f.montoCentimos),
-                  style: Tipografia.cifra(
-                    Tipografia.tituloPantalla.copyWith(
-                      fontSize: 32,
-                      color: colorDelMonto(f.tipo),
-                    ),
-                  ),
+                child: MontoText(
+                  f.montoCentimos,
+                  estilo: Tipografia.montoDetalle,
+                  tono: tonoDeFila(f) == Tono.neutro ? null : tonoDeFila(f),
+                  conSigno: true,
+                  conCentimos: true,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                tituloDeFila(f),
-                style: Tipografia.tituloTarjeta.copyWith(fontSize: 17),
-              ),
-              const SizedBox(height: 2),
+              const SizedBox(height: Medidas.e1),
               Text(fechaYHora(f.fecha), style: Tipografia.secundario),
+              if (f.deOtro)
+                Text(
+                  Textos.loAnoto(f.autorNombre, f.autorRol),
+                  style: Tipografia.secundario,
+                ),
+              if (f.loDebes || f.porSubir) ...[
+                const SizedBox(height: Medidas.e2),
+                Wrap(
+                  spacing: Medidas.e1,
+                  children: [
+                    if (f.loDebes)
+                      BadgeEstado(f.teDeben ? Textos.teDebe : Textos.loDebes),
+                    if (f.porSubir)
+                      const BadgeEstado(
+                        Textos.porSubirEtiqueta,
+                        tono: Tono.neutro,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -174,7 +295,28 @@ class _EstadoDetalleMovimiento
           const Aviso(texto: Textos.yaNoCuenta),
         ] else if (f.loDebes) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
-          const Aviso(texto: Textos.todaviaLoDebes),
+          Aviso(
+            texto: f.teDeben ? Textos.todaviaTeDebe : Textos.todaviaLoDebes,
+          ),
+        ],
+        // Un pago en parte: de qué deuda es (entrega 44).
+        if (d.deuda case final deuda?) ...[
+          const SizedBox(height: Medidas.separacionTarjetas),
+          FranjaInformativa(
+            texto: Textos.parteDeUnaDeuda(
+              deuda.tipo == TipoMovimiento.ingreso,
+              deuda.abierta
+                  ? formatearSolesComprobante(deuda.faltaCentimos)
+                  : '',
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.push(Rutas.detalleMovimiento(deuda.id)),
+              child: const Text(Textos.verLaDeuda),
+            ),
+          ),
         ],
         if (f.porSubir) ...[
           const SizedBox(height: Medidas.separacionTarjetas),
@@ -206,6 +348,25 @@ class _EstadoDetalleMovimiento
           ),
         ] else
           _Datos(detalle: d),
+        // Una deuda con pagos en partes (entrega 44).
+        if (d.partes.isNotEmpty) ...[
+          const _Subtitulo(Textos.pagosEnPartes),
+          _TarjetaDeFilas(
+            filas: [
+              for (final p in d.partes)
+                (
+                  '${formatearDiaYMes(p.fechaPago)} · '
+                      '${Textos.nombreCuenta(p.cuenta)}',
+                  formatearSolesComprobante(p.montoCentimos),
+                ),
+              if (f.loDebes)
+                (
+                  Textos.faltaPagar(''),
+                  formatearSolesComprobante(f.montoCentimos),
+                ),
+            ],
+          ),
+        ],
         if (d.comprobante case final c?) ...[
           const _Subtitulo(Textos.etiquetaComprobante),
           _Comprobante(comprobante: c),
@@ -215,24 +376,66 @@ class _EstadoDetalleMovimiento
       ],
       acciones: [
         // Un ajuste del arqueo se ve, pero no se corrige ni se deshace.
-        if (d.vigente && d.ajuste == null && f.loDebes)
+        if (puedeCambiar && d.vigente && d.ajuste == null && f.loDebes)
           FilledButton(
             onPressed: activo ? () => _pagar(d) : null,
-            child: const Text(Textos.yaLoPague),
+            child: Text(f.teDeben ? Textos.yaMePago : Textos.yaLoPague),
           ),
-        if (d.vigente && d.ajuste == null)
+        // Cuándo se le recordó, solo para que el dueño lo vea (entrega 53).
+        if (d.vigente &&
+            f.teDeben &&
+            f.recordadoEn != null &&
+            (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
+                Rol.dueno)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Medidas.e1),
+            child: Text(
+              Textos.leRecordasteEl(formatearDiaYMes(f.recordadoEn!)),
+              textAlign: TextAlign.center,
+              style: Tipografia.secundario,
+            ),
+          ),
+        // Una venta a crédito: recordarle al cliente (entrega 45).
+        if (d.vigente &&
+            f.teDeben &&
+            (ref.watch(permisosProvider).value ?? Permisos.delDueno).rol ==
+                Rol.dueno)
+          OutlinedButton(
+            onPressed: () =>
+                recordarPorWhatsApp(context, cliente: f.proveedor, ventas: [f]),
+            child: const Text(Textos.recordarPorWhatsApp),
+          ),
+        // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).
+        if (puedeCambiar && d.vigente && d.sePuedeDeshacerElPago)
+          OutlinedButton(
+            onPressed: activo ? () => _deshacerPago(d) : null,
+            child: Text(
+              f.tipo == TipoMovimiento.ingreso
+                  ? Textos.deshacerElCobro
+                  : Textos.deshacerElPago,
+            ),
+          ),
+        if (puedeCambiar && d.vigente && d.ajuste == null)
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: activo ? () => _corregir(d) : null,
+                  onPressed: activo
+                      ? () => d.trabaAlCorregir == null
+                            ? _corregir(d)
+                            : _explicar(d.trabaAlCorregir!)
+                      : null,
                   child: const Text(Textos.corregir),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: activo ? () => _deshacer(d) : null,
+                  onPressed: activo
+                      ? () => d.trabaAlDeshacer == null
+                            ? _deshacer(d)
+                            : _explicar(d.trabaAlDeshacer!)
+                      : null,
                   child: const Text(
                     Textos.deshacerRegistro,
                     textAlign: TextAlign.center,
@@ -257,7 +460,7 @@ class FranjaInformativa extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: Medidas.e4, vertical: 12),
       decoration: BoxDecoration(
         color: Colores.tinteAzul,
         borderRadius: BorderRadius.circular(Medidas.radioBoton),
@@ -278,7 +481,7 @@ class _Subtitulo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
+      padding: const EdgeInsets.fromLTRB(0, Medidas.e5, 0, 8),
       child: Semantics(
         header: true,
         child: Text(texto, style: Tipografia.tituloTarjeta),
@@ -302,7 +505,10 @@ class _TarjetaDeFilas extends StatelessWidget {
           for (final (i, (etiqueta, valor)) in filas.indexed)
             Container(
               constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: Medidas.e3,
+              ),
               decoration: i < filas.length - 1
                   ? const BoxDecoration(
                       border: Border(
@@ -313,7 +519,12 @@ class _TarjetaDeFilas extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(etiqueta, style: Tipografia.secundario),
+                  // Una parte lleva fecha y cuenta (entrega 44): puede ser
+                  // larga.
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Text(etiqueta, style: Tipografia.secundario),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -341,6 +552,19 @@ class _Datos extends StatelessWidget {
     final d = detalle;
     final f = d.fila;
     final pago = d.fechaPago;
+    // El documento y la institución anotados (entrega 66). Lo que ya dice
+    // el comprobante leído no se repite.
+    final c = d.comprobante;
+    final documento = textoDelDocumento(f.documentoTipo, f.documentoNumero);
+    final delComprobante = c == null
+        ? null
+        : textoDelDocumento(
+            c.tipo,
+            [c.serie, c.numero].whereType<String>().join('-'),
+          );
+    final institucion = f.loDebes || f.proveedor == c?.emisorNombre
+        ? null
+        : f.proveedor;
     return _TarjetaDeFilas(
       filas: [
         (Textos.etiquetaQueFue, Textos.nombreTipo(f.tipo)),
@@ -348,6 +572,10 @@ class _Datos extends StatelessWidget {
         if (f.categoria case final categoria?)
           (Textos.etiquetaCategoria, categoria),
         if (f.nota case final nota?) (Textos.etiquetaNota, nota),
+        if (documento != null && documento != delComprobante)
+          (Textos.etiquetaDocumento, documento),
+        if (institucion != null)
+          (Textos.etiquetaInstitucion(f.tipo), institucion),
         (Textos.etiquetaComoSeAnoto, Textos.comoSeAnoto(d.fuente)),
         if (d.comprobante != null)
           (
@@ -411,7 +639,7 @@ class _Comprobante extends StatelessWidget {
       height: 84,
       decoration: BoxDecoration(
         color: Colores.fondo,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Medidas.e2),
         border: Border.all(color: Colores.bordeCampo),
       ),
       clipBehavior: Clip.antiAlias,
@@ -427,7 +655,7 @@ class _Comprobante extends StatelessWidget {
     );
 
     return Tarjeta(
-      relleno: const EdgeInsets.all(14),
+      relleno: const EdgeInsets.all(Medidas.e4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -442,7 +670,7 @@ class _Comprobante extends StatelessWidget {
             )
           else
             miniatura,
-          const SizedBox(width: 14),
+          const SizedBox(width: Medidas.e4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,7 +689,7 @@ class _Comprobante extends StatelessWidget {
                   ),
                 if (c.fechaEmision case final fecha?)
                   Text(formatearDiaYMes(fecha), style: Tipografia.secundario),
-                const SizedBox(height: 6),
+                const SizedBox(height: Medidas.e2),
                 Text(
                   '${Textos.total} ${formatearSolesComprobante(c.totalCentimos)}',
                   style: Tipografia.cifra(Tipografia.textoFuerte),
@@ -486,6 +714,8 @@ class _Cambios extends StatelessWidget {
     CampoMovimiento.cuenta => v is TipoCuenta ? Textos.nombreCuenta(v) : '',
     CampoMovimiento.categoria => v is String ? v : Textos.sinCategoria,
     CampoMovimiento.nota => v is String ? '«$v»' : Textos.sinNota,
+    CampoMovimiento.documento => v is String ? v : Textos.sinDocumento,
+    CampoMovimiento.institucion => v is String ? v : Textos.sinInstitucion,
   };
 
   static String _campo(CampoCambiado c) {
@@ -497,6 +727,11 @@ class _Cambios extends StatelessWidget {
       CampoMovimiento.cuenta => Textos.cambiasteCuenta(antes, despues),
       CampoMovimiento.categoria => Textos.cambiasteCategoria(antes, despues),
       CampoMovimiento.nota => Textos.cambiasteNota(antes, despues),
+      CampoMovimiento.documento => Textos.cambiasteDocumento(antes, despues),
+      CampoMovimiento.institucion => Textos.cambiasteInstitucion(
+        antes,
+        despues,
+      ),
     };
   }
 
@@ -506,8 +741,28 @@ class _Cambios extends StatelessWidget {
       campos.isEmpty
           ? [Textos.corregisteSinCambios]
           : [for (final campo in campos) _campo(campo)],
-    CambioPagado(:final cuenta, :final fechaPago) => [
-      Textos.pagaste(Textos.nombreCuenta(cuenta), formatearDiaYMes(fechaPago)),
+    CambioPagado(
+      :final cuenta,
+      :final fechaPago,
+      :final parteCentimos,
+      :final cobro,
+    ) =>
+      [
+        // Una venta se cobra; una compra se paga (entrega 44.1).
+        switch (parteCentimos) {
+          null => (cobro ? Textos.tePagaron : Textos.pagaste)(
+            Textos.nombreCuenta(cuenta),
+            formatearDiaYMes(fechaPago),
+          ),
+          final parte => (cobro ? Textos.tePagaronParte : Textos.pagasteParte)(
+            formatearSolesComprobante(parte),
+            Textos.nombreCuenta(cuenta),
+            formatearDiaYMes(fechaPago),
+          ),
+        },
+      ],
+    CambioPagoDeshecho(:final cobro) => [
+      cobro ? Textos.deshicisteCobro : Textos.deshicistePago,
     ],
     CambioDeshecho() => [Textos.deshiciste],
   };
@@ -534,7 +789,7 @@ class _Cambios extends StatelessWidget {
                 children: [
                   for (final linea in _lineas(cambio))
                     Text(linea, style: Tipografia.textoFuerte),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: Medidas.e1),
                   Text(
                     '${fechaYHora(cambio.fecha)} · ${Textos.autorTu}',
                     style: Tipografia.secundario,

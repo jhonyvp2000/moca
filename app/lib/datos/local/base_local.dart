@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 import '../../dominio/modelos.dart';
+import 'categorias_al_dia.dart';
 import 'tablas.dart';
 
 part 'base_local.g.dart';
@@ -24,6 +25,7 @@ part 'base_local.g.dart';
     DiasCerrados,
     EventosMedicion,
     Ajustes,
+    Subidas,
   ],
 )
 class BaseLocal extends _$BaseLocal {
@@ -33,16 +35,40 @@ class BaseLocal extends _$BaseLocal {
   // Desde el APK de los pilotos (entrega 9) los datos de un teléfono no se
   // borran al actualizar: cada cambio de versión agrega aquí su migración.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onUpgrade: (m, desde, hasta) async {},
+    onUpgrade: (m, desde, hasta) async {
+      // Entrega 18: lo que ya está en el servidor, fila por fila. Vacía al
+      // empezar: la primera subida manda todo, como antes.
+      if (desde < 2) await m.createTable(subidas);
+      // Entrega 21.1: la cuenta a la que va un pase.
+      if (desde < 3) {
+        await m.addColumn(movimientos, movimientos.cuentaDestinoId);
+      }
+      // Entrega 44: el pago en parte, con la deuda de la que es parte.
+      if (desde < 4) await m.addColumn(movimientos, movimientos.abonaA);
+      // Entrega 53: el celular del cliente y cuándo se le recordó.
+      if (desde < 5) {
+        await m.addColumn(contrapartes, contrapartes.celular);
+        await m.addColumn(contrapartes, contrapartes.recordadoEn);
+      }
+      if (desde < 6) await m.addColumn(cuentas, cuentas.enUso);
+      // El documento del registro (entrega 66).
+      if (desde < 7) {
+        await m.addColumn(movimientos, movimientos.documentoTipo);
+        await m.addColumn(movimientos, movimientos.documentoNumero);
+      }
+    },
     beforeOpen: (detalles) async {
       await customStatement('PRAGMA foreign_keys = ON');
       // El aviso de cierre puede escribir desde segundo plano mientras la
       // app está abierta: se espera en lugar de fallar.
       await customStatement('PRAGMA busy_timeout = 5000');
+      // Las categorías nuevas y renombradas llegan también a los teléfonos
+      // que ya tenían datos (entrega 14.14).
+      await ponerAlDiaCategorias(this);
     },
   );
 }

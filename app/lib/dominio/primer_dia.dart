@@ -14,6 +14,11 @@ enum EtapaInicio {
 
   /// El camino terminó: la app abre en Inicio.
   listo,
+
+  /// Este teléfono perdió el acceso al negocio (entrega 37): se borró, lo
+  /// quitaron o la cuenta se abrió en otro teléfono. Su copia ya se borró y
+  /// solo se ve qué pasó y qué hacer.
+  sinAcceso,
 }
 
 class DatosAlta {
@@ -32,7 +37,8 @@ class DatosAlta {
   final Map<TipoCuenta, int>? saldos;
   final int horaCierreMinutos;
 
-  /// Las billeteras que usa además de Yape, con su nombre (Plin, Sip u otra).
+  /// Las billeteras y los bancos que usa además de Yape y el BCP, con su
+  /// nombre (Plin, Sip u otra; Interbank, BBVA, Scotiabank u otro banco).
   final Map<TipoCuenta, String> billeteras;
 }
 
@@ -43,22 +49,38 @@ class ResumenPrimerDia {
     required this.nombreNegocio,
     required this.tienesHoyCentimos,
     required this.saldoPendiente,
+    this.fiadoDeHoyCentimos = 0,
     required this.ventaDeHoyCentimos,
     required this.diasConVenta,
     this.conOtrosMovimientos = false,
+    this.gastoConComprobante = false,
+    this.arqueoHecho = false,
+    this.saldosPorCuenta = const {},
   });
 
   final String nombreNegocio;
   final int tienesHoyCentimos;
+
+  /// Lo que hay en cada cuenta, en su orden: el desglose de «Tienes hoy».
+  final Map<TipoCuenta, int> saldosPorCuenta;
   final bool saldoPendiente;
 
   /// Cero si hoy no se anotó venta.
   final int ventaDeHoyCentimos;
+
+  /// De la venta de hoy, lo fiado que falta cobrar (entrega 51).
+  final int fiadoDeHoyCentimos;
   final int diasConVenta;
 
   /// Si hay algo más que el saldo inicial y las ventas del día (gastos,
   /// retiros, otros ingresos). Cambia cómo se explica «Tienes hoy».
   final bool conOtrosMovimientos;
+
+  /// Paso 3: hay un gasto vigente anotado desde un comprobante (foto o QR).
+  final bool gastoConComprobante;
+
+  /// Paso 4: ya hay un arqueo.
+  final bool arqueoHecho;
 
   bool get ventaDeHoyAnotada => ventaDeHoyCentimos > 0;
 }
@@ -74,7 +96,8 @@ abstract interface class RepositorioPrimerDia {
     Fuente fuente = Fuente.texto,
   });
 
-  /// S01: guarda el celular ya verificado y pasa al alta.
+  /// S01: guarda el celular ya verificado y, si viene del primer día, pasa
+  /// al alta.
   Future<void> guardarCelular(String celular);
 
   /// S01: «Ahora no, seguir probando».

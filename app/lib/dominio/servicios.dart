@@ -18,6 +18,13 @@ abstract interface class Compartidor {
     required String asunto,
     String tipo = 'application/pdf',
   });
+
+  /// Varios archivos en un solo envío, cada uno con su tipo (entrega
+  /// 14.15: el PDF y el flujo para la caja).
+  Future<void> compartirArchivos(
+    List<(String ruta, String tipo)> archivos, {
+    required String asunto,
+  });
 }
 
 /// Las notificaciones del teléfono: el aviso de cierre y un aviso al día.

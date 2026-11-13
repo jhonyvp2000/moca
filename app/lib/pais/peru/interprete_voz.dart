@@ -42,18 +42,57 @@ LecturaVoz interpretarVoz(
     }
   }
 
+  // Una venta a crédito o una compra que se debe (entrega 49). En la
+  // venta de hoy no: esa es siempre al contado.
+  final debe = !soloVenta && frase.debe;
+  // ¿Cobra o paga algo que se debía? (entrega 50). Moca lo busca en lo que
+  // se debe; si no está, se anota como siempre.
+  final texto = normalizar(principal.texto);
+  final abona =
+      !soloVenta &&
+      !debe &&
+      !frase.prestamo &&
+      switch (tipo) {
+        TipoMovimiento.ingreso => _cobroDeDeuda.hasMatch(texto),
+        TipoMovimiento.egreso => _pagoDeDeuda.hasMatch(texto),
+        _ => false,
+      };
   return LecturaVoz(
+    debe: debe,
+    contraparte: debe
+        ? quienDebe(principal.texto)
+        : abona
+        ? quienPaga(principal.texto, tipo!)
+        : null,
+    pagaDeuda:
+        abona &&
+        (tipo == TipoMovimiento.ingreso
+            ? categoria == categoriaCobroDeFiado
+            : _loQueSeDebia.hasMatch(texto)),
     textoDicho: principal.texto.trim(),
     tipo: tipo,
     // Con duda, la partida conserva la cuenta dicha; el monto se confirma.
     partidas: frase.partidas,
     montosPosibles: posibles,
     categoria: categoria,
+    prestamo: !soloVenta && frase.prestamo,
+    cuentaDestino: soloVenta ? null : frase.destino,
   );
 }
 
 class _Frase {
-  _Frase(this.tipo, this.partidas, this.categoria, this.cortada);
+  _Frase(
+    this.tipo,
+    this.partidas,
+    this.categoria,
+    this.cortada, {
+    this.prestamo = false,
+    this.destino,
+    this.debe = false,
+  });
+
+  /// Todavía se debe (entrega 49).
+  final bool debe;
 
   final TipoMovimiento? tipo;
   final List<PartidaVoz> partidas;
@@ -61,14 +100,64 @@ class _Frase {
 
   /// La frase quedó a medias («Pagué trescientos…»).
   final bool cortada;
+
+  /// Dijo que le prestaron plata (entrega 14.14).
+  final bool prestamo;
+
+  /// En un pase, a dónde va la plata (entrega 21.1).
+  final TipoCuenta? destino;
 }
 
 _Frase _leerFrase(String original) {
   final cortada = original.contains('...') || original.contains('…');
   final texto = normalizar(original);
   final fichas = _fichas(texto);
-  final tipo = _tipo(texto);
-  return _Frase(tipo, _partidas(fichas), _categoria(texto, tipo), cortada);
+  // Un préstamo recibido no es venta: hasta que lleguen los préstamos
+  // (V1.1), se sugiere «Puse de mi bolsillo» y Moca lo avisa.
+  final prestamo = _prestamoRecibido.hasMatch(texto) && !_pagoDeCuota(texto);
+  // «Pasé 500 de la caja a Yape», «deposité 1,000 al banco» (entrega 21.1).
+  if (!prestamo && _pase.hasMatch(texto)) {
+    final (origen, destino) = _cuentasDelPase(texto);
+    final monto = _partidas(fichas).firstOrNull;
+    return _Frase(
+      TipoMovimiento.transferencia,
+      [if (monto != null) PartidaVoz(monto.centimos, origen)],
+      null,
+      cortada,
+      destino: destino,
+    );
+  }
+  // «Me fiaron 150», «le debo 100 a don Pepe»: una compra que se debe.
+  // «Le fié 50 a doña Rosa», «me quedó debiendo 30»: una venta a crédito
+  // (entrega 49). «Cobré el fiado» sigue siendo un cobro.
+  if (!prestamo && _compraQueSeDebe.hasMatch(texto)) {
+    return _Frase(
+      TipoMovimiento.egreso,
+      _partidas(fichas),
+      _categoria(texto, TipoMovimiento.egreso),
+      cortada,
+      debe: true,
+    );
+  }
+  if (!prestamo &&
+      _ventaACredito.hasMatch(texto) &&
+      !_cobroDeDeuda.hasMatch(texto)) {
+    return _Frase(
+      TipoMovimiento.ingreso,
+      _partidas(fichas),
+      categoriaVentaDelDia,
+      cortada,
+      debe: true,
+    );
+  }
+  final tipo = prestamo ? TipoMovimiento.aporte : _tipo(texto);
+  return _Frase(
+    tipo,
+    _partidas(fichas),
+    _categoria(texto, tipo),
+    cortada,
+    prestamo: prestamo,
+  );
 }
 
 /// Minúsculas, sin tildes y sin la moneda.
@@ -87,9 +176,271 @@ String normalizar(String texto) {
 
 // --- Tipo ----------------------------------------------------------------------
 
-final _retiro = RegExp(
-  r'\bpara mi\b|\bpara la casa\b|\bpara mis gastos\b|\bretir(e|o|amos)\b',
+/// Plata que el dueño pone de su bolsillo (entrega 14.11).
+final _aporte = RegExp(
+  r'\bde mi bolsillo\b|\bmeti (plata|dinero|\d)|\bmeti al negocio\b|'
+  r'\bmeti .* al negocio\b|\bpuse (plata|dinero) de mi\b|\baporte\b',
 );
+final _retiro = RegExp(
+  r'\bpara mi\b(?! (personal|trabajador|trabajadora|ayudante|negocio|tienda|bodega))|'
+  r'\bpara la casa\b|\bpara mis gastos\b|\bretir(e|o|amos)\b|'
+  // «Gasto personal» es del dueño, no sueldo del personal (entrega 14.14).
+  r'\b(gasto|gastos|uso|compra|compras|cosa|cosas) personal(es)?\b',
+);
+
+/// «Pasé 500 de la caja a Yape», «deposité 1,000 al banco» (entrega 21.1).
+final _pase = RegExp(
+  r'\b(pase|pasamos|deposite|depositamos|transferi|transferimos|movi)\b',
+);
+
+/// De dónde y a dónde, por las palabras de antes: «de la caja», «a Yape».
+/// Sin «de» ni «a», la primera es el origen y la segunda el destino; al
+/// depositar, el origen que no se dice es el efectivo.
+(TipoCuenta?, TipoCuenta?) _cuentasDelPase(String texto) {
+  final palabras = texto.split(' ');
+  TipoCuenta? origen;
+  TipoCuenta? destino;
+  final sueltas = <TipoCuenta>[];
+  for (final (i, palabra) in palabras.indexed) {
+    final cuenta = _palabrasCuenta[palabra.replaceAll('.', '')];
+    if (cuenta == null) continue;
+    // Lo que va delante, saltando «la», «el», «mi».
+    var j = i - 1;
+    while (j >= 0 && const {'la', 'el', 'mi', 'su'}.contains(palabras[j])) {
+      j--;
+    }
+    final antes = j >= 0 ? palabras[j] : '';
+    if (const {'de', 'del', 'desde'}.contains(antes)) {
+      origen ??= cuenta;
+    } else if (const {'a', 'al', 'hacia', 'en'}.contains(antes)) {
+      destino ??= cuenta;
+    } else {
+      sueltas.add(cuenta);
+    }
+  }
+  for (final cuenta in sueltas) {
+    if (origen == null) {
+      origen = cuenta;
+    } else {
+      destino ??= cuenta;
+    }
+  }
+  if (origen == null && RegExp(r'\bdeposit').hasMatch(texto)) {
+    origen = TipoCuenta.efectivo;
+  }
+  return (origen, destino == origen ? null : destino);
+}
+
+// --- Lo que se debe (entrega 49) ------------------------------------------------
+
+/// «Le fié 50», «vendí 80 al crédito», «me quedó debiendo 30», «me debe 20».
+final _ventaACredito = RegExp(
+  r'\b(le |les )?fie\b|\bfiamos\b|\b(di|deje|dejamos|vendi|vendimos)\b.*\b(al fiado|fiado|al credito|a credito)\b|'
+  r'\b(me|nos) (quedo|quedaron) debiendo\b|\bquedo debiendo\b|\b(me|nos) debe(n)?\b',
+);
+
+/// «Me fiaron 150», «le debo 100», «quedé debiendo», «compré al crédito».
+final _compraQueSeDebe = RegExp(
+  r'\bme fiaron\b|\bnos fiaron\b|\b(le|les) debo\b|\bquede debiendo\b|'
+  r'\b(compre|compramos|saque|sacamos|traje)\b.*\b(al credito|a credito|al fiado|fiado)\b',
+);
+
+/// «Cobré lo que me debía»: es un cobro, no una venta a crédito.
+final _cobroDeDeuda = RegExp(
+  r'\b(cobre|cobramos|me pago|me pagaron|me yapeo|me yapearon|me debia|me debian)\b',
+);
+
+/// «Le pagué 100 a don Pepe», «pagué lo que debía» (entrega 50).
+final _pagoDeDeuda = RegExp(
+  r'\b(pague|pagamos|cancele|cancelamos|yapee|yapeamos|abone|abonamos)\b',
+);
+
+/// «Lo que debía», «la deuda», «el crédito»: paga algo que se debía.
+final _loQueSeDebia = RegExp(
+  r'\blo que (le |les )?(debia|debo|debiamos|debemos)\b|\bla deuda\b|'
+  r'\bel credito\b|\b(lo|el) fiado\b|\blo que me fiaron\b',
+);
+
+/// Palabras que no son nombres de personas ni de negocios.
+const _noSonNombre = {
+  'credito',
+  'fiado',
+  'cuenta',
+  'yape',
+  'plin',
+  'efectivo',
+  'banco',
+  'caja',
+  'por',
+  'con',
+  'en',
+  'de',
+  'y',
+  'que',
+  'hoy',
+  'ayer',
+  'el',
+  'la',
+  'los',
+  'las',
+  'mi',
+  'su',
+  'del',
+  'al',
+  'a',
+  'lo',
+  'le',
+  'me',
+  'nos',
+  'un',
+  'una',
+  'para',
+  'sabado',
+  'domingo',
+  'lunes',
+  'martes',
+  'miercoles',
+  'jueves',
+  'viernes',
+  'semana',
+  'mes',
+  'manana',
+  'pagar',
+  'paga',
+  'pague',
+  'debiendo',
+  'debe',
+  'debo',
+  'soles',
+  'sol',
+  'fie',
+  'vendi',
+  'compre',
+  'mercaderia',
+  'productos',
+  'medio',
+  'mil',
+  'cien',
+  // Lo que se cobra o se paga, no a quién (entrega 50).
+  'venta',
+  'ventas',
+  'personal',
+  'luz',
+  'agua',
+  'alquiler',
+  'deuda',
+  'debia',
+  'cuota',
+  'prestamo',
+  'pasaje',
+};
+
+/// Quién debe o a quién se le debe, si se dijo (entrega 49): «a doña
+/// Rosa», «en la distribuidora», «Doña Rosa me quedó debiendo». Nulo si no
+/// se entendió; Moca lo pregunta o el dueño lo escribe.
+String? quienDebe(String original) {
+  final t = original.trim();
+
+  // «Doña Rosa me quedó debiendo 30».
+  final antes = RegExp(
+    r'^(.+?)\s+(me|nos)\s+(qued[oó]|quedaron)\s+debiendo',
+    caseSensitive: false,
+  ).firstMatch(t);
+  if (antes != null) return _limpio(antes.group(1)!);
+  // «a doña Rosa», «al señor Juan», «en la distribuidora», «donde Pepe».
+  // Se prueba desde cada «a», «al», «en la»…: «vendí 80 al crédito a
+  // Juan» encuentra «Juan» después de descartar «crédito».
+  for (final m in RegExp(
+    r'\b(?:a|al|en la|en el|donde|de)\s+',
+    caseSensitive: false,
+  ).allMatches(t)) {
+    final nombre = _limpio(t.substring(m.end));
+    if (nombre != null) return nombre;
+  }
+  return null;
+}
+
+/// Un nombre limpio: «doña rosa en efectivo» → «Doña Rosa». Nulo si no hay.
+String? _limpio(String crudo) {
+  final palabras = [
+    for (final p in crudo.split(RegExp(r'\s+')))
+      if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) p,
+  ];
+  final nombre = <String>[];
+  for (final p in palabras) {
+    final n = normalizar(p).trim();
+    final titulo = RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+        .hasMatch(n);
+    if (nombre.isEmpty && titulo) {
+      nombre.add(p);
+      continue;
+    }
+    // «a la señora María»: el artículo no es parte del nombre.
+    if (nombre.isEmpty && (n == 'la' || n == 'el')) continue;
+    if (n.isEmpty || _noSonNombre.contains(n)) break;
+    nombre.add(p);
+    if (nombre.length >= (titulo ? 2 : 3)) break;
+  }
+  // Solo un título («a don») no es un nombre.
+  final sinTitulo = nombre.where(
+    (p) =>
+        !RegExp(r'^(don|dona|sr|sra|senor|senora|tio|tia)$')
+            .hasMatch(normalizar(p).trim()),
+  );
+  if (sinTitulo.isEmpty) return null;
+  return nombre
+      .map(
+        (p) =>
+            p.isEmpty ? p : p[0].toUpperCase() + p.substring(1).toLowerCase(),
+      )
+      .join(' ');
+}
+
+/// Quién pagó o a quién se le pagó, si se dijo (entrega 50): «Doña Rosa me
+/// pagó 30», «me yapeó Juan», «cobré el fiado de doña Rosa», «le pagué 100
+/// a don Pepe». Nulo si no se entendió.
+String? quienPaga(String original, TipoMovimiento tipo) {
+  final t = original.trim();
+  if (tipo == TipoMovimiento.ingreso) {
+    const verbo =
+        r'(pag[oó]|pagaron|yape[oó]|yapearon|plin[eé][oó]|deposit[oó]|'
+        r'transfiri[oó]|cancel[oó])';
+    final antes = RegExp(
+      // Sin límite de palabra al final: la «ó» no cuenta como letra.
+      '^(.+?)\\s+(me|nos)\\s+$verbo(?=\\s|\$|[,.])',
+      caseSensitive: false,
+    ).firstMatch(t);
+    if (antes != null) {
+      if (_limpio(antes.group(1)!) case final nombre?) return nombre;
+    }
+    final despues = RegExp(
+      '\\b(me|nos)\\s+$verbo\\s+',
+      caseSensitive: false,
+    ).firstMatch(t);
+    if (despues != null) {
+      if (_limpio(t.substring(despues.end)) case final nombre?) return nombre;
+    }
+  }
+  // Al cobrar, «a doña Rosa» o «de doña Rosa»; al pagar, «a don Pepe» o
+  // «en la distribuidora», pero no «de luz».
+  final antesDelNombre = tipo == TipoMovimiento.ingreso
+      ? r'\b(?:a|al|de)\s+'
+      : r'\b(?:a|al|donde|en la|en el)\s+';
+  for (final m in RegExp(antesDelNombre, caseSensitive: false).allMatches(t)) {
+    if (_limpio(t.substring(m.end)) case final nombre?) return nombre;
+  }
+  return null;
+}
+
+/// «Me prestaron 2,000», «saqué un préstamo».
+final _prestamoRecibido = RegExp(
+  r'\bme prest(aron|o)\b|\b(saque|pedi|recibi) (un|el) (prestamo|credito)\b|'
+  r'\bme (dieron|dio|desembolsaron|aprobaron) (un|el) (prestamo|credito)\b|'
+  r'\bme desembolsaron\b',
+);
+
+bool _pagoDeCuota(String t) =>
+    RegExp(r'\b(cuota|cuotas|pague|pagamos|pago)\b').hasMatch(t);
 final _ingresoConPago = RegExp(
   r'\bme (pagaron|pago|yapearon|yapeo|depositaron)\b',
 );
@@ -103,6 +454,7 @@ final _ingreso = RegExp(
 );
 
 TipoMovimiento? _tipo(String t) {
+  if (_aporte.hasMatch(t)) return TipoMovimiento.aporte;
   if (_retiro.hasMatch(t)) return TipoMovimiento.retiro;
   if (_ingresoConPago.hasMatch(t)) return TipoMovimiento.ingreso;
   if (_egreso.hasMatch(t)) return TipoMovimiento.egreso;
@@ -113,6 +465,16 @@ TipoMovimiento? _tipo(String t) {
 // --- Categoría -------------------------------------------------------------------
 
 const _servicios = 'Servicios (luz, agua, internet, teléfono)';
+const _sueldos = 'Sueldos del personal';
+const _movilidad = 'Movilidad del negocio';
+const _contador = 'Contador o gestoría';
+
+/// «Pagué al personal»: sueldos. «Personal» solo no elige nada (entrega
+/// 14.14).
+final _alPersonal = RegExp(r'\b(al|del|el|mi|nuestro|a mi) personal\b');
+
+/// «Cobré el fiado», «me pagó lo que me debía».
+final _fiado = RegExp(r'\bfiado\b|\bfiados\b|\bme debia(n)?\b');
 
 /// Palabra que se dice → categoría provisional (prototipo-v1.md).
 const _palabrasEgreso = {
@@ -126,19 +488,45 @@ const _palabrasEgreso = {
   'alquiler': 'Alquiler',
   'renta': 'Alquiler',
   'local': 'Alquiler',
-  'sueldo': 'Personal',
-  'ayudante': 'Personal',
-  'trabajador': 'Personal',
-  'trabajadora': 'Personal',
-  'planilla': 'Personal',
-  'jornal': 'Personal',
-  'pasaje': 'Transporte',
-  'taxi': 'Transporte',
-  'mototaxi': 'Transporte',
-  'movilidad': 'Transporte',
-  'gasolina': 'Transporte',
-  'combustible': 'Transporte',
-  'flete': 'Transporte',
+  'sueldo': _sueldos,
+  'sueldos': _sueldos,
+  'ayudante': _sueldos,
+  'trabajador': _sueldos,
+  'trabajadora': _sueldos,
+  'trabajadores': _sueldos,
+  'empleado': _sueldos,
+  'empleada': _sueldos,
+  'planilla': _sueldos,
+  'jornal': _sueldos,
+  'pasaje': _movilidad,
+  'pasajes': _movilidad,
+  'taxi': _movilidad,
+  'mototaxi': _movilidad,
+  'movilidad': _movilidad,
+  // El combustible tiene su categoría desde la entrega 14.14.1.
+  'gasolina': categoriaCombustible,
+  'combustible': categoriaCombustible,
+  'petróleo': categoriaCombustible,
+  'petroleo': categoriaCombustible,
+  'diésel': categoriaCombustible,
+  'diesel': categoriaCombustible,
+  'grifo': categoriaCombustible,
+  'flete': 'Flete',
+  'fletes': 'Flete',
+  'encomienda': 'Flete',
+  'publicidad': 'Publicidad',
+  'propaganda': 'Publicidad',
+  'volantes': 'Publicidad',
+  'afiches': 'Publicidad',
+  'anuncio': 'Publicidad',
+  'letrero': 'Publicidad',
+  'contador': _contador,
+  'contadora': _contador,
+  'contabilidad': _contador,
+  'gestoria': _contador,
+  'cuota': categoriaCuotaDePrestamo,
+  'cuotas': categoriaCuotaDePrestamo,
+  'prestamo': categoriaCuotaDePrestamo,
   'arreglo': 'Mantenimiento y reparaciones',
   'reparacion': 'Mantenimiento y reparaciones',
   'mantenimiento': 'Mantenimiento y reparaciones',
@@ -181,14 +569,19 @@ final _palabraVenta = RegExp(
 String? _categoria(String t, TipoMovimiento? tipo) {
   switch (tipo) {
     case TipoMovimiento.egreso:
+      if (_alPersonal.hasMatch(t)) return _sueldos;
       for (final palabra in t.split(' ')) {
         final categoria = _palabrasEgreso[palabra];
         if (categoria != null) return categoria;
       }
       return null;
     case TipoMovimiento.ingreso:
+      if (_fiado.hasMatch(t)) return categoriaCobroDeFiado;
       return _palabraVenta.hasMatch(t) ? categoriaVentaDelDia : null;
-    case TipoMovimiento.retiro || null:
+    case TipoMovimiento.retiro ||
+        TipoMovimiento.aporte ||
+        TipoMovimiento.transferencia ||
+        null:
       return null;
   }
 }
@@ -204,9 +597,15 @@ class _Numero extends _Ficha {
 }
 
 class _Cuenta extends _Ficha {
-  _Cuenta(this.cuenta);
+  _Cuenta(
+    this.cuenta, {
+    this.bancoSinNombre = false,
+    this.plinSinBanco = false,
+  });
 
   final TipoCuenta cuenta;
+  final bool bancoSinNombre;
+  final bool plinSinBanco;
 }
 
 class _Palabra extends _Ficha {}
@@ -231,11 +630,51 @@ const _palabrasCuenta = {
   'depositaron': TipoCuenta.banco,
   'tarjeta': TipoCuenta.banco,
   'bcp': TipoCuenta.banco,
-  'interbank': TipoCuenta.banco,
-  'bbva': TipoCuenta.banco,
+  'interbank': TipoCuenta.interbank,
+  'bbva': TipoCuenta.bbva,
+  'continental': TipoCuenta.bbva,
+  'scotiabank': TipoCuenta.scotiabank,
+  'scotia': TipoCuenta.scotiabank,
+};
+
+/// Palabras de banco que no dicen cuál (decisiones.md, 15-10-2026).
+const _bancoSinNombre = {
+  'banco',
+  'transferencia',
+  'transfirieron',
+  'deposito',
+  'depositaron',
+  'tarjeta',
+};
+
+const _cajasEntidad = {
+  'piura',
+  'cusco',
+  'arequipa',
+  'trujillo',
+  'huancayo',
+  'sullana',
+  'ica',
+  'tacna',
+  'maynas',
+  'municipal',
+  'rural',
+  'raiz',
+  'los',
 };
 
 const _antesDeSip = {'por', 'con', 'en', 'a', 'al', 'mi', 'de', 'del'};
+
+/// «Plin» con su banco al lado: «BBVA Plin», «Plin de Scotiabank»
+/// (entrega 14.10).
+const _palabrasPlin = {'plin', 'plineo', 'plinearon'};
+const _plinDelBanco = {
+  'interbank': TipoCuenta.plin,
+  'bbva': TipoCuenta.bbvaPlin,
+  'continental': TipoCuenta.bbvaPlin,
+  'scotiabank': TipoCuenta.scotiabankPlin,
+  'scotia': TipoCuenta.scotiabankPlin,
+};
 
 List<_Ficha> _fichas(String texto) {
   final palabras = texto
@@ -253,13 +692,48 @@ List<_Ficha> _fichas(String texto) {
       continue;
     }
     final palabra = palabras[i].replaceAll('.', '');
+    if (_palabrasPlin.contains(palabra)) {
+      // El banco justo antes («BBVA Plin»): reemplaza al banco ya leído.
+      final antes = i > 0 ? palabras[i - 1].replaceAll('.', '') : '';
+      if (_plinDelBanco[antes] case final plin? when fichas.last is _Cuenta) {
+        fichas.last = _Cuenta(plin);
+        i++;
+        continue;
+      }
+      // O justo después, con o sin «de» («Plin de Scotiabank»).
+      var j = i + 1;
+      if (j < palabras.length && const {'de', 'del'}.contains(palabras[j])) {
+        j++;
+      }
+      final despues = j < palabras.length
+          ? palabras[j].replaceAll('.', '')
+          : '';
+      if (_plinDelBanco[despues] case final plin?) {
+        fichas.add(_Cuenta(plin));
+        i = j + 1;
+        continue;
+      }
+      fichas.add(_Cuenta(TipoCuenta.plin, plinSinBanco: true));
+      i++;
+      continue;
+    }
     var cuenta = _palabrasCuenta[palabra];
+    // «La cuota de la Caja Piura»: es la entidad, no el efectivo.
+    if (palabra == 'caja' &&
+        i + 1 < palabras.length &&
+        _cajasEntidad.contains(palabras[i + 1])) {
+      cuenta = null;
+    }
     // «Sip» también es «sí»: solo es la billetera tras «por», «con», «en»…
     if (cuenta == TipoCuenta.sip &&
         (i == 0 || !_antesDeSip.contains(palabras[i - 1]))) {
       cuenta = null;
     }
-    fichas.add(cuenta == null ? _Palabra() : _Cuenta(cuenta));
+    fichas.add(
+      cuenta == null
+          ? _Palabra()
+          : _Cuenta(cuenta, bancoSinNombre: _bancoSinNombre.contains(palabra)),
+    );
     i++;
   }
   return fichas;
@@ -274,24 +748,31 @@ List<PartidaVoz> _partidas(List<_Ficha> fichas) {
   ];
   final cuentas = [
     for (final (i, f) in fichas.indexed)
-      if (f is _Cuenta) (i, f.cuenta),
+      if (f is _Cuenta) (i, f.cuenta, f.bancoSinNombre, f.plinSinBanco),
   ];
   final usadas = <int>{};
   final resultado = <PartidaVoz>[];
   for (final (posicion, centimos) in numeros) {
     if (centimos <= 0) continue;
-    (int, TipoCuenta)? cercana;
+    (int, TipoCuenta, bool, bool)? cercana;
     for (final (j, cuenta) in cuentas.indexed) {
       if (usadas.contains(j)) continue;
       final distancia = (cuenta.$1 - posicion).abs();
       if (cercana == null || distancia < (cercana.$1 - posicion).abs()) {
-        cercana = (cuenta.$1, cuenta.$2);
+        cercana = cuenta;
       }
     }
     if (cercana != null) {
       usadas.add(cuentas.indexWhere((c) => c.$1 == cercana!.$1));
     }
-    resultado.add(PartidaVoz(centimos, cercana?.$2));
+    resultado.add(
+      PartidaVoz(
+        centimos,
+        cercana?.$2,
+        cercana?.$3 ?? false,
+        cercana?.$4 ?? false,
+      ),
+    );
   }
   return resultado;
 }
