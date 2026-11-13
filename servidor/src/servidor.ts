@@ -1,5 +1,6 @@
 import { crearApp } from './app.js';
 import { lectorAnthropic } from './comprobantes/lector.js';
+import { respondedorAnthropic } from './pregunta/respondedor.js';
 import { aislamientoActivo, crearPool } from './base/conexion.js';
 import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
@@ -42,6 +43,7 @@ const app = crearApp({
   version: config.version,
   verificador: twilio ? verificadorTwilio(twilio) : null,
   lector: llaveAnthropic ? lectorAnthropic(llaveAnthropic) : null,
+  respondedor: llaveAnthropic ? respondedorAnthropic(llaveAnthropic) : null,
   registrar: true,
   cobro,
   versionApp: leerConfigVersion(),

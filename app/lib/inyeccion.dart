@@ -24,6 +24,7 @@ import 'datos/repositorios/repositorio_primer_dia_local.dart';
 import 'datos/repositorios/repositorio_tutoria_local.dart';
 import 'datos/simulados/frases_ejemplo.dart';
 import 'datos/simulados/lector_foto_simulado.dart';
+import 'dominio/pregunta.dart';
 import 'dominio/categorias.dart';
 import 'dominio/negocio.dart';
 import 'dominio/errores.dart';
@@ -524,6 +525,11 @@ final cobroProvider = StreamProvider<Cobro>((ref) {
 });
 
 /// La pantalla de cobros de Jhony (entrega 26), con la misma llave.
+/// «Pregúntale a Moca» (entrega 74).
+final servicioPreguntaProvider = Provider<ServicioPregunta>(
+  (ref) => ref.watch(servicioCuentaProvider) as ServicioPregunta,
+);
+
 final servicioPagosProvider = Provider<ServicioPagos>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioPagos,
 );

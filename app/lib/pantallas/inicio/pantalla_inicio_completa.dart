@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/movimientos.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
+import '../preguntale/barra_preguntale.dart';
 import 'desglose_cuentas.dart';
 import 'encabezado_negocio.dart';
 import '../../inyeccion.dart';
@@ -95,6 +97,13 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
                 pildora: _pildora(r, permisos, hoy),
               ),
             ),
+            // «Pregúntale a Moca» (entrega 74): solo el dueño con cuenta.
+            if (permisos.rol == Rol.dueno &&
+                ref.watch(situacionCuentaProvider).value?.estado ==
+                    EstadoCuenta.guardada) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              _conMargen(const BarraPreguntale()),
+            ],
             // Las cuentas, siempre a la vista (entrega 65): sin la fila
             // «Ver por cuenta / Ocultar».
             if (misCajas == null || saldos.length > 1) ...[

@@ -47,6 +47,7 @@ import 'package:moca/pantallas/historial/hoja_filtros.dart';
 import 'package:moca/pantallas/informe/pdf_informe.dart';
 import 'package:moca/pais/peru/categorias.dart';
 import 'package:moca/pantallas/moca/pantalla_moca.dart';
+import 'package:moca/pantallas/preguntale/pantalla_preguntale.dart';
 import 'package:moca/rutas.dart';
 import 'package:moca/textos/textos.dart';
 import 'package:go_router/go_router.dart';
@@ -172,6 +173,12 @@ class _ServidorFalso {
 
   /// Por qué este teléfono ya no ve el negocio (entrega 37).
   String? sinAccesoAlNegocio;
+
+  /// «Pregúntale a Moca» (entrega 74): lo preguntado, lo que responde y
+  /// cuántas quedan; [errorPregunta] hace que falle.
+  final preguntas = <String>[];
+  var quedanPreguntas = 20;
+  String? errorPregunta;
 
   /// Mercado Pago (entrega 32): el error al pedir pagar y cómo va la orden.
   String? errorMercadoPago;
@@ -414,6 +421,28 @@ class _ServidorFalso {
         pagos.add(cuerpo);
         return http.Response(
           jsonEncode(fichaDeLucho(hasta: '2026-11-14')),
+          200,
+        );
+      case '/pregunta' when pedido.method == 'GET':
+        return http.Response(
+          jsonEncode({'quedan': quedanPreguntas, 'disponible': true}),
+          200,
+        );
+      case '/pregunta':
+        preguntas.add(cuerpo['pregunta']! as String);
+        if (errorPregunta case final error?) {
+          return http.Response(
+            jsonEncode({'error': error, 'quedan': quedanPreguntas}),
+            error == 'tope_del_dia' ? 429 : 502,
+          );
+        }
+        quedanPreguntas--;
+        return http.Response(
+          jsonEncode({
+            'respuesta': 'Doña Rosa te debe S/ 80 desde el 12 de octubre.',
+            'enlace': 'te_deben',
+            'quedan': quedanPreguntas,
+          }),
           200,
         );
       case '/cobro/mercadopago':
@@ -6539,6 +6568,119 @@ void main() {
       expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
       // El negocio no se tocó: no salió del equipo.
       expect(_servidor.salidas, 0);
+    });
+  });
+
+  group('Entrega 74: «Pregúntale a Moca»', () {
+    Future<BaseLocal> conCuenta(WidgetTester tester, {Rol? rol}) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+        if (rol != null) {
+          await base
+              .update(base.membresias)
+              .write(MembresiasCompanion(rol: Value(rol)));
+        }
+      });
+      await esperar(tester);
+      return base;
+    }
+
+    // Mientras Moca responde gira un indicador: se avanza paso a paso.
+    Future<void> preguntar(WidgetTester tester, Finder f) async {
+      await tester.ensureVisible(f);
+      await tester.pump();
+      await tester.tap(f);
+      for (var i = 0; i < 40; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+        if (find.text(Textos.mocaPiensa).evaluate().isEmpty && i > 2) break;
+      }
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    Future<void> abrirPreguntale(WidgetTester tester) async {
+      expect(find.text(Textos.preguntaleAMoca), findsOneWidget);
+      await tocar(tester, find.text(Textos.preguntaleAMoca));
+      expect(find.text(Textos.preguntaleSaludo), findsOneWidget);
+    }
+
+    testWidgets('el dueño pregunta y Moca responde con su enlace', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      expect(find.text(Textos.preguntasQueQuedan(20)), findsOneWidget);
+      for (final s in Textos.preguntasSugeridas) {
+        expect(find.text(s), findsOneWidget, reason: s);
+      }
+      await preguntar(tester, find.text(Textos.preguntasSugeridas[1]));
+      expect(_servidor.preguntas, [Textos.preguntasSugeridas[1]]);
+      expect(
+        find.text('Doña Rosa te debe S/ 80 desde el 12 de octubre.'),
+        findsOneWidget,
+      );
+      expect(find.text(Textos.preguntasQueQuedan(19)), findsOneWidget);
+      // Ya preguntó: las sugerencias se van.
+      expect(find.text(Textos.preguntasSugeridas[0]), findsNothing);
+      // Una pregunta escrita.
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Cuánto tengo en Yape?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(_servidor.preguntas.last, '¿Cuánto tengo en Yape?');
+      expect(find.text(Textos.preguntasQueQuedan(18)), findsOneWidget);
+      // El enlace lleva a lo que te deben.
+      await tocar(tester, find.text('${Textos.verLoQueTeDeben} ›').first);
+      expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
+    });
+
+    testWidgets('sin señal lo dice y la pregunta vuelve al campo', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      _conSenal = false;
+      await preguntar(tester, find.text(Textos.preguntasSugeridas[0]));
+      expect(find.text(Textos.preguntaleSinSenal), findsOneWidget);
+      expect(find.text(Textos.preguntasSugeridas[0]), findsWidgets);
+      expect(_servidor.preguntas, isEmpty);
+    });
+
+    testWidgets('si la IA no responde lo dice; al tope, no deja preguntar', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      _servidor.errorPregunta = 'sin_respuesta';
+      await preguntar(tester, find.text(Textos.preguntasSugeridas[0]));
+      expect(find.text(Textos.preguntaleNoDisponible), findsOneWidget);
+      _servidor.errorPregunta = 'tope_del_dia';
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Y ayer?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(find.text(Textos.topeDePreguntas), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(PantallaPreguntale.claveCampo))
+            .enabled,
+        isFalse,
+      );
+    });
+
+    testWidgets('sin cuenta no aparece', (tester) async {
+      await abrirApp(tester, listo: true);
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.bySemanticsLabel(Textos.preguntaleAMoca), findsNothing);
     });
   });
 

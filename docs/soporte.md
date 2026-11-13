@@ -217,6 +217,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
 
+**«No me sale "Pregúntale a Moca"»** · **«Moca no me responde»** (entrega 74): la barra sale solo al **dueño con cuenta** (no al encargado, ayudante o contador, ni en la Demo). Necesita internet. Si dice «Ahora no puedo responder», el servidor o la IA no están disponibles en ese momento (revisa Render y el saldo de Anthropic). Hay un tope de 20 preguntas al día por negocio. Moca responde con lo que ya subió: si la persona anotó sin señal, primero tiene que subir.
+
+> «Pregúntale a Moca» está en el Inicio, debajo de «Tienes hoy», solo para los dueños con cuenta y con internet. Si te dice que no puede responder, intenta en un rato. Puedes hacer hasta 20 preguntas al día.
+
 **«Ya no veo los botones Entró, Salió y Pendientes en el Historial»** (entrega 71): están en el botón **Filtrar** del Historial, en la sección **«Transacciones»**. «Pendientes» ahora son dos: **Te deben** y **Debes**. Se pueden marcar varios a la vez.
 
 > En el Historial, toca **Filtrar** (arriba, a la derecha). En «Transacciones» elige Entró, Salió, Te deben, Debes o Por subir (puedes marcar varios) y toca «Ver registros». (Hasta la entrega 71, justo después de guardar, el aviso «Guardado…» tapaba unos segundos «Ver registros»: se espera o se desliza el aviso. Desde la 72 se cierra solo.)

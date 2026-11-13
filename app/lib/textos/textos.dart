@@ -803,6 +803,47 @@ abstract final class Textos {
   static const seDeshizo = 'Listo, no se guardó.';
 
   // S10 · Historial
+  // «Pregúntale a Moca» (entrega 74).
+  static const preguntaleAMoca = 'Pregúntale a Moca';
+  static const preguntaleEjemplo = '«¿Cuánto vendí esta semana?»';
+  static const preguntaleSubtitulo = 'Sobre tu negocio, con tus cifras';
+  static const preguntaleSaludo =
+      'Hola, soy Moca. Pregúntame lo que quieras saber de tus cuentas. '
+      'Respondo con lo que anotaste.';
+  static const pruebaCon = 'Prueba con:';
+  static const preguntasSugeridas = [
+    '¿Cuánto vendí esta semana?',
+    '¿Quién me debe más?',
+    '¿En qué gasté más este mes?',
+    '¿Cuánto tengo en total?',
+  ];
+  static const tuPregunta = 'Tu pregunta';
+  static const escribeTuPregunta = 'Escribe tu pregunta';
+  static const enviar = 'Enviar';
+  static const mocaPiensa = 'Moca está revisando tus cifras…';
+  static String conLoAnotadoHasta(String hora) =>
+      'Con lo anotado hasta hoy $hora';
+  static String preguntasQueQuedan(int n) => n == 1
+      ? 'Te queda 1 pregunta hoy · Necesita internet'
+      : 'Te quedan $n preguntas hoy · Necesita internet';
+  static const necesitaInternet = 'Necesita internet';
+  static const preguntaleSinSenal =
+      'Para preguntarle a Moca hace falta internet. Lo que anotes se sigue '
+      'guardando en tu teléfono.';
+  static const preguntaleNoDisponible =
+      'Ahora no puedo responder. Intenta en un rato.';
+  static const preguntaleSoloDuenos =
+      'Solo los dueños pueden preguntarle a Moca.';
+  static const topeDePreguntas = 'Ya hiciste tus 20 preguntas de hoy';
+  static const topeDePreguntasDetalle =
+      'Mañana puedes seguir preguntando. Mientras, todo está en el Historial '
+      'y en Informes.';
+  static const verEnElHistorial = 'Ver en el Historial';
+  static const verLoQueTeDeben = 'Ver lo que te deben';
+  static const verLoQueDebes = 'Ver lo que debes';
+  static const verElInformeDelMes = 'Ver el informe del mes';
+  static const verMisCuentas = 'Ver mis cuentas';
+
   // «Transacciones» en los filtros (entrega 71).
   static const filtroTransacciones = 'Transacciones';
   static String filtroPorSubir(int n) => n > 0 ? 'Por subir · $n' : 'Por subir';

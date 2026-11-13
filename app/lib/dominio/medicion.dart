@@ -38,6 +38,11 @@ enum EventoMedicion {
   /// Se abrió una sección plegada o una explicación; lleva cuál (entrega
   /// 59), sin montos.
   seccionAbierta,
+
+  /// «Pregúntale a Moca» (entrega 74): se abrió y se hizo una pregunta,
+  /// sin el texto.
+  preguntaleAbierto,
+  preguntaHecha,
 }
 
 abstract interface class Medicion {

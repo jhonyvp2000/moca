@@ -13,6 +13,8 @@ import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
+import type { Respondedor } from './pregunta/respondedor.js';
+import { rutasPregunta } from './pregunta/rutas.js';
 import { rutasUso } from './uso/rutas.js';
 import type { ConfigMercadoPago, MercadoPago } from './mercadopago/cliente.js';
 import { type Cobrador, rutasMercadoPago } from './mercadopago/rutas.js';
@@ -42,6 +44,8 @@ export interface Dependencias {
   ahora?: () => Date;
   /** Quien lee las fotos con IA; nulo si no hay llave de Anthropic. */
   lector?: Lector | null;
+  /** «Pregúntale a Moca» (entrega 74); nulo sin llave de Anthropic. */
+  respondedor?: Respondedor | null;
   /** El cobro manual por Yape (entrega 24); sin él, no se cobra. */
   cobro?: ConfigCobro;
   /** «Hay una versión nueva» (entrega 26.3): de dónde y la mínima. */
@@ -60,6 +64,7 @@ export function crearApp({
   registrar = false,
   ahora = () => new Date(),
   lector = null,
+  respondedor = null,
   cobro = sinCobro,
   versionApp = leerConfigVersion({}),
   buscarReleases = releasesDeGitHub,
@@ -126,6 +131,7 @@ export function crearApp({
   rutasEquipo(app, pool);
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
+  rutasPregunta(app, pool, respondedor, ahora);
 
   return app;
 }

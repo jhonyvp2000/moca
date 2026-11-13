@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../preguntale/barra_preguntale.dart';
+import '../../inyeccion.dart';
+import '../../dominio/cuenta_real.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../comun/icono_trazo.dart';
@@ -98,6 +104,19 @@ class PantallaPrimerDia extends StatelessWidget {
                           ),
                       ].join(' · ')
                     : null,
+              ),
+            ),
+            // «Pregúntale a Moca» (entrega 74): el primer día es solo del
+            // dueño; hace falta su cuenta.
+            const _ConCuenta(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Medidas.margenLateral,
+                  Medidas.separacionTarjetas,
+                  Medidas.margenLateral,
+                  0,
+                ),
+                child: BarraPreguntale(),
               ),
             ),
             // Qué hay en cada cuenta, como en el Inicio.
@@ -329,4 +348,17 @@ class _Paso extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Muestra [child] solo con la cuenta guardada (entrega 74).
+class _ConCuenta extends ConsumerWidget {
+  const _ConCuenta({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      ref.watch(situacionCuentaProvider).value?.estado == EstadoCuenta.guardada
+      ? child
+      : const SizedBox.shrink();
 }

@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../../dominio/pregunta.dart';
 import '../../dominio/errores.dart';
 import '../../dominio/version.dart';
 import '../../dominio/cobro.dart';
@@ -37,7 +38,8 @@ class ServicioCuentaRemoto
         ServicioCobro,
         ServicioPagos,
         ServicioVersion,
-        ServicioErrores {
+        ServicioErrores,
+        ServicioPregunta {
   ServicioCuentaRemoto(
     BaseLocal base, {
     required this._llavero,
@@ -452,6 +454,56 @@ class ServicioCuentaRemoto
         'solo_duenos' => ErrorDePago.soloDuenos,
         _ => ErrorDePago.fallo,
       },
+    );
+  }
+
+  // --- Pregúntale a Moca (entrega 74) -------------------------------------
+
+  @override
+  Future<int?> preguntasQueQuedan() async {
+    final r = await _delEquipo(await _delNegocio('/pregunta'));
+    if (r == null || r.statusCode != 200) return null;
+    return _cuerpo(r)['quedan'] as int?;
+  }
+
+  @override
+  Future<ResultadoPregunta> preguntar(String pregunta) async {
+    // Lo último que anotó, antes de preguntar.
+    if (await hayCambiosSinSubir()) await subirTodo();
+    final r = await _delEquipo(await _delNegocio('/pregunta'), {
+      'pregunta': pregunta,
+    });
+    if (r == null) {
+      return (respuesta: null, error: ErrorDePregunta.sinSenal, quedan: null);
+    }
+    final cuerpo = _cuerpo(r);
+    final quedan = cuerpo['quedan'] as int?;
+    if (r.statusCode == 200 && cuerpo['respuesta'] is String) {
+      return (
+        respuesta: RespuestaDeMoca(
+          texto: cuerpo['respuesta']! as String,
+          enlace: switch (cuerpo['enlace']) {
+            'historial' => EnlaceRespuesta.historial,
+            'te_deben' => EnlaceRespuesta.teDeben,
+            'debes' => EnlaceRespuesta.debes,
+            'informe' => EnlaceRespuesta.informe,
+            'cuentas' => EnlaceRespuesta.cuentas,
+            _ => null,
+          },
+        ),
+        error: null,
+        quedan: quedan,
+      );
+    }
+    return (
+      respuesta: null,
+      error: switch (cuerpo['error']) {
+        'tope_del_dia' => ErrorDePregunta.topeDelDia,
+        'sin_ia' || 'sin_negocio' => ErrorDePregunta.noDisponible,
+        'solo_duenos' => ErrorDePregunta.soloDuenos,
+        _ => ErrorDePregunta.fallo,
+      },
+      quedan: quedan,
     );
   }
 

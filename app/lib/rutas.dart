@@ -8,6 +8,7 @@ import 'dominio/modelos.dart';
 import 'dominio/movimientos.dart';
 import 'dominio/primer_dia.dart';
 import 'operador/pantalla_operador.dart';
+import 'pantallas/preguntale/pantalla_preguntale.dart';
 import 'pantallas/informe/pantalla_de_categoria.dart';
 import 'pantallas/informe/pantalla_lo_que_debes.dart';
 import 'pantallas/ajustes/pantalla_sin_acceso.dart';
@@ -86,6 +87,9 @@ abstract final class Rutas {
   static const corregir = '/movimiento/corregir';
   static const arqueo = '/arqueo';
   static const cuentas = '/cuentas';
+
+  /// «Pregúntale a Moca» (entrega 74).
+  static const preguntale = '/preguntale';
 
   /// «Ajustes» y «Datos del negocio» (entregas 29 y 29.1).
   static const ajustes = '/ajustes';
@@ -199,6 +203,7 @@ final _rutasPorEtapa = {
     Rutas.loQueDebes,
     Rutas.loQueTeDeben,
     Rutas.deCategoria,
+    Rutas.preguntale,
   ],
 };
 
@@ -409,6 +414,10 @@ GoRouter crearRutas(
     GoRoute(
       path: Rutas.ajustes,
       builder: (context, estado) => const PantallaAjustes(),
+    ),
+    GoRoute(
+      path: Rutas.preguntale,
+      builder: (context, estado) => const PantallaPreguntale(),
     ),
     GoRoute(
       path: Rutas.datosDelNegocio,
