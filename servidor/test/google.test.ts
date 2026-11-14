@@ -329,3 +329,184 @@ describe('Pagar Moca con Google Play (entrega 78)', () => {
     });
   });
 });
+
+describe('Los avisos de Google Play y el repaso (entrega 79)', () => {
+  let base: BaseDePrueba;
+  let app: FastifyInstance;
+  let ahora = new Date('2026-11-20T15:00:00Z');
+  const falso = googleFalso();
+  const clave = 'clave-de-avisos';
+  let ana: Persona;
+  let empresaDeAna: string;
+  let beto: Persona;
+  let empresaDeBeto: string;
+
+  const verificar = async (celular: string): Promise<Persona> => {
+    const usuarioId = randomUUID();
+    const r = await app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular, codigo: '123456', usuarioId },
+    });
+    return { usuarioId, llave: r.json().llave };
+  };
+  const pedir = (persona: Persona, metodo: 'GET' | 'POST', url: string, payload?: object) =>
+    app.inject({
+      method: metodo,
+      url,
+      headers: { authorization: `Bearer ${persona.llave}` },
+      ...(payload ? { payload } : {}),
+    });
+  const avisar = (contenido: object, conClave: string | null = clave) =>
+    app.inject({
+      method: 'POST',
+      url: `/google/avisos${conClave === null ? '' : `?clave=${conClave}`}`,
+      payload: {
+        message: {
+          data: Buffer.from(JSON.stringify(contenido)).toString('base64'),
+          messageId: '1',
+        },
+        subscription: 'projects/moca/subscriptions/avisos',
+      },
+    });
+  const renovada = (token: string) =>
+    avisar({
+      version: '1.0',
+      packageName: 'pe.moca.app',
+      subscriptionNotification: { version: '1.0', notificationType: 2, purchaseToken: token },
+    });
+  const pagosDe = async (empresa: string) =>
+    (
+      await base.poolAdmin.query(
+        `SELECT hasta::text, google_orden, anulado_en IS NOT NULL AS anulado
+           FROM pagos WHERE empresa_id = $1 ORDER BY creado_en`,
+        [empresa],
+      )
+    ).rows;
+  const cobroDe = async (persona: Persona) => (await pedir(persona, 'GET', '/datos/bajar')).json().cobro;
+
+  beforeAll(async () => {
+    base = await crearBaseDePrueba();
+    app = crearApp({
+      pool: base.pool,
+      version: 'prueba',
+      verificador: verificadorFalso(),
+      ahora: () => ahora,
+      cobro: { desde: '2026-11-10', admins: ['900000000'], yape: null },
+      googlePlay: falso.google,
+      claveAvisosGoogle: clave,
+    });
+    ana = await verificar('987000021');
+    const deAna = negocio('Bodega Ana', ana.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeAna = deAna.empresa.id;
+    expect((await pedir(ana, 'POST', '/datos/subir', deAna)).statusCode).toBe(200);
+    beto = await verificar('987000022');
+    const deBeto = negocio('Ferretería Beto', beto.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeBeto = deBeto.empresa.id;
+    expect((await pedir(beto, 'POST', '/datos/subir', deBeto)).statusCode).toBe(200);
+  });
+  afterAll(() => base.cerrar());
+
+  it('Sin la clave, no; otra app o un aviso de prueba, se ignora', async () => {
+    expect((await renovada('x').then(() => avisar({}, null))).statusCode).toBe(401);
+    expect((await avisar({}, 'otra')).statusCode).toBe(401);
+    expect(
+      (await avisar({ packageName: 'com.otra.app', subscriptionNotification: { purchaseToken: 't' } }))
+        .json(),
+    ).toEqual({ ok: true, ignorado: true });
+    expect((await avisar({ packageName: 'pe.moca.app', testNotification: { version: '1.0' } })).json())
+      .toEqual({ ok: true, ignorado: true });
+  });
+
+  it('La renovación suma un pago nuevo, hasta el nuevo vencimiento', async () => {
+    falso.compras.set('token-de-ana', suscripcion(empresaDeAna, { orden: 'GPA.ana..0' }));
+    expect((await pedir(ana, 'POST', '/cobro/google', { token: 'token-de-ana' })).statusCode).toBe(200);
+    // Un mes después, Google renueva.
+    ahora = new Date('2026-12-20T16:00:00Z');
+    falso.compras.set(
+      'token-de-ana',
+      suscripcion(empresaDeAna, { orden: 'GPA.ana..1', vence: '2027-01-20T15:00:00Z' }),
+    );
+    expect((await renovada('token-de-ana')).json()).toMatchObject({ ok: true, aplicada: 'procesada' });
+    // El mismo aviso otra vez (Pub/Sub repite): nada nuevo.
+    expect((await renovada('token-de-ana')).json().aplicada).toBe('ya_estaba');
+    expect(await pagosDe(empresaDeAna)).toEqual([
+      { hasta: '2026-12-20', google_orden: 'GPA.ana..0', anulado: false },
+      { hasta: '2027-01-20', google_orden: 'GPA.ana..1', anulado: false },
+    ]);
+    expect(falso.reconocidas).toContain('full_0:token-de-ana');
+    expect(await cobroDe(ana)).toMatchObject({ estado: 'pagado', hasta: '2027-01-20' });
+  });
+
+  it('Una compra que la app nunca mandó se guarda a nombre del titular', async () => {
+    falso.compras.set('token-beto', suscripcion(empresaDeBeto, { orden: 'GPA.beto..0', vence: '2027-01-15T15:00:00Z' }));
+    expect((await renovada('token-beto')).json().aplicada).toBe('procesada');
+    const compra = (
+      await base.poolAdmin.query('SELECT empresa_id, usuario_id FROM compras_google WHERE token = $1', [
+        'token-beto',
+      ])
+    ).rows[0];
+    expect(compra).toEqual({ empresa_id: empresaDeBeto, usuario_id: beto.usuarioId });
+    // De un negocio que no existe, no.
+    falso.compras.set('token-nadie', suscripcion(randomUUID(), { orden: 'GPA.nadie' }));
+    expect((await renovada('token-nadie')).json().aplicada).toBe('desconocida');
+  });
+
+  it('Si Google no pudo cobrar, el teléfono lo sabe', async () => {
+    falso.compras.set(
+      'token-beto',
+      suscripcion(empresaDeBeto, {
+        orden: 'GPA.beto..0',
+        vence: '2027-01-15T15:00:00Z',
+        estado: 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+      }),
+    );
+    await renovada('token-beto');
+    expect(await cobroDe(beto)).toMatchObject({ google_problema: true });
+    expect((await cobroDe(ana)).google_problema).toBeUndefined();
+  });
+
+  it('Un reembolso anula el último pago; uno más viejo queda para revisar', async () => {
+    const devuelta = (token: string, orden: string) =>
+      avisar({
+        packageName: 'pe.moca.app',
+        voidedPurchaseNotification: { purchaseToken: token, orderId: orden, productType: 1 },
+      });
+    // El de diciembre de Ana ya no es el último: lo revisa Jhony.
+    expect((await devuelta('token-de-ana', 'GPA.ana..0')).json().anulada).toBe('revisar');
+    expect(
+      (await base.poolAdmin.query('SELECT motivo FROM compras_google WHERE token = $1', ['token-de-ana']))
+        .rows[0].motivo,
+    ).toBe('reembolso_por_revisar');
+    // Le aparece a Jhony en «Cobros».
+    const jhony = await verificar('900000000');
+    const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
+    expect(resumen.revisar_google).toMatchObject([{ nombre: 'Bodega Ana', producto: 'full_0' }]);
+    // El último sí: vuelve a lo que tenía antes.
+    falso.compras.set(
+      'token-de-ana',
+      suscripcion(empresaDeAna, {
+        orden: 'GPA.ana..1',
+        vence: '2027-01-20T15:00:00Z',
+        estado: 'SUBSCRIPTION_STATE_EXPIRED',
+      }),
+    );
+    expect((await devuelta('token-de-ana', 'GPA.ana..1')).json().anulada).toBe('anulado');
+    expect((await pagosDe(empresaDeAna)).map((p) => p.anulado)).toEqual([false, true]);
+    expect(await cobroDe(ana)).toMatchObject({ hasta: '2026-12-20' });
+  });
+
+  it('El repaso renueva lo que vence pronto aunque el aviso no llegue; con Google caído, 500', async () => {
+    ahora = new Date('2027-01-14T15:00:00Z');
+    falso.compras.set(
+      'token-beto',
+      suscripcion(empresaDeBeto, { orden: 'GPA.beto..1', vence: '2027-02-15T15:00:00Z' }),
+    );
+    expect(await app.cobradorGoogle.repasar()).toEqual({ vistas: 1, procesadas: 1 });
+    expect(await cobroDe(beto)).toMatchObject({ hasta: '2027-02-15' });
+    expect(await app.cobradorGoogle.repasar()).toEqual({ vistas: 0, procesadas: 0 });
+    falso.caer(true);
+    expect((await renovada('token-beto')).statusCode).toBe(500);
+    falso.caer(false);
+  });
+});

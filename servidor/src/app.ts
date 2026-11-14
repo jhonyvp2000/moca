@@ -14,7 +14,7 @@ import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
 import type { GooglePlay } from './google/cliente.js';
-import { rutasGooglePlay } from './google/rutas.js';
+import { type CobradorGoogle, rutasGooglePlay } from './google/rutas.js';
 import { rutasPrivacidad } from './legal/privacidad.js';
 import type { Respondedor } from './pregunta/respondedor.js';
 import { rutasPregunta } from './pregunta/rutas.js';
@@ -26,6 +26,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** Aplica y repasa los pagos de Mercado Pago (entrega 32). */
     cobrador: Cobrador;
+    /** Aplica y repasa las compras de Google Play (entregas 78 y 79). */
+    cobradorGoogle: CobradorGoogle;
   }
 }
 import {
@@ -59,6 +61,8 @@ export interface Dependencias {
   mercadoPago?: { config: ConfigMercadoPago; cliente: MercadoPago } | null;
   /** Google Play (entrega 78): la versión de Play Store paga ahí. */
   googlePlay?: GooglePlay | null;
+  /** La clave de los avisos de Google (entrega 79), GOOGLE_PLAY_AVISOS_CLAVE. */
+  claveAvisosGoogle?: string | null;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -75,6 +79,7 @@ export function crearApp({
   buscarReleases = releasesDeGitHub,
   mercadoPago = null,
   googlePlay = null,
+  claveAvisosGoogle = null,
 }: Dependencias): FastifyInstance {
   const conPago: ConfigCobro = {
     ...cobro,
@@ -143,7 +148,10 @@ export function crearApp({
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
   rutasPregunta(app, pool, respondedor, ahora, conPago);
-  rutasGooglePlay(app, pool, conPago, googlePlay, ahora);
+  app.decorate(
+    'cobradorGoogle',
+    rutasGooglePlay(app, pool, conPago, googlePlay, ahora, claveAvisosGoogle),
+  );
 
   return app;
 }

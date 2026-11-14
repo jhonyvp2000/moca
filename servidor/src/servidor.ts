@@ -43,6 +43,9 @@ else if (!configMp.secreto) {
 // Play no puede pagar.
 const cuentaGoogle = leerCuentaDeServicio();
 if (!cuentaGoogle) console.warn('Sin GOOGLE_PLAY_CUENTA_SERVICIO: no se puede pagar con Google Play.');
+else if (!process.env.GOOGLE_PLAY_AVISOS_CLAVE?.trim()) {
+  console.warn('Sin GOOGLE_PLAY_AVISOS_CLAVE: los avisos de Google Play no piden clave.');
+}
 const app = crearApp({
   pool,
   version: config.version,
@@ -54,6 +57,7 @@ const app = crearApp({
   versionApp: leerConfigVersion(),
   mercadoPago: configMp ? { config: configMp, cliente: mercadoPagoReal(configMp.token) } : null,
   googlePlay: cuentaGoogle ? googlePlayReal(cuentaGoogle) : null,
+  claveAvisosGoogle: process.env.GOOGLE_PLAY_AVISOS_CLAVE?.trim() || null,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 
@@ -66,5 +70,15 @@ if (configMp) {
       .catch((error: unknown) => console.error('El repaso de Mercado Pago falló:', error));
   setTimeout(() => void repasar(72), 60_000).unref();
   setInterval(() => void repasar(6), 5 * 60_000).unref();
+}
+// El aviso de Google que no llegó (entrega 79): cada 6 horas se revisan las
+// compras que vencen pronto o que nadie miró en un día. Al arrancar, también.
+if (cuentaGoogle) {
+  const repasarGoogle = () =>
+    app.cobradorGoogle
+      .repasar()
+      .catch((error: unknown) => console.error('El repaso de Google Play falló:', error));
+  setTimeout(() => void repasarGoogle(), 90_000).unref();
+  setInterval(() => void repasarGoogle(), 6 * 60 * 60_000).unref();
 }
 console.log(`Moca ${config.version} escuchando en el puerto ${config.puerto}`);

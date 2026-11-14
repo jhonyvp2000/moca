@@ -161,6 +161,8 @@ export type CobroParaElTelefono = EstadoCobro & {
   mercadopago?: true;
   /** La versión de Play paga con Google Play (entrega 78). */
   google_play?: true;
+  /** Google no pudo cobrar la renovación (entrega 79). */
+  google_problema?: true;
   admin?: true;
   /** Ya contestó la pregunta del día 10 (entrega 25). */
   respondio: boolean;
@@ -175,6 +177,7 @@ export async function cobroParaElTelefono(
 ): Promise<CobroParaElTelefono> {
   const cliente = await pool.connect();
   let datos: Awaited<ReturnType<typeof datosDelCobro>>;
+  let problemaEnGoogle = false;
   try {
     await cliente.query('BEGIN');
     await cliente.query(
@@ -182,6 +185,20 @@ export async function cobroParaElTelefono(
       [empresaId, usuarioId],
     );
     datos = await datosDelCobro(cliente, empresaId);
+    // Google no pudo cobrar la renovación (entrega 79): el dueño tiene que
+    // revisar su medio de pago en Google Play.
+    if (config.googlePlay) {
+      const ultima = (
+        await cliente.query<{ estado: string }>(
+          `SELECT estado FROM compras_google WHERE empresa_id = $1
+            ORDER BY actualizado_en DESC LIMIT 1`,
+          [empresaId],
+        )
+      ).rows[0];
+      problemaEnGoogle =
+        ultima?.estado === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD' ||
+        ultima?.estado === 'SUBSCRIPTION_STATE_ON_HOLD';
+    }
     await cliente.query('COMMIT');
   } catch (error) {
     await cliente.query('ROLLBACK');
@@ -202,6 +219,7 @@ export async function cobroParaElTelefono(
       : {}),
     ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
     ...(config.googlePlay && estado.estado !== 'sin_cobro' ? { google_play: true as const } : {}),
+    ...(problemaEnGoogle ? { google_problema: true as const } : {}),
     ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }
@@ -944,8 +962,22 @@ export function rutasCobro(
               ORDER BY o.actualizado_en DESC`,
           )
         ).rows;
+        // Google devolvió un pago que no era el último (entrega 79): Jhony
+        // decide si anularlo a mano.
+        const revisarGoogle = (
+          await cliente.query(
+            `SELECT c.token, e.nombre, right(u.celular, 9) AS celular, c.producto, c.ultima_orden,
+                    c.actualizado_en
+               FROM compras_google c
+               JOIN empresas e ON e.id = c.empresa_id
+               JOIN usuarios u ON u.id = c.usuario_id
+              WHERE c.motivo = 'reembolso_por_revisar'
+              ORDER BY c.actualizado_en DESC`,
+          )
+        ).rows;
         return {
           revisar,
+          revisar_google: revisarGoogle,
           sin_abrir: sinAbrir.flatMap((s) => {
             const f = porId.get(s.empresa_id);
             return f
