@@ -15,16 +15,21 @@ const maximoDeExtrasEnPlay = 5;
 /// Lo que se le pide a Google: la suscripción, su plan base y la oferta.
 typedef ProductoDePlay = ({String producto, String planBase, String? oferta});
 
-/// El producto de Google de un plan de Moca: «full_2» con «mes» o «anio», y
-/// la oferta «fundador». Nulo con más de 5 personas extra.
+/// El producto de Google de un plan de Moca: «full_2» con el plan base «mes»,
+/// «anio» o «fundador» (S/ 14.90 al mes para siempre). Nulo con más de 5
+/// personas extra.
 ProductoDePlay? productoDePlay(String plan, int extras) {
   if (extras < 0 || extras > maximoDeExtrasEnPlay) return null;
   final basico = plan == 'basico' || plan == 'basico_anual';
   final anual = plan == 'anual' || plan == 'basico_anual';
   return (
     producto: '${basico ? 'basico' : 'full'}_$extras',
-    planBase: anual ? 'anio' : 'mes',
-    oferta: plan == 'fundador' ? 'fundador' : null,
+    planBase: plan == 'fundador'
+        ? 'fundador'
+        : anual
+        ? 'anio'
+        : 'mes',
+    oferta: null,
   );
 }
 

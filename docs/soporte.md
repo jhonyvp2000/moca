@@ -4,7 +4,7 @@ Para que Jhony resuelva solo lo que piden los usuarios de Moca, sin pasar por Cl
 
 Al final de la guía están las cosas que conviene saber de Moca para entender casi cualquier caso.
 
-Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con las entregas 46 y 47. Cuando cambie la app, se actualiza aquí.
+Escrita el 10-11-2026, con la versión entrega-45.1; actualizada con las entregas 46 y 47, y con el cobro de Google Play (entregas 80 y 81). Cuando cambie la app, se actualiza aquí.
 
 ---
 
@@ -133,6 +133,18 @@ Si solo quiere dejar **su teléfono** limpio, sin borrar el negocio, es «Borrar
 - **Si pagó por Yape:** regístralo tú con **Registrar pago**, eligiendo su plan y poniendo el número de operación como nota.
 
 > Ya está registrado tu pago. Abre Moca con señal y espera unos segundos: debe decir «Moca está pagada hasta el…».
+
+### 5.1 Con la versión de Play Store: «Pagué en Google Play» (entregas 80 y 81)
+
+Quien instaló Moca **desde Play Store** paga con **Google Play**: no ve Mercado Pago ni el Yape. Se renueva solo cada mes o año.
+
+**Qué revisar:** en **Cobros**, busca su celular.
+- **El pago no aparece:** el servidor lo recibe por el aviso de Google en unos minutos. Si pasó una hora, revisa en Render que estén `GOOGLE_PLAY_CUENTA_SERVICIO` y `GOOGLE_PLAY_AVISOS_CLAVE` (`docs/guia-google-play.md`).
+- **«Quiero cancelar»** o **«Quiero cambiar de plan o de personas»:** se hace en Google Play. Cambiar de plan dentro de Google todavía no está: que cancele, y al vencer compra el nuevo; o lo arreglas tú por WhatsApp.
+- **«Me dice que Google no pudo cobrar»:** su tarjeta o medio de pago en Google falló. Tiene 7 días para arreglarlo sin perder nada.
+- **«Me cobraron dos veces»** o **«Quiero mi plata de vuelta»:** el reembolso lo haces tú en la **Play Console → Pedidos**. Moca lo anula solo; si no era el último pago, te queda en «Cobros» para revisar.
+
+> Tu plan se paga y se renueva en Google Play. Para cancelarlo o cambiar tu medio de pago: abre Play Store → toca tu foto → Pagos y suscripciones → Suscripciones → Moca. Lo que ya pagaste sigue hasta la fecha.
 
 ### 6. «No veo Informes» · «No puedo corregir» · «No veo los saldos»
 

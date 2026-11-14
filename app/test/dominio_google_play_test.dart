@@ -16,8 +16,8 @@ void main() {
     ));
     expect(productoDePlay('fundador', 1), (
       producto: 'full_1',
-      planBase: 'mes',
-      oferta: 'fundador',
+      planBase: 'fundador',
+      oferta: null,
     ));
     expect(productoDePlay('basico_anual', 5), (
       producto: 'basico_5',

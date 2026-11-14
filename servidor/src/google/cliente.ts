@@ -71,8 +71,11 @@ export class ErrorDeGoogle extends Error {
   }
 }
 
-/** El cliente real: se identifica con la cuenta de servicio (JWT firmado). */
-export function googlePlayReal(cuenta: CuentaDeServicio): GooglePlay {
+/**
+ * Pide a la API de Google con la cuenta de servicio: se identifica con un JWT
+ * firmado y guarda el acceso una hora.
+ */
+export function accesoDeGoogle(cuenta: CuentaDeServicio) {
   const tokenUri = cuenta.token_uri ?? 'https://oauth2.googleapis.com/token';
   let acceso: { token: string; vence: number } | null = null;
 
@@ -104,15 +107,28 @@ export function googlePlayReal(cuenta: CuentaDeServicio): GooglePlay {
     return acceso.token;
   }
 
-  async function pedir(ruta: string, metodo: 'GET' | 'POST' = 'GET'): Promise<Response> {
+  /** Un pedido a la API de Play para Moca; con [cuerpo], va como JSON. */
+  return async function pedir(
+    ruta: string,
+    metodo: 'GET' | 'POST' | 'PATCH' = 'GET',
+    cuerpo?: unknown,
+  ): Promise<Response> {
     const r = await fetch(`${api}/applications/${paquete}${ruta}`, {
       method: metodo,
-      headers: { authorization: `Bearer ${await token()}` },
+      headers: {
+        authorization: `Bearer ${await token()}`,
+        ...(cuerpo === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      ...(cuerpo === undefined ? {} : { body: JSON.stringify(cuerpo) }),
     });
     if (!r.ok) throw new ErrorDeGoogle(r.status, `Google respondió ${r.status} a ${metodo}`);
     return r;
-  }
+  };
+}
 
+/** El cliente real: se identifica con la cuenta de servicio (JWT firmado). */
+export function googlePlayReal(cuenta: CuentaDeServicio): GooglePlay {
+  const pedir = accesoDeGoogle(cuenta);
   return {
     async suscripcion(t) {
       const r = await pedir(`/purchases/subscriptionsv2/tokens/${encodeURIComponent(t)}`);

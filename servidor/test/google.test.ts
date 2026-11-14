@@ -9,6 +9,9 @@ import {
   type SuscripcionGoogle,
 } from '../src/google/cliente.js';
 import { planDelProducto, productoDelPlan } from '../src/google/productos.js';
+import { crearSuscripciones } from '../src/google/crear_suscripciones.js';
+import { ErrorDeGoogle } from '../src/google/cliente.js';
+import { precioDeGoogle, suscripcionesDeMoca } from '../src/google/suscripciones.js';
 import { crearBaseDePrueba, type BaseDePrueba } from './base_de_prueba.js';
 import { negocio, type Persona } from './negocio_de_prueba.js';
 import { verificadorFalso } from './verificador_falso.js';
@@ -70,24 +73,21 @@ const suscripcion = (
 
 describe('Los productos de Google Play (entrega 78)', () => {
   it('Cada producto es un plan con sus personas extra', () => {
-    expect(planDelProducto('full_0', 'mes', undefined)).toEqual({ plan: 'normal', extras: 0 });
-    expect(planDelProducto('full_2', 'anio', undefined)).toEqual({ plan: 'anual', extras: 2 });
-    expect(planDelProducto('full_0', 'mes', 'fundador')).toEqual({ plan: 'fundador', extras: 0 });
-    expect(planDelProducto('basico_1', 'mes', undefined)).toEqual({ plan: 'basico', extras: 1 });
-    expect(planDelProducto('basico_0', 'anio', undefined)).toEqual({
+    expect(planDelProducto('full_0', 'mes')).toEqual({ plan: 'normal', extras: 0 });
+    expect(planDelProducto('full_2', 'anio')).toEqual({ plan: 'anual', extras: 2 });
+    expect(planDelProducto('full_0', 'fundador')).toEqual({ plan: 'fundador', extras: 0 });
+    expect(planDelProducto('basico_0', 'fundador')).toBeNull();
+    expect(planDelProducto('basico_1', 'mes')).toEqual({ plan: 'basico', extras: 1 });
+    expect(planDelProducto('basico_0', 'anio')).toEqual({
       plan: 'basico_anual',
       extras: 0,
     });
     // Lo que no es de Moca, no.
-    expect(planDelProducto('full_6', 'mes', undefined)).toBeNull();
-    expect(planDelProducto('oro_0', 'mes', undefined)).toBeNull();
-    expect(planDelProducto('full_0', 'semana', undefined)).toBeNull();
+    expect(planDelProducto('full_6', 'mes')).toBeNull();
+    expect(planDelProducto('oro_0', 'mes')).toBeNull();
+    expect(planDelProducto('full_0', 'semana')).toBeNull();
     // Ida y vuelta.
-    expect(productoDelPlan('fundador', 0)).toEqual({
-      producto: 'full_0',
-      planBase: 'mes',
-      oferta: 'fundador',
-    });
+    expect(productoDelPlan('fundador', 0)).toEqual({ producto: 'full_0', planBase: 'fundador' });
     expect(productoDelPlan('basico_anual', 3)).toEqual({ producto: 'basico_3', planBase: 'anio' });
     expect(productoDelPlan('normal', 6)).toBeNull();
   });
@@ -107,6 +107,62 @@ describe('Los productos de Google Play (entrega 78)', () => {
         }),
       }),
     ).toEqual({ client_email: 'moca@proyecto.iam.gserviceaccount.com', private_key: pem });
+  });
+});
+
+describe('Las suscripciones de Moca en Google Play (entrega 81)', () => {
+  it('Son 12, con los precios del servidor, solo para el Perú', () => {
+    const todas = suscripcionesDeMoca();
+    expect(todas.map((s) => s.productId)).toEqual([
+      'full_0', 'full_1', 'full_2', 'full_3', 'full_4', 'full_5',
+      'basico_0', 'basico_1', 'basico_2', 'basico_3', 'basico_4', 'basico_5',
+    ]);
+    const precio = (id: string, base: string) =>
+      todas.find((s) => s.productId === id)!.basePlans.find((b) => b.basePlanId === base)!
+        .regionalConfigs[0]!.price;
+    expect(precio('full_0', 'mes')).toEqual(precioDeGoogle(1990));
+    expect(precioDeGoogle(1990)).toEqual({ currencyCode: 'PEN', units: '19', nanos: 900_000_000 });
+    expect(precio('full_2', 'mes')).toEqual(precioDeGoogle(1990 + 2 * 290));
+    expect(precio('full_1', 'anio')).toEqual(precioDeGoogle(19900 + 3480));
+    expect(precio('full_0', 'fundador')).toEqual(precioDeGoogle(1490));
+    expect(precio('basico_3', 'mes')).toEqual(precioDeGoogle(1490 + 3 * 290));
+    expect(precio('basico_0', 'anio')).toEqual(precioDeGoogle(14900));
+    // El Básico no tiene fundador; cada plan base dice su periodo.
+    const basico = todas.find((s) => s.productId === 'basico_0')!;
+    expect(basico.basePlans.map((b) => b.basePlanId)).toEqual(['mes', 'anio']);
+    expect(basico.basePlans[1]!.autoRenewingBasePlanType.billingPeriodDuration).toBe('P1Y');
+    expect(todas[2]!.listings[0]!.title).toBe('Moca Full + 2 personas');
+    // Google no acepta más de 40 letras por beneficio ni 55 en el título.
+    for (const s of todas) {
+      expect(s.listings[0]!.title.length).toBeLessThanOrEqual(55);
+      for (const b of s.listings[0]!.benefits) expect(b.length).toBeLessThanOrEqual(40);
+      for (const b of s.basePlans) expect(b.regionalConfigs.map((r) => r.regionCode)).toEqual(['PE']);
+    }
+  });
+
+  it('Crea las que faltan, pone al día las que existen y activa los planes base', async () => {
+    const pedidos: string[] = [];
+    const existen = new Set(['full_0']);
+    const pedir = (async (ruta: string, metodo = 'GET') => {
+      pedidos.push(`${metodo} ${ruta}`);
+      const id = /^\/subscriptions\/([a-z_0-9]+)$/.exec(ruta)?.[1];
+      if (metodo === 'GET' && id && !existen.has(id)) throw new ErrorDeGoogle(404, 'no existe');
+      // El plan base de la que ya existía ya está activo.
+      if (ruta.startsWith('/subscriptions/full_0/basePlans/')) throw new ErrorDeGoogle(400, 'ya activo');
+      return new Response('{}');
+    }) as Parameters<typeof crearSuscripciones>[0];
+    const dicho: string[] = [];
+    await crearSuscripciones(pedir, (l) => dicho.push(l));
+    expect(pedidos).toContain(
+      'PATCH /subscriptions/full_0?updateMask=listings,basePlans&regionsVersion.version=2022%2F02',
+    );
+    expect(pedidos).toContain(
+      'POST /subscriptions?productId=basico_5&regionsVersion.version=2022%2F02',
+    );
+    expect(pedidos).toContain('POST /subscriptions/full_3/basePlans/fundador:activate');
+    expect(pedidos.filter((p) => p.endsWith(':activate'))).toHaveLength(6 * 3 + 6 * 2);
+    expect(dicho[0]).toBe('Al día: full_0 (mes, anio, fundador)');
+    expect(dicho).toHaveLength(12);
   });
 });
 

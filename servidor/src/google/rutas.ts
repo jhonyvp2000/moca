@@ -78,11 +78,7 @@ export function rutasGooglePlay(
     const linea = sub.lineItems?.[0];
     const vence = linea?.expiryTime ? new Date(linea.expiryTime) : null;
     const producto = linea
-      ? planDelProducto(
-          linea.productId,
-          linea.offerDetails?.basePlanId,
-          linea.offerDetails?.offerId,
-        )
+      ? planDelProducto(linea.productId, linea.offerDetails?.basePlanId)
       : null;
     const resultado = await comoServidor(pool, async (cliente) => {
       const compra = (

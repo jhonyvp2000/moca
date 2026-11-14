@@ -12,7 +12,8 @@
     "revisar": "tsc -p tsconfig.pruebas.json",
     "migrar": "node dist/base/migrar.js",
     "iniciar": "node dist/servidor.js",
-    "probar": "vitest run"
+    "probar": "vitest run",
+    "suscripciones-play": "node dist/google/crear_suscripciones.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
