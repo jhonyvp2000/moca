@@ -28,6 +28,8 @@ export interface ConfigCobro {
   yape: { numero: string; nombre: string } | null;
   /** Mercado Pago está configurado (entrega 32): la app ofrece pagar ahí. */
   mercadoPago?: boolean;
+  /** Google Play está configurado (entrega 78): la versión de Play paga ahí. */
+  googlePlay?: boolean;
 }
 
 export const sinCobro: ConfigCobro = { desde: null, admins: [], yape: null };
@@ -157,6 +159,8 @@ export type CobroParaElTelefono = EstadoCobro & {
   pago?: { yape: string; nombre: string };
   /** Se puede pagar con Mercado Pago (entrega 32). */
   mercadopago?: true;
+  /** La versión de Play paga con Google Play (entrega 78). */
+  google_play?: true;
   admin?: true;
   /** Ya contestó la pregunta del día 10 (entrega 25). */
   respondio: boolean;
@@ -197,6 +201,7 @@ export async function cobroParaElTelefono(
       ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
       : {}),
     ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
+    ...(config.googlePlay && estado.estado !== 'sin_cobro' ? { google_play: true as const } : {}),
     ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }
@@ -316,6 +321,8 @@ export async function registrarPago(
     hoy,
     origen = 'yape',
     mpPagoId = null,
+    googleOrden = null,
+    periodo: periodoFijo,
     personasExtra,
   }: {
     empresaId: string;
@@ -325,8 +332,15 @@ export async function registrarPago(
     nota: string | null;
     registradoPor: string;
     hoy: string;
-    origen?: 'yape' | 'mercadopago';
+    origen?: 'yape' | 'mercadopago' | 'google';
     mpPagoId?: string | null;
+    /** El número de orden de Google (entrega 78): un pago por orden. */
+    googleOrden?: string | null;
+    /**
+     * Lo decide Google (entrega 78): desde el día del cobro hasta el día en
+     * que vence. Lo ya pagado no se acorta.
+     */
+    periodo?: { desde: string; hasta: string };
   },
 ): Promise<void> {
   // Un pago a la vez: el cupo de fundadores no se pasa de 50.
@@ -346,15 +360,20 @@ export async function registrarPago(
     throw new ErrorDeCobro(409, actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador');
   }
   const extras = personasExtra ?? extrasPara(plan, datos.personas);
-  const periodo = periodoDelPago({
-    hoy,
-    pagadoHasta: actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
-    plan,
-  });
+  const periodo =
+    periodoFijo ??
+    periodoDelPago({
+      hoy,
+      pagadoHasta:
+        actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
+      plan,
+    });
+  const pagadoHasta =
+    periodoFijo && actual && actual.pagadoHasta > periodo.hasta ? actual.pagadoHasta : periodo.hasta;
   await cliente.query(
     `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por,
-                        origen, mp_pago_id, personas_extra)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                        origen, mp_pago_id, personas_extra, google_orden)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       randomUUID(),
       empresaId,
@@ -367,6 +386,7 @@ export async function registrarPago(
       origen,
       mpPagoId,
       extras,
+      googleOrden,
     ],
   );
   await cliente.query(
@@ -377,7 +397,7 @@ export async function registrarPago(
            fue_fundador = suscripciones.fue_fundador OR $4,
            personas_extra = $5,
            actualizado_en = now()`,
-    [empresaId, plan, periodo.hasta, plan === 'fundador', extras],
+    [empresaId, plan, pagadoHasta, plan === 'fundador', extras],
   );
   if (plan === 'fundador' && !actual?.fueFundador) {
     await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');

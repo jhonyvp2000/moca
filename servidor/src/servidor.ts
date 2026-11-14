@@ -8,6 +8,7 @@ import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
 import { leerConfigCobro } from './cobro/rutas.js';
 import { leerConfigVersion } from './version/rutas.js';
 import { leerConfigMercadoPago, mercadoPagoReal } from './mercadopago/cliente.js';
+import { googlePlayReal, leerCuentaDeServicio } from './google/cliente.js';
 
 // Arranque en Render: migra la base, revisa el aislamiento y abre el puerto.
 const config = leerConfig();
@@ -38,6 +39,10 @@ if (!configMp) console.warn('Sin MP_ACCESS_TOKEN: no se puede pagar con Mercado 
 else if (!configMp.secreto) {
   console.warn('Sin MP_WEBHOOK_SECRET: los avisos de Mercado Pago no se comprueban.');
 }
+// Google Play (entrega 78): sin GOOGLE_PLAY_CUENTA_SERVICIO, la versión de
+// Play no puede pagar.
+const cuentaGoogle = leerCuentaDeServicio();
+if (!cuentaGoogle) console.warn('Sin GOOGLE_PLAY_CUENTA_SERVICIO: no se puede pagar con Google Play.');
 const app = crearApp({
   pool,
   version: config.version,
@@ -48,6 +53,7 @@ const app = crearApp({
   cobro,
   versionApp: leerConfigVersion(),
   mercadoPago: configMp ? { config: configMp, cliente: mercadoPagoReal(configMp.token) } : null,
+  googlePlay: cuentaGoogle ? googlePlayReal(cuentaGoogle) : null,
 });
 await app.listen({ port: config.puerto, host: '0.0.0.0' });
 

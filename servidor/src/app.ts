@@ -13,6 +13,8 @@ import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
+import type { GooglePlay } from './google/cliente.js';
+import { rutasGooglePlay } from './google/rutas.js';
 import { rutasPrivacidad } from './legal/privacidad.js';
 import type { Respondedor } from './pregunta/respondedor.js';
 import { rutasPregunta } from './pregunta/rutas.js';
@@ -55,6 +57,8 @@ export interface Dependencias {
   buscarReleases?: BuscarReleases;
   /** Mercado Pago (entrega 32); sin él, solo el Yape manual. */
   mercadoPago?: { config: ConfigMercadoPago; cliente: MercadoPago } | null;
+  /** Google Play (entrega 78): la versión de Play Store paga ahí. */
+  googlePlay?: GooglePlay | null;
 }
 
 /** El servidor HTTP, sin abrir el puerto: las pruebas lo usan con inject. */
@@ -70,8 +74,13 @@ export function crearApp({
   versionApp = leerConfigVersion({}),
   buscarReleases = releasesDeGitHub,
   mercadoPago = null,
+  googlePlay = null,
 }: Dependencias): FastifyInstance {
-  const conPago: ConfigCobro = { ...cobro, mercadoPago: mercadoPago !== null };
+  const conPago: ConfigCobro = {
+    ...cobro,
+    mercadoPago: mercadoPago !== null,
+    googlePlay: googlePlay !== null,
+  };
   // Render pasa la conexión del teléfono por un proxy. El registro guarda
   // solo avisos y errores: nunca el cuerpo de lo que manda el teléfono.
   const app = Fastify({
@@ -134,6 +143,7 @@ export function crearApp({
   rutasCifras(app, pool, ahora);
   rutasComprobantes(app, pool, lector, ahora);
   rutasPregunta(app, pool, respondedor, ahora, conPago);
+  rutasGooglePlay(app, pool, conPago, googlePlay, ahora);
 
   return app;
 }

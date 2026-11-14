@@ -115,7 +115,7 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 | 80 | La app compra con Google Play; «Mis pagos» dice cuándo se renueva y lleva a «Administrar en Google Play» |
 | 81 | Prueba de punta a punta con las cuentas de prueba de Google y `soporte.md` al día |
 
-- **Personas extra:** suscripciones aparte de 1 a 5 personas (al mes y al año); más de 5, por WhatsApp.
+- **Personas extra:** de 0 a 5, cada plan con su número de personas extra es una suscripción (`full_0` a `full_5`, `basico_0` a `basico_5`, al mes y al año; entrega 78). Más de 5, por WhatsApp.
 - **Precios:** los mismos al empezar (S/ 19.90 el Full, S/ 14.90 el Básico). Se revisan con los primeros números: Google se queda ~15 % y, probablemente, el IGV.
 - **Fundadores:** una oferta del Full a S/ 14.90 que solo ve quien ya es fundador.
 - **La cuenta:** Moca se publica a nombre de Publisher Online E.I.R.L. El D-U-N-S se pidió el 13-11-2026; cuando llegue, Jhony crea la cuenta de organización. El correo de contacto es `contacto@mocanegocios.com`.
