@@ -11,7 +11,7 @@ const secciones: [string, string[]][] = [
   [
     "Quién es responsable de tus datos",
     [
-      "Moca («Mi Organización Contable Asistida») es una app de <strong>Publisher Online E.I.R.L.</strong>, con domicilio en Jr. 1 de Abril 383, La Banda de Shilcayo, San Martín, Perú.",
+      "Moca («Mi Organización Contable Asistida») es una app de <strong>Publisher Online E.I.R.L.</strong> (RUC 20572201636), con domicilio en Jr. 1 de Abril 383, La Banda de Shilcayo, San Martín, Perú.",
       'Para cualquier consulta sobre tus datos, escríbenos a <a href="mailto:contacto@mocanegocios.com">contacto@mocanegocios.com</a>.',
       "Tratamos tus datos según la Ley 29733, Ley de Protección de Datos Personales, y su reglamento.",
     ],
