@@ -23,6 +23,7 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/dominio/google_play.dart';
 import 'package:moca/dominio/version.dart';
 import 'package:moca/dominio/cobro.dart';
 import 'package:moca/dominio/cerradura.dart';
@@ -189,6 +190,10 @@ class _ServidorFalso {
 
   /// Lo que pidió la app al pagar con Mercado Pago (entrega 43).
   Map<String, Object?>? ultimaOrden;
+
+  /// Las compras de Google que mandó la app (entrega 80).
+  final comprasGoogle = <Object?>[];
+  String? errorGoogle;
   var consultasDeOrden = 0;
   Map<String, Object?> orden = {'estado': 'pendiente'};
   final anulados = <Object?>[];
@@ -445,6 +450,24 @@ class _ServidorFalso {
           }),
           200,
         );
+      case '/cobro/google':
+        comprasGoogle.add(cuerpo['token']);
+        final error = errorGoogle;
+        return error != null
+            ? http.Response(jsonEncode({'error': error}), 409)
+            : http.Response(
+                jsonEncode({
+                  'resultado': 'procesada',
+                  'cobro': {
+                    'estado': 'pagado',
+                    'hasta': '2026-12-20',
+                    'plan': 'basico',
+                    'google_play': true,
+                    'google_vigente': true,
+                  },
+                }),
+                200,
+              );
       case '/cobro/mercadopago':
         ordenesPedidas++;
         ultimaOrden = cuerpo;
@@ -709,6 +732,27 @@ var _versionInstalada = const VersionInstalada(
   esArm64: true,
 );
 
+/// La tienda de Google Play (entrega 80): lo que se compró y se terminó.
+class _TiendaFalsa implements TiendaPlay {
+  final compras = <({ProductoDePlay producto, String negocio})>[];
+  final terminadas = <String>[];
+  CompraEnTienda respuesta = (token: 'token-de-google-1', fallo: null);
+
+  @override
+  Future<CompraEnTienda> comprar({
+    required ProductoDePlay producto,
+    required String negocio,
+  }) async {
+    compras.add((producto: producto, negocio: negocio));
+    return respuesta;
+  }
+
+  @override
+  Future<void> terminar(String token) async => terminadas.add(token);
+}
+
+var _tienda = _TiendaFalsa();
+
 /// La huella del teléfono (entrega 16.3).
 var _hayBloqueo = true;
 var _pasaLaHuella = true;
@@ -781,6 +825,7 @@ Future<BaseLocal> abrirApp(
   _daPermiso = true;
   _abrirDesdeAviso = null;
   _servidor = _ServidorFalso();
+  _tienda = _TiendaFalsa();
   if (versionDelServidor != null) _servidor.version = versionDelServidor;
   _marcaSms = null;
   _sms = StreamController<String>.broadcast();
@@ -857,6 +902,7 @@ Future<BaseLocal> abrirApp(
         locutorProvider.overrideWithValue(_LocutorFalso()),
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
         abridorProvider.overrideWithValue(_AbridorFalso()),
+        tiendaPlayProvider.overrideWith((ref) => _tienda),
         lectorCodigoSmsProvider.overrideWithValue(_LectorSmsFalso()),
         enlacesDeVideosProvider.overrideWith((ref) => _enlaces),
         notificadorProvider.overrideWithValue(_NotificadorFalso()),
@@ -5590,6 +5636,83 @@ void main() {
       expect(find.text(Textos.prefieresYapear), findsNothing);
       expect(find.text(Textos.verComoYapear), findsNothing);
       expect(find.text(Textos.mercadoPagoSinTarjeta), findsNothing);
+    });
+
+    const dePlay = VersionInstalada(
+      entrega: 'piloto-24',
+      armado: 300,
+      commit: 'abc',
+      esArm64: true,
+      canal: Canal.play,
+    );
+
+    testWidgets('Entrega 80: en la versión de Play se suscribe con Google '
+        'Play y el servidor confirma la compra', (tester) async {
+      await conCobro(tester, {
+        'estado': 'prueba',
+        'hasta': dia(3),
+        'dias': 3,
+        'precio': 1990,
+        'mercadopago': true,
+        'google_play': true,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+          'basico': {'plan': 'basico', 'precio': 1490, 'extras': 0},
+        },
+      }, version: dePlay);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      await tocar(tester, find.text(Textos.activarMiPlan).first);
+      await deslizarHasta(tester, find.text(Textos.elegirBasico));
+      await tocar(tester, find.text(Textos.elegirBasico));
+      expect(find.text(Textos.googlePlayExplica(anual: false)), findsOneWidget);
+      // Cerrar la hoja de Google: no pasa nada.
+      _tienda.respuesta = (token: null, fallo: FalloDeTienda.cancelada);
+      final boton = find.text(
+        Textos.suscribirmePor(formatearSolesComprobante(1490), anual: false),
+      );
+      await tester.ensureVisible(boton);
+      await tocar(tester, boton);
+      expect(_servidor.comprasGoogle, isEmpty);
+      // Ahora sí compra.
+      _tienda.respuesta = (token: 'token-de-google-1', fallo: null);
+      await tocar(tester, boton);
+      expect(_tienda.compras.last.producto, (
+        producto: 'basico_0',
+        planBase: 'mes',
+        oferta: null,
+      ));
+      expect(_tienda.compras.last.negocio, isNotEmpty);
+      expect(_servidor.comprasGoogle, ['token-de-google-1']);
+      expect(_tienda.terminadas, ['token-de-google-1']);
+      expect(find.text(Textos.pagarTuPlan), findsNothing);
+      expect(
+        find.text(
+          Textos.mocaPagadaHasta(formatearDiaYMes(DateTime(2026, 12, 20))),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Entrega 80: con una suscripción de Google viva no se ofrece '
+        'otra; si Google no pudo cobrar, se avisa', (tester) async {
+      await conCobro(tester, {
+        'estado': 'pagado',
+        'hasta': dia(20),
+        'dias': 20,
+        'plan': 'normal',
+        'precio': 1990,
+        'google_play': true,
+        'google_vigente': true,
+        'google_problema': true,
+        'opciones': {
+          'full': {'plan': 'normal', 'precio': 1990, 'extras': 0},
+        },
+      }, version: dePlay);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.googleNoPudoCobrar), findsOneWidget);
+      expect(find.text(Textos.pagarOtroMes), findsNothing);
+      await tocar(tester, find.text(Textos.administrarEnGooglePlay).first);
+      expect(_abiertos.last, administrarEnGooglePlay(null));
     });
 
     testWidgets('Entrega 60: el plan anual, por Mercado Pago', (tester) async {

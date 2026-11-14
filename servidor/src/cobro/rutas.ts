@@ -163,6 +163,8 @@ export type CobroParaElTelefono = EstadoCobro & {
   google_play?: true;
   /** Google no pudo cobrar la renovación (entrega 79). */
   google_problema?: true;
+  /** Tiene una suscripción de Google que se renueva (entrega 80). */
+  google_vigente?: true;
   admin?: true;
   /** Ya contestó la pregunta del día 10 (entrega 25). */
   respondio: boolean;
@@ -178,6 +180,7 @@ export async function cobroParaElTelefono(
   const cliente = await pool.connect();
   let datos: Awaited<ReturnType<typeof datosDelCobro>>;
   let problemaEnGoogle = false;
+  let vigenteEnGoogle = false;
   try {
     await cliente.query('BEGIN');
     await cliente.query(
@@ -189,12 +192,23 @@ export async function cobroParaElTelefono(
     // revisar su medio de pago en Google Play.
     if (config.googlePlay) {
       const ultima = (
-        await cliente.query<{ estado: string }>(
-          `SELECT estado FROM compras_google WHERE empresa_id = $1
-            ORDER BY actualizado_en DESC LIMIT 1`,
+        await cliente.query<{ estado: string; viva: boolean }>(
+          `SELECT estado, (vence IS NULL OR vence > now()) AS viva FROM compras_google
+            WHERE empresa_id = $1 ORDER BY actualizado_en DESC LIMIT 1`,
           [empresaId],
         )
       ).rows[0];
+      // Ya tiene una suscripción en Google que se renueva (entrega 80): la
+      // app no ofrece comprar otra, para no cobrar dos veces.
+      vigenteEnGoogle =
+        ultima !== undefined &&
+        ultima.viva &&
+        [
+          'SUBSCRIPTION_STATE_ACTIVE',
+          'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+          'SUBSCRIPTION_STATE_ON_HOLD',
+          'SUBSCRIPTION_STATE_PAUSED',
+        ].includes(ultima.estado);
       problemaEnGoogle =
         ultima?.estado === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD' ||
         ultima?.estado === 'SUBSCRIPTION_STATE_ON_HOLD';
@@ -220,6 +234,7 @@ export async function cobroParaElTelefono(
     ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
     ...(config.googlePlay && estado.estado !== 'sin_cobro' ? { google_play: true as const } : {}),
     ...(problemaEnGoogle ? { google_problema: true as const } : {}),
+    ...(vigenteEnGoogle ? { google_vigente: true as const } : {}),
     ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }

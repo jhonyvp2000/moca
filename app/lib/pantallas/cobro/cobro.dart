@@ -10,6 +10,7 @@ import '../inicio/encabezado_negocio.dart';
 import '../../dominio/cobro.dart';
 import '../informe/excel_informe.dart';
 import '../../dominio/equipo.dart';
+import '../../dominio/google_play.dart';
 import '../../dominio/modelos.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
@@ -41,10 +42,11 @@ class TarjetaCobro extends ConsumerWidget {
             ? '${Textos.pruebaTermino}.'
             : '${Textos.pagoVencio(hasta)}.',
     };
+    // Con Google Play que renueva solo, no se ofrece pagar (entrega 80).
     final pagar =
         cobro.estado == EstadoDelCobro.prueba ||
         cobro.estado == EstadoDelCobro.vencido ||
-        cobro.porVencer;
+        (cobro.porVencer && !cobro.googleVigente);
     // La prueba en curso (mejora 01): los días en grande, su barra y
     // «Activar mi plan».
     if (cobro.estado == EstadoDelCobro.prueba && cobro.hasta != null) {
@@ -64,6 +66,20 @@ class TarjetaCobro extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(texto, style: Tipografia.textoFuerte),
+            // Google no pudo cobrar la renovación (entrega 80).
+            if (cobro.googleProblema) ...[
+              const SizedBox(height: 8),
+              const Text(Textos.googleNoPudoCobrar, style: Tipografia.texto),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => ref
+                      .read(abridorProvider)
+                      .abrir(administrarEnGooglePlay(null)),
+                  child: const Text(Textos.administrarEnGooglePlay),
+                ),
+              ),
+            ],
             if (pagar) ...[
               const SizedBox(height: 8),
               Align(
@@ -73,7 +89,7 @@ class TarjetaCobro extends ConsumerWidget {
                   child: const Text(Textos.comoPagar),
                 ),
               ),
-            ] else if (cobro.puedeAdelantar)
+            ] else if (cobro.puedeAdelantar && !cobro.googleVigente)
               // Por adelantado (entrega 32.2): un enlace, no un aviso.
               Align(
                 alignment: Alignment.centerLeft,
@@ -334,6 +350,92 @@ Future<void> pagarConMercadoPago(
   if (esperando) {
     cerrar();
     decir(Textos.siYaPagaste);
+  }
+}
+
+/// Pagar con Google Play (entrega 80): la hoja de Google, y el servidor
+/// confirma la compra con Google. Si el servidor no responde, el pago igual
+/// llega por el aviso de Google y Moca se activa sola.
+Future<void> pagarConGooglePlay(
+  BuildContext context,
+  ProductoDePlay producto,
+) async {
+  final mensajes = ScaffoldMessenger.of(context);
+  final navegador = Navigator.of(context);
+  final raiz = Navigator.of(context, rootNavigator: true);
+  final contenedor = ProviderScope.containerOf(context, listen: false);
+  final servicio = contenedor.read(servicioCobroProvider);
+  final tienda = contenedor.read(tiendaPlayProvider);
+  void decir(String texto) => mensajes.showSnackBar(
+    SnackBar(content: Text(texto), duration: const Duration(seconds: 6)),
+  );
+
+  final negocio = await servicio.idDelNegocio();
+  if (tienda == null || negocio == null) {
+    decir(Textos.googlePlayNoDisponible);
+    return;
+  }
+  final compra = await tienda.comprar(producto: producto, negocio: negocio);
+  final token = compra.token;
+  if (token == null) {
+    switch (compra.fallo) {
+      case FalloDeTienda.cancelada || null:
+        break;
+      case FalloDeTienda.pendiente:
+        decir(Textos.pagoGooglePendiente);
+      case FalloDeTienda.noDisponible:
+        decir(Textos.googlePlayNoDisponible);
+      case FalloDeTienda.fallo:
+        decir(Textos.pagoFallo);
+    }
+    return;
+  }
+  if (!context.mounted) return;
+  unawaited(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            SizedBox.square(
+              dimension: 28,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text(Textos.confirmandoElPago, style: Tipografia.texto),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  final r = await servicio.confirmarCompraGoogle(token);
+  raiz.pop();
+  switch (r.error) {
+    case null:
+      await tienda.terminar(token);
+      navegador.popUntil(
+        (ruta) =>
+            ruta.settings.name != rutaPagarPlan &&
+            ruta.settings.name != rutaElegirPlan,
+      );
+      final hasta = r.hasta;
+      decir(
+        hasta == null
+            ? Textos.mocaPagada
+            : Textos.mocaPagadaHasta(formatearDiaYMes(hasta)),
+      );
+    case ErrorCompraGoogle.otroNegocio:
+      decir(Textos.pagoGoogleOtroNegocio);
+    case ErrorCompraGoogle.sinSenal ||
+        ErrorCompraGoogle.fallo ||
+        ErrorCompraGoogle.noVigente:
+      // Google ya cobró: el aviso de Google la aplica en unos minutos.
+      decir(Textos.pagoGoogleSinConfirmar);
+    case ErrorCompraGoogle.noDisponible:
+      decir(Textos.googlePlayNoDisponible);
   }
 }
 

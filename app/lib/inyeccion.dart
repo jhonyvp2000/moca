@@ -28,6 +28,7 @@ import 'dominio/pregunta.dart';
 import 'dominio/categorias.dart';
 import 'dominio/negocio.dart';
 import 'dominio/errores.dart';
+import 'dominio/google_play.dart';
 import 'dominio/version.dart';
 import 'dominio/cobro.dart';
 import 'dominio/cerradura.dart';
@@ -52,6 +53,7 @@ import 'dominio/tutoria.dart';
 import 'dominio/voz.dart';
 import 'servicios/cerradura_android.dart';
 import 'servicios/abridor_android.dart';
+import 'servicios/tienda_play_android.dart';
 import 'servicios/buscador_qr_android.dart';
 import 'servicios/camara_android.dart';
 import 'servicios/compartidor_android.dart';
@@ -766,6 +768,14 @@ final repositorioTutoriaProvider = Provider<RepositorioTutoria>(
 );
 
 final abridorProvider = Provider<AbridorDeEnlaces>((ref) => AbridorAndroid());
+
+/// La tienda de Google Play (entrega 80): solo en la versión de Play Store.
+final tiendaPlayProvider = Provider<TiendaPlay?>((ref) {
+  if (!ref.watch(versionInstaladaProvider).dePlay) return null;
+  final tienda = TiendaPlayAndroid();
+  ref.onDispose(tienda.cerrar);
+  return tienda;
+});
 
 /// Los enlaces de los videos. Las pruebas ponen los suyos.
 final enlacesDeVideosProvider = Provider<Map<VideoTutoria, String>>(

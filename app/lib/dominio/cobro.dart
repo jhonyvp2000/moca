@@ -83,6 +83,9 @@ class Cobro {
     this.admin = false,
     this.respondio = false,
     this.mercadoPago = false,
+    this.googlePlay = false,
+    this.googleProblema = false,
+    this.googleVigente = false,
     this.nivel = NivelDePlan.full,
     this.personas = 1,
     this.incluidas = 3,
@@ -118,6 +121,9 @@ class Cobro {
       admin: json['admin'] == true,
       respondio: json['respondio'] == true,
       mercadoPago: json['mercadopago'] == true,
+      googlePlay: json['google_play'] == true,
+      googleProblema: json['google_problema'] == true,
+      googleVigente: json['google_vigente'] == true,
       // Los planes (entrega 43). Sin ellos (servidor anterior), Full.
       nivel: json['nivel'] == 'basico' ? NivelDePlan.basico : NivelDePlan.full,
       personas: json['personas'] as int? ?? 1,
@@ -174,6 +180,15 @@ class Cobro {
 
   /// Se puede pagar con Mercado Pago (entrega 32).
   final bool mercadoPago;
+
+  /// La versión de Play puede pagar con Google Play (entrega 80).
+  final bool googlePlay;
+
+  /// Google no pudo cobrar la renovación: revisar el medio de pago.
+  final bool googleProblema;
+
+  /// Ya tiene una suscripción de Google que se renueva sola.
+  final bool googleVigente;
 
   /// El plan que tiene: Full en la prueba y sin pagos (entrega 43).
   final NivelDePlan nivel;
@@ -303,6 +318,9 @@ class Cobro {
       admin: admin,
       respondio: respondio,
       mercadoPago: mercadoPago,
+      googlePlay: googlePlay,
+      googleProblema: googleProblema,
+      googleVigente: googleVigente,
       nivel: nivel,
       personas: personas,
       incluidas: incluidas,
@@ -387,7 +405,7 @@ class PagoRegistrado {
 }
 
 /// «Mis pagos de Moca» (entrega 33): lo que el dueño pagó, para verlo él.
-enum MedioDePago { mercadoPago, yape }
+enum MedioDePago { mercadoPago, yape, googlePlay }
 
 class PagoDeMoca {
   const PagoDeMoca({
@@ -446,9 +464,11 @@ class MisPagos {
               desde: dia(p['desde']),
               hasta: dia(p['hasta']),
               pagadoEn: dia(p['pagado_en']).toLocal(),
-              medio: p['medio'] == 'mercadopago'
-                  ? MedioDePago.mercadoPago
-                  : MedioDePago.yape,
+              medio: switch (p['medio']) {
+                'mercadopago' => MedioDePago.mercadoPago,
+                'google' => MedioDePago.googlePlay,
+                _ => MedioDePago.yape,
+              },
               operacion: p['operacion'] as String?,
               anulado: p['anulado'] == true,
             ),

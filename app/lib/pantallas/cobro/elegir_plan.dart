@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dominio/cobro.dart';
+import '../../dominio/google_play.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
@@ -566,10 +567,7 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
             const SizedBox(height: Medidas.e4),
             // El Yape directo, aparte: lo activa una persona.
             if (dePlay)
-              const Text(
-                Textos.pagoConGooglePlayPronto,
-                style: Tipografia.texto,
-              )
+              _PagarConGoogle(cobro: cobro, opcion: opcion, precio: precio)
             else if (yape == null || nombre == null)
               (mercadoPago
                   ? const SizedBox.shrink()
@@ -647,6 +645,73 @@ class _EstadoPagarPlan extends ConsumerState<PantallaPagarPlan> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// La versión de Play Store (entrega 80): se paga con Google Play, que
+/// renueva solo. Sin Google Play en el servidor, todavía no; con más de 5
+/// personas extra, por WhatsApp; con una suscripción viva, no se ofrece otra.
+class _PagarConGoogle extends ConsumerWidget {
+  const _PagarConGoogle({
+    required this.cobro,
+    required this.opcion,
+    required this.precio,
+  });
+
+  final Cobro cobro;
+  final OpcionDePlan opcion;
+  final String precio;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final anual = opcion.periodo == PeriodoDePlan.anio;
+    final producto = productoDePlay(opcion.plan.delServidor, opcion.extras);
+    if (!cobro.googlePlay) {
+      return const Text(
+        Textos.pagoConGooglePlayPronto,
+        style: Tipografia.texto,
+      );
+    }
+    if (cobro.googleVigente) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(Textos.yaTienesGooglePlay, style: Tipografia.texto),
+          const SizedBox(height: Medidas.e3),
+          OutlinedButton(
+            onPressed: () =>
+                ref.read(abridorProvider).abrir(administrarEnGooglePlay(null)),
+            child: const Text(Textos.administrarEnGooglePlay),
+          ),
+        ],
+      );
+    }
+    if (producto == null) {
+      return const Text(Textos.masDeCincoExtras, style: Tipografia.texto);
+    }
+    return Container(
+      padding: const EdgeInsets.all(Medidas.e5),
+      decoration: BoxDecoration(
+        color: Colores.superficie,
+        borderRadius: BorderRadius.circular(Medidas.radioMayor),
+        border: Border.all(color: Colores.marca, width: 2),
+        boxShadow: Sombras.nivel2,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            Textos.googlePlayExplica(anual: anual),
+            style: Tipografia.secundario,
+          ),
+          const SizedBox(height: Medidas.e4),
+          FilledButton(
+            onPressed: () => pagarConGooglePlay(context, producto),
+            child: Text(Textos.suscribirmePor(precio, anual: anual)),
+          ),
+        ],
       ),
     );
   }

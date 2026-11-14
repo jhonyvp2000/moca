@@ -227,7 +227,11 @@ describe('Pagar Moca con Google Play (entrega 78)', () => {
     const r = await comprar(lucho, 'token-lucho-1');
     expect(r.statusCode).toBe(200);
     expect(r.json().resultado).toBe('procesada');
-    expect(r.json().cobro).toMatchObject({ estado: 'pagado', hasta: '2026-12-20' });
+    expect(r.json().cobro).toMatchObject({
+      estado: 'pagado',
+      hasta: '2026-12-20',
+      google_vigente: true,
+    });
     expect(await pagosDe(empresaDeLucho)).toEqual([
       {
         plan: 'normal',

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tarjeta.dart';
 import '../../dominio/cobro.dart';
+import '../../dominio/google_play.dart';
 import '../../inyeccion.dart';
 import '../../pais/peru/formato.dart';
 import '../../tema/colores.dart';
@@ -52,6 +53,19 @@ class _EstadoMisPagos extends ConsumerState<PantallaMisPagos> {
             style: Tipografia.textoFuerte,
           ),
         ),
+        // Con Google Play, se cambia o cancela allá (entrega 80).
+        if (cobro.googleVigente || cobro.googleProblema) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => ref
+                  .read(abridorProvider)
+                  .abrir(administrarEnGooglePlay(null)),
+              child: const Text(Textos.administrarEnGooglePlay),
+            ),
+          ),
+        ],
         const SizedBox(height: Medidas.separacionTarjetas),
         if (leido == null)
           const Padding(
@@ -137,12 +151,11 @@ class _FilaPago extends StatelessWidget {
             Textos.cubrio(formatearDiaYMes(p.desde), formatearDiaYMes(p.hasta)),
             style: Tipografia.secundario,
           ),
-          Text(
-            p.medio == MedioDePago.mercadoPago
-                ? Textos.porMercadoPago(p.operacion)
-                : Textos.porYape,
-            style: Tipografia.secundario,
-          ),
+          Text(switch (p.medio) {
+            MedioDePago.mercadoPago => Textos.porMercadoPago(p.operacion),
+            MedioDePago.googlePlay => Textos.porGooglePlay,
+            MedioDePago.yape => Textos.porYape,
+          }, style: Tipografia.secundario),
           if (p.anulado)
             const Text(
               Textos.pagoDevueltoNoCuenta,

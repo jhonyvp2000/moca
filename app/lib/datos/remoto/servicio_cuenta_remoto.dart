@@ -11,6 +11,7 @@ import '../../dominio/pregunta.dart';
 import '../../dominio/errores.dart';
 import '../../dominio/version.dart';
 import '../../dominio/cobro.dart';
+import '../../dominio/google_play.dart';
 import '../../dominio/primer_dia.dart';
 import '../../dominio/cuenta_real.dart';
 import '../../dominio/equipo.dart';
@@ -528,6 +529,39 @@ class ServicioCuentaRemoto
       hasta: cobro is Map<String, Object?>
           ? Cobro.desdeServidor(cobro).hasta
           : null,
+    );
+  }
+
+  @override
+  Future<String?> idDelNegocio() async => (await _a.empresa())?.id;
+
+  @override
+  Future<ResultadoCompraGoogle> confirmarCompraGoogle(String token) async {
+    final r = await _delEquipo(await _delNegocio('/cobro/google'), {
+      'token': token,
+    });
+    if (r == null) return (hasta: null, error: ErrorCompraGoogle.sinSenal);
+    final cuerpo = _cuerpo(r);
+    if (r.statusCode == 200) {
+      await _guardarCobro(cuerpo);
+      final cobro = cuerpo['cobro'];
+      return (
+        hasta: cobro is Map<String, Object?>
+            ? Cobro.desdeServidor(cobro).hasta
+            : null,
+        error: null,
+      );
+    }
+    return (
+      hasta: null,
+      error: switch (cuerpo['error']) {
+        'otro_negocio' => ErrorCompraGoogle.otroNegocio,
+        'no_vigente' => ErrorCompraGoogle.noVigente,
+        'sin_google' ||
+        'producto_desconocido' ||
+        'solo_duenos' => ErrorCompraGoogle.noDisponible,
+        _ => ErrorCompraGoogle.fallo,
+      },
     );
   }
 
