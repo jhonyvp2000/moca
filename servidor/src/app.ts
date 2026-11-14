@@ -13,6 +13,7 @@ import { rutasDatos } from './datos/subir.js';
 import { rutasEquipo } from './equipo/rutas.js';
 import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
+import { rutasPrivacidad } from './legal/privacidad.js';
 import type { Respondedor } from './pregunta/respondedor.js';
 import { rutasPregunta } from './pregunta/rutas.js';
 import { rutasUso } from './uso/rutas.js';
@@ -117,6 +118,7 @@ export function crearApp({
   rutasVersion(app, versionApp, buscarReleases, ahora);
   rutasErrores(app, pool, conPago);
   rutasUso(app, pool);
+  rutasPrivacidad(app);
   app.decorate(
     'cobrador',
     rutasMercadoPago(
