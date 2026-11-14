@@ -50,6 +50,14 @@ services:
         sync: false
       - key: MP_WEBHOOK_SECRET
         sync: false
+      # Pagar con Google Play en la versión de Play Store (entrega 78): el
+      # JSON entero de la llave de la cuenta de servicio. Solo en el panel.
+      - key: GOOGLE_PLAY_CUENTA_SERVICIO
+        sync: false
+      # Los avisos de Google por Pub/Sub (entrega 79): una clave larga al azar
+      # que va en la dirección del aviso (/google/avisos?clave=…).
+      - key: GOOGLE_PLAY_AVISOS_CLAVE
+        sync: false
       # «Actualiza Moca para seguir» (entrega 26.3): con un número de armado,
       # las versiones más viejas solo pueden actualizarse. Vacía: nunca obliga.
       - key: MOCA_APP_MINIMA

@@ -1,0 +1,572 @@
+import { createVerify, generateKeyPairSync, randomUUID } from 'node:crypto';
+import type { FastifyInstance } from 'fastify';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { crearApp } from '../src/app.js';
+import {
+  type GooglePlay,
+  googlePlayReal,
+  leerCuentaDeServicio,
+  type SuscripcionGoogle,
+} from '../src/google/cliente.js';
+import { planDelProducto, productoDelPlan } from '../src/google/productos.js';
+import { crearSuscripciones } from '../src/google/crear_suscripciones.js';
+import { ErrorDeGoogle } from '../src/google/cliente.js';
+import { precioDeGoogle, suscripcionesDeMoca } from '../src/google/suscripciones.js';
+import { crearBaseDePrueba, type BaseDePrueba } from './base_de_prueba.js';
+import { negocio, type Persona } from './negocio_de_prueba.js';
+import { verificadorFalso } from './verificador_falso.js';
+
+/** Google Play de mentira: las compras que «existen» y las reconocidas. */
+function googleFalso() {
+  const compras = new Map<string, SuscripcionGoogle>();
+  const reconocidas: string[] = [];
+  let caido = false;
+  const google: GooglePlay = {
+    async suscripcion(token) {
+      if (caido) throw new Error('Google no responde');
+      const c = compras.get(token);
+      if (!c) throw new Error('no existe');
+      return c;
+    },
+    async reconocer(producto, token) {
+      reconocidas.push(`${producto}:${token}`);
+      const c = compras.get(token);
+      if (c) c.acknowledgementState = 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED';
+    },
+  };
+  return {
+    google,
+    compras,
+    reconocidas,
+    caer: (si: boolean) => {
+      caido = si;
+    },
+  };
+}
+
+const suscripcion = (
+  empresa: string,
+  datos: {
+    producto?: string;
+    planBase?: string;
+    oferta?: string;
+    orden?: string;
+    vence?: string;
+    estado?: string;
+  } = {},
+): SuscripcionGoogle => ({
+  subscriptionState: datos.estado ?? 'SUBSCRIPTION_STATE_ACTIVE',
+  acknowledgementState: 'ACKNOWLEDGEMENT_STATE_PENDING',
+  latestOrderId: datos.orden ?? 'GPA.0000-0000-0000-00001',
+  externalAccountIdentifiers: { obfuscatedExternalAccountId: empresa },
+  lineItems: [
+    {
+      productId: datos.producto ?? 'full_0',
+      expiryTime: datos.vence ?? '2026-12-20T15:00:00Z',
+      offerDetails: {
+        basePlanId: datos.planBase ?? 'mes',
+        ...(datos.oferta ? { offerId: datos.oferta } : {}),
+      },
+    },
+  ],
+});
+
+describe('Los productos de Google Play (entrega 78)', () => {
+  it('Cada producto es un plan con sus personas extra', () => {
+    expect(planDelProducto('full_0', 'mes')).toEqual({ plan: 'normal', extras: 0 });
+    expect(planDelProducto('full_2', 'anio')).toEqual({ plan: 'anual', extras: 2 });
+    expect(planDelProducto('full_0', 'fundador')).toEqual({ plan: 'fundador', extras: 0 });
+    expect(planDelProducto('basico_0', 'fundador')).toBeNull();
+    expect(planDelProducto('basico_1', 'mes')).toEqual({ plan: 'basico', extras: 1 });
+    expect(planDelProducto('basico_0', 'anio')).toEqual({
+      plan: 'basico_anual',
+      extras: 0,
+    });
+    // Lo que no es de Moca, no.
+    expect(planDelProducto('full_6', 'mes')).toBeNull();
+    expect(planDelProducto('oro_0', 'mes')).toBeNull();
+    expect(planDelProducto('full_0', 'semana')).toBeNull();
+    // Ida y vuelta.
+    expect(productoDelPlan('fundador', 0)).toEqual({ producto: 'full_0', planBase: 'fundador' });
+    expect(productoDelPlan('basico_anual', 3)).toEqual({ producto: 'basico_3', planBase: 'anio' });
+    expect(productoDelPlan('normal', 6)).toBeNull();
+  });
+
+  it('La cuenta de servicio sale de GOOGLE_PLAY_CUENTA_SERVICIO', () => {
+    expect(leerCuentaDeServicio({})).toBeNull();
+    expect(leerCuentaDeServicio({ GOOGLE_PLAY_CUENTA_SERVICIO: 'no es json' })).toBeNull();
+    expect(leerCuentaDeServicio({ GOOGLE_PLAY_CUENTA_SERVICIO: '{"client_email":"x"}' })).toBeNull();
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    expect(
+      leerCuentaDeServicio({
+        GOOGLE_PLAY_CUENTA_SERVICIO: JSON.stringify({
+          type: 'service_account',
+          client_email: 'moca@proyecto.iam.gserviceaccount.com',
+          private_key: pem,
+        }),
+      }),
+    ).toEqual({ client_email: 'moca@proyecto.iam.gserviceaccount.com', private_key: pem });
+  });
+});
+
+describe('Las suscripciones de Moca en Google Play (entrega 81)', () => {
+  it('Son 12, con los precios del servidor, solo para el Perú', () => {
+    const todas = suscripcionesDeMoca();
+    expect(todas.map((s) => s.productId)).toEqual([
+      'full_0', 'full_1', 'full_2', 'full_3', 'full_4', 'full_5',
+      'basico_0', 'basico_1', 'basico_2', 'basico_3', 'basico_4', 'basico_5',
+    ]);
+    const precio = (id: string, base: string) =>
+      todas.find((s) => s.productId === id)!.basePlans.find((b) => b.basePlanId === base)!
+        .regionalConfigs[0]!.price;
+    expect(precio('full_0', 'mes')).toEqual(precioDeGoogle(1990));
+    expect(precioDeGoogle(1990)).toEqual({ currencyCode: 'PEN', units: '19', nanos: 900_000_000 });
+    expect(precio('full_2', 'mes')).toEqual(precioDeGoogle(1990 + 2 * 290));
+    expect(precio('full_1', 'anio')).toEqual(precioDeGoogle(19900 + 3480));
+    expect(precio('full_0', 'fundador')).toEqual(precioDeGoogle(1490));
+    expect(precio('basico_3', 'mes')).toEqual(precioDeGoogle(1490 + 3 * 290));
+    expect(precio('basico_0', 'anio')).toEqual(precioDeGoogle(14900));
+    // El Básico no tiene fundador; cada plan base dice su periodo.
+    const basico = todas.find((s) => s.productId === 'basico_0')!;
+    expect(basico.basePlans.map((b) => b.basePlanId)).toEqual(['mes', 'anio']);
+    expect(basico.basePlans[1]!.autoRenewingBasePlanType.billingPeriodDuration).toBe('P1Y');
+    expect(todas[2]!.listings[0]!.title).toBe('Moca Full + 2 personas');
+    // Google no acepta más de 40 letras por beneficio ni 55 en el título.
+    for (const s of todas) {
+      expect(s.listings[0]!.title.length).toBeLessThanOrEqual(55);
+      for (const b of s.listings[0]!.benefits) expect(b.length).toBeLessThanOrEqual(40);
+      for (const b of s.basePlans) expect(b.regionalConfigs.map((r) => r.regionCode)).toEqual(['PE']);
+    }
+  });
+
+  it('Crea las que faltan, pone al día las que existen y activa los planes base', async () => {
+    const pedidos: string[] = [];
+    const existen = new Set(['full_0']);
+    const pedir = (async (ruta: string, metodo = 'GET') => {
+      pedidos.push(`${metodo} ${ruta}`);
+      const id = /^\/subscriptions\/([a-z_0-9]+)$/.exec(ruta)?.[1];
+      if (metodo === 'GET' && id && !existen.has(id)) throw new ErrorDeGoogle(404, 'no existe');
+      // El plan base de la que ya existía ya está activo.
+      if (ruta.startsWith('/subscriptions/full_0/basePlans/')) throw new ErrorDeGoogle(400, 'ya activo');
+      return new Response('{}');
+    }) as Parameters<typeof crearSuscripciones>[0];
+    const dicho: string[] = [];
+    await crearSuscripciones(pedir, (l) => dicho.push(l));
+    expect(pedidos).toContain(
+      'PATCH /subscriptions/full_0?updateMask=listings,basePlans&regionsVersion.version=2022%2F02',
+    );
+    expect(pedidos).toContain(
+      'POST /subscriptions?productId=basico_5&regionsVersion.version=2022%2F02',
+    );
+    expect(pedidos).toContain('POST /subscriptions/full_3/basePlans/fundador:activate');
+    expect(pedidos.filter((p) => p.endsWith(':activate'))).toHaveLength(6 * 3 + 6 * 2);
+    expect(dicho[0]).toBe('Al día: full_0 (mes, anio, fundador)');
+    expect(dicho).toHaveLength(12);
+  });
+});
+
+describe('El cliente de Google Play (entrega 78)', () => {
+  it('Se identifica con un JWT firmado por la cuenta de servicio y pregunta por la compra', async () => {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    const llamadas: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      llamadas.push({ url, ...(init ? { init } : {}) });
+      if (url === 'https://oauth2.googleapis.com/token') {
+        return new Response(JSON.stringify({ access_token: 'acceso-1', expires_in: 3600 }));
+      }
+      if (url.endsWith(':acknowledge')) return new Response('{}');
+      return new Response(JSON.stringify({ subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE' }));
+    });
+    try {
+      const google = googlePlayReal({ client_email: 'moca@p.iam.gserviceaccount.com', private_key: pem });
+      expect((await google.suscripcion('tok/1')).subscriptionState).toBe('SUBSCRIPTION_STATE_ACTIVE');
+      await google.reconocer('full_0', 'tok/1');
+      // Un solo pedido de acceso: el segundo usa el mismo.
+      expect(llamadas.map((l) => l.url)).toEqual([
+        'https://oauth2.googleapis.com/token',
+        'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/pe.moca.app/purchases/subscriptionsv2/tokens/tok%2F1',
+        'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/pe.moca.app/purchases/subscriptions/full_0/tokens/tok%2F1:acknowledge',
+      ]);
+      expect(llamadas[1]!.init?.headers).toEqual({ authorization: 'Bearer acceso-1' });
+      expect(llamadas[2]!.init?.method).toBe('POST');
+      // El JWT: firmado con la llave, para la API de Play, por una hora.
+      const assertion = new URLSearchParams(String(llamadas[0]!.init?.body)).get('assertion')!;
+      const [cabecera, cuerpo, firma] = assertion.split('.');
+      expect(
+        createVerify('RSA-SHA256')
+          .update(`${cabecera}.${cuerpo}`)
+          .verify(publicKey, Buffer.from(firma!, 'base64url')),
+      ).toBe(true);
+      const claims = JSON.parse(Buffer.from(cuerpo!, 'base64url').toString());
+      expect(claims).toMatchObject({
+        iss: 'moca@p.iam.gserviceaccount.com',
+        scope: 'https://www.googleapis.com/auth/androidpublisher',
+        aud: 'https://oauth2.googleapis.com/token',
+      });
+      expect(claims.exp - claims.iat).toBe(3600);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('Pagar Moca con Google Play (entrega 78)', () => {
+  let base: BaseDePrueba;
+  let app: FastifyInstance;
+  const ahora = new Date('2026-11-20T15:00:00Z');
+  const falso = googleFalso();
+  let lucho: Persona;
+  let rosa: Persona;
+  let empresaDeLucho: string;
+  let empresaDeRosa: string;
+
+  const verificar = async (celular: string): Promise<Persona> => {
+    const usuarioId = randomUUID();
+    const r = await app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular, codigo: '123456', usuarioId },
+    });
+    return { usuarioId, llave: r.json().llave };
+  };
+  const pedir = (persona: Persona, metodo: 'GET' | 'POST', url: string, payload?: object) =>
+    app.inject({
+      method: metodo,
+      url,
+      headers: { authorization: `Bearer ${persona.llave}` },
+      ...(payload ? { payload } : {}),
+    });
+  const comprar = (persona: Persona, token: string) =>
+    pedir(persona, 'POST', '/cobro/google', { token });
+  const pagosDe = async (empresa: string) =>
+    (
+      await base.poolAdmin.query(
+        `SELECT plan, personas_extra, desde::text, hasta::text, origen, google_orden
+           FROM pagos WHERE empresa_id = $1 ORDER BY creado_en`,
+        [empresa],
+      )
+    ).rows;
+  const compra = async (token: string) =>
+    (await base.poolAdmin.query('SELECT * FROM compras_google WHERE token = $1', [token])).rows[0];
+
+  beforeAll(async () => {
+    base = await crearBaseDePrueba();
+    app = crearApp({
+      pool: base.pool,
+      version: 'prueba',
+      verificador: verificadorFalso(),
+      ahora: () => ahora,
+      cobro: { desde: '2026-11-10', admins: ['900000000'], yape: null },
+      googlePlay: falso.google,
+    });
+    lucho = await verificar('987000011');
+    const datos = negocio('Bodega Don Lucho', lucho.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeLucho = datos.empresa.id;
+    expect((await pedir(lucho, 'POST', '/datos/subir', datos)).statusCode).toBe(200);
+    rosa = await verificar('987000012');
+    const deRosa = negocio('Puesto de Rosa', rosa.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeRosa = deRosa.empresa.id;
+    expect((await pedir(rosa, 'POST', '/datos/subir', deRosa)).statusCode).toBe(200);
+  });
+  afterAll(() => base.cerrar());
+
+  it('El teléfono sabe que puede pagar con Google Play', async () => {
+    const cobro = (await pedir(lucho, 'GET', '/datos/bajar')).json().cobro;
+    expect(cobro).toMatchObject({ estado: 'prueba', google_play: true });
+    expect(cobro.mercadopago).toBeUndefined();
+  });
+
+  it('Una compra válida: se registra hasta el día en que vence y se reconoce, una sola vez', async () => {
+    falso.compras.set('token-lucho-1', suscripcion(empresaDeLucho, { producto: 'full_1' }));
+    const r = await comprar(lucho, 'token-lucho-1');
+    expect(r.statusCode).toBe(200);
+    expect(r.json().resultado).toBe('procesada');
+    expect(r.json().cobro).toMatchObject({
+      estado: 'pagado',
+      hasta: '2026-12-20',
+      google_vigente: true,
+    });
+    expect(await pagosDe(empresaDeLucho)).toEqual([
+      {
+        plan: 'normal',
+        personas_extra: 1,
+        desde: '2026-11-20',
+        hasta: '2026-12-20',
+        origen: 'google',
+        google_orden: 'GPA.0000-0000-0000-00001',
+      },
+    ]);
+    expect(falso.reconocidas).toEqual(['full_1:token-lucho-1']);
+    expect(await compra('token-lucho-1')).toMatchObject({
+      empresa_id: empresaDeLucho,
+      producto: 'full_1',
+      plan_base: 'mes',
+      motivo: null,
+    });
+    // Mandarla otra vez (la app reintenta) no suma otro pago ni otro reconocimiento.
+    const otra = await comprar(lucho, 'token-lucho-1');
+    expect(otra.json().resultado).toBe('ya_estaba');
+    expect(await pagosDe(empresaDeLucho)).toHaveLength(1);
+    expect(falso.reconocidas).toHaveLength(1);
+    // En «Mis pagos» sale como de Google.
+    const mis = (await pedir(lucho, 'GET', '/cobro/mis-pagos')).json();
+    expect(mis.pagos[0]).toMatchObject({ medio: 'google', personas_extra: 1 });
+  });
+
+  it('La compra de un negocio no sirve para otro', async () => {
+    // Rosa manda la compra que ya es de Lucho.
+    expect((await comprar(rosa, 'token-lucho-1')).statusCode).toBe(409);
+    // Una compra hecha para el negocio de Lucho, mandada desde el de Rosa.
+    falso.compras.set('token-cruzado', suscripcion(empresaDeLucho, { orden: 'GPA.cruzado' }));
+    const r = await comprar(rosa, 'token-cruzado');
+    expect(r.statusCode).toBe(409);
+    expect(r.json().error).toBe('otro_negocio');
+    expect(await pagosDe(empresaDeRosa)).toEqual([]);
+    // No se reconoce: Google la devuelve sola.
+    expect(falso.reconocidas).not.toContain('full_0:token-cruzado');
+    expect(await compra('token-cruzado')).toMatchObject({ motivo: 'otro_negocio' });
+  });
+
+  it('Ni vencida, ni pendiente, ni de un producto que no es de Moca', async () => {
+    falso.compras.set(
+      'token-vencida',
+      suscripcion(empresaDeRosa, {
+        orden: 'GPA.vencida',
+        estado: 'SUBSCRIPTION_STATE_EXPIRED',
+        vence: '2026-11-01T00:00:00Z',
+      }),
+    );
+    expect((await comprar(rosa, 'token-vencida')).json().error).toBe('no_vigente');
+    falso.compras.set(
+      'token-pendiente',
+      suscripcion(empresaDeRosa, { orden: 'GPA.pend', estado: 'SUBSCRIPTION_STATE_PENDING' }),
+    );
+    expect((await comprar(rosa, 'token-pendiente')).json().error).toBe('no_vigente');
+    falso.compras.set(
+      'token-raro',
+      suscripcion(empresaDeRosa, { orden: 'GPA.raro', producto: 'oro_0' }),
+    );
+    expect((await comprar(rosa, 'token-raro')).json().error).toBe('producto_desconocido');
+    expect(await pagosDe(empresaDeRosa)).toEqual([]);
+  });
+
+  it('Solo un dueño con sesión; sin Google, 503; Google caído, 502', async () => {
+    expect(
+      (await app.inject({ method: 'POST', url: '/cobro/google', payload: { token: 'x'.repeat(20) } }))
+        .statusCode,
+    ).toBe(401);
+    expect((await pedir(lucho, 'POST', '/cobro/google', { token: 1 })).statusCode).toBe(400);
+    falso.caer(true);
+    falso.compras.set('token-rosa', suscripcion(empresaDeRosa, { orden: 'GPA.rosa' }));
+    expect((await comprar(rosa, 'token-rosa')).statusCode).toBe(502);
+    falso.caer(false);
+    // Al volver Google, la misma compra se aplica.
+    expect((await comprar(rosa, 'token-rosa')).json().resultado).toBe('procesada');
+    const sinGoogle = crearApp({ pool: base.pool, version: 'prueba', ahora: () => ahora });
+    const r = await sinGoogle.inject({
+      method: 'POST',
+      url: '/cobro/google',
+      headers: { authorization: `Bearer ${lucho.llave}` },
+      payload: { token: 'token-lucho-1' },
+    });
+    expect(r.statusCode).toBe(503);
+    await sinGoogle.close();
+  });
+
+  it('Un pago de Google no acorta lo ya pagado', async () => {
+    // Lucho ya tiene hasta el 20-12; una compra anual de prueba vence antes de eso no la acorta.
+    falso.compras.set(
+      'token-lucho-2',
+      suscripcion(empresaDeLucho, {
+        orden: 'GPA.corta',
+        vence: '2026-12-01T15:00:00Z',
+      }),
+    );
+    expect((await comprar(lucho, 'token-lucho-2')).json().cobro).toMatchObject({
+      hasta: '2026-12-20',
+    });
+  });
+});
+
+describe('Los avisos de Google Play y el repaso (entrega 79)', () => {
+  let base: BaseDePrueba;
+  let app: FastifyInstance;
+  let ahora = new Date('2026-11-20T15:00:00Z');
+  const falso = googleFalso();
+  const clave = 'clave-de-avisos';
+  let ana: Persona;
+  let empresaDeAna: string;
+  let beto: Persona;
+  let empresaDeBeto: string;
+
+  const verificar = async (celular: string): Promise<Persona> => {
+    const usuarioId = randomUUID();
+    const r = await app.inject({
+      method: 'POST',
+      url: '/cuenta/verificar',
+      payload: { celular, codigo: '123456', usuarioId },
+    });
+    return { usuarioId, llave: r.json().llave };
+  };
+  const pedir = (persona: Persona, metodo: 'GET' | 'POST', url: string, payload?: object) =>
+    app.inject({
+      method: metodo,
+      url,
+      headers: { authorization: `Bearer ${persona.llave}` },
+      ...(payload ? { payload } : {}),
+    });
+  const avisar = (contenido: object, conClave: string | null = clave) =>
+    app.inject({
+      method: 'POST',
+      url: `/google/avisos${conClave === null ? '' : `?clave=${conClave}`}`,
+      payload: {
+        message: {
+          data: Buffer.from(JSON.stringify(contenido)).toString('base64'),
+          messageId: '1',
+        },
+        subscription: 'projects/moca/subscriptions/avisos',
+      },
+    });
+  const renovada = (token: string) =>
+    avisar({
+      version: '1.0',
+      packageName: 'pe.moca.app',
+      subscriptionNotification: { version: '1.0', notificationType: 2, purchaseToken: token },
+    });
+  const pagosDe = async (empresa: string) =>
+    (
+      await base.poolAdmin.query(
+        `SELECT hasta::text, google_orden, anulado_en IS NOT NULL AS anulado
+           FROM pagos WHERE empresa_id = $1 ORDER BY creado_en`,
+        [empresa],
+      )
+    ).rows;
+  const cobroDe = async (persona: Persona) => (await pedir(persona, 'GET', '/datos/bajar')).json().cobro;
+
+  beforeAll(async () => {
+    base = await crearBaseDePrueba();
+    app = crearApp({
+      pool: base.pool,
+      version: 'prueba',
+      verificador: verificadorFalso(),
+      ahora: () => ahora,
+      cobro: { desde: '2026-11-10', admins: ['900000000'], yape: null },
+      googlePlay: falso.google,
+      claveAvisosGoogle: clave,
+    });
+    ana = await verificar('987000021');
+    const deAna = negocio('Bodega Ana', ana.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeAna = deAna.empresa.id;
+    expect((await pedir(ana, 'POST', '/datos/subir', deAna)).statusCode).toBe(200);
+    beto = await verificar('987000022');
+    const deBeto = negocio('Ferretería Beto', beto.usuarioId, '2026-11-12T14:00:00.000Z');
+    empresaDeBeto = deBeto.empresa.id;
+    expect((await pedir(beto, 'POST', '/datos/subir', deBeto)).statusCode).toBe(200);
+  });
+  afterAll(() => base.cerrar());
+
+  it('Sin la clave, no; otra app o un aviso de prueba, se ignora', async () => {
+    expect((await renovada('x').then(() => avisar({}, null))).statusCode).toBe(401);
+    expect((await avisar({}, 'otra')).statusCode).toBe(401);
+    expect(
+      (await avisar({ packageName: 'com.otra.app', subscriptionNotification: { purchaseToken: 't' } }))
+        .json(),
+    ).toEqual({ ok: true, ignorado: true });
+    expect((await avisar({ packageName: 'pe.moca.app', testNotification: { version: '1.0' } })).json())
+      .toEqual({ ok: true, ignorado: true });
+  });
+
+  it('La renovación suma un pago nuevo, hasta el nuevo vencimiento', async () => {
+    falso.compras.set('token-de-ana', suscripcion(empresaDeAna, { orden: 'GPA.ana..0' }));
+    expect((await pedir(ana, 'POST', '/cobro/google', { token: 'token-de-ana' })).statusCode).toBe(200);
+    // Un mes después, Google renueva.
+    ahora = new Date('2026-12-20T16:00:00Z');
+    falso.compras.set(
+      'token-de-ana',
+      suscripcion(empresaDeAna, { orden: 'GPA.ana..1', vence: '2027-01-20T15:00:00Z' }),
+    );
+    expect((await renovada('token-de-ana')).json()).toMatchObject({ ok: true, aplicada: 'procesada' });
+    // El mismo aviso otra vez (Pub/Sub repite): nada nuevo.
+    expect((await renovada('token-de-ana')).json().aplicada).toBe('ya_estaba');
+    expect(await pagosDe(empresaDeAna)).toEqual([
+      { hasta: '2026-12-20', google_orden: 'GPA.ana..0', anulado: false },
+      { hasta: '2027-01-20', google_orden: 'GPA.ana..1', anulado: false },
+    ]);
+    expect(falso.reconocidas).toContain('full_0:token-de-ana');
+    expect(await cobroDe(ana)).toMatchObject({ estado: 'pagado', hasta: '2027-01-20' });
+  });
+
+  it('Una compra que la app nunca mandó se guarda a nombre del titular', async () => {
+    falso.compras.set('token-beto', suscripcion(empresaDeBeto, { orden: 'GPA.beto..0', vence: '2027-01-15T15:00:00Z' }));
+    expect((await renovada('token-beto')).json().aplicada).toBe('procesada');
+    const compra = (
+      await base.poolAdmin.query('SELECT empresa_id, usuario_id FROM compras_google WHERE token = $1', [
+        'token-beto',
+      ])
+    ).rows[0];
+    expect(compra).toEqual({ empresa_id: empresaDeBeto, usuario_id: beto.usuarioId });
+    // De un negocio que no existe, no.
+    falso.compras.set('token-nadie', suscripcion(randomUUID(), { orden: 'GPA.nadie' }));
+    expect((await renovada('token-nadie')).json().aplicada).toBe('desconocida');
+  });
+
+  it('Si Google no pudo cobrar, el teléfono lo sabe', async () => {
+    falso.compras.set(
+      'token-beto',
+      suscripcion(empresaDeBeto, {
+        orden: 'GPA.beto..0',
+        vence: '2027-01-15T15:00:00Z',
+        estado: 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+      }),
+    );
+    await renovada('token-beto');
+    expect(await cobroDe(beto)).toMatchObject({ google_problema: true });
+    expect((await cobroDe(ana)).google_problema).toBeUndefined();
+  });
+
+  it('Un reembolso anula el último pago; uno más viejo queda para revisar', async () => {
+    const devuelta = (token: string, orden: string) =>
+      avisar({
+        packageName: 'pe.moca.app',
+        voidedPurchaseNotification: { purchaseToken: token, orderId: orden, productType: 1 },
+      });
+    // El de diciembre de Ana ya no es el último: lo revisa Jhony.
+    expect((await devuelta('token-de-ana', 'GPA.ana..0')).json().anulada).toBe('revisar');
+    expect(
+      (await base.poolAdmin.query('SELECT motivo FROM compras_google WHERE token = $1', ['token-de-ana']))
+        .rows[0].motivo,
+    ).toBe('reembolso_por_revisar');
+    // Le aparece a Jhony en «Cobros».
+    const jhony = await verificar('900000000');
+    const resumen = (await pedir(jhony, 'GET', '/cobro/resumen')).json();
+    expect(resumen.revisar_google).toMatchObject([{ nombre: 'Bodega Ana', producto: 'full_0' }]);
+    // El último sí: vuelve a lo que tenía antes.
+    falso.compras.set(
+      'token-de-ana',
+      suscripcion(empresaDeAna, {
+        orden: 'GPA.ana..1',
+        vence: '2027-01-20T15:00:00Z',
+        estado: 'SUBSCRIPTION_STATE_EXPIRED',
+      }),
+    );
+    expect((await devuelta('token-de-ana', 'GPA.ana..1')).json().anulada).toBe('anulado');
+    expect((await pagosDe(empresaDeAna)).map((p) => p.anulado)).toEqual([false, true]);
+    expect(await cobroDe(ana)).toMatchObject({ hasta: '2026-12-20' });
+  });
+
+  it('El repaso renueva lo que vence pronto aunque el aviso no llegue; con Google caído, 500', async () => {
+    ahora = new Date('2027-01-14T15:00:00Z');
+    falso.compras.set(
+      'token-beto',
+      suscripcion(empresaDeBeto, { orden: 'GPA.beto..1', vence: '2027-02-15T15:00:00Z' }),
+    );
+    expect(await app.cobradorGoogle.repasar()).toEqual({ vistas: 1, procesadas: 1 });
+    expect(await cobroDe(beto)).toMatchObject({ hasta: '2027-02-15' });
+    expect(await app.cobradorGoogle.repasar()).toEqual({ vistas: 0, procesadas: 0 });
+    falso.caer(true);
+    expect((await renovada('token-beto')).statusCode).toBe(500);
+    falso.caer(false);
+  });
+});

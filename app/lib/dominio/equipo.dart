@@ -1,4 +1,5 @@
 import 'cobro.dart';
+import 'google_play.dart';
 import 'modelos.dart';
 
 /// Varias personas en un mismo negocio (decisiones.md, 29-10-2026; entregas
@@ -294,6 +295,14 @@ abstract interface class ServicioCobro {
 
   /// Cómo va la orden; al quedar pagada, guarda el cobro nuevo.
   Future<OrdenDePago> estadoDeOrden(String orden);
+
+  /// El id del negocio de este teléfono: va en la compra de Google (entrega
+  /// 80), para que no sirva para otro negocio.
+  Future<String?> idDelNegocio();
+
+  /// Le manda al servidor la compra de Google Play (entrega 80); si queda
+  /// pagado, guarda el cobro nuevo.
+  Future<ResultadoCompraGoogle> confirmarCompraGoogle(String token);
 
   /// Manda la respuesta al servidor. Sin señal, `sinSenal`: no se guarda.
   Future<ResultadoEquipo> responderPrecio(

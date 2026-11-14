@@ -27,9 +27,12 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 
 ## Página web y Play Store (13-11-2026, `pagina-web.md`)
 
+- Que un abogado revise la política de privacidad (`servidor/src/legal/privacidad.ts`, publicada en `/privacidad` del servidor desde el 14-11-2026) antes de abrir Moca a todos, y mudarla a mocanegocios.com/privacidad.
+- Cuando Moca esté en Play Store: si se sigue repartiendo el APK (con Mercado Pago y Yape) o se retira y todos pasan a Play.
+
 - El número de WhatsApp de ventas, los testimonios autorizados de pilotos, el público inicial (todos o bodegas), el presupuesto de publicidad y dónde se aloja la web.
 - La cuenta de desarrollador de Google Play (personal u organización), la prueba cerrada con 12 personas si es personal, el armado del AAB y la política de privacidad pública en mocanegocios.com.
-- Cómo se cobra en la versión de Play Store: Google Play Billing u otra salida que permitan sus reglas para el Perú.
+- ~~Cómo se cobra en la versión de Play Store~~: decidido el 13-11-2026, con Google Play Billing (`decisiones.md`).
 
 ## Se resuelven en la Fase 0
 

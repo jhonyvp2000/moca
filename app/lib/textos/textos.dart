@@ -1874,6 +1874,39 @@ abstract final class Textos {
       'activa apenas se confirma el pago.';
   static String pagarMontoConMercadoPago(String monto) =>
       'Pagar $monto con Mercado Pago';
+  // La versión de Play Store (entrega 77): el pago con Google Play llega en
+  // la entrega 80.
+  static const pagoConGooglePlayPronto =
+      'Muy pronto vas a poder pagar tu plan aquí mismo, con Google Play.';
+  // Pagar con Google Play (entrega 80).
+  static String suscribirmePor(String precio, {required bool anual}) =>
+      'Suscribirme por $precio al ${anual ? 'año' : 'mes'}';
+  static String googlePlayExplica({required bool anual}) =>
+      'Pagas con tu cuenta de Google y se renueva solo cada '
+      '${anual ? 'año' : 'mes'}. Lo cancelas cuando quieras en Google Play.';
+  static const masDeCincoExtras =
+      'Con más de 5 personas extra, escríbenos por WhatsApp y te armamos el '
+      'plan.';
+  static const yaTienesGooglePlay =
+      'Tu plan se renueva solo con Google Play. Para cambiarlo o cancelarlo, '
+      'entra a Google Play.';
+  static const administrarEnGooglePlay = 'Administrar en Google Play';
+  static const confirmandoElPago = 'Confirmando tu pago…';
+  static const pagoGoogleSinConfirmar =
+      'Tu pago quedó hecho en Google Play. Moca se activa sola en unos '
+      'minutos.';
+  static const pagoGooglePendiente =
+      'Google Play dejó tu pago pendiente. Moca se activa en cuanto se '
+      'confirme.';
+  static const pagoGoogleOtroNegocio =
+      'Esa compra no es de este negocio. Google te la devuelve en unos días.';
+  static const googlePlayNoDisponible =
+      'Por ahora no se puede pagar con Google Play. Intenta otra vez más '
+      'tarde.';
+  static const googleNoPudoCobrar =
+      'Google Play no pudo cobrar tu plan. Revisa tu medio de pago en Google '
+      'Play para seguir anotando.';
+  static const porGooglePlay = 'Google Play';
   static const prefieresYapear = '¿Prefieres yapear directo a Moca?';
   static const yapeTardaMas =
       'Tarda más: una persona revisa tu captura y activa tu plan.';

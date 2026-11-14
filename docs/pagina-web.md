@@ -73,16 +73,16 @@ Todo texto legal lo revisa un abogado antes de publicar, como ya está pendiente
 
 Decidido el 14-10-2026 que la V1 real se distribuye por Play Store en prueba cerrada; Jhony decide avanzar el 13-11-2026. Lo que hace falta:
 
-1. **Cuenta de desarrollador de Google Play** (pago único de USD 25). Jhony ya tiene la de organización (13-11-2026). La de **organización** pide un número D-U-N-S de la empresa; la **personal** es más rápida, pero Google exige a las cuentas personales nuevas una **prueba cerrada con al menos 12 personas durante 14 días seguidos** antes de publicar para todos. La comprueba Jhony en la consola, porque las reglas cambian.
+1. **Cuenta de desarrollador de Google Play** (pago único de USD 25). Jhony tiene una cuenta personal y quiere una de organización para Publisher Online E.I.R.L. (13-11-2026, ver 8.1). La de **organización** pide un número D-U-N-S de la empresa; la **personal** es más rápida, pero Google exige a las cuentas personales nuevas una **prueba cerrada con al menos 12 personas durante 14 días seguidos** antes de publicar para todos. La comprueba Jhony en la consola, porque las reglas cambian.
 2. **El paquete:** Play pide un **AAB** (no APK), firmado con una llave de subida, y la firma final la guarda Google («Play App Signing»). El flujo `apk.yml` tiene que sumar el armado del AAB. El identificador `pe.moca.app` queda fijo para siempre al publicar.
 3. **La ficha:** nombre, ícono, capturas, descripción corta y larga, categoría (Empresa o Finanzas).
-4. **Formularios:** **política de privacidad en una dirección pública** (mocanegocios.com/privacidad), **Seguridad de los datos** (qué datos se recogen y a quién se envían: Twilio, Anthropic, Mercado Pago), clasificación de contenido, público objetivo, y **acceso a la app** con una cuenta de prueba para el revisor (Moca entra por SMS).
+4. **Formularios:** **política de privacidad en una dirección pública** (mocanegocios.com/privacidad; mientras tanto, `https://moca-servidor.onrender.com/privacidad` desde el 14-11-2026), **Seguridad de los datos** (qué datos se recogen y a quién se envían: Twilio, Anthropic, Mercado Pago), clasificación de contenido, público objetivo, y **acceso a la app** con una cuenta de prueba para el revisor (Moca entra por SMS).
 5. **Permisos:** micrófono (voz), cámara (fotos y QR), notificaciones. Cada uno justificado.
 6. **El cobro, lo más delicado:** Google Play exige usar **su sistema de facturación** para vender funciones digitales dentro de una app de la tienda (como una suscripción a Moca), con una comisión. Cobrar con Mercado Pago o Yape dentro de la versión de Play puede hacer que rechacen o retiren la app. Hay que revisar las reglas vigentes para el Perú (sistema de pagos de Google, comisión de suscripciones, programas de facturación alternativa) **antes de publicar** y decidir: Google Play Billing en la versión de Play, u otra salida que las reglas permitan. Ya estaba anotado en `pendientes.md` (29-10-2026).
 
 ### 8.1 Lo investigado sobre el cobro (13-11-2026)
 
-Jhony ya tiene la **cuenta de desarrollador de organización**, a nombre de su EIRL: no aplica la prueba de 12 personas por 14 días, que es para las cuentas personales nuevas.
+**Corrección (13-11-2026):** la cuenta de Play que tiene Jhony aparece con su nombre, como **cuenta personal**, y la consola pide la **prueba cerrada de 12 personas por 14 días**. Jhony quiere publicar a nombre de su empresa, **Publisher Online E.I.R.L.**: eso pide una cuenta de organización, con el número D-U-N-S de la empresa. Hasta decidirlo, no se sube nada a la cuenta personal.
 
 Lo encontrado, con fuentes secundarias porque la ayuda oficial de Google no se pudo abrir desde la sesión (hay que confirmarlo en la Play Console):
 
@@ -101,7 +101,26 @@ Las tres salidas posibles:
 
 Recomendación: **A**, con los precios ajustados si hace falta para cubrir la comisión, y confirmar en la Play Console los medios de pago que acepta Google en el Perú.
 
+**Decidido (13-11-2026): opción A.** Jhony eligió Google Play Billing para la versión de Play.
+
 Fuentes: [Understanding Google Play's Payments policy](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en), [Understanding user choice billing](https://support.google.com/googleplay/android-developer/answer/13821247?hl=en), [Enrolling in the external offers programme](https://support.google.com/googleplay/android-developer/answer/14372887?hl=en_mt), [Alternative billing APIs](https://developer.android.com/google/play/billing/alternative), [Adapty: Google Play billing changes](https://adapty.io/blog/google-play-billing-changes-subscriptions-fees/), [HaiPay: Google Play billing, games left out in 5 markets](https://www.haipay.net/news/google-play-user-choice-billing-games-excluded-five-markets).
+
+### 8.2 El plan del cobro con Google Play (aprobado el 13-11-2026)
+
+| Entrega | Qué |
+|---|---|
+| 77 | El AAB para Play Store, armado por GitHub junto a los APK (`MOCA_CANAL=play`). En esa versión no se nombran Mercado Pago ni el Yape para pagar el plan, ni se avisa de un APK nuevo |
+| 78 | El servidor comprueba cada compra con Google, revisa que sea de ese negocio, la acepta y la registra hasta su vencimiento |
+| 79 | Los avisos en tiempo real de Google: renovación, cancelación, reembolso y pago con problemas, más una revisión diaria |
+| 80 | La app compra con Google Play; «Mis pagos» dice cuándo se renueva y lleva a «Administrar en Google Play» |
+| 81 | Las 12 suscripciones se crean desde el servidor; la guía de puesta en marcha y de la prueba de punta a punta (`guia-google-play.md`) y `soporte.md` al día |
+
+- **Personas extra:** de 0 a 5, cada plan con su número de personas extra es una suscripción (`full_0` a `full_5`, `basico_0` a `basico_5`, al mes y al año; entrega 78). Más de 5, por WhatsApp.
+- **Precios:** los mismos al empezar (S/ 19.90 el Full, S/ 14.90 el Básico). Se revisan con los primeros números: Google se queda ~15 % y, probablemente, el IGV.
+- **Fundadores:** un plan base «fundador» del Full a S/ 14.90 al mes (entrega 81: una oferta de Google vuelve sola al precio normal) que solo ve quien ya es fundador.
+- **La cuenta:** Moca se publica a nombre de Publisher Online E.I.R.L. El D-U-N-S se pidió el 13-11-2026; cuando llegue, Jhony crea la cuenta de organización. El correo de contacto es `contacto@mocanegocios.com`.
+- **La firma:** al subir el primer AAB, elegir la propia llave de Moca para Play App Signing, para que los pilotos actualicen desde Play sin desinstalar.
+- **Una versión obligatoria** no bloquea la de Play: Play actualiza sola. Si hiciera falta forzarla, se suma la actualización dentro de la app de Play.
 
 ## 9. Lo que falta decidir
 
@@ -110,4 +129,4 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 3. ¿Para todo tipo de negocio, o primero bodegas?
 4. ¿Presupuesto para publicidad, o inicio orgánico?
 5. Dónde se aloja la web (por ejemplo, un sitio estático en Render o Cloudflare Pages) y quién administra el DNS del dominio.
-6. Cómo se cobra en la versión de Play Store (punto 8.6).
+6. ~~Cómo se cobra en la versión de Play Store~~: Google Play Billing (13-11-2026).

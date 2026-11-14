@@ -51,4 +51,23 @@ void main() {
       BloqueoPorVersion.ninguno,
     );
   });
+
+  test('La versión de Play Store no avisa ni se bloquea por un APK nuevo '
+      '(entrega 77)', () {
+    const dePlay = VersionInstalada(
+      entrega: 'piloto-1',
+      armado: 100,
+      commit: 'abc',
+      esArm64: true,
+      canal: Canal.play,
+    );
+    final e = estado(minima: 105, desde: '2026-11-06');
+    expect(e.hayNueva(instalada), isTrue);
+    expect(e.hayNueva(dePlay), isFalse);
+    expect(e.obligatoria(dePlay), isFalse);
+    expect(
+      e.bloqueo(dePlay, hoy: '2026-11-07', admin: false, conSenal: true),
+      BloqueoPorVersion.ninguno,
+    );
+  });
 }

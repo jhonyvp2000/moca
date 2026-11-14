@@ -2,6 +2,11 @@ import 'dart:io' show Platform;
 
 /// «Hay una versión nueva de Moca» (entrega 26.3).
 
+/// Por dónde llegó Moca al teléfono (entrega 77): el APK de Releases o la
+/// Play Store. En la de Play no se nombran Mercado Pago ni el Yape para
+/// pagar el plan, ni se descarga un APK: Play cobra y actualiza.
+enum Canal { apk, play }
+
 /// La versión instalada. GitHub la pone al armar el APK; en un armado local
 /// el armado es 0 y nunca se avisa nada.
 class VersionInstalada {
@@ -10,6 +15,7 @@ class VersionInstalada {
     required this.armado,
     required this.commit,
     required this.esArm64,
+    this.canal = Canal.apk,
   });
 
   factory VersionInstalada.delArmado() => VersionInstalada(
@@ -18,6 +24,9 @@ class VersionInstalada {
     commit: const String.fromEnvironment('MOCA_COMMIT'),
     // «android_arm64» en los teléfonos de hoy; «android_arm» en los antiguos.
     esArm64: !Platform.version.contains('android_arm"'),
+    canal: const String.fromEnvironment('MOCA_CANAL') == 'play'
+        ? Canal.play
+        : Canal.apk,
   );
 
   /// «entrega-26.3» o «piloto-2»; vacío en un armado local.
@@ -27,8 +36,12 @@ class VersionInstalada {
   final int armado;
   final String commit;
   final bool esArm64;
+  final Canal canal;
 
   bool get conocida => armado > 0;
+
+  /// La de Play Store: la actualiza Play, no un APK de Releases.
+  bool get dePlay => canal == Canal.play;
 }
 
 /// Lo último publicado, según el servidor.
@@ -88,11 +101,16 @@ class EstadoDeVersion {
   }
 
   /// Hay una más nueva que la instalada.
+  /// La de Play Store nunca: la versión de Releases puede no estar aún en
+  /// Play, y Play actualiza solo (entrega 77).
   bool hayNueva(VersionInstalada instalada) =>
-      instalada.conocida && (ultima?.armado ?? 0) > instalada.armado;
+      instalada.conocida &&
+      !instalada.dePlay &&
+      (ultima?.armado ?? 0) > instalada.armado;
 
   bool obligatoria(VersionInstalada instalada) =>
       instalada.conocida &&
+      !instalada.dePlay &&
       minima != null &&
       instalada.armado < minima! &&
       enlace(instalada) != null;

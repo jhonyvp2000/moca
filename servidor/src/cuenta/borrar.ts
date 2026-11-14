@@ -6,7 +6,8 @@ import { autenticar } from '../datos/subir.js';
 const tablasDeLaEmpresa = [
   'bitacora', 'videos_vistos', 'alertas', 'dias_cerrados', 'arqueo_cuentas', 'arqueos',
   'movimientos', 'items_comprobante', 'comprobantes', 'reglas_clasificacion', 'periodos',
-  'contrapartes', 'categorias', 'cuentas', 'invitaciones', 'membresias', 'ordenes_pago', 'pagos',
+  'contrapartes', 'categorias', 'cuentas', 'invitaciones', 'membresias', 'ordenes_pago',
+  'compras_google', 'pagos',
   'suscripciones', 'respuestas_precio', 'eventos_uso', 'pruebas_extra', 'preguntas',
   'empresas',
 ];

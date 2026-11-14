@@ -28,6 +28,8 @@ export interface ConfigCobro {
   yape: { numero: string; nombre: string } | null;
   /** Mercado Pago está configurado (entrega 32): la app ofrece pagar ahí. */
   mercadoPago?: boolean;
+  /** Google Play está configurado (entrega 78): la versión de Play paga ahí. */
+  googlePlay?: boolean;
 }
 
 export const sinCobro: ConfigCobro = { desde: null, admins: [], yape: null };
@@ -157,6 +159,12 @@ export type CobroParaElTelefono = EstadoCobro & {
   pago?: { yape: string; nombre: string };
   /** Se puede pagar con Mercado Pago (entrega 32). */
   mercadopago?: true;
+  /** La versión de Play paga con Google Play (entrega 78). */
+  google_play?: true;
+  /** Google no pudo cobrar la renovación (entrega 79). */
+  google_problema?: true;
+  /** Tiene una suscripción de Google que se renueva (entrega 80). */
+  google_vigente?: true;
   admin?: true;
   /** Ya contestó la pregunta del día 10 (entrega 25). */
   respondio: boolean;
@@ -171,6 +179,8 @@ export async function cobroParaElTelefono(
 ): Promise<CobroParaElTelefono> {
   const cliente = await pool.connect();
   let datos: Awaited<ReturnType<typeof datosDelCobro>>;
+  let problemaEnGoogle = false;
+  let vigenteEnGoogle = false;
   try {
     await cliente.query('BEGIN');
     await cliente.query(
@@ -178,6 +188,31 @@ export async function cobroParaElTelefono(
       [empresaId, usuarioId],
     );
     datos = await datosDelCobro(cliente, empresaId);
+    // Google no pudo cobrar la renovación (entrega 79): el dueño tiene que
+    // revisar su medio de pago en Google Play.
+    if (config.googlePlay) {
+      const ultima = (
+        await cliente.query<{ estado: string; viva: boolean }>(
+          `SELECT estado, (vence IS NULL OR vence > now()) AS viva FROM compras_google
+            WHERE empresa_id = $1 ORDER BY actualizado_en DESC LIMIT 1`,
+          [empresaId],
+        )
+      ).rows[0];
+      // Ya tiene una suscripción en Google que se renueva (entrega 80): la
+      // app no ofrece comprar otra, para no cobrar dos veces.
+      vigenteEnGoogle =
+        ultima !== undefined &&
+        ultima.viva &&
+        [
+          'SUBSCRIPTION_STATE_ACTIVE',
+          'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+          'SUBSCRIPTION_STATE_ON_HOLD',
+          'SUBSCRIPTION_STATE_PAUSED',
+        ].includes(ultima.estado);
+      problemaEnGoogle =
+        ultima?.estado === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD' ||
+        ultima?.estado === 'SUBSCRIPTION_STATE_ON_HOLD';
+    }
     await cliente.query('COMMIT');
   } catch (error) {
     await cliente.query('ROLLBACK');
@@ -197,6 +232,9 @@ export async function cobroParaElTelefono(
       ? { pago: { yape: config.yape.numero, nombre: config.yape.nombre } }
       : {}),
     ...(config.mercadoPago && estado.estado !== 'sin_cobro' ? { mercadopago: true as const } : {}),
+    ...(config.googlePlay && estado.estado !== 'sin_cobro' ? { google_play: true as const } : {}),
+    ...(problemaEnGoogle ? { google_problema: true as const } : {}),
+    ...(vigenteEnGoogle ? { google_vigente: true as const } : {}),
     ...((await esAdmin(pool, config, usuarioId)) ? { admin: true as const } : {}),
   };
 }
@@ -316,6 +354,8 @@ export async function registrarPago(
     hoy,
     origen = 'yape',
     mpPagoId = null,
+    googleOrden = null,
+    periodo: periodoFijo,
     personasExtra,
   }: {
     empresaId: string;
@@ -325,8 +365,15 @@ export async function registrarPago(
     nota: string | null;
     registradoPor: string;
     hoy: string;
-    origen?: 'yape' | 'mercadopago';
+    origen?: 'yape' | 'mercadopago' | 'google';
     mpPagoId?: string | null;
+    /** El número de orden de Google (entrega 78): un pago por orden. */
+    googleOrden?: string | null;
+    /**
+     * Lo decide Google (entrega 78): desde el día del cobro hasta el día en
+     * que vence. Lo ya pagado no se acorta.
+     */
+    periodo?: { desde: string; hasta: string };
   },
 ): Promise<void> {
   // Un pago a la vez: el cupo de fundadores no se pasa de 50.
@@ -346,15 +393,20 @@ export async function registrarPago(
     throw new ErrorDeCobro(409, actual?.fueFundador ? 'perdio_fundador' : 'sin_cupo_fundador');
   }
   const extras = personasExtra ?? extrasPara(plan, datos.personas);
-  const periodo = periodoDelPago({
-    hoy,
-    pagadoHasta: actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
-    plan,
-  });
+  const periodo =
+    periodoFijo ??
+    periodoDelPago({
+      hoy,
+      pagadoHasta:
+        actual?.pagadoHasta ?? (ahoraMismo.estado === 'prueba' ? ahoraMismo.hasta : null),
+      plan,
+    });
+  const pagadoHasta =
+    periodoFijo && actual && actual.pagadoHasta > periodo.hasta ? actual.pagadoHasta : periodo.hasta;
   await cliente.query(
     `INSERT INTO pagos (id, empresa_id, plan, monto_centimos, desde, hasta, nota, registrado_por,
-                        origen, mp_pago_id, personas_extra)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                        origen, mp_pago_id, personas_extra, google_orden)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       randomUUID(),
       empresaId,
@@ -367,6 +419,7 @@ export async function registrarPago(
       origen,
       mpPagoId,
       extras,
+      googleOrden,
     ],
   );
   await cliente.query(
@@ -377,7 +430,7 @@ export async function registrarPago(
            fue_fundador = suscripciones.fue_fundador OR $4,
            personas_extra = $5,
            actualizado_en = now()`,
-    [empresaId, plan, periodo.hasta, plan === 'fundador', extras],
+    [empresaId, plan, pagadoHasta, plan === 'fundador', extras],
   );
   if (plan === 'fundador' && !actual?.fueFundador) {
     await cliente.query('UPDATE cupo_fundadores SET usados = usados + 1 WHERE id = 1');
@@ -924,8 +977,22 @@ export function rutasCobro(
               ORDER BY o.actualizado_en DESC`,
           )
         ).rows;
+        // Google devolvió un pago que no era el último (entrega 79): Jhony
+        // decide si anularlo a mano.
+        const revisarGoogle = (
+          await cliente.query(
+            `SELECT c.token, e.nombre, right(u.celular, 9) AS celular, c.producto, c.ultima_orden,
+                    c.actualizado_en
+               FROM compras_google c
+               JOIN empresas e ON e.id = c.empresa_id
+               JOIN usuarios u ON u.id = c.usuario_id
+              WHERE c.motivo = 'reembolso_por_revisar'
+              ORDER BY c.actualizado_en DESC`,
+          )
+        ).rows;
         return {
           revisar,
+          revisar_google: revisarGoogle,
           sin_abrir: sinAbrir.flatMap((s) => {
             const f = porId.get(s.empresa_id);
             return f
