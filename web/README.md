@@ -14,13 +14,20 @@ Es HTML y CSS escritos a mano, sin framework ni JavaScript. Se aloja en **Cloudf
 | `sitio/estilos.css` | Los estilos, con los colores y medidas de `diseno/estilo.md` |
 | `sitio/fuentes/` | Plus Jakarta Sans (licencia OFL), servida desde la misma página: sin Google Fonts, el visitante no le pasa datos a Google |
 | `sitio/_headers` | Cabeceras de seguridad que Cloudflare pone a cada página |
-| `construir.mjs` | Copia `sitio/` a `dist/` y pone el número de WhatsApp de ventas |
+| `sitio/img/compartir.png`, `sitio/icono-180.png` | La imagen que se ve al compartir el enlace (WhatsApp, Facebook) y el ícono para la pantalla de inicio del celular |
+| `sitio/robots.txt`, `sitio/sitemap.xml` | Para los buscadores |
+| `imagenes/` | Los HTML de esas dos imágenes y `hacer.cjs`, que las rehace con Playwright: `node web/imagenes/hacer.cjs` |
+| `construir.mjs` | Copia `sitio/` a `dist/`, pone el número de WhatsApp de ventas y, cuando exista, el enlace de Google Play |
 
 ## El número de WhatsApp de ventas
 
 El repositorio es público, así que el número no se escribe aquí. Vive en la variable `WHATSAPP_VENTAS` del proyecto en Cloudflare Pages: `51` seguido de los 9 dígitos del celular, sin espacios (por ejemplo `51987654321`).
 
 En los HTML, los botones de WhatsApp van entre `<!--si-whatsapp-->` y `<!--fin-whatsapp-->`, con `{{WHATSAPP}}` donde va el enlace. Si hay una parte `<!--sino-whatsapp-->`, esa queda cuando falta el número: por ejemplo, el botón principal lleva entonces al correo de contacto. Un número mal escrito hace fallar la publicación, para que no salga un enlace roto.
+
+## El enlace de Google Play
+
+Lo que va entre `<!--si-play-->` y `<!--fin-play-->` (por ahora, «Se paga dentro de la app, con Google Play») no se publica mientras `enlacePlay` esté vacío en `construir.mjs`. Cuando Moca esté en Play, se pone ahí el enlace (no es secreto) y `{{PLAY}}` lo usa (entrega Web 5).
 
 ## Probarla en la computadora
 

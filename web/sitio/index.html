@@ -6,10 +6,25 @@
 <title>Moca: Tú vendes. Moca hace las cuentas.</title>
 <meta name="description" content="Moca te dice cuánto tienes, quién te debe y en qué se va tu plata, desde tu celular. Para negocios. 14 días gratis.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icono-180.png">
+<link rel="canonical" href="https://mocanegocios.com/">
+<meta name="theme-color" content="#FFFFFF">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Moca">
+<meta property="og:locale" content="es_LA">
+<meta property="og:url" content="https://mocanegocios.com/">
+<meta property="og:title" content="Moca: Tú vendes. Moca hace las cuentas.">
+<meta property="og:description" content="Sabe cuánto tienes, quién te debe y en qué se va tu plata, desde tu celular. 14 días gratis, sin tarjeta.">
+<meta property="og:image" content="https://mocanegocios.com/img/compartir.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Moca: Tú vendes. Moca hace las cuentas.">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/fuentes/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilos.css">
 </head>
 <body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
 <header class="encabezado">
   <div class="contenedor">
     <a class="marca" href="/" aria-label="Moca, inicio">
@@ -22,7 +37,7 @@
   </div>
 </header>
 
-<main>
+<main id="contenido">
   <section class="inicio" aria-labelledby="titulo">
     <div class="contenedor inicio-rejilla">
       <div class="inicio-texto">
@@ -193,7 +208,9 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>
         <p><strong>Sin riesgo:</strong> pruébalo 14 días gratis. Si no te sirve, no pagas nada, sigues anotando y puedes descargar lo que anotaste en Excel.</p>
       </div>
+<!--si-play-->
       <p class="precios-nota">Se paga dentro de la app, con Google Play.</p>
+<!--fin-play-->
     </div>
   </section>
 
@@ -226,6 +243,19 @@
       </details>
     </div>
   </section>
+
+  <section class="final" aria-labelledby="final">
+    <div class="contenedor">
+      <h2 id="final">Empieza hoy. Mañana ya sabes cuánto ganaste.</h2>
+<!--si-whatsapp-->
+      <a class="boton boton-grande" href="{{WHATSAPP}}">Pruébalo gratis 14 días</a>
+      <p>¿Dudas? <a href="{{WHATSAPP}}">Escríbenos por WhatsApp</a></p>
+<!--sino-whatsapp-->
+      <!--email_off--><a class="boton boton-grande" href="mailto:contacto@mocanegocios.com?subject=Quiero%20probar%20Moca">Pruébalo gratis 14 días</a>
+      <p>¿Dudas? Escríbenos a <a href="mailto:contacto@mocanegocios.com">contacto@mocanegocios.com</a></p><!--/email_off-->
+<!--fin-whatsapp-->
+    </div>
+  </section>
 </main>
 
 <footer class="pie">
@@ -237,5 +267,17 @@
     </nav>
   </div>
 </footer>
+
+<div class="barra-fija">
+  <div class="contenedor">
+    <p class="barra-texto"><strong>Moca</strong> · 14 días gratis, sin tarjeta</p>
+<!--si-whatsapp-->
+    <a class="boton" href="{{WHATSAPP}}">Pruébalo gratis 14 días</a>
+    <a class="boton-icono" href="{{WHATSAPP}}" aria-label="Escríbenos por WhatsApp"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.4-4A8 8 0 1 1 8 18.6z"/></svg></a>
+<!--sino-whatsapp-->
+    <!--email_off--><a class="boton" href="mailto:contacto@mocanegocios.com?subject=Quiero%20probar%20Moca">Pruébalo gratis 14 días</a><!--/email_off-->
+<!--fin-whatsapp-->
+  </div>
+</div>
 </body>
 </html>

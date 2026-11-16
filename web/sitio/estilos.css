@@ -230,10 +230,9 @@ h1 {
 /* Pie */
 
 .pie {
-  padding: 32px 0 40px;
-  border-top: 1px solid var(--separador);
-  background: var(--superficie);
-  color: var(--secundario);
+  padding: 28px 0 32px;
+  background: var(--texto);
+  color: #C9D4E8;
   font-size: 14px;
 }
 
@@ -259,7 +258,12 @@ h1 {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  color: #C9D4E8;
   font-weight: 600;
+}
+
+.pie nav a:hover {
+  color: #FFFFFF;
 }
 
 @media (max-width: 480px) {
@@ -891,5 +895,115 @@ h1 {
 
   .beneficios {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Saltar al contenido */
+
+.saltar {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 10;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--marca);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.saltar:focus {
+  top: 12px;
+  color: #FFFFFF;
+}
+
+/* Llamado final (Web 4) */
+
+.final {
+  padding: 56px 0;
+  text-align: center;
+}
+
+.final .contenedor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.final h2 {
+  margin: 0;
+  font-size: clamp(28px, 4.5vw, 40px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.final p {
+  margin: 0;
+  color: var(--secundario);
+}
+
+/* Barra fija abajo: el botón siempre a mano, y WhatsApp al lado */
+
+.barra-fija {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  border-top: 1px solid var(--separador);
+  background: var(--superficie);
+  box-shadow: 0 -6px 18px rgba(30, 58, 138, 0.08);
+}
+
+.barra-fija .contenedor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+}
+
+.barra-fija .boton {
+  flex: 1 1 auto;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.boton-icono {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 1.5px solid #B5C2D6;
+  border-radius: 16px;
+  background: var(--superficie);
+  color: var(--marca);
+}
+
+.boton-icono:hover {
+  background: var(--azul-50);
+  color: var(--azul-900);
+}
+
+.barra-texto {
+  display: none;
+  margin: 0;
+  color: var(--secundario);
+  font-weight: 600;
+}
+
+.barra-texto strong {
+  color: var(--texto);
+}
+
+@media (min-width: 861px) {
+  .barra-texto {
+    display: block;
+  }
+
+  .barra-fija .boton {
+    flex: 0 1 360px;
+    margin-left: auto;
   }
 }
