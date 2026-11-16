@@ -126,7 +126,30 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 
 1. El número de WhatsApp de ventas (va solo en la web publicada, no en el repositorio ni en el chat).
 2. Qué pilotos dan su testimonio (nombre, foto, frase, autorización).
-3. ¿Para todo tipo de negocio, o primero bodegas?
+3. ¿Para todo tipo de negocio, o primero bodegas? Mientras tanto, la web dice «Para bodegas, puestos y negocios del Perú» y la lista «Hecho para» del canvas se publica tal cual (16-11-2026).
 4. ¿Presupuesto para publicidad, o inicio orgánico?
-5. Dónde se aloja la web (por ejemplo, un sitio estático en Render o Cloudflare Pages) y quién administra el DNS del dominio.
+5. ~~Dónde se aloja la web~~: Cloudflare Pages, con el DNS en la misma cuenta de Cloudflare de Jhony (16-11-2026, sección 10).
 6. ~~Cómo se cobra en la versión de Play Store~~: Google Play Billing (13-11-2026).
+
+## 10. Cómo se construye la web (aprobado el 16-11-2026)
+
+- **Dónde:** Cloudflare Pages, conectado a GitHub. Publica la carpeta `web/` del repositorio: lo que entra a `main` sale en mocanegocios.com, y cada rama de trabajo tiene su vista previa en `pages.dev` para revisarla en el teléfono. La puesta en marcha, paso a paso, está en `web/README.md`.
+- **Cómo:** HTML y CSS escritos a mano, sin framework ni JavaScript. La letra va dentro del sitio (sin Google Fonts) y no hay cookies ni píxeles: así la web no le pasa datos de nadie a terceros. Para medir, por ahora, los enlaces UTM y lo que reporte Play Store; Cloudflare Web Analytics (sin cookies) se puede sumar después, con una línea en la política.
+- **El número de WhatsApp de ventas** va en la variable `WHATSAPP_VENTAS` de Cloudflare Pages, nunca en el repositorio.
+- **La política de privacidad** se publica en mocanegocios.com/privacidad con una sección más, «Esta página web». La del servidor sigue mientras tanto: si cambia, se cambian las dos, hasta que el servidor lleve a la web (cambio de `servidor/`, aparte).
+
+Lo que cambia respecto del canvas:
+
+1. **Antes de que Moca esté en Play**, «Pruébalo gratis 14 días» abre WhatsApp con «Hola, quiero probar Moca.» (o el correo, si todavía no hay número). El distintivo de Google Play aparece cuando exista el enlace real.
+2. **«[Cómo se paga]»** dice que se paga dentro de la app, con Google Play, sin nombrar Mercado Pago ni el Yape.
+3. **El video y los testimonios** no se publican hasta tenerlos de verdad (testimonios con autorización escrita).
+4. **«Términos»** sale del pie hasta que el abogado redacte los términos.
+5. **«¿Mis datos están seguros?»** usa frases de la política ya publicada hasta que el abogado entregue su texto.
+
+| Entrega | Qué |
+|---|---|
+| Web 1 | Publicación en Cloudflare Pages: una portada mínima, la política en `/privacidad` y la página 404 |
+| Web 2 | Arriba de la página: inicio con el celular «Tienes hoy» (cifras de ejemplo), «Hecho para», «¿Te pasa esto?» y «Así de fácil» |
+| Web 3 | «Lo que ganas», el crédito con el Full, la confianza, los precios y las preguntas frecuentes |
+| Web 4 | Llamado final, pie, barra fija abajo con el botón y WhatsApp, la vista previa al compartir por WhatsApp e ícono; revisión de accesibilidad y letra al 150 % |
+| Web 5 | Cuando haya material: el enlace de Google Play, el video y los testimonios |

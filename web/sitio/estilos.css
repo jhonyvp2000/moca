@@ -1,0 +1,312 @@
+/* mocanegocios.com. Colores, letra y medidas de diseno/estilo.md. */
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/fuentes/plus-jakarta-sans.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --marca: #1D4ED8;
+  --azul-900: #1E3A8A;
+  --azul-50: #EEF3FF;
+  --azul-100: #E3EDFF;
+  --texto: #13213F;
+  --secundario: #52607A;
+  --fondo: #F4F7FC;
+  --superficie: #FFFFFF;
+  --separador: #E4EAF3;
+  --sombra: 0 1px 2px rgba(30, 58, 138, 0.06), 0 4px 14px rgba(30, 58, 138, 0.06);
+  --ancho: 1120px;
+  --margen: 20px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--marca);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--azul-900);
+}
+
+:focus-visible {
+  outline: 3px solid var(--marca);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 0 var(--margen);
+}
+
+/* Encabezado */
+
+.encabezado {
+  background: var(--superficie);
+  border-bottom: 1px solid var(--separador);
+}
+
+.encabezado .contenedor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  color: var(--texto);
+  font-size: 20px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.marca:hover {
+  color: var(--texto);
+}
+
+.marca svg {
+  flex: none;
+}
+
+/* Botones */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 16px;
+  background: var(--marca);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+}
+
+.boton:hover {
+  background: var(--azul-900);
+  color: #FFFFFF;
+}
+
+.boton-secundario {
+  min-height: 48px;
+  background: var(--azul-100);
+  color: var(--marca);
+}
+
+.boton-secundario:hover {
+  background: var(--azul-50);
+  color: var(--azul-900);
+}
+
+.encabezado .boton {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+/* Portada */
+
+.portada {
+  padding: 56px 0 64px;
+}
+
+.portada .contenedor {
+  max-width: 760px;
+}
+
+.antetitulo {
+  margin: 0 0 12px;
+  color: var(--marca);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: clamp(36px, 7vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.bajada {
+  margin: 0 0 28px;
+  color: var(--secundario);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.nota {
+  margin: 0;
+  color: var(--secundario);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tarjeta {
+  margin-top: 40px;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.tarjeta h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.tarjeta p {
+  margin: 0;
+  color: var(--secundario);
+}
+
+.lista-confianza {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 12px 0 0;
+  padding: 20px 24px;
+  list-style: none;
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.lista-confianza li::before {
+  content: "✓ ";
+  color: var(--marca);
+}
+
+/* Textos largos (privacidad) */
+
+.documento {
+  padding: 40px 0 64px;
+}
+
+.documento .contenedor {
+  max-width: 760px;
+}
+
+.documento article {
+  padding: 32px 24px;
+  border-radius: 20px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.documento h1 {
+  font-size: clamp(28px, 5vw, 36px);
+  margin-bottom: 4px;
+}
+
+.documento h2 {
+  margin: 32px 0 8px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.documento p {
+  margin: 0 0 12px;
+}
+
+.fecha {
+  margin: 0 0 24px;
+  color: var(--secundario);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Pie */
+
+.pie {
+  padding: 32px 0 40px;
+  border-top: 1px solid var(--separador);
+  background: var(--superficie);
+  color: var(--secundario);
+  font-size: 14px;
+}
+
+.pie .contenedor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+.pie p {
+  margin: 0;
+}
+
+.pie nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.pie nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .portada {
+    padding: 40px 0 48px;
+  }
+
+  .acciones .boton {
+    width: 100%;
+  }
+
+  .documento article {
+    padding: 24px 20px;
+  }
+}
