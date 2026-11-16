@@ -180,7 +180,6 @@ export function rutasMercadoPago(
     if (!config || !mp) return respuesta.code(503).send({ error: 'sin_mercadopago' });
     const usuarioId = await autenticar(pool, peticion);
     if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
-    const cliente = await pool.connect();
     let empresaId: string;
     let nombre: string;
     let plan: Plan;
@@ -197,6 +196,9 @@ export function rutasMercadoPago(
       return respuesta.code(400).send({ error: 'datos_invalidos' });
     }
     const anual = periodo === 'anio';
+    // La conexión se pide después de revisar el pedido: una respuesta
+    // temprana no la deja ocupada.
+    const cliente = await pool.connect();
     try {
       await cliente.query('BEGIN');
       const miembro = await miembroDe(cliente, usuarioId, empresaPedida(peticion.query));

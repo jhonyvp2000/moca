@@ -48,6 +48,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `app/` | La app Flutter (Android) |
 | `servidor/` y `servidor/README.md` | El servidor Node: sus rutas, el cobro y las variables de Render |
 | `render.yaml` | La infraestructura en Render |
+| `web/` y `web/README.md` | La página de venta mocanegocios.com (Cloudflare Pages): cómo se publica y dónde va el número de WhatsApp |
 | `docs/credito/` | El flujo de caja que piden las entidades de crédito |
 | `docs/decisiones.md` | Registro de decisiones con fecha |
 | `docs/producto.md` | Análisis completo: decisiones, modos, fuentes de datos, agente, arquitectura, modelo comercial, riesgos |

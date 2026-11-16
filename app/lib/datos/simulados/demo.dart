@@ -16,7 +16,7 @@ import '../repositorios/repositorio_historial_local.dart';
 import '../repositorios/repositorio_movimientos_local.dart';
 import '../repositorios/repositorio_primer_dia_local.dart';
 
-/// Modo Demo (docs/prototipo-v1.md): diez semanas de una bodega que terminan
+/// Modo Demo (docs/prototipo-v1.md): diez semanas de un negocio que terminan
 /// hoy, con la venta de hoy sin anotar. Cobra también por Plin. Desde la
 /// entrega 28.1 usa todas las categorías y todos los tipos de movimiento,
 /// para que el informe muestre de todo. Se arma con los mismos repositorios
@@ -50,7 +50,7 @@ Future<void> cargarDemo(BaseLocal base, DateTime ahora) async {
     await primerDia.seguirSinCuenta();
     await primerDia.completarAlta(
       const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {
           TipoCuenta.efectivo: 80000,

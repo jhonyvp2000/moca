@@ -69,7 +69,7 @@ void main() {
     equipo.negocios = const [
       NegocioDelUsuario(
         empresaId: 'a',
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         rol: Rol.contador,
         actual: true,
       ),
@@ -81,7 +81,7 @@ void main() {
     ];
     await abrir(tester);
 
-    expect(find.text('Bodega Don Lucho'), findsOneWidget);
+    expect(find.text('Comercial Terra'), findsOneWidget);
     expect(
       find.text('${Textos.nombreRol(Rol.contador)} · ${Textos.estasAqui}'),
       findsOneWidget,
@@ -103,7 +103,7 @@ void main() {
       ..negocios = const [
         NegocioDelUsuario(
           empresaId: 'a',
-          nombre: 'Bodega Don Lucho',
+          nombre: 'Comercial Terra',
           rol: Rol.dueno,
           actual: true,
         ),
@@ -133,14 +133,14 @@ void main() {
     equipo.negocios = const [
       NegocioDelUsuario(
         empresaId: 'a',
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         rol: Rol.dueno,
         actual: true,
       ),
     ];
     await tester.tap(find.text(Textos.intentarOtraVez));
     await tester.pumpAndSettle();
-    expect(find.text('Bodega Don Lucho'), findsOneWidget);
+    expect(find.text('Comercial Terra'), findsOneWidget);
     expect(find.text(Textos.necesitasSenalParaNegocios), findsNothing);
   });
 

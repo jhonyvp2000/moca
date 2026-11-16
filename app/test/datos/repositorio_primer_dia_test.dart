@@ -95,7 +95,7 @@ void main() {
     await repo.seguirSinCuenta();
     await repo.completarAlta(
       const DatosAlta(
-        nombre: '  Bodega Don Lucho ',
+        nombre: '  Comercial Terra ',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 120000, TipoCuenta.yape: 45000},
         horaCierreMinutos: 20 * 60,
@@ -104,7 +104,7 @@ void main() {
 
     expect(await etapa(), EtapaInicio.listo);
     final r = await resumen();
-    expect(r.nombreNegocio, 'Bodega Don Lucho');
+    expect(r.nombreNegocio, 'Comercial Terra');
     // 1,200 + 450 + 0 (banco vacío) + 350 + 120.
     expect(r.tienesHoyCentimos, 212000);
     expect(r.saldoPendiente, isFalse);

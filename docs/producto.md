@@ -7,7 +7,7 @@ Copia del análisis consolidado al 10 de octubre de 2026 (Jhony Vela Paredes). E
 Moca es una app Android, con panel web para contadores, que convierte comprobantes y registros del día en un flujo de caja y en informes que un dueño sin formación contable entiende. El análisis quedó cerrado tras tres vueltas; lo que falta se resuelve con pruebas sobre datos reales (Fase 0), no con más análisis.
 
 - **Qué hace:** registra ingresos y egresos por foto, QR, voz o texto; los ordena por cuenta y categoría; calcula cuánto entró, cuánto salió y cuánto quedó; y avisa cuando algo requiere atención.
-- **Para quién:** dueños de bodegas, restaurantes y negocios de servicios, con una o varias empresas. Dos modos: Simple (informal) y Formal (pyme con contador).
+- **Para quién:** dueños de negocios (comercios, restaurantes, servicios), con una o varias empresas. Dos modos: Simple (informal) y Formal (pyme con contador).
 - **Qué la distingue:** el agente que explica y avisa, no la lectura de comprobantes.
 - **Estado:** no se ha programado nada. El desarrollo empieza solo con indicación expresa.
 

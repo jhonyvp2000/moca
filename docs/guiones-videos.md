@@ -27,7 +27,7 @@ Cada video abierto se anota (número, desde dónde y cuándo) y sube al servidor
 - **Voz:** tranquila, como le explicarías a un vecino del mercado. Se dice «plata», «lo que te deben», «te quedó»; nunca «flujo de caja», «cuentas por cobrar» ni «conciliar».
 - **Subtítulos siempre:** muchos lo verán sin sonido. Letras grandes, abajo, en blanco sobre fondo azul de Moca (`#1F4E8C`), máximo dos líneas.
 - **Una idea por video:** se termina con una sola acción para hacer ahora.
-- **Datos:** todo se graba en «Ver una demo» (Bodega Don Lucho), salvo el video 7. Nunca aparece un comprobante, número o nombre real de nadie.
+- **Datos:** todo se graba en «Ver una demo» (Comercial Terra), salvo el video 7. Nunca aparece un comprobante, número o nombre real de nadie.
 - **Montos:** en la voz se dicen tal como salen en pantalla («trescientos cincuenta soles»). Las cifras de la demo cambian según el día; si en pantalla sale otra cifra, la voz no la menciona: ya está en el guion así.
 
 ## Cómo grabar
