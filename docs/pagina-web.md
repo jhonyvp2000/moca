@@ -119,6 +119,7 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 - **Precios:** los mismos al empezar (S/ 19.90 el Full, S/ 14.90 el Básico). Se revisan con los primeros números: Google se queda ~15 % y, probablemente, el IGV.
 - **Fundadores:** un plan base «fundador» del Full a S/ 14.90 al mes (entrega 81: una oferta de Google vuelve sola al precio normal) que solo ve quien ya es fundador.
 - **La cuenta:** Moca se publica a nombre de Publisher Online E.I.R.L. El D-U-N-S se pidió el 13-11-2026; cuando llegue, Jhony crea la cuenta de organización. El correo de contacto es `contacto@mocanegocios.com`.
+- **La empresa en SUNAT:** desde el 16-11-2026 la ficha RUC de Publisher Online E.I.R.L. tiene, además de la 7110, las actividades secundarias **5820 Edición de programas informáticos** y **6201 Programación informática**. Pendiente con el contador: cómo se declaran los depósitos de Google Play (Google es extranjero; la ficha dice «Actividad de comercio exterior: sin actividad»).
 - **La firma:** al subir el primer AAB, elegir la propia llave de Moca para Play App Signing, para que los pilotos actualicen desde Play sin desinstalar.
 - **Una versión obligatoria** no bloquea la de Play: Play actualiza sola. Si hiciera falta forzarla, se suma la actualización dentro de la app de Play.
 
