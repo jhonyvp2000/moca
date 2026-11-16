@@ -146,6 +146,7 @@ Lo que cambia respecto del canvas:
 4. **«Términos»** sale del pie hasta que el abogado redacte los términos.
 5. **«¿Mis datos están seguros?»** usa frases de la política ya publicada hasta que el abogado entregue su texto.
 6. **Web 2:** «Se instala en 1 minuto» espera a que Moca esté en Play (mientras tanto, «14 días gratis · sin tarjeta» y «Muy pronto en Google Play»); «la foto de la boleta» pasa a «la foto del comprobante»; los textos de 13 px del canvas van en 14 px, el mínimo de `estilo.md`.
+7. **Web 3:** «¿Mis datos están seguros?» dice, con frases de la política, que la conexión va cifrada, que cada negocio está separado y que no se venden los datos, con el enlace a la política. El pago dice «Se paga dentro de la app, con Google Play». La tarjeta de confianza va junto al crédito, antes de los precios, porque el video y los testimonios todavía no están.
 
 | Entrega | Qué |
 |---|---|
