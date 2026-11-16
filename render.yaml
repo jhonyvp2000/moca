@@ -30,6 +30,12 @@ services:
         sync: false
       - key: TWILIO_VERIFY_SID
         sync: false
+      # La cuenta del revisor de Google Play (entrega 82): su número (9
+      # dígitos) y su código fijo (6). Sin las dos, no existe. Solo en el panel.
+      - key: MOCA_REVISOR_CELULAR
+        sync: false
+      - key: MOCA_REVISOR_CODIGO
+        sync: false
       # Lectura de fotos con Claude (entrega 14). Jhony la pega en Render.
       - key: ANTHROPIC_API_KEY
         sync: false

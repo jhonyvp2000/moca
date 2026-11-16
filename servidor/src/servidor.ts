@@ -4,7 +4,12 @@ import { respondedorAnthropic } from './pregunta/respondedor.js';
 import { aislamientoActivo, crearPool } from './base/conexion.js';
 import { migrar } from './base/migrar.js';
 import { leerConfig } from './config.js';
-import { leerConfigTwilio, verificadorTwilio } from './cuenta/verificador.js';
+import {
+  conRevisor,
+  leerConfigRevisor,
+  leerConfigTwilio,
+  verificadorTwilio,
+} from './cuenta/verificador.js';
 import { leerConfigCobro } from './cobro/rutas.js';
 import { leerConfigVersion } from './version/rutas.js';
 import { leerConfigMercadoPago, mercadoPagoReal } from './mercadopago/cliente.js';
@@ -27,6 +32,9 @@ if (!(await aislamientoActivo(pool))) {
 
 const twilio = leerConfigTwilio();
 if (!twilio) console.warn('Twilio no está configurado: no se pueden crear cuentas.');
+// La cuenta del revisor de Google Play (entrega 82): solo con las dos variables.
+const revisor = leerConfigRevisor();
+if (revisor) console.warn('La cuenta del revisor de Google Play está activa.');
 // La lectura de fotos con IA (entrega 14).
 const llaveAnthropic = process.env.ANTHROPIC_API_KEY;
 if (!llaveAnthropic) console.warn('Falta ANTHROPIC_API_KEY: no se pueden leer fotos.');
@@ -49,7 +57,7 @@ else if (!process.env.GOOGLE_PLAY_AVISOS_CLAVE?.trim()) {
 const app = crearApp({
   pool,
   version: config.version,
-  verificador: twilio ? verificadorTwilio(twilio) : null,
+  verificador: conRevisor(twilio ? verificadorTwilio(twilio) : null, revisor),
   lector: llaveAnthropic ? lectorAnthropic(llaveAnthropic) : null,
   respondedor: llaveAnthropic ? respondedorAnthropic(llaveAnthropic) : null,
   registrar: true,
