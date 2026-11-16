@@ -46,7 +46,7 @@ jobs:
       - name: La herramienta PEPK de Google
         run: |
           curl -fsSL -o pepk.jar https://www.gstatic.com/play-apps-publisher-rapid/signing-tool/prod/pepk.jar
-          java -jar pepk.jar --help 2>&1 | head -60 || true
+          java -jar pepk.jar --help > /dev/null 2>&1 || true
 
       - name: La llave (de Moca, o de mentira en la prueba)
         env:
@@ -96,8 +96,8 @@ jobs:
             --include-cert \
             --rsa-aes-encryption \
             --encryption-key-path=cifrado.pem \
-            --keystore-pass=env:CLAVE_ALMACEN \
-            --key-pass=env:CLAVE_LLAVE
+            --keystore-pass="$CLAVE_ALMACEN" \
+            --key-pass="$CLAVE_LLAVE"
           ls -l llave-cifrada-para-google.zip
           rm -f llave.jks
 

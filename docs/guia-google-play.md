@@ -8,7 +8,13 @@ Antes de empezar hace falta la **cuenta de organización de Play** de Publisher 
 
 1. En **play.google.com/console** (la cuenta de organización) → **Crear app**: nombre **Moca**, idioma **Español (Latinoamérica) – es-419**, **App**, **Gratuita**.
 2. **Configurar la app** (el Panel la lista): política de privacidad `https://moca-servidor.onrender.com/privacidad`, acceso a la app (la cuenta del revisor, ver «La cuenta del revisor» más abajo), anuncios (no tiene), clasificación de contenido, público objetivo (mayores de 18), Seguridad de los datos, categoría **Empresa** o **Finanzas**, correo `contacto@mocanegocios.com`.
-3. **La firma.** Al crear la primera versión, Google pregunta por la firma de la app (Play App Signing). Para que los pilotos actualicen desde Play **sin desinstalar**, hay que subirle la **llave de Moca** (la que firma el APK). Eso se hace con la herramienta PEPK de Google y la llave, que vive en los secretos de GitHub: **avísale a Claude Code en ese paso** y arma un flujo de GitHub que lo haga sin que la llave salga de ahí.
+3. **La firma (entrega 84).** Al crear la primera versión, Google pregunta por la firma de la app (Play App Signing). Para que los pilotos actualicen desde Play **sin desinstalar**, se le da **la misma llave que firma el APK**. Esa llave vive solo en los secretos de GitHub; un flujo la cifra para Google sin que salga de ahí:
+   1. En la Play Console, en la firma de la app, elige **«Usar una llave diferente» → «Exportar y subir una llave desde un almacén de claves Java»** (los nombres pueden variar un poco).
+   2. Descarga la **llave pública de cifrado** (`encryption_public_key.pem`). Es pública: pásasela a Claude Code (adjunta en el chat), que la guarda en `.github/play/` y la sube. Si en vez del archivo Google muestra un comando con un código largo, pásale ese comando.
+   3. Cuando Claude Code te avise, en GitHub → **Actions → «Llave de Moca para Google Play» → Run workflow** (rama `main`, sin marcar «Prueba»). Tarda un par de minutos.
+   4. En la ejecución terminada, baja el archivo **`llave-cifrada-para-google`** (dura un día) y súbelo a la Play Console donde lo pide. Solo Google puede abrirlo.
+   5. Compara la **«Huella de la llave»** que muestra el resumen de la ejecución con el **certificado SHA-256 de la llave de firma** que muestra Google: deben ser iguales.
+   6. Esa misma llave sirve para subir los AAB (la llave de subida). Si algún día se quiere una llave de subida aparte, se agrega.
 4. **Prueba interna → Crear versión** y sube el **AAB** de la última `piloto-N` de Releases (`moca-piloto-N-…-play.aab`). La versión de Play se arma junto con el APK desde la entrega 77.
 
 ### La cuenta del revisor (entrega 82)
