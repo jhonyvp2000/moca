@@ -23,4 +23,24 @@ describe("GET /privacidad", () => {
     }
     await app.close();
   });
+
+  it('Publica cómo pedir que se borre la cuenta, sin cuenta (entrega 85)', async () => {
+    const app = crearApp({ pool: {} as Pool, version: '0.10.0' });
+    const respuesta = await app.inject({ method: 'GET', url: '/borrar-cuenta' });
+    expect(respuesta.statusCode).toBe(200);
+    expect(respuesta.headers['content-type']).toContain('text/html');
+    const html = respuesta.body;
+    for (const texto of [
+      'Publisher Online E.I.R.L.',
+      'Borrar mi negocio y mis datos',
+      'Salir de este negocio',
+      'contacto@mocanegocios.com',
+      'Qué se borra',
+      'Qué se guarda',
+      'href="/privacidad"',
+    ]) {
+      expect(html).toContain(texto);
+    }
+    await app.close();
+  });
 });

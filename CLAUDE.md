@@ -61,6 +61,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `docs/pendientes.md` | Decisiones abiertas |
 | `docs/pagina-web.md` | La página de venta en mocanegocios.com: análisis, estructura, píxeles y cookies, y lo que falta para Play Store |
 | `docs/guia-google-play.md` | Puesta en marcha del cobro con Google Play: la cuenta de servicio, Render, las 12 suscripciones, los avisos por Pub/Sub y la prueba de punta a punta |
+| `docs/ficha-play.md` | La ficha de Moca en Google Play (nombre, descripciones, capturas) y las respuestas de sus formularios, como «Seguridad de los datos» |
 | `docs/yape-automatico.md` | Análisis de los yapes automáticos (correo del BCP o notificación de Yape), con lo medido en TVSamGo |
 | `diseno/indice.md` | Las 50 pantallas, con su versión y sus archivos |
 | `diseno/estilo.md` | Colores, tipografía y reglas de interfaz |
