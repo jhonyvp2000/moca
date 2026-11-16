@@ -6,6 +6,7 @@ import { crearSesion } from './sesiones.js';
 import { diasDeLaInvitacion } from '../equipo/miembros.js';
 import { invitacionesPara } from '../equipo/rutas.js';
 import type { Verificador } from './verificador.js';
+import { autenticar } from '../datos/subir.js';
 
 /** Límites de códigos enviados en una hora. */
 export const limites = { porCelular: 5, porConexion: 20 };
@@ -21,11 +22,52 @@ const marcaValida = /^[A-Za-z0-9+/]{11}$/;
  * verificador configurado no se da ninguna cuenta: nunca hay un «código de
  * prueba» que abra cualquier cuenta.
  */
+/**
+ * La versión del texto de consentimiento que aceptó el dueño (entrega 83):
+ * la fecha del texto, «2026-11-16». Nula si no aceptó.
+ */
+export function versionDeConsentimiento(valor: unknown): string | null {
+  return typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : null;
+}
+
+async function guardarConsentimiento(
+  cliente: { query: (sql: string, valores: unknown[]) => Promise<unknown> },
+  usuarioId: string,
+  version: string,
+): Promise<void> {
+  await cliente.query(
+    `UPDATE usuarios SET consentimiento_en = now(), consentimiento_version = $2 WHERE id = $1`,
+    [usuarioId, version],
+  );
+}
+
 export function rutasCuenta(
   app: FastifyInstance,
   pool: Pool,
   verificador: Verificador | null,
 ): void {
+  // Quien ya tenía cuenta acepta el texto una vez, desde el Asistente
+  // (entrega 83). Con la llave de su teléfono.
+  app.post<{ Body: { version?: unknown } }>('/cuenta/consentimiento', async (peticion, respuesta) => {
+    const version = versionDeConsentimiento(peticion.body?.version);
+    if (!version) return respuesta.code(400).send({ error: 'datos_invalidos' });
+    const usuarioId = await autenticar(pool, peticion);
+    if (!usuarioId) return respuesta.code(401).send({ error: 'sin_sesion' });
+    const cliente = await pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+      await guardarConsentimiento(cliente, usuarioId, version);
+      await cliente.query('COMMIT');
+    } catch (error) {
+      await cliente.query('ROLLBACK');
+      throw error;
+    } finally {
+      cliente.release();
+    }
+    return { ok: true };
+  });
+
   app.post<{ Body: { celular?: unknown; marcaApp?: unknown } }>('/cuenta/codigo', async (peticion, respuesta) => {
     if (!verificador) return respuesta.code(503).send({ error: 'sin_verificador' });
     const celular = String(peticion.body?.celular ?? '');
@@ -63,7 +105,13 @@ export function rutasCuenta(
   });
 
   app.post<{
-    Body: { celular?: unknown; codigo?: unknown; usuarioId?: unknown; modo?: unknown };
+    Body: {
+      celular?: unknown;
+      codigo?: unknown;
+      usuarioId?: unknown;
+      modo?: unknown;
+      consentimiento?: unknown;
+    };
   }>('/cuenta/verificar', async (peticion, respuesta) => {
     if (!verificador) return respuesta.code(503).send({ error: 'sin_verificador' });
     const celular = String(peticion.body?.celular ?? '');
@@ -73,6 +121,7 @@ export function rutasCuenta(
     // a quien un dueño invitó a su negocio (entrega 17).
     const entrar = peticion.body?.modo === 'entrar';
     const invitado = peticion.body?.modo === 'invitado';
+    const consentimiento = versionDeConsentimiento(peticion.body?.consentimiento);
     const usuarioDelTelefono = String(peticion.body?.usuarioId ?? '');
     if (
       !esCelularPeru(celular) ||
@@ -139,6 +188,8 @@ export function rutasCuenta(
         usuarioId = usuarioDelTelefono;
       }
       await cliente.query(`SELECT set_config('app.usuario_id', $1, true)`, [usuarioId]);
+      // El dueño marcó «Acepto» al guardar su avance (entrega 83).
+      if (consentimiento) await guardarConsentimiento(cliente, usuarioId, consentimiento);
       empresas = (
         await cliente.query<{ empresa_id: string }>(
           'SELECT empresa_id FROM membresias WHERE usuario_id = $1 AND quitada_en IS NULL',

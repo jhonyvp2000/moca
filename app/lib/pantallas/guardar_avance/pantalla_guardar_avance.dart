@@ -38,6 +38,9 @@ class PantallaGuardarAvance extends ConsumerStatefulWidget {
 class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
   final _celular = TextEditingController();
   bool _enviando = false;
+
+  /// Marcó «Acepto» (entrega 83); el invitado y «Ya tengo cuenta» no.
+  bool _acepto = false;
   String? _error;
 
   @override
@@ -199,6 +202,11 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
           Aviso(texto: error),
         ],
         if (!_entrar) ...[
+          const SizedBox(height: 16),
+          ConsentimientoDelDueno(
+            aceptado: _acepto,
+            alCambiar: (v) => setState(() => _acepto = v),
+          ),
           const SizedBox(height: 8),
           const EnlaceVerComo(
             video: VideoTutoria.guardarAvance,
@@ -208,7 +216,9 @@ class _EstadoGuardarAvance extends ConsumerState<PantallaGuardarAvance> {
       ],
       acciones: [
         FilledButton(
-          onPressed: valido && !_enviando ? _enviarCodigo : null,
+          onPressed: valido && !_enviando && (_entrar || _acepto)
+              ? _enviarCodigo
+              : null,
           child: Text(_enviando ? Textos.enviando : Textos.enviarmeCodigo),
         ),
         BotonTexto(
@@ -295,6 +305,61 @@ class _FormateadorCelular extends TextInputFormatter {
     return TextEditingValue(
       text: texto,
       selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+}
+
+/// El texto de consentimiento del dueño con su casilla «Acepto» y el enlace a
+/// la política de privacidad (entrega 83, Ley 29733). Sin marcarla, no se
+/// guarda el avance.
+class ConsentimientoDelDueno extends ConsumerWidget {
+  const ConsentimientoDelDueno({
+    super.key,
+    required this.aceptado,
+    required this.alCambiar,
+  });
+
+  final bool aceptado;
+  final ValueChanged<bool> alCambiar;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(Textos.consentimientoDueno, style: Tipografia.secundario),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => ref
+                .read(abridorProvider)
+                .abrir(ref.read(enlacePrivacidadProvider)),
+            child: const Text(Textos.politicaDePrivacidad),
+          ),
+        ),
+        // La fila entera se toca: más de 44 px de alto.
+        InkWell(
+          onTap: () => alCambiar(!aceptado),
+          borderRadius: BorderRadius.circular(Medidas.radioBoton),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: aceptado,
+                  onChanged: (v) => alCambiar(v ?? false),
+                ),
+                const Expanded(
+                  child: Text(
+                    Textos.aceptoLoAnterior,
+                    style: Tipografia.textoFuerte,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

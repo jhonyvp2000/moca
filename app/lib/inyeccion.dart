@@ -554,6 +554,24 @@ final enlaceDescargaProvider = Provider<String>(
   (ref) => '$direccionServidor/descargar',
 );
 
+/// La política de privacidad (entrega 83), mientras no esté en la web.
+final enlacePrivacidadProvider = Provider<String>(
+  (ref) => '$direccionServidor/privacidad',
+);
+
+/// Si el dueño ya aceptó el texto de consentimiento vigente (entrega 83).
+final consentimientoAceptadoProvider = StreamProvider<bool>((ref) {
+  final acceso = AccesoLocal(
+    ref.watch(baseLocalProvider),
+    ref.watch(relojProvider),
+  );
+  return acceso.cambios().asyncMap(
+    (_) async =>
+        await acceso.leerAjuste(AccesoLocal.claveConsentimiento) ==
+        versionDelConsentimiento,
+  );
+});
+
 /// «Mis categorías» (entrega 31).
 final repositorioCategoriasProvider = Provider<RepositorioCategorias>(
   (ref) => RepositorioCategoriasLocal(

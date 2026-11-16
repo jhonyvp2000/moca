@@ -63,6 +63,11 @@ class SinAcceso {
   final String negocio;
 }
 
+/// La versión del texto de consentimiento del dueño (entrega 83): la fecha
+/// en que se escribió. Si el texto cambia, cambia esta fecha y el dueño lo
+/// vuelve a aceptar.
+const versionDelConsentimiento = '2026-11-16';
+
 enum EstadoCuenta {
   /// Siguió con «Ahora no»: lo anotado vive solo en el teléfono.
   sinCuenta,
@@ -125,6 +130,10 @@ abstract interface class ServicioCuenta {
     bool entrar = false,
     bool invitado = false,
   });
+
+  /// Quien ya tenía cuenta acepta el texto de consentimiento (entrega 83).
+  /// Falso sin señal.
+  Future<bool> aceptarConsentimiento();
 
   /// Reemplaza lo del teléfono por lo de la cuenta (el teléfono está en la
   /// Bienvenida: no tiene datos propios).

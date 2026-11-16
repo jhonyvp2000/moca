@@ -191,6 +191,10 @@ class _ServidorFalso {
   /// Lo que pidió la app al pagar con Mercado Pago (entrega 43).
   Map<String, Object?>? ultimaOrden;
 
+  /// El consentimiento que mandó cada verificación (entrega 83).
+  final consentimientos = <Object?>[];
+  final consentimientosAceptados = <Object?>[];
+
   /// Las compras de Google que mandó la app (entrega 80).
   final comprasGoogle = <Object?>[];
   String? errorGoogle;
@@ -307,6 +311,7 @@ class _ServidorFalso {
         quitados.add(cuerpo['membresia']);
         return http.Response(jsonEncode({'quitada': true}), 200);
       case '/cuenta/verificar':
+        consentimientos.add(cuerpo['consentimiento']);
         final entrar = cuerpo['modo'] == 'entrar';
         return switch (cuerpo['codigo']) {
           '123456' when entrar && cuentaParaEntrar == null => http.Response(
@@ -450,6 +455,9 @@ class _ServidorFalso {
           }),
           200,
         );
+      case '/cuenta/consentimiento':
+        consentimientosAceptados.add(cuerpo['version']);
+        return http.Response(jsonEncode({'ok': true}), 200);
       case '/cobro/google':
         comprasGoogle.add(cuerpo['token']);
         final error = errorGoogle;
@@ -731,6 +739,14 @@ var _versionInstalada = const VersionInstalada(
   commit: '',
   esArm64: true,
 );
+
+/// Marca «Acepto» en «Guarda tu avance» (entrega 83).
+Future<void> aceptarConsentimiento(WidgetTester tester) async {
+  final casilla = find.byType(Checkbox);
+  await tester.ensureVisible(casilla);
+  await tester.tap(casilla);
+  await tester.pump();
+}
 
 /// La tienda de Google Play (entrega 80): lo que se compró y se terminó.
 class _TiendaFalsa implements TiendaPlay {
@@ -1079,6 +1095,10 @@ void main() {
       await tester.pump();
       expect(find.text(Textos.celularInvalido), findsNothing);
       expect(find.text('987 654 321'), findsOneWidget);
+      // Entrega 83: sin «Acepto», no se guarda el avance.
+      expect(find.text(Textos.consentimientoDueno), findsOneWidget);
+      expect(tester.widget<FilledButton>(enviar).onPressed, isNull);
+      await aceptarConsentimiento(tester);
       await tocar(tester, enviar);
 
       // Código, enviado de verdad por el servidor
@@ -1091,6 +1111,8 @@ void main() {
       await esperar(tester);
       // Al verificar, sube lo anotado: la venta de S/ 470.
       expect(_servidor.subidas, hasLength(1));
+      // Con la versión del texto aceptado (entrega 83).
+      expect(_servidor.consentimientos.last, versionDelConsentimiento);
       expect([
         for (final m in _servidor.subidas.single['movimientos']! as List)
           (m as Map)['monto_centimos'],
@@ -3819,6 +3841,51 @@ void main() {
     });
   });
 
+  group('Entrega 83: el consentimiento del dueño', () {
+    testWidgets('Quien ya tenía cuenta lo acepta una vez en el Asistente', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        await _llavero.guardar('llave-de-prueba');
+        await AccesoLocal(
+          base,
+          () => _ahora,
+        ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
+      });
+      await esperar(tester);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.comoCuidamosTusDatos), findsOneWidget);
+      // La política se abre desde la tarjeta.
+      await tocar(tester, find.text(Textos.politicaDePrivacidad));
+      expect(_abiertos.last, endsWith('/privacidad'));
+      // Sin señal no se guarda: la tarjeta sigue.
+      _conSenal = false;
+      await tocar(tester, find.text(Textos.aceptoLoAnterior));
+      expect(find.text(Textos.consentimientoSinSenal), findsOneWidget);
+      expect(_servidor.consentimientosAceptados, isEmpty);
+      expect(find.text(Textos.comoCuidamosTusDatos), findsOneWidget);
+      _conSenal = true;
+      await tocar(tester, find.text(Textos.aceptoLoAnterior));
+      expect(_servidor.consentimientosAceptados, [versionDelConsentimiento]);
+      expect(find.text(Textos.comoCuidamosTusDatos), findsNothing);
+    });
+
+    testWidgets('Sin cuenta no sale la tarjeta; los Informes dicen que Moca '
+        'no reemplaza la contabilidad', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaMoca).last);
+      expect(find.text(Textos.comoCuidamosTusDatos), findsNothing);
+      await tocar(tester, find.text(Textos.pestanaInformes).last);
+      await tester.scrollUntilVisible(
+        find.text(Textos.noReemplazaContabilidad),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(Textos.noReemplazaContabilidad), findsOneWidget);
+    });
+  });
+
   group('Entrega 11', () {
     /// Desde la Bienvenida hasta la pantalla del código.
     Future<void> hastaElCodigo(WidgetTester tester) async {
@@ -3828,6 +3895,7 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.enterText(find.byType(TextField), '987654321');
       await tester.pump();
+      await aceptarConsentimiento(tester);
     }
 
     Finder enviar() => find.widgetWithText(FilledButton, Textos.enviarmeCodigo);
@@ -3991,6 +4059,7 @@ void main() {
       await tocar(tester, find.text(Textos.guardarMiAvance));
       await tester.enterText(find.byType(TextField), '987654321');
       await tester.pump();
+      await aceptarConsentimiento(tester);
       await tocar(tester, enviar());
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
@@ -4033,6 +4102,7 @@ void main() {
       await tocar(tester, find.text(Textos.guardarMiAvance));
       await tester.enterText(find.byType(TextField), '987654321');
       await tester.pump();
+      await aceptarConsentimiento(tester);
       await tocar(tester, enviar());
       await tester.enterText(find.byType(TextField), '123456');
       await esperar(tester);
@@ -4305,6 +4375,7 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.enterText(find.byType(TextField), '987654321');
       await tester.pump();
+      await aceptarConsentimiento(tester);
       await tocar(
         tester,
         find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
@@ -4335,6 +4406,7 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.enterText(find.byType(TextField), '987654321');
       await tester.pump();
+      await aceptarConsentimiento(tester);
       await tocar(
         tester,
         find.widgetWithText(FilledButton, Textos.enviarmeCodigo),
@@ -5452,6 +5524,15 @@ void main() {
           () => _ahora,
         ).guardarAjuste(AccesoLocal.claveCuentaVerificada, '987654321');
       });
+      await esperar(tester);
+      // Ya aceptó el consentimiento (entrega 83). Cada escritura en su
+      // propio runAsync: dos seguidas traban las consultas observadas.
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste(
+          AccesoLocal.claveConsentimiento,
+          versionDelConsentimiento,
+        ),
+      );
       await esperar(tester);
       await tester.runAsync(
         () => AccesoLocal(base, () => _ahora).guardarAjuste(

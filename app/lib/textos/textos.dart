@@ -317,6 +317,27 @@ abstract final class Textos {
       'pantallas abres y cuánto tardas en anotar), sin lo que anotaste. '
       'Puedes salir cuando quieras (Ley 29733 de Protección de Datos '
       'Personales).';
+  // El consentimiento del dueño (entrega 83, Ley 29733). Si cambia el
+  // texto, cambia `versionDelConsentimiento` (dominio/cuenta_real.dart).
+  static const consentimientoDueno =
+      'Al guardar tu avance, aceptas que Moca guarde tu número y lo que anotas '
+      'en su servidor para llevar tus cuentas. También aceptas que lo procesen '
+      'los servicios que Moca usa, algunos fuera del Perú: el servidor, los '
+      'mensajes por SMS y la inteligencia artificial que lee tus fotos y '
+      'responde tus preguntas. Si la app falla, Moca recibe el error, y '
+      'también cómo la usas, sin lo que anotas. Puedes pedir ver, corregir o '
+      'borrar tus datos (Ley 29733 de Protección de Datos Personales).';
+  static const aceptoLoAnterior = 'Acepto';
+  static const politicaDePrivacidad = 'Política de privacidad';
+  static const comoCuidamosTusDatos = 'Cómo cuidamos tus datos';
+  static const consentimientoSinSenal =
+      'Necesitas señal para guardar tu respuesta. Intenta otra vez en un '
+      'momento.';
+
+  // Entrega 83: al final de Informes y al pie del PDF.
+  static const noReemplazaContabilidad =
+      'Moca te ayuda a ordenar tus cuentas. No reemplaza la contabilidad '
+      'oficial ni da asesoría tributaria.';
   static const aceptarYEntrar = 'Aceptar y entrar';
   static const entrando = 'Entrando…';
   static String yaEstasEn(String negocio) => 'Listo. Ya estás en $negocio.';
@@ -1364,8 +1385,8 @@ abstract final class Textos {
     'diciembre',
   ][d.month - 1];
   static const aclaracionPdf =
-      'Flujo de caja: cómo se movió la plata. No es un estado financiero ni '
-      'reemplaza la contabilidad.';
+      'Flujo de caja: cómo se movió la plata. No es un estado financiero, no '
+      'reemplaza la contabilidad oficial ni da asesoría tributaria.';
   static String paginaDe(int pagina, int total) => 'Página $pagina de $total';
   static const cuantoHayHoyEnCadaCuenta = 'Cuánto hay hoy en cada cuenta';
   static const cuantoHabiaAlCierre = 'Cuánto había en cada cuenta al cierre';
