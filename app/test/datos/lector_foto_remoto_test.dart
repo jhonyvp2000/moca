@@ -96,7 +96,7 @@ void main() {
     await repo.seguirSinCuenta();
     await repo.completarAlta(
       const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 100000},
         horaCierreMinutos: 21 * 60,

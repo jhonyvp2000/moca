@@ -19,13 +19,13 @@ FilaHistorial venta(int centimos, DateTime fecha, {int partes = 0}) =>
 void main() {
   test('Entrega 45: el recordatorio, de usted, con lo que falta', () {
     String mensaje(List<FilaHistorial> ventas) => mensajeDeRecordatorio(
-      negocio: 'Bodega Don Lucho',
+      negocio: 'Comercial Terra',
       cliente: 'Doña Rosa',
       ventas: ventas,
     );
     expect(
       mensaje([venta(12000, DateTime(2026, 11, 3))]),
-      'Hola, Doña Rosa. Le escribimos de Bodega Don Lucho para recordarle '
+      'Hola, Doña Rosa. Le escribimos de Comercial Terra para recordarle '
       'que tiene pendiente S/ 120, de su compra del 3 de noviembre. '
       'Cuando pueda, nos avisa cómo prefiere pagar. Gracias.',
     );

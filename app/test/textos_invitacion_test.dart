@@ -6,7 +6,7 @@ void main() {
   test('El mensaje de la invitación dice qué hacer (entrega 30)', () {
     final con = Textos.mensajeDeInvitacion(
       nombre: 'Rosa',
-      negocio: 'Bodega Don Lucho',
+      negocio: 'Comercial Terra',
       rol: Rol.ayudante,
       celular: '987 654 321',
       vence: '12 de noviembre',
@@ -14,7 +14,7 @@ void main() {
     );
     expect(
       con,
-      'Hola Rosa, te invité a Bodega Don Lucho en Moca, como Ayudante.\n'
+      'Hola Rosa, te invité a Comercial Terra en Moca, como Ayudante.\n'
       '1. Instala Moca desde aquí: '
       'https://moca-servidor.onrender.com/descargar. Si el teléfono '
       'pregunta, permite instalar desde esa fuente.\n'
@@ -24,13 +24,13 @@ void main() {
     );
     final sin = Textos.mensajeDeInvitacion(
       nombre: null,
-      negocio: 'Bodega Don Lucho',
+      negocio: 'Comercial Terra',
       rol: Rol.contador,
       celular: '987 654 321',
       vence: '12 de noviembre',
       enlace: 'https://x/descargar',
     );
-    expect(sin, startsWith('Hola, te invité a Bodega Don Lucho'));
+    expect(sin, startsWith('Hola, te invité a Comercial Terra'));
     expect(sin, contains('como Contador'));
   });
 }

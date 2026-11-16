@@ -200,7 +200,7 @@ class _ServidorFalso {
 
   Map<String, Object?> fichaDeLucho({String? hasta}) => {
     'empresa_id': 'empresa-lucho',
-    'nombre': 'Bodega Don Lucho',
+    'nombre': 'Comercial Terra',
     'celular': '987654321',
     'personas': [
       {
@@ -370,7 +370,7 @@ class _ServidorFalso {
             'revisar': [
               {
                 'id': 'orden-9',
-                'nombre': 'Bodega Don Lucho',
+                'nombre': 'Comercial Terra',
                 'celular': '987654321',
                 'plan': 'fundador',
                 'monto_centimos': 1490,
@@ -392,7 +392,7 @@ class _ServidorFalso {
                     'negocios': [
                       {
                         'empresa_id': 'empresa-lucho',
-                        'nombre': 'Bodega Don Lucho',
+                        'nombre': 'Comercial Terra',
                         'rol': 'dueno',
                         'titular': true,
                       },
@@ -406,7 +406,7 @@ class _ServidorFalso {
         diasDados.add(cuerpo['dias']);
         return http.Response(jsonEncode(fichaDeLucho()), 200);
       case '/soporte/borrar':
-        return cuerpo['confirmacion'] == 'Bodega Don Lucho'
+        return cuerpo['confirmacion'] == 'Comercial Terra'
             ? http.Response(jsonEncode({'borrado': true}), 200)
             : http.Response(jsonEncode({'error': 'sin_confirmacion'}), 400);
       case '/cobro/negocio':
@@ -581,7 +581,7 @@ Map<String, Object?> _cuentaDeLucho() {
     },
     'empresa': {
       'id': empresa,
-      'nombre': 'Bodega Don Lucho',
+      'nombre': 'Comercial Terra',
       'tipo_negocio': 'bodega',
       'modo': 'simple',
       'pais': 'PE',
@@ -864,7 +864,7 @@ Future<BaseLocal> abrirApp(
       await repo.seguirSinCuenta();
       await repo.completarAlta(
         const DatosAlta(
-          nombre: 'Bodega Don Lucho',
+          nombre: 'Comercial Terra',
           tipoNegocio: TipoNegocio.bodega,
           saldos: {TipoCuenta.efectivo: 100000},
           horaCierreMinutos: 21 * 60,
@@ -1100,7 +1100,7 @@ void main() {
       expect(find.text(Textos.cuentaleDeTuNegocio), findsOneWidget);
       final listo = find.widgetWithText(FilledButton, Textos.listoEmpezar);
       expect(tester.widget<FilledButton>(listo).onPressed, isNull);
-      await tester.enterText(find.byType(TextField).at(0), 'Bodega Don Lucho');
+      await tester.enterText(find.byType(TextField).at(0), 'Comercial Terra');
       await tocar(
         tester,
         find.text(Textos.nombreTipoNegocio(TipoNegocio.bodega)),
@@ -1112,7 +1112,7 @@ void main() {
 
       // S03
       expect(find.text(Textos.tuPrimerDia), findsOneWidget);
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsOneWidget);
       expect(find.text('S/ 1,670'), findsOneWidget);
       expect(find.text(Textos.mocaYaAnotaste), findsOneWidget);
       expect(find.text(Textos.pasoVentaCincoDias(1)), findsOneWidget);
@@ -1842,7 +1842,7 @@ void main() {
       expect(_abiertos.single, startsWith('https://wa.me/?text='));
       expect(
         Uri.parse(_abiertos.single).queryParameters['text'],
-        contains('Hola, Doña Rosa. Le escribimos de Bodega Don Lucho'),
+        contains('Hola, Doña Rosa. Le escribimos de Comercial Terra'),
       );
       await tocar(tester, find.byType(FilaMovimiento).first);
       await tocar(tester, find.widgetWithText(FilledButton, Textos.yaMePago));
@@ -3353,7 +3353,7 @@ void main() {
               informe,
               detalle,
               destino: destino,
-              nombreNegocio: 'Bodega Don Lucho',
+              nombreNegocio: 'Comercial Terra',
               hoy: _ahora,
             ),
         ];
@@ -3362,8 +3362,8 @@ void main() {
         expect(String.fromCharCodes(b.take(4)), '%PDF');
       }
       expect(
-        nombreDelPdf('Bodega Don Lucho', DateTime(2026, 10)),
-        'Moca-Bodega-Don-Lucho-octubre-2026.pdf',
+        nombreDelPdf('Comercial Terra', DateTime(2026, 10)),
+        'Moca-Comercial-Terra-octubre-2026.pdf',
       );
 
       // «Compartir» → «Compartir PDF» pregunta para quién es (mejora 01).
@@ -3535,25 +3535,26 @@ void main() {
       await esperar(tester);
     }
 
-    testWidgets('«Ver una demo» carga la bodega y «Salir» la borra', (
-      tester,
-    ) async {
-      await abrirApp(tester);
-      await tocar(tester, find.text(Textos.verDemo));
-      await esperarHasta(tester, find.text(Textos.estasViendoUnaDemo));
-      expect(find.text(Textos.estasViendoUnaDemo), findsOneWidget);
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
-      expect(find.text(Textos.tienesHoy), findsOneWidget);
-      // En la Demo no se pide el permiso de avisos ni se programa nada.
-      expect(find.text(Textos.permitirAvisos), findsNothing);
-      expect(_programado, isEmpty);
+    testWidgets(
+      '«Ver una demo» carga el negocio de ejemplo y «Salir» la borra',
+      (tester) async {
+        await abrirApp(tester);
+        await tocar(tester, find.text(Textos.verDemo));
+        await esperarHasta(tester, find.text(Textos.estasViendoUnaDemo));
+        expect(find.text(Textos.estasViendoUnaDemo), findsOneWidget);
+        expect(find.text('Comercial Terra'), findsOneWidget);
+        expect(find.text(Textos.tienesHoy), findsOneWidget);
+        // En la Demo no se pide el permiso de avisos ni se programa nada.
+        expect(find.text(Textos.permitirAvisos), findsNothing);
+        expect(_programado, isEmpty);
 
-      await tocar(tester, find.text(Textos.salir));
-      expect(find.text(Textos.salirDeLaDemoTitulo), findsOneWidget);
-      await tocar(tester, find.text(Textos.salir).last);
-      expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
-      expect(find.text(Textos.estasViendoUnaDemo), findsNothing);
-    });
+        await tocar(tester, find.text(Textos.salir));
+        expect(find.text(Textos.salirDeLaDemoTitulo), findsOneWidget);
+        await tocar(tester, find.text(Textos.salir).last);
+        expect(find.text(Textos.anotarPrimeraVenta), findsOneWidget);
+        expect(find.text(Textos.estasViendoUnaDemo), findsNothing);
+      },
+    );
 
     testWidgets('La primera vez pide el permiso de avisos', (tester) async {
       await abrirApp(tester, listo: true, permisoPreguntado: false);
@@ -3619,7 +3620,7 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tocar(tester, find.text(Textos.ahoraNo));
 
-      await tester.enterText(find.byType(TextField).at(0), 'Bodega Don Lucho');
+      await tester.enterText(find.byType(TextField).at(0), 'Comercial Terra');
       await tocar(
         tester,
         find.text(Textos.nombreTipoNegocio(TipoNegocio.bodega)),
@@ -4006,7 +4007,7 @@ void main() {
       expect(_servidor.subidas, hasLength(1));
       expect(
         (_servidor.subidas.single['empresa']! as Map)['nombre'],
-        'Bodega Don Lucho',
+        'Comercial Terra',
       );
     });
 
@@ -4084,7 +4085,7 @@ void main() {
       await entrar(tester);
 
       expect(find.text(Textos.yaTienesTodo), findsOneWidget);
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsOneWidget);
       expect(find.byType(BarraInferior), findsOneWidget);
       // S/ 1,000 al empezar más la venta de S/ 350.
       expect(find.text('S/\u00A01,350'), findsWidgets);
@@ -4135,7 +4136,7 @@ void main() {
       expect(find.text(Textos.seCortoLaSenal), findsOneWidget);
       await tocar(tester, find.text(Textos.intentarOtraVez));
       expect(find.text(Textos.yaTienesTodo), findsOneWidget);
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsOneWidget);
     });
 
     testWidgets('Si la cuenta se abrió en otro teléfono, lo dice y no sube', (
@@ -4386,7 +4387,7 @@ void main() {
         ..invitacionesRecibidas = [
           {
             'id': 'inv-1',
-            'negocio': 'Bodega Don Lucho',
+            'negocio': 'Comercial Terra',
             'rol': 'ayudante',
             'nombre': 'Pepe',
             'vence_en': _ahora
@@ -4403,15 +4404,15 @@ void main() {
           },
         };
       await alCodigoDeInvitado(tester);
-      expect(find.text(Textos.teInvitaron('Bodega Don Lucho')), findsOneWidget);
+      expect(find.text(Textos.teInvitaron('Comercial Terra')), findsOneWidget);
       expect(find.text(Textos.comoRol('Ayudante')), findsOneWidget);
       expect(find.text(Textos.detalleRol(Rol.ayudante)), findsOneWidget);
       expect(find.text(Textos.consentimientoInvitado), findsOneWidget);
 
       await tocar(tester, find.text(Textos.aceptarYEntrar));
       expect(_servidor.aceptadas, ['inv-1']);
-      expect(find.text(Textos.yaEstasEn('Bodega Don Lucho')), findsOneWidget);
-      expect(find.text('Bodega Don Lucho'), findsWidgets);
+      expect(find.text(Textos.yaEstasEn('Comercial Terra')), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsWidgets);
     });
 
     Future<BaseLocal> conCuentaGuardada(WidgetTester tester) async {
@@ -4516,7 +4517,7 @@ void main() {
       final texto = Uri.parse(_abiertos.single).queryParameters['text']!;
       expect(texto, startsWith('Hola, necesito ayuda con Moca.'));
       expect(texto, contains('Cuenta: ${Textos.sinCuentaAyuda}'));
-      expect(texto, contains('Negocio: Bodega Don Lucho (código '));
+      expect(texto, contains('Negocio: Comercial Terra (código '));
       expect(texto, contains('Rol: Dueño (titular)'));
     });
 
@@ -4532,7 +4533,7 @@ void main() {
         );
         expect(find.text(Textos.unidoATuCuenta('987 654 321')), findsOneWidget);
         expect(
-          find.text(Textos.negocioYRol('Bodega Don Lucho', 'Dueño', true)),
+          find.text(Textos.negocioYRol('Comercial Terra', 'Dueño', true)),
           findsOneWidget,
         );
         // Lo que espera subir se dice, con qué hacer.
@@ -4644,7 +4645,7 @@ void main() {
         Uri.parse(_abiertos.single).queryParameters['text'],
         Textos.mensajeDeInvitacion(
           nombre: 'Carmen',
-          negocio: 'Bodega Don Lucho',
+          negocio: 'Comercial Terra',
           rol: Rol.encargado,
           celular: '987 000 004',
           vence: formatearDiaYMes(_ahora.add(const Duration(days: 7))),
@@ -4658,7 +4659,7 @@ void main() {
       await tocar(tester, find.text(Textos.mandarPorWhatsApp));
       final texto = Uri.parse(_abiertos.single).queryParameters['text']!;
       expect(_abiertos.single, startsWith('https://wa.me/51987000003?text='));
-      expect(texto, startsWith('Hola Pepe, te invité a Bodega Don Lucho'));
+      expect(texto, startsWith('Hola Pepe, te invité a Comercial Terra'));
       expect(texto, contains('como Contador'));
 
       // Quitar a Rosa, con confirmación.
@@ -5307,7 +5308,7 @@ void main() {
           of: find.byType(AlertDialog),
           matching: find.byType(TextField),
         ),
-        'Bodega Don Lucho',
+        'Comercial Terra',
       );
       await tocar(tester, find.text(Textos.borrar));
       expect(find.text(Textos.negocioBorrado47), findsOneWidget);
@@ -5333,12 +5334,12 @@ void main() {
       expect(find.text(Textos.pagosPorRevisar), findsOneWidget);
       expect(
         find.text(
-          'Bodega Don Lucho · 987 654 321 · S/\u00A014.90 · op 5005 · '
+          'Comercial Terra · 987 654 321 · S/\u00A014.90 · op 5005 · '
           '${Textos.motivoPorRevisar('monto')}',
         ),
         findsOneWidget,
       );
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '999888777');
       await tester.pump();
@@ -5347,7 +5348,7 @@ void main() {
       expect(find.text(Textos.numeroSinCuenta47), findsOneWidget);
 
       // Tocar el negocio de la lista lo abre.
-      await tocar(tester, find.text('Bodega Don Lucho').last);
+      await tocar(tester, find.text('Comercial Terra').last);
       expect(find.text(Textos.registrarPago), findsOneWidget);
       expect(
         find.text(Textos.respondio(Textos.respuestaSi, 'S/\u00A014.90')),
@@ -5374,7 +5375,7 @@ void main() {
         find.text(
           Textos.confirmarPago(
             Textos.nombrePlan(PlanCobro.fundador),
-            'Bodega Don Lucho',
+            'Comercial Terra',
           ),
         ),
         findsOneWidget,
@@ -5508,7 +5509,7 @@ void main() {
       expect(_abiertos.single, isNot(contains('+')));
       expect(
         Uri.parse(_abiertos.single).queryParameters['text'],
-        contains('Bodega Don Lucho'),
+        contains('Comercial Terra'),
       );
     });
 
@@ -6161,7 +6162,7 @@ void main() {
           Textos.sinAccesoTitulo(
             const SinAcceso(
               motivo: MotivoSinAcceso.salio,
-              negocio: 'Bodega Don Lucho',
+              negocio: 'Comercial Terra',
             ),
           ),
         ),
@@ -6455,7 +6456,7 @@ void main() {
       final antes = _servidor.subidas.length;
       await abrirAjustes(tester);
       await tocar(tester, find.text(Textos.datosDelNegocio));
-      expect(find.text('Bodega Don Lucho'), findsOneWidget);
+      expect(find.text('Comercial Terra'), findsOneWidget);
       expect(find.text(formatearHora(21 * 60)), findsOneWidget);
       final guardar = find.widgetWithText(FilledButton, Textos.guardar);
       expect(tester.widget<FilledButton>(guardar).onPressed, isNull);
@@ -6700,7 +6701,7 @@ void main() {
           Textos.sinAccesoTitulo(
             const SinAcceso(
               motivo: MotivoSinAcceso.negocioBorrado,
-              negocio: 'Bodega Don Lucho',
+              negocio: 'Comercial Terra',
             ),
           ),
         ),

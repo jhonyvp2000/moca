@@ -229,7 +229,7 @@ Uint8List armarExcelDelInforme(
   return armarXlsx([operaciones, resumen, saldos, deudas, teDeben]);
 }
 
-/// «Moca-Bodega-Don-Lucho-operaciones-octubre-2026.xlsx».
+/// «Moca-Comercial-Terra-operaciones-octubre-2026.xlsx».
 String nombreDelExcel(String nombreNegocio, DateTime mes) {
   final limpio = nombreNegocio
       .trim()

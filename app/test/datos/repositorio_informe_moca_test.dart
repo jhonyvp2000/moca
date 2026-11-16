@@ -34,7 +34,7 @@ void main() {
     await primerDia.seguirSinCuenta();
     await primerDia.completarAlta(
       const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 500000},
         horaCierreMinutos: 21 * 60,

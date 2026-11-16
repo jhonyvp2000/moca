@@ -36,7 +36,7 @@ Desde la entrega 46, lo más rápido es pedirle:
 Te llega algo así:
 
 > Hola, necesito ayuda con Moca.
-> Versión: entrega-46 (174) · Cuenta: Unido a tu cuenta: 987 654 321 · Negocio: Bodega Don Lucho (código AB12CD) · Rol: Dueño (titular) · Por subir: 0
+> Versión: entrega-46 (174) · Cuenta: Unido a tu cuenta: 987 654 321 · Negocio: Comercial Terra (código AB12CD) · Rol: Dueño (titular) · Por subir: 0
 
 **Cómo leerlo:**
 - **Cuenta:**
