@@ -15,6 +15,11 @@
 name: Llave de Moca para Google Play
 
 on:
+  # Cada cambio de este archivo se prueba solo, siempre con la llave de
+  # mentira. Con la de Moca, solo a mano (el flujo tiene que estar en main).
+  push:
+    paths:
+      - ".github/workflows/llave-play.yml"
   workflow_dispatch:
     inputs:
       prueba:
@@ -45,7 +50,7 @@ jobs:
 
       - name: La llave (de Moca, o de mentira en la prueba)
         env:
-          PRUEBA: ${{ inputs.prueba }}
+          PRUEBA: ${{ github.event_name == 'push' || inputs.prueba }}
           KEYSTORE_BASE64: ${{ secrets.MOCA_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.MOCA_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.MOCA_KEY_ALIAS }}
@@ -98,6 +103,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: llave-cifrada-para-google${{ inputs.prueba && '-PRUEBA' || '' }}
+          name: llave-cifrada-para-google${{ (github.event_name == 'push' || inputs.prueba) && '-PRUEBA' || '' }}
           path: llave-cifrada-para-google.zip
           retention-days: 1
