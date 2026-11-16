@@ -131,7 +131,7 @@ void main() {
           informe,
           d,
           destino: destino,
-          nombreNegocio: 'Bodega Don Lucho',
+          nombreNegocio: 'Comercial Terra',
           hoy: ahora,
         );
         expect(String.fromCharCodes(bytes.take(4)), '%PDF');
@@ -141,11 +141,11 @@ void main() {
     }
     expect(
       nombreDelPdf(
-        'Bodega Don Lucho',
+        'Comercial Terra',
         DateTime(2026, 10),
         destino: DestinoInforme.contador,
       ),
-      'Moca-Bodega-Don-Lucho-contador-octubre-2026.pdf',
+      'Moca-Comercial-Terra-contador-octubre-2026.pdf',
     );
   });
 
@@ -179,7 +179,7 @@ void main() {
     final bytes = armarExcelDelInforme(
       informe,
       d,
-      nombreNegocio: 'Bodega Don Lucho',
+      nombreNegocio: 'Comercial Terra',
       hoy: ahora,
     );
     final zip = ZipDecoder().decodeBytes(bytes);
@@ -202,8 +202,8 @@ void main() {
     // La primera operación: el 1 de setiembre es el día 46266 de Excel.
     expect(operaciones, matches(RegExp(r'<c r="A2" s="\d+"><v>46266</v></c>')));
     expect(
-      nombreDelExcel('Bodega Don Lucho', DateTime(2026, 9)),
-      'Moca-Bodega-Don-Lucho-operaciones-setiembre-2026.xlsx',
+      nombreDelExcel('Comercial Terra', DateTime(2026, 9)),
+      'Moca-Comercial-Terra-operaciones-setiembre-2026.xlsx',
     );
   });
 
@@ -235,7 +235,7 @@ void main() {
     expect(m.retirosCentimos, setiembre.retirosCentimos);
 
     final zip = ZipDecoder().decodeBytes(
-      armarFlujoParaCredito(f, nombreNegocio: 'Bodega Don Lucho', hoy: ahora),
+      armarFlujoParaCredito(f, nombreNegocio: 'Comercial Terra', hoy: ahora),
     );
     String xml(String nombre) =>
         utf8.decode(zip.findFile(nombre)!.readBytes()!);
@@ -282,8 +282,8 @@ void main() {
     final resumen = xml('xl/worksheets/sheet4.xml');
     expect(resumen, contains('<f>MAX(0,B6*0.4-B7)</f>'));
     expect(
-      nombreDelFlujoParaCredito('Bodega Don Lucho', ahora),
-      'Moca-Bodega-Don-Lucho-flujo-credito-octubre-2026.xlsx',
+      nombreDelFlujoParaCredito('Comercial Terra', ahora),
+      'Moca-Comercial-Terra-flujo-credito-octubre-2026.xlsx',
     );
   });
 

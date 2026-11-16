@@ -664,7 +664,7 @@ Future<Uint8List> armarPdfDelInforme(
   return documento.save();
 }
 
-/// «Moca-Bodega-Don-Lucho-octubre-2026.pdf»; el de crédito y el del
+/// «Moca-Comercial-Terra-octubre-2026.pdf»; el de crédito y el del
 /// contador lo dicen en el nombre.
 String nombreDelPdf(
   String nombreNegocio,

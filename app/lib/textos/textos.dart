@@ -462,7 +462,7 @@ abstract final class Textos {
   static const unMinutoYListo = 'Un minuto y listo';
   static const cuentaleDeTuNegocio = 'Cuéntale a Moca de tu negocio';
   static const comoSeLlama = '¿Cómo se llama?';
-  static const nombreEjemplo = 'Bodega Don Lucho';
+  static const nombreEjemplo = 'Comercial Terra';
   static const queTipoDeNegocio = '¿Qué tipo de negocio es?';
   static const bodega = 'Bodega';
   static const restaurante = 'Restaurante';
@@ -1660,7 +1660,7 @@ abstract final class Textos {
       'ni nombres.';
   static const medicionDeMoca = 'Medición de Moca';
   static const empezarDemoDetalle =
-      'Borra todo y carga diez semanas de una bodega de ejemplo.';
+      'Borra todo y carga diez semanas de un negocio de ejemplo.';
   static const confirmarDemoTitulo = '¿Empezar en «Demo»?';
   static const empezarDemoBoton = 'Borrar y cargar la demo';
   static String opcionLlegaEnEntrega(int n) => 'Llega en la entrega $n';

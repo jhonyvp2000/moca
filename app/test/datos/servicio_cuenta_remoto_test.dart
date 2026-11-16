@@ -163,7 +163,7 @@ void main() {
 
   Future<void> primerDia({
     BaseLocal? en,
-    String nombre = 'Bodega Don Lucho',
+    String nombre = 'Comercial Terra',
   }) async {
     final repo = RepositorioPrimerDiaLocal(en ?? base, ahora: () => ahora);
     await repo.anotarPrimeraVenta({TipoCuenta.efectivo: 35000});
@@ -933,7 +933,7 @@ void main() {
       expect(await acceso.leerAjuste('etapa'), 'sinAcceso');
       expect(
         await acceso.leerAjuste(AccesoLocal.claveSinAcceso),
-        contains('Bodega Don Lucho'),
+        contains('Comercial Terra'),
       );
       expect(
         await acceso.leerAjuste(AccesoLocal.claveCuentaVerificada),
@@ -978,13 +978,13 @@ void main() {
       'hasta': 70,
     };
     negocios = [
-      {'empresa_id': mio, 'nombre': 'Bodega Don Lucho', 'rol': 'dueno'},
+      {'empresa_id': mio, 'nombre': 'Comercial Terra', 'rol': 'dueno'},
       {'empresa_id': rosa, 'nombre': 'Pollería Rosa', 'rol': 'contador'},
     ];
 
     final lista = (await servicio.misNegocios())!;
     expect(lista.map((n) => (n.nombre, n.rol, n.actual)), [
-      ('Bodega Don Lucho', Rol.dueno, true),
+      ('Comercial Terra', Rol.dueno, true),
       ('Pollería Rosa', Rol.contador, false),
     ]);
 
@@ -1043,7 +1043,7 @@ void main() {
     invitaciones = [
       {
         'id': 'inv',
-        'negocio': 'Bodega Don Lucho',
+        'negocio': 'Comercial Terra',
         'rol': 'ayudante',
         'vence_en': ahora.add(const Duration(days: 7)).toIso8601String(),
       },

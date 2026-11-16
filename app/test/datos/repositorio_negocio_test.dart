@@ -22,7 +22,7 @@ void main() {
     await primerDia.seguirSinCuenta();
     await primerDia.completarAlta(
       const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 100000},
         horaCierreMinutos: 21 * 60,
@@ -52,14 +52,14 @@ void main() {
     expect(bitacora, hasLength(2));
     final cambio = bitacora.last;
     expect(cambio.accion, AccionBitacora.editar);
-    expect(cambio.valorAnterior, contains('Bodega Don Lucho'));
+    expect(cambio.valorAnterior, contains('Comercial Terra'));
     expect(cambio.valorNuevo, contains('"nombre":"Bodega Lucho"'));
   });
 
   test('Sin cambios no anota nada; el nombre no queda vacío', () async {
     await repo.guardar(
       const DatosDelNegocio(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         horaCierreMinutos: 21 * 60,
       ),
     );
@@ -79,7 +79,7 @@ void main() {
     final avisos = RepositorioAvisoCierreLocal(base, ahora: () => ahora);
     await repo.guardar(
       const DatosDelNegocio(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         horaCierreMinutos: 19 * 60 + 15,
       ),
     );

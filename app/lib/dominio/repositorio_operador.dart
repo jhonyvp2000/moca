@@ -14,7 +14,7 @@ abstract interface class RepositorioOperador {
   /// Muestra en el Inicio la tarjeta del arqueo sin esperar al domingo.
   Future<void> pedirArqueo();
 
-  /// Borra todo y carga diez semanas de una bodega de ejemplo.
+  /// Borra todo y carga diez semanas de un negocio de ejemplo.
   Future<void> cargarDemo();
 
   /// Si la app está mostrando la Demo.

@@ -25,7 +25,7 @@ void main() {
     await primerDia.seguirSinCuenta();
     await primerDia.completarAlta(
       DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: saldos,
         horaCierreMinutos: 21 * 60,

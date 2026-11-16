@@ -36,7 +36,7 @@ const _fijos = [
   (FilaFlujo.otrosGastosFijos, 'Otros gastos fijos'),
 ];
 
-/// «Moca-Bodega-Don-Lucho-flujo-credito-octubre-2026.xlsx».
+/// «Moca-Comercial-Terra-flujo-credito-octubre-2026.xlsx».
 String nombreDelFlujoParaCredito(String nombreNegocio, DateTime hoy) {
   final limpio = nombreNegocio
       .trim()

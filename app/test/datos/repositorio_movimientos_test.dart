@@ -23,7 +23,7 @@ void main() {
     await primerDia.seguirSinCuenta();
     await primerDia.completarAlta(
       const DatosAlta(
-        nombre: 'Bodega Don Lucho',
+        nombre: 'Comercial Terra',
         tipoNegocio: TipoNegocio.bodega,
         saldos: {TipoCuenta.efectivo: 100000, TipoCuenta.yape: 20000},
         horaCierreMinutos: 21 * 60,
@@ -41,7 +41,7 @@ void main() {
 
   test('El Inicio parte del saldo y la venta del primer día', () async {
     final r = await inicio();
-    expect(r.nombreNegocio, 'Bodega Don Lucho');
+    expect(r.nombreNegocio, 'Comercial Terra');
     expect(r.saldosPorCuenta, {
       TipoCuenta.efectivo: 135000,
       TipoCuenta.yape: 20000,

@@ -12,7 +12,7 @@ Hoy el camino es **instalar → 14 días gratis → pagar dentro de la app**. Na
 
 ## 2. A quién le hablamos
 
-El dueño de una bodega, un puesto de mercado o un restaurante chico en el Perú. Usa el celular para todo, vive en WhatsApp y Yape, no tiene formación contable, desconfía de lo «complicado» y lee la página parado, con la tienda abierta.
+El dueño de un negocio que vende todos los días: una tienda, un restaurante, una farmacia, un salón o un taller. Usa el celular para todo, vive en WhatsApp y Yape, no tiene formación contable, desconfía de lo «complicado» y lee la página parado, con la tienda abierta.
 
 Su dolor real: «vendo todo el día y a fin de mes no sé dónde se fue la plata», «me olvido de quién me debe», «el banco me pide papeles que no tengo».
 
@@ -28,7 +28,7 @@ Su dolor real: «vendo todo el día y a fin de mes no sé dónde se fue la plata
 | Anclaje de precio | «S/ 19.90 al mes: menos de S/ 0.70 al día»; el anual «ahorras 2 meses» |
 | El plan recomendado | Full destacado; el Básico al lado lo hace ver razonable |
 | Prueba social real | Solo testimonios de pilotos reales, con autorización escrita. Nunca inventados |
-| Cercanía y confianza | «Hecho en Tarapoto», WhatsApp visible, seguridad explicada en simple |
+| Cercanía y confianza | WhatsApp visible, seguridad explicada en simple |
 | Un solo objetivo | El mismo botón repetido, sin menús que distraigan |
 
 ## 4. Estructura (pensada para celular)
@@ -126,7 +126,44 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 
 1. El número de WhatsApp de ventas (va solo en la web publicada, no en el repositorio ni en el chat).
 2. Qué pilotos dan su testimonio (nombre, foto, frase, autorización).
-3. ¿Para todo tipo de negocio, o primero bodegas?
+3. ~~¿Para todo tipo de negocio, o primero bodegas?~~ «Para negocios», sin nombrar bodegas ni puestos ni el Perú (16-11-2026, sección 11).
 4. ¿Presupuesto para publicidad, o inicio orgánico?
-5. Dónde se aloja la web (por ejemplo, un sitio estático en Render o Cloudflare Pages) y quién administra el DNS del dominio.
+5. ~~Dónde se aloja la web~~: Cloudflare Pages, con el DNS en la misma cuenta de Cloudflare de Jhony (16-11-2026, sección 10).
 6. ~~Cómo se cobra en la versión de Play Store~~: Google Play Billing (13-11-2026).
+
+## 10. Cómo se construye la web (aprobado el 16-11-2026)
+
+- **Dónde:** Cloudflare Pages, conectado a GitHub. Publica la carpeta `web/` del repositorio: lo que entra a `main` sale en mocanegocios.com, y cada rama de trabajo tiene su vista previa en `pages.dev` para revisarla en el teléfono. La puesta en marcha, paso a paso, está en `web/README.md`.
+- **Cómo:** HTML y CSS escritos a mano, sin framework ni JavaScript. La letra va dentro del sitio (sin Google Fonts) y no hay cookies ni píxeles: así la web no le pasa datos de nadie a terceros. Para medir, por ahora, los enlaces UTM y lo que reporte Play Store; Cloudflare Web Analytics (sin cookies) se puede sumar después, con una línea en la política.
+- **El número de WhatsApp de ventas** va en la variable `WHATSAPP_VENTAS` de Cloudflare Pages, nunca en el repositorio.
+- **La política de privacidad** se publica en mocanegocios.com/privacidad con una sección más, «Esta página web». La del servidor sigue mientras tanto: si cambia, se cambian las dos, hasta que el servidor lleve a la web (cambio de `servidor/`, aparte).
+
+Lo que cambia respecto del canvas:
+
+1. **Antes de que Moca esté en Play**, «Pruébalo gratis 14 días» abre WhatsApp con «Hola, quiero probar Moca.» (o el correo, si todavía no hay número). El distintivo de Google Play aparece cuando exista el enlace real.
+2. **«[Cómo se paga]»** dice que se paga dentro de la app, con Google Play, sin nombrar Mercado Pago ni el Yape.
+3. **El video y los testimonios** no se publican hasta tenerlos de verdad (testimonios con autorización escrita).
+4. **«Términos»** sale del pie hasta que el abogado redacte los términos.
+5. **«¿Mis datos están seguros?»** usa frases de la política ya publicada hasta que el abogado entregue su texto.
+6. **Web 2:** «Se instala en 1 minuto» espera a que Moca esté en Play (mientras tanto, «14 días gratis · sin tarjeta» y «Muy pronto en Google Play»); «la foto de la boleta» pasa a «la foto del comprobante»; los textos de 13 px del canvas van en 14 px, el mínimo de `estilo.md`.
+7. **Web 3:** «¿Mis datos están seguros?» dice, con frases de la política, que la conexión va cifrada, que cada negocio está separado y que no se venden los datos, con el enlace a la política. El pago dice «Se paga dentro de la app, con Google Play». La tarjeta de confianza va junto al crédito, antes de los precios, porque el video y los testimonios todavía no están.
+8. **Web 4:** «Se paga dentro de la app, con Google Play» no se publica hasta que exista el enlace de Play (quien escribe por WhatsApp recibe el APK, que se paga con Mercado Pago o Yape). El pie no lleva «Términos» ni «mocanegocios.com», y sí el correo. La barra fija va también en computadora, con «Moca · 14 días gratis, sin tarjeta» a la izquierda. Sin número de WhatsApp, la barra solo lleva el botón (al correo).
+
+| Entrega | Qué |
+|---|---|
+| Web 1 | Publicación en Cloudflare Pages: una portada mínima, la política en `/privacidad` y la página 404 |
+| Web 2 | Arriba de la página: inicio con el celular «Tienes hoy» (cifras de ejemplo), «Hecho para», «¿Te pasa esto?» y «Así de fácil» |
+| Web 3 | «Lo que ganas», el crédito con el Full, la confianza, los precios y las preguntas frecuentes |
+| Web 4 | Llamado final, pie, barra fija abajo con el botón y WhatsApp, la vista previa al compartir por WhatsApp e ícono; revisión de accesibilidad y letra al 150 % |
+| Web 5 | Cuando haya material: el enlace de Google Play, el video y los testimonios |
+
+## 11. Cómo se presenta Moca (16-11-2026)
+
+Moca se presenta **«Para negocios»**, sin nombrar bodegas ni puestos de mercado y sin decir que es solo para el Perú. Jhony no quiere que se la asocie con negocios de poco movimiento o de gama baja, ni que quede encerrada en un país: más adelante vienen otras líneas, como «Moca para personas», «Moca para contadores» o «Moca para abogados».
+
+- **En la web y en sus mockups:** el antetítulo dice «Para negocios»; «Hecho para» nombra tiendas y comercios, restaurantes y cafeterías, farmacias, ferreterías, salones de belleza, y talleres y servicios; el celular de ejemplo es de «Tu negocio»; la tarjeta «Hecho en Tarapoto» pasa a «Tus datos viajan cifrados», y el pie dice el eslogan.
+- **También se suavizan las marcas del país:** «Yape» y «Plin» pasan a «billetera digital»; «Nunca te pedimos tu clave SOL» pasa a «Nunca te pedimos tus claves · Ni la de tu banco ni la de tus impuestos», y «la caja o el banco» a «el banco o la financiera».
+- **Se queda lo que es un dato y no una etiqueta:** la dirección de Publisher Online E.I.R.L. y la Ley 29733 en la política de privacidad, los precios con «S/» (tienen que ser exactos e iguales a los de la app) y lo investigado sobre Google Play en el Perú. Los nombres de ejemplo de proveedores y clientes en los mockups de la app (como «Distribuidora San Martín») no cambian.
+- **La app:** el negocio de ejemplo de «Ver una demo», donde se graban los videos, se llama **«Comercial Terra»** (antes «Bodega Don Lucho»), y es también el ejemplo de nombre al crear el negocio. La lista de tipos de negocio no cambia: ahí el dueño elige su rubro, «Bodega o minimarket» incluido, y de eso salen sus categorías.
+- **Los mockups de la app** (`diseno/pantallas/` y sus capturas) usan «Comercial Terra» y no nombran Tarapoto ni bodegas.
+- **Videos, manuales y demás materiales** siguen la misma regla.
