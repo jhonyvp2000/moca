@@ -12,7 +12,7 @@ Hoy el camino es **instalar → 14 días gratis → pagar dentro de la app**. Na
 
 ## 2. A quién le hablamos
 
-El dueño de una bodega, un puesto de mercado o un restaurante chico en el Perú. Usa el celular para todo, vive en WhatsApp y Yape, no tiene formación contable, desconfía de lo «complicado» y lee la página parado, con la tienda abierta.
+El dueño de un negocio que vende todos los días: una tienda, un restaurante, una farmacia, un salón o un taller. Usa el celular para todo, vive en WhatsApp y Yape, no tiene formación contable, desconfía de lo «complicado» y lee la página parado, con la tienda abierta.
 
 Su dolor real: «vendo todo el día y a fin de mes no sé dónde se fue la plata», «me olvido de quién me debe», «el banco me pide papeles que no tengo».
 
@@ -28,7 +28,7 @@ Su dolor real: «vendo todo el día y a fin de mes no sé dónde se fue la plata
 | Anclaje de precio | «S/ 19.90 al mes: menos de S/ 0.70 al día»; el anual «ahorras 2 meses» |
 | El plan recomendado | Full destacado; el Básico al lado lo hace ver razonable |
 | Prueba social real | Solo testimonios de pilotos reales, con autorización escrita. Nunca inventados |
-| Cercanía y confianza | «Hecho en Tarapoto», WhatsApp visible, seguridad explicada en simple |
+| Cercanía y confianza | WhatsApp visible, seguridad explicada en simple |
 | Un solo objetivo | El mismo botón repetido, sin menús que distraigan |
 
 ## 4. Estructura (pensada para celular)
@@ -126,7 +126,7 @@ Fuentes: [Understanding Google Play's Payments policy](https://support.google.co
 
 1. El número de WhatsApp de ventas (va solo en la web publicada, no en el repositorio ni en el chat).
 2. Qué pilotos dan su testimonio (nombre, foto, frase, autorización).
-3. ¿Para todo tipo de negocio, o primero bodegas? Mientras tanto, la web dice «Para bodegas, puestos y negocios del Perú» y la lista «Hecho para» del canvas se publica tal cual (16-11-2026).
+3. ~~¿Para todo tipo de negocio, o primero bodegas?~~ «Para negocios», sin nombrar bodegas ni puestos ni el Perú (16-11-2026, sección 11).
 4. ¿Presupuesto para publicidad, o inicio orgánico?
 5. ~~Dónde se aloja la web~~: Cloudflare Pages, con el DNS en la misma cuenta de Cloudflare de Jhony (16-11-2026, sección 10).
 6. ~~Cómo se cobra en la versión de Play Store~~: Google Play Billing (13-11-2026).
@@ -153,3 +153,11 @@ Lo que cambia respecto del canvas:
 | Web 3 | «Lo que ganas», el crédito con el Full, la confianza, los precios y las preguntas frecuentes |
 | Web 4 | Llamado final, pie, barra fija abajo con el botón y WhatsApp, la vista previa al compartir por WhatsApp e ícono; revisión de accesibilidad y letra al 150 % |
 | Web 5 | Cuando haya material: el enlace de Google Play, el video y los testimonios |
+
+## 11. Cómo se presenta Moca (16-11-2026)
+
+Moca se presenta **«Para negocios»**, sin nombrar bodegas ni puestos de mercado y sin decir que es solo para el Perú. Jhony no quiere que se la asocie con negocios de poco movimiento o de gama baja, ni que quede encerrada en un país: más adelante vienen otras líneas, como «Moca para personas», «Moca para contadores» o «Moca para abogados».
+
+- **En la web y en sus mockups:** el antetítulo dice «Para negocios»; «Hecho para» nombra tiendas y comercios, restaurantes y cafeterías, farmacias, ferreterías, salones de belleza, y talleres y servicios; el celular de ejemplo es de «Tu negocio»; la tarjeta «Hecho en Tarapoto» pasa a «Tus datos viajan cifrados», y el pie dice el eslogan.
+- **Se queda lo que es un dato y no una etiqueta:** la dirección de Publisher Online E.I.R.L. y la Ley 29733 en la política de privacidad, los precios en soles, el Yape, la clave SOL y lo investigado sobre Google Play en el Perú.
+- **Videos, manuales y demás materiales** siguen la misma regla.
