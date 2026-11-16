@@ -22,32 +22,98 @@
   </div>
 </header>
 
-<main class="portada">
-  <div class="contenedor">
-    <p class="antetitulo">Para negocios</p>
-    <h1>Tú vendes. Moca hace las cuentas.</h1>
-    <p class="bajada">Sabe cuánto tienes, quién te debe y en qué se va tu plata, desde tu celular. Lo dices en voz alta y Moca lo anota.</p>
-
-    <div class="acciones">
+<main>
+  <section class="inicio" aria-labelledby="titulo">
+    <div class="contenedor inicio-rejilla">
+      <div class="inicio-texto">
+        <p class="etiqueta">Para negocios</p>
+        <h1 id="titulo">Tú vendes.<br>Moca hace las cuentas.</h1>
+        <p class="bajada">Sabe cuánto tienes, quién te debe y en qué se va tu plata, desde tu celular. Lo dices en voz alta y Moca lo anota.</p>
+        <div class="acciones">
 <!--si-whatsapp-->
-      <a class="boton" href="{{WHATSAPP}}">Pruébalo gratis 14 días</a>
+          <a class="boton boton-grande" href="{{WHATSAPP}}">Pruébalo gratis 14 días</a>
 <!--sino-whatsapp-->
-      <!--email_off--><a class="boton" href="mailto:contacto@mocanegocios.com?subject=Quiero%20probar%20Moca">Pruébalo gratis 14 días</a><!--/email_off-->
+          <!--email_off--><a class="boton boton-grande" href="mailto:contacto@mocanegocios.com?subject=Quiero%20probar%20Moca">Pruébalo gratis 14 días</a><!--/email_off-->
 <!--fin-whatsapp-->
+        </div>
+        <p class="nota">14 días gratis · sin tarjeta. Muy pronto en Google Play; mientras tanto, escríbenos y te ayudamos a empezar.</p>
+        <ul class="ventajas">
+          <li>Funciona sin señal</li>
+          <li>Con efectivo, billeteras digitales y banco</li>
+          <li>Lo anotado nunca se borra</li>
+        </ul>
+      </div>
+
+      <figure class="celular-figura">
+        <div class="celular" role="img" aria-label="Moca en el celular: Tienes hoy S/ 4,250, con S/ 1,980 en efectivo, S/ 1,620 en billetera digital y S/ 650 en el banco">
+          <div class="pantalla" aria-hidden="true">
+            <div class="pantalla-negocio"><span class="pantalla-inicial">T</span>Tu negocio</div>
+            <div class="tienes-hoy">
+              <span class="tienes-hoy-titulo">Tienes hoy</span>
+              <span class="tienes-hoy-monto"><span class="moneda">S/</span>4,250</span>
+              <span class="tienes-hoy-fecha">Viernes 9:40 a. m.</span>
+            </div>
+            <dl class="cuentas">
+              <div><dt>Efectivo</dt><dd>S/&nbsp;1,980</dd></div>
+              <div><dt>Billetera digital</dt><dd>S/&nbsp;1,620</dd></div>
+              <div><dt>Banco</dt><dd>S/&nbsp;650</dd></div>
+            </dl>
+            <div class="pregunta"><strong>Pregúntale a Moca</strong><span>«¿Quién me debe más?»</span></div>
+          </div>
+        </div>
+        <figcaption>Cifras de ejemplo</figcaption>
+      </figure>
     </div>
-    <p class="nota">Muy pronto en Google Play. Mientras tanto, escríbenos y te ayudamos a empezar tu prueba gratis.</p>
+  </section>
 
-    <section class="tarjeta" aria-labelledby="sin-riesgo">
-      <h2 id="sin-riesgo">14 días gratis, sin tarjeta</h2>
-      <p>Si no te sirve, no pagas nada y lo anotado no se borra.</p>
-    </section>
+  <section class="hecho-para" aria-labelledby="hecho-para">
+    <div class="contenedor">
+      <h2 id="hecho-para" class="subtitulo-chico">Hecho para</h2>
+      <ul class="chips">
+        <li>Tiendas y comercios</li>
+        <li>Restaurantes y cafeterías</li>
+        <li>Farmacias</li>
+        <li>Ferreterías</li>
+        <li>Salones de belleza</li>
+        <li>Talleres y servicios</li>
+      </ul>
+    </div>
+  </section>
 
-    <ul class="lista-confianza tarjeta" aria-label="Lo básico de Moca">
-      <li>Funciona sin señal</li>
-      <li>Con efectivo, billeteras digitales y banco</li>
-      <li>Lo anotado nunca se borra</li>
-    </ul>
-  </div>
+  <section class="seccion seccion-blanca" aria-labelledby="problema">
+    <div class="contenedor">
+      <h2 id="problema">¿Te pasa esto?</h2>
+      <ul class="rejilla-3 dolores">
+        <li>«Vendo todo el día y a fin de mes no sé dónde se fue la plata.»</li>
+        <li>«Me olvido de quién me debe y cuánto.»</li>
+        <li>«El banco me pide papeles que no tengo.»</li>
+      </ul>
+      <p class="cierre">Moca lo resuelve sin que sepas de contabilidad.</p>
+    </div>
+  </section>
+
+  <section class="seccion" aria-labelledby="pasos">
+    <div class="contenedor">
+      <h2 id="pasos">Así de fácil</h2>
+      <ol class="rejilla-3 pasos">
+        <li>
+          <span class="paso-numero" aria-hidden="true">1</span>
+          <h3>Lo dices o le tomas foto</h3>
+          <p>«Vendí 350 en efectivo». O la foto del comprobante, o el QR de la factura.</p>
+        </li>
+        <li>
+          <span class="paso-numero" aria-hidden="true">2</span>
+          <h3>Moca hace las cuentas</h3>
+          <p>Separa lo que entró y lo que salió, por efectivo, billetera digital y banco. Tú solo confirmas.</p>
+        </li>
+        <li>
+          <span class="paso-numero" aria-hidden="true">3</span>
+          <h3>Sabes cómo vas</h3>
+          <p>Cuánto tienes hoy, quién te debe y en qué se va tu plata, en palabras simples.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
 </main>
 
 <footer class="pie">

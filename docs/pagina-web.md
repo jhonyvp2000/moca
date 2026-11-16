@@ -145,6 +145,7 @@ Lo que cambia respecto del canvas:
 3. **El video y los testimonios** no se publican hasta tenerlos de verdad (testimonios con autorización escrita).
 4. **«Términos»** sale del pie hasta que el abogado redacte los términos.
 5. **«¿Mis datos están seguros?»** usa frases de la política ya publicada hasta que el abogado entregue su texto.
+6. **Web 2:** «Se instala en 1 minuto» espera a que Moca esté en Play (mientras tanto, «14 días gratis · sin tarjeta» y «Muy pronto en Google Play»); «la foto de la boleta» pasa a «la foto del comprobante»; los textos de 13 px del canvas van en 14 px, el mínimo de `estilo.md`.
 
 | Entrega | Qué |
 |---|---|
