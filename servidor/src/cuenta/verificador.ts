@@ -1,3 +1,6 @@
+import { timingSafeEqual } from 'node:crypto';
+import { aInternacional, esCelularPeru } from './celular.js';
+
 /** Resultado de comprobar un código. */
 export type Comprobacion = 'aprobado' | 'incorrecto' | 'vencido';
 
@@ -93,6 +96,64 @@ export function verificadorTwilio(
       if (!respuesta.ok) throw await errorDeTwilio('comprobó el código', respuesta);
       const datos = (await respuesta.json()) as { status?: string };
       return datos.status === 'approved' ? 'aprobado' : 'incorrecto';
+    },
+  };
+}
+
+/**
+ * La cuenta del revisor de Google Play (entrega 82): un número con un código
+ * fijo, para que quien revisa la app pueda entrar sin recibir el SMS. Va
+ * solo en Render (MOCA_REVISOR_CELULAR y MOCA_REVISOR_CODIGO); sin las dos,
+ * no existe.
+ */
+export interface ConfigRevisor {
+  /** En formato internacional: +51987654321. */
+  celular: string;
+  codigo: string;
+}
+
+export function leerConfigRevisor(
+  entorno: NodeJS.ProcessEnv = process.env,
+): ConfigRevisor | null {
+  const celular = entorno.MOCA_REVISOR_CELULAR?.trim() ?? '';
+  const codigo = entorno.MOCA_REVISOR_CODIGO?.trim() ?? '';
+  if (!esCelularPeru(celular) || !/^\d{6}$/.test(codigo)) return null;
+  return { celular: aInternacional(celular), codigo };
+}
+
+/** Códigos equivocados que bloquean al revisor, y por cuánto tiempo. */
+export const fallosDelRevisor = 5;
+export const bloqueoDelRevisorMs = 60 * 60_000;
+
+/**
+ * El verificador de siempre, salvo para el número del revisor: no se manda
+ * SMS y se compara con su código fijo. Tras 5 códigos equivocados en una
+ * hora, ese número no entra durante una hora, ni con el código bueno.
+ */
+export function conRevisor(
+  base: Verificador | null,
+  revisor: ConfigRevisor | null,
+  ahora: () => number = Date.now,
+): Verificador | null {
+  if (!base || !revisor) return base;
+  let fallos: number[] = [];
+  const codigoBueno = Buffer.from(revisor.codigo);
+  return {
+    async enviar(celular, marcaApp) {
+      if (celular === revisor.celular) return 'enviado';
+      return base.enviar(celular, marcaApp);
+    },
+    async comprobar(celular, codigo) {
+      if (celular !== revisor.celular) return base.comprobar(celular, codigo);
+      const momento = ahora();
+      fallos = fallos.filter((f) => momento - f < bloqueoDelRevisorMs);
+      if (fallos.length >= fallosDelRevisor) return 'incorrecto';
+      const dado = Buffer.from(codigo);
+      if (dado.length === codigoBueno.length && timingSafeEqual(dado, codigoBueno)) {
+        return 'aprobado';
+      }
+      fallos.push(momento);
+      return 'incorrecto';
     },
   };
 }

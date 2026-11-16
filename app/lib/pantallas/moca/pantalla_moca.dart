@@ -21,6 +21,7 @@ import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
 import 'avisos.dart';
+import 'tarjeta_consentimiento.dart';
 import 'tarjeta_guardar_avance.dart';
 import '../../dominio/medicion.dart';
 
@@ -131,6 +132,8 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
           ),
           const SizedBox(height: Medidas.e4),
           const TarjetaGuardarAvance(),
+          // El consentimiento de quien ya tenía cuenta (entrega 83).
+          const TarjetaConsentimiento(),
           // La prueba o el pago, y la pregunta del día 10 (entrega 25).
           const TarjetaCobro(),
           const PreguntaDelPrecio(),

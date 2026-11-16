@@ -471,6 +471,12 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
               )
             else
               ..._contenido(i),
+            // Entrega 83: Moca no reemplaza la contabilidad oficial.
+            const SizedBox(height: Medidas.e5),
+            const Text(
+              Textos.noReemplazaContabilidad,
+              style: Tipografia.secundario,
+            ),
           ],
         ),
       ),
@@ -1070,6 +1076,12 @@ class _VistaAnio extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+        // Entrega 83: Moca no reemplaza la contabilidad oficial.
+        const SizedBox(height: Medidas.e5),
+        const Text(
+          Textos.noReemplazaContabilidad,
+          style: Tipografia.secundario,
         ),
       ],
     );

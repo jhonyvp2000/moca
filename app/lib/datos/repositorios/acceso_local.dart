@@ -116,6 +116,9 @@ class AccesoLocal {
 
   /// «Pedir huella al abrir Moca» (entrega 16.3): «si» o nada.
   static const clavePedirHuella = 'pedir_huella';
+
+  /// La versión del consentimiento que aceptó el dueño (entrega 83).
+  static const claveConsentimiento = 'consentimiento';
   static const usuarioSimulado = '00000000-0000-4000-8000-00000000e7e7';
   static const nombreSimulado = 'Pepe';
 

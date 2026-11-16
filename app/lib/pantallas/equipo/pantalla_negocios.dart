@@ -158,6 +158,15 @@ class _EstadoNegocios extends ConsumerState<PantallaNegocios> {
             Textos.consentimientoInvitado,
             style: Tipografia.secundario,
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => ref
+                  .read(abridorProvider)
+                  .abrir(ref.read(enlacePrivacidadProvider)),
+              child: const Text(Textos.politicaDePrivacidad),
+            ),
+          ),
         ],
         if (_error case final error?) ...[
           const SizedBox(height: 12),

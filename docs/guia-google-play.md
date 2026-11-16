@@ -7,9 +7,31 @@ Antes de empezar hace falta la **cuenta de organización de Play** de Publisher 
 ## 1. La app en la Play Console
 
 1. En **play.google.com/console** (la cuenta de organización) → **Crear app**: nombre **Moca**, idioma **Español (Latinoamérica) – es-419**, **App**, **Gratuita**.
-2. **Configurar la app** (el Panel la lista): política de privacidad `https://moca-servidor.onrender.com/privacidad`, acceso a la app (una cuenta de prueba para el revisor: Moca entra por SMS, ver `pendientes.md`), anuncios (no tiene), clasificación de contenido, público objetivo (mayores de 18), Seguridad de los datos, categoría **Empresa** o **Finanzas**, correo `contacto@mocanegocios.com`.
-3. **La firma.** Al crear la primera versión, Google pregunta por la firma de la app (Play App Signing). Para que los pilotos actualicen desde Play **sin desinstalar**, hay que subirle la **llave de Moca** (la que firma el APK). Eso se hace con la herramienta PEPK de Google y la llave, que vive en los secretos de GitHub: **avísale a Claude Code en ese paso** y arma un flujo de GitHub que lo haga sin que la llave salga de ahí.
+2. **Configurar la app** (el Panel la lista): política de privacidad `https://moca-servidor.onrender.com/privacidad`, acceso a la app (la cuenta del revisor, ver «La cuenta del revisor» más abajo), anuncios (no tiene), clasificación de contenido, público objetivo (mayores de 18), Seguridad de los datos, categoría **Empresa** o **Finanzas**, correo `contacto@mocanegocios.com`.
+3. **La firma (entrega 84).** Al crear la primera versión, Google pregunta por la firma de la app (Play App Signing). Para que los pilotos actualicen desde Play **sin desinstalar**, se le da **la misma llave que firma el APK**. Esa llave vive solo en los secretos de GitHub; un flujo la cifra para Google sin que salga de ahí:
+   1. En la Play Console, en la firma de la app, elige **«Usar una llave diferente» → «Exportar y subir una llave desde un almacén de claves Java»** (los nombres pueden variar un poco).
+   2. Descarga la **llave pública de cifrado** (`encryption_public_key.pem`). Es pública: pásasela a Claude Code (adjunta en el chat), que la guarda en `.github/play/` y la sube. Si en vez del archivo Google muestra un comando con un código largo, pásale ese comando.
+   3. Cuando Claude Code te avise, en GitHub → **Actions → «Llave de Moca para Google Play» → Run workflow** (rama `main`, sin marcar «Prueba»). Tarda un par de minutos.
+   4. En la ejecución terminada, baja el archivo **`llave-cifrada-para-google`** (dura un día) y súbelo a la Play Console donde lo pide. Solo Google puede abrirlo.
+   5. Compara la **«Huella de la llave»** que muestra el resumen de la ejecución con el **certificado SHA-256 de la llave de firma** que muestra Google: deben ser iguales.
+   6. Esa misma llave sirve para subir los AAB (la llave de subida). Si algún día se quiere una llave de subida aparte, se agrega.
 4. **Prueba interna → Crear versión** y sube el **AAB** de la última `piloto-N` de Releases (`moca-piloto-N-…-play.aab`). La versión de Play se arma junto con el APK desde la entrega 77.
+
+### La cuenta del revisor (entrega 82)
+
+Google prueba Moca antes de publicarla, y Moca entra con un código por SMS que el revisor no recibe. Por eso hay un número con un código fijo:
+
+1. Elige **un número tuyo que nunca vayas a usar para un negocio real** (por ejemplo, un chip de reserva). No uses uno que pueda ser de otra persona: ese número ya no recibiría su código por SMS.
+2. Elige un **código de 6 dígitos** que no sea fácil de adivinar (nada de 123456 ni 000000).
+3. En **Render → moca-servidor → Environment**: `MOCA_REVISOR_CELULAR` (los 9 dígitos, sin +51) y `MOCA_REVISOR_CODIGO` (los 6 dígitos). **Save Changes** y **Manual Deploy**. En los Logs sale «La cuenta del revisor de Google Play está activa.».
+4. En la Play Console → **Contenido de la app → Acceso a la app → Todas o algunas funciones están restringidas → Agregar instrucciones**: nombre «Cuenta del revisor», usuario: el número, contraseña: el código, y estas instrucciones:
+
+> Moca works without an account; the account only saves progress to the cloud. To test it: on the first screen tap "Anotar mi primera venta" and create a test business (any name). Then go to the "Asistente" tab and tap "Guardar mi avance": enter the phone number above and tap "Enviarme el código". No SMS will arrive: type the code above. With the account you can see the whole app, including "Activar mi plan". If you reinstall the app, tap "Ya tengo cuenta" on the first screen with the same number and code.
+>
+> Moca funciona sin cuenta; la cuenta solo guarda el avance en la nube. Para probarla: en la primera pantalla toca «Anotar mi primera venta» y crea un negocio de prueba (cualquier nombre). Luego ve a la pestaña «Asistente» y toca «Guardar mi avance»: escribe el número de arriba y toca «Enviarme el código». No llegará ningún SMS: escribe el código de arriba. Con la cuenta ves toda la app, incluido «Activar mi plan». Si reinstalas la app, toca «Ya tengo cuenta» en la primera pantalla con el mismo número y código.
+
+5. Tras 5 códigos equivocados en una hora, ese número no entra durante una hora (protección contra quien intente adivinar). Si en una revisión futura la prueba de 14 días del negocio del revisor ya venció, dale días desde **Cobros**.
+6. Para apagarla, borra las dos variables en Render. **No pongas el número ni el código en el repositorio ni en el chat.**
 
 ## 2. Google Cloud: la cuenta de servicio
 

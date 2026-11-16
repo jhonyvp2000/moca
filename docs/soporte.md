@@ -265,6 +265,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Ve a la pestaña Informes: arriba están «Te deben» y «Debes». Toca cada uno para ver la lista de clientes o de a quién le debes.
 
+**«No me deja guardar mi avance: el botón está gris»** (entrega 83): hay que marcar la casilla **«Acepto»** debajo del texto de cómo cuidamos los datos. **«Me sale "Cómo cuidamos tus datos" en el Asistente»**: es para quien ya tenía cuenta; toca «Acepto» con señal y no vuelve a salir. No bloquea nada.
+
+> Para guardar tu avance, marca la casilla «Acepto» que está debajo del texto y luego toca «Enviarme el código». Si quieres leer cómo cuidamos tus datos, toca «Política de privacidad».
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.

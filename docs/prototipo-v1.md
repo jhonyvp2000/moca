@@ -247,7 +247,8 @@ Estados aprobados el 13-10-2026 (entrega 6):
 ### Textos legales (propuesta para revisar)
 
 - Al pie del alta (S02): «Tus datos se guardan solo en este teléfono. Al empezar aceptas que Moca los use para ordenar tus cuentas».
-- En el informe y en el PDF: «Moca te ayuda a ordenar tus cuentas. No reemplaza la contabilidad oficial ni da asesoría tributaria».
+- En el informe y en el PDF: «Moca te ayuda a ordenar tus cuentas. No reemplaza la contabilidad oficial ni da asesoría tributaria». **Desde la entrega 83** está al final de Informes (mes y año); el PDF lo dice en su aclaración del pie.
+- **Desde la entrega 83, el consentimiento del dueño** (Ley 29733): en «Guarda tu avance», el texto de qué guarda Moca, con quién (servicios fuera del Perú: servidor, SMS, IA), errores y uso sin lo anotado, y los derechos; el enlace «Política de privacidad» y la casilla «Acepto», sin marcar: sin ella no se envía el código. El servidor guarda cuándo y qué versión aceptó (`usuarios.consentimiento_en`, migración 030). El dueño que ya tenía cuenta ve una vez en el Asistente «Cómo cuidamos tus datos», con el mismo texto y «Acepto»; no bloquea nada. El invitado también tiene el enlace a la política.
 - El registro de eventos de la medición no guarda montos, nombres ni números de celular.
 
 ### Categorías provisionales

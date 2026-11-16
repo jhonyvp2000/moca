@@ -200,6 +200,8 @@ class ServicioCuentaRemoto
         } else ...{
           'modo': 'guardar',
           'usuarioId': (await _a.usuario()).id,
+          // Solo se llega aquí marcando «Acepto» (entrega 83).
+          'consentimiento': versionDelConsentimiento,
         },
       });
     } on TimeoutException {
@@ -208,6 +210,12 @@ class ServicioCuentaRemoto
       return ResultadoVerificacion.sinSenal;
     }
     final cuerpo = _cuerpo(respuesta);
+    if (!entrar && !invitado && respuesta.statusCode == 200) {
+      await _a.guardarAjuste(
+        AccesoLocal.claveConsentimiento,
+        versionDelConsentimiento,
+      );
+    }
     if (invitado) {
       switch (respuesta.statusCode) {
         case 200 when cuerpo['llave'] is String:
@@ -530,6 +538,19 @@ class ServicioCuentaRemoto
           ? Cobro.desdeServidor(cobro).hasta
           : null,
     );
+  }
+
+  @override
+  Future<bool> aceptarConsentimiento() async {
+    final r = await _delEquipo('/cuenta/consentimiento', {
+      'version': versionDelConsentimiento,
+    });
+    if (r == null || r.statusCode != 200) return false;
+    await _a.guardarAjuste(
+      AccesoLocal.claveConsentimiento,
+      versionDelConsentimiento,
+    );
+    return true;
   }
 
   @override
