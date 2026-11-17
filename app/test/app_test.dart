@@ -23,6 +23,9 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/tema/colores.dart';
+import 'package:moca/tema/medidas.dart';
+import 'package:moca/comun/tarjeta.dart';
 import 'package:moca/dominio/google_play.dart';
 import 'package:moca/dominio/version.dart';
 import 'package:moca/dominio/cobro.dart';
@@ -1280,6 +1283,58 @@ void main() {
       // Mockup: 8 + 60 (botón central) + 16 de relleno, más el borde.
       final alto = tester.getSize(find.byType(BarraInferior)).height;
       expect(alto, inInclusiveRange(84, 90));
+    });
+
+    testWidgets('Entrega 86: cada día empieza con una franja azul claro, '
+        'pegada a sus registros, aun angosto y con letra grande', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      tester.view.physicalSize = const Size(360 * 3, 780 * 3);
+      tester.view.devicePixelRatio = 3;
+      await tester.runAsync(() async {
+        final repo = RepositorioMovimientosLocal(base, ahora: () => _ahora);
+        final gastos = await repo.categorias(TipoMovimiento.egreso);
+        await repo.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 21700,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+          ),
+        );
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      for (final escala in [1.0, 1.5]) {
+        tester.platformDispatcher.textScaleFactorTestValue = escala;
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'letra $escala');
+        final franja = find.byKey(const ValueKey('encabezadoDelDia')).first;
+        // El fondo azul claro de la marca.
+        expect(
+          tester
+              .widgetList<ColoredBox>(
+                find.descendant(of: franja, matching: find.byType(ColoredBox)),
+              )
+              .map((c) => c.color),
+          contains(Colores.tinteAzul),
+        );
+        // Los totales caben dentro de la franja.
+        final caja = tester.getRect(franja);
+        final quedo = tester.getRect(
+          find.byKey(const ValueKey('quedoDelDia')).first,
+        );
+        expect(
+          quedo.right,
+          lessThanOrEqualTo(caja.right),
+          reason: 'letra $escala',
+        );
+        expect(caja.right, lessThanOrEqualTo(360), reason: 'letra $escala');
+        // Más cerca de su tarjeta que del borde de arriba de su bloque.
+        final tarjeta = tester.getRect(find.byType(Tarjeta).first);
+        expect(tarjeta.top - caja.bottom, lessThan(Medidas.e3));
+      }
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
 
     testWidgets('Entrega 55: el total del día y el cobro de un fiado en el '
