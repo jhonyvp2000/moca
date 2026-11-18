@@ -772,6 +772,9 @@ class _TiendaFalsa implements TiendaPlay {
 
 var _tienda = _TiendaFalsa();
 
+/// La prueba del 17-11-2026: «Pregúntale» con el plan vencido.
+var _preguntaleEnSoloAnotar = false;
+
 /// La huella del teléfono (entrega 16.3).
 var _hayBloqueo = true;
 var _pasaLaHuella = true;
@@ -922,6 +925,9 @@ Future<BaseLocal> abrirApp(
         compartidorProvider.overrideWithValue(_CompartidorFalso()),
         abridorProvider.overrideWithValue(_AbridorFalso()),
         tiendaPlayProvider.overrideWith((ref) => _tienda),
+        preguntaleEnSoloAnotarProvider.overrideWith(
+          (ref) => _preguntaleEnSoloAnotar,
+        ),
         lectorCodigoSmsProvider.overrideWithValue(_LectorSmsFalso()),
         enlacesDeVideosProvider.overrideWith((ref) => _enlaces),
         notificadorProvider.overrideWithValue(_NotificadorFalso()),
@@ -6189,11 +6195,22 @@ void main() {
       expect(find.text(Textos.pruebaTermino), findsOneWidget);
       expect(find.text(Textos.soloAnotarDetalle), findsOneWidget);
       expect(find.text(Textos.tienesHoy), findsNothing);
+      // Sin el APK de prueba, «Pregúntale» no sale al vencer.
+      expect(find.text(Textos.preguntaleAMoca), findsNothing);
       expect(find.text(Textos.pestanaInformes), findsNothing);
       expect(find.text(Textos.bajarMisOperaciones), findsOneWidget);
       // Se sigue anotando.
       await tocar(tester, find.text(Textos.anotarVentaDeHoy));
       expect(find.text(Textos.pruebaTermino), findsNothing);
+    });
+
+    testWidgets('Prueba del 17-11: con el plan vencido, «Pregúntale» sale solo '
+        'en el APK de prueba', (tester) async {
+      _preguntaleEnSoloAnotar = true;
+      addTearDown(() => _preguntaleEnSoloAnotar = false);
+      await conCobro(tester, {'estado': 'vencido', 'hasta': dia(-1)});
+      expect(find.text(Textos.soloAnotarDetalle), findsOneWidget);
+      expect(find.text(Textos.preguntaleAMoca), findsOneWidget);
     });
 
     testWidgets('Sin señal, vence igual al pasar el último día', (

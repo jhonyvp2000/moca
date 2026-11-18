@@ -42,6 +42,11 @@ on:
         type: boolean
         required: false
         default: false
+      preguntale_en_solo_anotar:
+        description: "Prueba (17-11-2026): «Pregúntale a Moca» también con el plan vencido. Solo para un APK mejora-NN-x."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -73,6 +78,14 @@ jobs:
         run: |
           if gh release view "$ENTREGA" > /dev/null 2>&1; then
             echo "::error::Ya hay una versión publicada con el nombre $ENTREGA. Usa el siguiente número."
+            exit 1
+          fi
+
+      - name: La prueba de «Pregúntale» va solo en un APK de prueba
+        if: inputs.preguntale_en_solo_anotar
+        run: |
+          if [[ ! "$ENTREGA" =~ ^mejora-[0-9]{2}-[a-z]$ ]]; then
+            echo "::error::«Pregúntale» con el plan vencido es una prueba: publícala como mejora-NN-x, nunca como piloto o entrega."
             exit 1
           fi
 
@@ -143,6 +156,7 @@ jobs:
           --dart-define=MOCA_ARMADO=${{ github.run_number }}
           --dart-define=MOCA_ENTREGA=${ENTREGA}
           --dart-define=MOCA_COMMIT=${GITHUB_SHA::7}
+          --dart-define=MOCA_PREGUNTALE_EN_SOLO_ANOTAR=${{ inputs.preguntale_en_solo_anotar && 'si' || 'no' }}
 
       - name: Armar AAB para Play Store
         # Entrega 77: el paquete que pide Play Store, firmado con la misma
