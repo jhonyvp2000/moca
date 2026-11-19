@@ -269,6 +269,8 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 > Para guardar tu avance, marca la casilla «Acepto» que está debajo del texto y luego toca «Enviarme el código». Si quieres leer cómo cuidamos tus datos, toca «Política de privacidad».
 
+**«No me sale "Pregúntale a Moca"» y es dueño con cuenta:** puede ser que su plan esté **vencido**: en «solo anotar» el Inicio es otro y no tiene la barra. Mientras se prueba con pilotos, nadie debería estar vencido: se mueve `MOCA_COBRO_DESDE` en Render a la fecha de hoy (la prueba de 14 días de quien nunca pagó cuenta desde ese día). A un negocio puntual también se le pueden dar días desde **Cobros → Dar días de prueba**; a quien pagó y se le venció, **Registrar pago**. Después tiene que abrir Moca con señal.
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.
