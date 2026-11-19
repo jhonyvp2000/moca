@@ -787,13 +787,6 @@ final repositorioTutoriaProvider = Provider<RepositorioTutoria>(
 
 final abridorProvider = Provider<AbridorDeEnlaces>((ref) => AbridorAndroid());
 
-/// Prueba del 17-11-2026: «Pregúntale a Moca» también con el plan vencido.
-/// Solo en un APK de prueba (`mejora-NN-x`); en los demás, apagado.
-final preguntaleEnSoloAnotarProvider = Provider<bool>(
-  (ref) =>
-      const String.fromEnvironment('MOCA_PREGUNTALE_EN_SOLO_ANOTAR') == 'si',
-);
-
 /// La tienda de Google Play (entrega 80): solo en la versión de Play Store.
 final tiendaPlayProvider = Provider<TiendaPlay?>((ref) {
   if (!ref.watch(versionInstaladaProvider).dePlay) return null;

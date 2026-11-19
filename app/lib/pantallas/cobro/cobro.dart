@@ -20,8 +20,6 @@ import '../../tema/tipografia.dart';
 import '../../rutas.dart';
 import '../../textos/textos.dart';
 import 'elegir_plan.dart';
-import '../../dominio/cuenta_real.dart';
-import '../preguntale/barra_preguntale.dart';
 
 /// El estado del cobro en la pestaña Moca, para los dueños (entrega 25).
 class TarjetaCobro extends ConsumerWidget {
@@ -603,15 +601,6 @@ class InicioSoloAnotar extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: Medidas.separacionTarjetas),
-          // Prueba del 17-11-2026, solo en un APK de prueba: «Pregúntale a
-          // Moca» también con el plan vencido, para el dueño con cuenta.
-          if (dueno &&
-              ref.watch(preguntaleEnSoloAnotarProvider) &&
-              ref.watch(situacionCuentaProvider).value?.estado ==
-                  EstadoCuenta.guardada) ...[
-            const BarraPreguntale(),
-            const SizedBox(height: Medidas.separacionTarjetas),
-          ],
           if (permisos.anota)
             FilledButton(
               onPressed: alAnotarVenta,
