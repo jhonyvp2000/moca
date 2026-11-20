@@ -46,9 +46,14 @@ on:
 permissions:
   contents: write
 
+# Un push nuevo cancela el armado de un push anterior de la misma rama, pero
+# nunca un APK pedido a mano (Run workflow): cada evento va en su propio grupo
+# y el pedido a mano no se cancela. Antes, un push mataba el piloto que se
+# estaba armando (piloto-30, 20-11-2026). Si se piden dos a mano seguidos, el
+# segundo espera a que termine el primero.
 concurrency:
-  group: apk-${{ github.ref }}
-  cancel-in-progress: true
+  group: apk-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   apk:
