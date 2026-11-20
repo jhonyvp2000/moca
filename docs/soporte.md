@@ -225,9 +225,9 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ---
 
-**Dónde está el arqueo (desde la entrega 57):** en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
+**Dónde está el arqueo (desde la entrega 91):** el dueño, en **Ajustes → Mis cuentas** → **«Hacer arqueo»** (debajo de sus cuentas). El encargado lo sigue teniendo en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
 
-> Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
+> Para contar tu plata: entra a Ajustes, luego «Mis cuentas» y toca «Hacer arqueo». (Si eres encargado: toca el + de abajo y luego «Hacer arqueo».)
 
 **«No me sale "Pregúntale a Moca"»** · **«Moca no me responde»** (entrega 74): la barra sale solo al **dueño con cuenta** (no al encargado, ayudante o contador, ni en la Demo). Necesita internet. Si dice «Ahora no puedo responder», el servidor o la IA no están disponibles en ese momento (revisa Render y el saldo de Anthropic). Hay un tope de 20 preguntas al día por negocio. Moca responde con lo que ya subió: si la persona anotó sin señal, primero tiene que subir.
 

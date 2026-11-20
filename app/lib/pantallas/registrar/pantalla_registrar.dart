@@ -103,9 +103,11 @@ class ContenidoRegistrar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sin cuenta, cuántas fotos de prueba quedan (entrega 14.2).
     final pruebas = ref.watch(fotosDePruebaProvider).value;
-    // El arqueo, para quien lo hace (entrega 57).
-    final haceArqueo =
-        (ref.watch(permisosProvider).value ?? Permisos.delDueno).haceArqueo;
+    // El arqueo, para quien lo hace (entrega 57). Desde la entrega 91 el
+    // dueño lo hace desde «Mis cuentas»; aquí queda para el encargado, que
+    // no entra a «Mis cuentas».
+    final permisos = ref.watch(permisosProvider).value ?? Permisos.delDueno;
+    final haceArqueo = permisos.haceArqueo && !permisos.cambiaCuentas;
     // Todo armado de una vez (no es una lista larga): con letra grande,
     // «Escribirlo» existe aunque haya que desplazarse para verlo.
     return SingleChildScrollView(

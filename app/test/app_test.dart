@@ -3220,10 +3220,21 @@ void main() {
   });
 
   group('Arqueo', () {
-    testWidgets('Entrega 57: el + abre el arqueo con su atajo', (tester) async {
+    testWidgets('Entrega 91: el dueño abre el arqueo desde «Mis cuentas», '
+        'no desde el +', (tester) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.hacerArqueo));
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      await tocar(tester, find.text(Textos.cancelar));
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      // Antes de «¿Tienes otra caja de efectivo?».
+      final boton = find.widgetWithText(OutlinedButton, Textos.hacerArqueo);
+      expect(
+        tester.getTopLeft(boton).dy,
+        lessThan(tester.getTopLeft(find.text(Textos.agregarUnaCaja)).dy),
+      );
+      await tocar(tester, boton);
       expect(find.text(Textos.guardarArqueo), findsOneWidget);
     });
 
@@ -3345,7 +3356,7 @@ void main() {
     });
 
     testWidgets('«Pedir el arqueo ahora»: el Inicio no lleva tarjeta '
-        '(entrega 64) y el arqueo se hace desde el +', (tester) async {
+        '(entrega 64) y el arqueo se hace desde «Mis cuentas»', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
@@ -3354,8 +3365,12 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInicio));
 
       expect(find.text(Textos.mocaTocaArqueo), findsNothing);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.hacerArqueo));
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(
+        tester,
+        find.widgetWithText(OutlinedButton, Textos.hacerArqueo),
+      );
       expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
     });
 
