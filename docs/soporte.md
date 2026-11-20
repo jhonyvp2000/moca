@@ -231,6 +231,8 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **«No me sale "Pregúntale a Moca"»** · **«Moca no me responde»** (entrega 74): la barra sale solo al **dueño con cuenta** (no al encargado, ayudante o contador, ni en la Demo). Necesita internet. Si dice «Ahora no puedo responder», el servidor o la IA no están disponibles en ese momento (revisa Render y el saldo de Anthropic). Hay un tope de 20 preguntas al día por negocio. Moca responde con lo que ya subió: si la persona anotó sin señal, primero tiene que subir.
 
+**«Se borró lo que le pregunté a Moca»** (entrega 90): la conversación se guarda en el teléfono, las últimas 20 preguntas. Empieza vacía al cambiar de negocio, al salir de la cuenta o si la persona tocó la papelera; las respuestas con «Ahora no puedo responder» no se guardan. No se puede recuperar: el servidor no guarda el texto de las preguntas.
+
 **«Moca me dijo una cifra de un día que no cuadra»** (entrega 89): Moca separa **lo que vendiste** ese día (por el día de la venta, incluido lo que quedó al fiado) de **la plata que te entró** (lo cobrado ese día, también fiados de días anteriores). Revisa el Historial de ese día: las filas grises son ventas o compras que no movieron plata ese día, y las filas «Te pagó» son cobros de días anteriores. Si la fecha que entendió Moca no es la que quería la persona, que pregunte con la fecha completa («el martes 17 de noviembre»).
 
 > «Pregúntale a Moca» está en el Inicio, debajo de «Tienes hoy», solo para los dueños con cuenta y con internet. Si te dice que no puede responder, intenta en un rato. Puedes hacer hasta 20 preguntas al día.

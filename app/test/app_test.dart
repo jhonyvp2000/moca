@@ -16,6 +16,8 @@ import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
+import 'package:moca/datos/repositorios/conversacion_local.dart';
+import 'package:moca/dominio/pregunta.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
@@ -182,6 +184,9 @@ class _ServidorFalso {
   /// «Pregúntale a Moca» (entrega 74): lo preguntado, lo que responde y
   /// cuántas quedan; [errorPregunta] hace que falle.
   final preguntas = <String>[];
+
+  /// Las anteriores que llegaron con cada pregunta (entrega 90).
+  final anteriores = <Object?>[];
   var quedanPreguntas = 20;
   String? errorPregunta;
 
@@ -444,6 +449,7 @@ class _ServidorFalso {
         );
       case '/pregunta':
         preguntas.add(cuerpo['pregunta']! as String);
+        anteriores.add(cuerpo['anteriores']);
         if (errorPregunta case final error?) {
           return http.Response(
             jsonEncode({'error': error, 'quedan': quedanPreguntas}),
@@ -7144,6 +7150,174 @@ void main() {
             .widget<TextField>(find.byKey(PantallaPreguntale.claveCampo))
             .enabled,
         isFalse,
+      );
+    });
+
+    // Entrega 90: la conversación se guarda en el teléfono.
+    Future<void> cerrarYVolver(WidgetTester tester) async {
+      await tocar(tester, find.byTooltip(Textos.cerrar));
+      await tocar(tester, find.text(Textos.preguntaleAMoca));
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+    }
+
+    const respuestaDeRosa = 'Doña Rosa te debe S/ 80 desde el 12 de octubre.';
+
+    testWidgets('Entrega 90: al volver está la conversación, y Moca la '
+        'recuerda', (tester) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      final sugerida = Textos.sugerenciasDelDia(_ahora)[0];
+      await preguntar(tester, find.text(sugerida));
+      expect(_servidor.anteriores, [null]);
+      await cerrarYVolver(tester);
+      expect(find.text(sugerida), findsOneWidget);
+      expect(find.text(respuestaDeRosa), findsOneWidget);
+      expect(
+        find.text(Textos.conLoAnotadoHasta(_ahora, _ahora)),
+        findsOneWidget,
+      );
+      // Las sugerencias ya no salen: hay conversación.
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsNothing);
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Y el martes?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(_servidor.anteriores.last, [
+        {'pregunta': sugerida, 'respuesta': respuestaDeRosa},
+      ]);
+    });
+
+    testWidgets('Entrega 90: guarda las últimas 20 y manda las últimas 4, '
+        'con su fecha', (tester) async {
+      final base = await conCuenta(tester);
+      final acceso = AccesoLocal(base, () => _ahora);
+      final conversacion = ConversacionLocal(acceso);
+      final antes = _ahora.subtract(const Duration(days: 3));
+      final negocio = await tester.runAsync(acceso.empresa);
+      // Ya tiene 20 guardadas: con la próxima se va la más vieja.
+      await tester.runAsync(
+        () => acceso.guardarAjuste(
+          ConversacionLocal.clave,
+          jsonEncode({
+            'negocio': negocio!.id,
+            'intercambios': [
+              for (var i = 1; i <= 20; i++)
+                Intercambio(
+                  pregunta: 'pregunta $i',
+                  respuesta: RespuestaDeMoca(texto: 'respuesta $i'),
+                  cuando: antes,
+                ).aJson(),
+            ],
+          }),
+        ),
+      );
+      // Con 20 guardadas abre al final: el saludo queda arriba, sin dibujar.
+      await tocar(tester, find.text(Textos.preguntaleAMoca));
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      // Al final, la última; con la fecha de cuando respondió.
+      expect(find.text('respuesta 20'), findsOneWidget);
+      expect(
+        find.text(Textos.conLoAnotadoHasta(antes, _ahora)).hitTestable(),
+        findsWidgets,
+      );
+      expect(Textos.conLoAnotadoHasta(antes, _ahora), contains('el viernes 9'));
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Y hoy?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(_servidor.anteriores.last, [
+        for (var i = 17; i <= 20; i++)
+          {'pregunta': 'pregunta $i', 'respuesta': 'respuesta $i'},
+      ]);
+      final despues = await tester.runAsync(conversacion.leer);
+      expect(despues!.length, 20);
+      expect(despues.first.pregunta, 'pregunta 2');
+      expect(despues.last.pregunta, '¿Y hoy?');
+    });
+
+    testWidgets('Entrega 90: lo que no respondió Moca no se guarda', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      _servidor.errorPregunta = 'sin_respuesta';
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
+      expect(find.text(Textos.preguntaleNoDisponible), findsOneWidget);
+      expect(find.byTooltip(Textos.borrarConversacion), findsNothing);
+      await cerrarYVolver(tester);
+      expect(find.text(Textos.preguntaleNoDisponible), findsNothing);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsOneWidget);
+    });
+
+    testWidgets('Entrega 90: «Borrar conversación» pregunta y la borra', (
+      tester,
+    ) async {
+      final base = await conCuenta(tester);
+      await abrirPreguntale(tester);
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
+      await tocar(tester, find.byTooltip(Textos.borrarConversacion));
+      expect(find.text(Textos.borrarConversacionTitulo), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(find.text(respuestaDeRosa), findsOneWidget);
+      await tocar(tester, find.byTooltip(Textos.borrarConversacion));
+      await tocar(tester, find.text(Textos.borrar));
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      expect(find.text(respuestaDeRosa), findsNothing);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsOneWidget);
+      final guardadas = await tester.runAsync(
+        ConversacionLocal(AccesoLocal(base, () => _ahora)).leer,
+      );
+      expect(guardadas, isEmpty);
+    });
+
+    testWidgets('Entrega 90: la conversación de otro negocio no se muestra', (
+      tester,
+    ) async {
+      final base = await conCuenta(tester);
+      final acceso = AccesoLocal(base, () => _ahora);
+      await tester.runAsync(
+        () => acceso.guardarAjuste(
+          ConversacionLocal.clave,
+          jsonEncode({
+            'negocio': 'otro-negocio',
+            'intercambios': [
+              Intercambio(
+                pregunta: '¿Cuánto vendí?',
+                respuesta: const RespuestaDeMoca(texto: 'De otro negocio.'),
+                cuando: _ahora,
+              ).aJson(),
+            ],
+          }),
+        ),
+      );
+      await abrirPreguntale(tester);
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      expect(find.text('De otro negocio.'), findsNothing);
+      expect(
+        await tester.runAsync(() => acceso.leerAjuste(ConversacionLocal.clave)),
+        isNull,
       );
     });
 

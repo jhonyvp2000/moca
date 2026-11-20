@@ -867,8 +867,25 @@ abstract final class Textos {
   static const escribeTuPregunta = 'Escribe tu pregunta';
   static const enviar = 'Enviar';
   static const mocaPiensa = 'Moca está revisando tus cifras…';
-  static String conLoAnotadoHasta(String hora) =>
-      'Con lo anotado hasta hoy $hora';
+
+  /// Hasta cuándo eran las cifras de una respuesta (entrega 90: la
+  /// conversación se guarda, y una respuesta vieja puede haber cambiado).
+  static String conLoAnotadoHasta(DateTime cuando, DateTime ahora) {
+    final hora = formatearHora(cuando.hour * 60 + cuando.minute);
+    final dia = DateTime(cuando.year, cuando.month, cuando.day);
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    if (dia == hoy) return 'Con lo anotado hasta hoy $hora';
+    if (dia == DateTime(hoy.year, hoy.month, hoy.day - 1)) {
+      return 'Con lo anotado hasta ayer $hora';
+    }
+    return 'Con lo anotado hasta el ${formatearFechaLarga(cuando)}, $hora';
+  }
+
+  static const borrarConversacion = 'Borrar conversación';
+  static const borrarConversacionTitulo = '¿Borrar la conversación?';
+  static const borrarConversacionTexto =
+      'Se borran de este teléfono tus preguntas y lo que respondió Moca. '
+      'Lo que anotaste no cambia.';
   static String preguntasQueQuedan(int n) => n == 1
       ? 'Te queda 1 pregunta hoy · Necesita internet'
       : 'Te quedan $n preguntas hoy · Necesita internet';

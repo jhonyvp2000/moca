@@ -7,7 +7,7 @@ import { desfaseHorario } from '../pais/peru.js';
 import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import { hechosDelNegocio } from './hechos.js';
 import { cifrasDelPeriodo } from './periodo.js';
-import type { Respondedor } from './respondedor.js';
+import { anterioresMaximas, type Anterior, type Respondedor } from './respondedor.js';
 
 /** Preguntas respondidas por negocio y día (entrega 74). */
 export const topeDiario = 20;
@@ -100,14 +100,30 @@ export function rutasPregunta(
 
   // «Pregúntale a Moca»: la IA explica las cifras que el servidor ya
   // calculó. No se guarda el texto de la pregunta ni de la respuesta.
-  app.post<{ Body: { pregunta: string } }>(
+  app.post<{ Body: { pregunta: string; anteriores?: Anterior[] } }>(
     '/pregunta',
     {
       schema: {
         body: {
           type: 'object',
           required: ['pregunta'],
-          properties: { pregunta: { type: 'string', minLength: 1, maxLength: 300 } },
+          properties: {
+            pregunta: { type: 'string', minLength: 1, maxLength: 300 },
+            // Las últimas de la conversación, que guarda el teléfono (entrega 90).
+            anteriores: {
+              type: 'array',
+              maxItems: anterioresMaximas,
+              items: {
+                type: 'object',
+                required: ['pregunta', 'respuesta'],
+                additionalProperties: false,
+                properties: {
+                  pregunta: { type: 'string', minLength: 1, maxLength: 300 },
+                  respuesta: { type: 'string', minLength: 1, maxLength: 2000 },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -134,8 +150,11 @@ export function rutasPregunta(
       try {
         // Las cifras de cualquier día o rango, si la pregunta las pide
         // (entrega 89).
-        const r = await respondedor.responder(hechos, pregunta, (desde, hasta) =>
-          cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+        const r = await respondedor.responder(
+          hechos,
+          pregunta,
+          (desde, hasta) => cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+          peticion.body.anteriores ?? [],
         );
         await pool.query(
           `INSERT INTO preguntas (empresa_id, usuario_id, resultado, modelo, tokens_entrada,

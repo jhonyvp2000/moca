@@ -95,12 +95,17 @@ describe('Pregúntale a Moca (entrega 74)', () => {
   let sinIa: FastifyInstance;
   let lucho: Persona;
   let empresaId: string;
-  let recibido: { hechos: Hechos; pregunta: string; periodo?: CifrasDePeriodo } | null = null;
+  let recibido: {
+    hechos: Hechos;
+    pregunta: string;
+    periodo?: CifrasDePeriodo;
+    anteriores?: { pregunta: string; respuesta: string }[];
+  } | null = null;
   let falla = false;
 
   const respondedor: Respondedor = {
-    async responder(hechos, pregunta, periodo) {
-      recibido = { hechos, pregunta, periodo };
+    async responder(hechos, pregunta, periodo, anteriores) {
+      recibido = { hechos, pregunta, periodo, anteriores };
       if (falla) throw new Error('sin modelo');
       return {
         texto: 'Doña Rosa te debe S/ 40 desde el 9 de noviembre.',
@@ -267,6 +272,30 @@ describe('Pregúntale a Moca (entrega 74)', () => {
     expect(r.statusCode).toBe(403);
     expect(r.json().error).toBe('solo_duenos');
     expect((await pedir(app, pepe, 'GET')).statusCode).toBe(403);
+  });
+
+  it('Entrega 90: la pregunta puede traer hasta 4 anteriores de la conversación', async () => {
+    const anterior = { pregunta: '¿Cuánto vendí el lunes?', respuesta: 'El lunes 9 vendiste S/ 160.' };
+    // Más de 4, o una anterior incompleta, no se aceptan (y no cuentan para el tope).
+    const muchas = await pedir(app, lucho, 'POST', { pregunta: '¿y el martes?', anteriores: Array(5).fill(anterior) });
+    expect(muchas.statusCode).toBe(400);
+    const incompleta = await pedir(app, lucho, 'POST', { pregunta: '¿y el martes?', anteriores: [{ pregunta: 'hola' }] });
+    expect(incompleta.statusCode).toBe(400);
+    const larga = await pedir(app, lucho, 'POST', {
+      pregunta: '¿y el martes?',
+      anteriores: [{ pregunta: 'hola', respuesta: 'x'.repeat(2001) }],
+    });
+    expect(larga.statusCode).toBe(400);
+
+    const bien = await pedir(app, lucho, 'POST', { pregunta: '¿y el martes?', anteriores: [anterior] });
+    expect(bien.statusCode).toBe(200);
+    expect(recibido!.pregunta).toBe('¿y el martes?');
+    expect(recibido!.anteriores).toEqual([anterior]);
+    // Esta no cuenta para la prueba del tope que sigue.
+    await base.poolAdmin.query(
+      `DELETE FROM preguntas WHERE ctid = (SELECT ctid FROM preguntas WHERE usuario_id = $1 LIMIT 1)`,
+      [lucho.usuarioId],
+    );
   });
 
   it('sin llave, sin respuesta o al llegar al tope, lo dice', async () => {

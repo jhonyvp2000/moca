@@ -178,6 +178,27 @@ describe('El respondedor pide las cifras y después responde (entrega 89)', () =
     expect(pedidos[2]!.tools).toHaveLength(1);
   });
 
+  it('Entrega 90: las preguntas anteriores van antes, y las cifras una sola vez', async () => {
+    const { cliente, pedidos } = clienteFalso([responde('El martes 17 vendiste S/ 0.')]);
+    const anteriores = Array.from({ length: 6 }, (_, i) => ({
+      pregunta: `pregunta ${i + 1}`,
+      respuesta: `respuesta ${i + 1}`,
+    }));
+    await respondedorAnthropic('llave', cliente).responder(hechos, '¿y el martes?', cifras, anteriores);
+    const m = pedidos[0]!.messages;
+    // Solo las 4 últimas: 8 mensajes y la pregunta nueva.
+    expect(m).toHaveLength(9);
+    expect(m[0]).toEqual({ role: 'user', content: 'Pregunta del dueño: pregunta 3' });
+    expect(m[1]).toEqual({
+      role: 'assistant',
+      content: JSON.stringify({ respuesta: 'respuesta 3', enlace: null }),
+    });
+    expect(m[7]!.content).toContain('respuesta 6');
+    expect(m[8]!.content).toContain('<hechos>');
+    expect(m[8]!.content).toContain('Pregunta del dueño: ¿y el martes?');
+    expect(m.filter((x) => String(x.content).includes('<hechos>'))).toHaveLength(1);
+  });
+
   it('sin periodo no se ofrece la herramienta', async () => {
     const { cliente, pedidos } = clienteFalso([responde('Hoy vendiste S/ 0.')]);
     await respondedorAnthropic('llave', cliente).responder(hechos, '¿cuánto vendí hoy?');
