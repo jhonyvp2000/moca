@@ -258,7 +258,10 @@ class _EstadoDetalleMovimiento
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: MontoText(
-                  f.montoCentimos,
+                  // Con partes, la venta o la compra completa (entrega 87).
+                  d.partes.isEmpty || f.parteDe != null
+                      ? f.montoCentimos
+                      : f.totalConPartesCentimos,
                   estilo: Tipografia.montoDetalle,
                   tono: tonoDeFila(f) == Tono.neutro ? null : tonoDeFila(f),
                   conSigno: true,
@@ -362,6 +365,14 @@ class _EstadoDetalleMovimiento
               if (f.loDebes)
                 (
                   Textos.faltaPagar(''),
+                  formatearSolesComprobante(f.montoCentimos),
+                )
+              // Pagada del todo: el último cobro o pago, lo que faltaba
+              // (entrega 87).
+              else if (f.fechaPago case final pago?)
+                (
+                  '${formatearDiaYMes(pago)} · '
+                      '${Textos.nombreCuenta(f.cuenta)}',
                   formatearSolesComprobante(f.montoCentimos),
                 ),
             ],

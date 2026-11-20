@@ -299,6 +299,7 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                               for (final (i, f) in delDia.indexed)
                                 FilaMovimiento(
                                   fila: f,
+                                  delDia: true,
                                   conSeparador: i < delDia.length - 1,
                                   alTocar: () => context.push(
                                     Rutas.detalleMovimiento(f.id),

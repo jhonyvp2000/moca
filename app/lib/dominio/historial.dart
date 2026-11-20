@@ -37,7 +37,17 @@ class FilaHistorial {
     this.recordadoEn,
     this.fechaPago,
     this.esPago = false,
+    this.fechaDeLaDeuda,
   });
+
+  /// En una parte, el día de la venta o la compra de la que es parte; en la
+  /// fila del día del pago, el día de la deuda (entrega 87).
+  final DateTime? fechaDeLaDeuda;
+
+  /// En el Historial, una deuda que ese día no movió plata: se debe, o se
+  /// pagó otro día (entrega 87). Va en gris, con su monto original.
+  bool get noMovioPlataEseDia =>
+      !esPago && !ajusteArqueo && !tipo.esPase && (loDebes || pagadoOtroDia);
 
   /// Cuándo se cobró o se pagó una deuda; nulo si todavía se debe o si no
   /// fue una deuda (entrega 55).
@@ -121,35 +131,43 @@ class FilaHistorial {
   FilaHistorial conMonto(int centimos) => _copia(monto: centimos);
 
   /// La fila del día del pago (entrega 55).
-  FilaHistorial comoPago() => _copia(fecha: fechaPago, esPago: true);
+  FilaHistorial comoPago() =>
+      _copia(fecha: fechaPago, esPago: true, fechaDeLaDeuda: fecha);
 
-  FilaHistorial _copia({int? monto, DateTime? fecha, bool? esPago}) =>
-      FilaHistorial(
-        id: id,
-        tipo: tipo,
-        montoCentimos: monto ?? montoCentimos,
-        fecha: fecha ?? this.fecha,
-        cuenta: cuenta,
-        loDebes: loDebes,
-        porSubir: porSubir,
-        categoria: categoria,
-        nota: nota,
-        proveedor: proveedor,
-        ajusteArqueo: ajusteArqueo,
-        cuentaDestino: cuentaDestino,
-        deOtro: deOtro,
-        autorNombre: autorNombre,
-        autorRol: autorRol,
-        anotadoEn: anotadoEn,
-        vence: vence,
-        parteDe: parteDe,
-        pagadoEnPartesCentimos: pagadoEnPartesCentimos,
-        contraparteId: contraparteId,
-        celular: celular,
-        recordadoEn: recordadoEn,
-        fechaPago: fechaPago,
-        esPago: esPago ?? this.esPago,
-      );
+  FilaHistorial _copia({
+    int? monto,
+    DateTime? fecha,
+    bool? esPago,
+    DateTime? fechaDeLaDeuda,
+  }) => FilaHistorial(
+    id: id,
+    tipo: tipo,
+    montoCentimos: monto ?? montoCentimos,
+    fecha: fecha ?? this.fecha,
+    cuenta: cuenta,
+    loDebes: loDebes,
+    porSubir: porSubir,
+    categoria: categoria,
+    nota: nota,
+    proveedor: proveedor,
+    documentoTipo: documentoTipo,
+    documentoNumero: documentoNumero,
+    ajusteArqueo: ajusteArqueo,
+    cuentaDestino: cuentaDestino,
+    deOtro: deOtro,
+    autorNombre: autorNombre,
+    autorRol: autorRol,
+    anotadoEn: anotadoEn,
+    vence: vence,
+    parteDe: parteDe,
+    pagadoEnPartesCentimos: pagadoEnPartesCentimos,
+    contraparteId: contraparteId,
+    celular: celular,
+    recordadoEn: recordadoEn,
+    fechaPago: fechaPago,
+    esPago: esPago ?? this.esPago,
+    fechaDeLaDeuda: fechaDeLaDeuda ?? this.fechaDeLaDeuda,
+  );
 
   bool cumple(Transaccion transaccion) => switch (transaccion) {
     // Un pase no entra ni sale del negocio: solo sin filtro.

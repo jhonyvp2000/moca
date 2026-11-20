@@ -271,6 +271,10 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **«No me sale "Pregúntale a Moca"» y es dueño con cuenta:** puede ser que su plan esté **vencido**: en «solo anotar» el Inicio es otro y no tiene la barra. Mientras se prueba con pilotos, nadie debería estar vencido: se mueve `MOCA_COBRO_DESDE` en Render a la fecha de hoy (la prueba de 14 días de quien nunca pagó cuenta desde ese día). A un negocio puntual también se le pueden dar días desde **Cobros → Dar días de prueba**; a quien pagó y se le venció, **Registrar pago**. Después tiene que abrir Moca con señal.
 
+**«¿Por qué una venta sale en gris en el Historial?»** (entrega 87): el gris dice que **ese día no entró plata**: fue al fiado. La plata cuenta el día en que te pagaron, en las filas «Te pagó …» (cada parte dice de qué venta es). En compras al crédito, lo mismo con «Le pagaste a …».
+
+> En el Historial, lo gris es lo que vendiste al fiado: ese día no entró plata. Cuando te pagan, sale una fila «Te pagó …» en azul el día del pago, y ahí suma.
+
 ## Lo que conviene saber de Moca
 
 - **Cuenta:** el número de celular **es** la cuenta. No hay correo ni contraseña: se entra con un código por SMS.

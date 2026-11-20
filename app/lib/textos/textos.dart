@@ -950,6 +950,14 @@ abstract final class Textos {
   static String pagadoEl(String fecha) => 'Pagado el $fecha';
   // Lo cobrado o pagado otro día, en el día del pago (entrega 55).
   static String cobradoEl(String fecha) => 'Cobrado el $fecha';
+  // Ventas y compras al fiado en el Historial (entrega 87).
+  static String teDebeDe(String falta, String total) =>
+      'Te debe $falta de $total';
+  static String debesDe(String falta, String total) => 'Debes $falta de $total';
+  static String unaParteDeLa(bool venta, String fecha) =>
+      'Una parte de la ${venta ? 'venta' : 'compra'} del $fecha';
+  static String completoLa(bool venta, String fecha) =>
+      'Completó la ${venta ? 'venta' : 'compra'} del $fecha';
   static String tePago(String? cliente) =>
       cliente == null ? 'Te pagaron un fiado' : 'Te pagó $cliente';
   static String lePagaste(String? proveedor) =>

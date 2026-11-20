@@ -26,6 +26,7 @@ import 'package:moca/datos/simulados/lector_foto_simulado.dart';
 import 'package:moca/tema/colores.dart';
 import 'package:moca/tema/medidas.dart';
 import 'package:moca/comun/tarjeta.dart';
+import 'package:moca/comun/monto_text.dart';
 import 'package:moca/dominio/google_play.dart';
 import 'package:moca/dominio/version.dart';
 import 'package:moca/dominio/cobro.dart';
@@ -1283,6 +1284,94 @@ void main() {
       // Mockup: 8 + 60 (botón central) + 16 de relleno, más el borde.
       final alto = tester.getSize(find.byType(BarraInferior)).height;
       expect(alto, inInclusiveRange(84, 90));
+    });
+
+    testWidgets('Entrega 87: la venta al fiado en gris con su monto; los '
+        'cobros en partes, como «Te pagó», el día del cobro', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      late String id;
+      await tester.runAsync(() async {
+        // Venta al fiado de S/ 40 el sábado 10; se cobran S/ 30 hoy.
+        final antes = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 10, 18),
+        );
+        final ventas = await antes.categorias(TipoMovimiento.ingreso);
+        id = (await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 4000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ventas.first.id,
+            pagado: false,
+            contraparte: 'Comercial El Sol',
+          ),
+        )).ids.single;
+        await RepositorioHistorialLocal(base, ahora: () => _ahora).pagar(
+          id,
+          cuenta: TipoCuenta.efectivo,
+          dia: _ahora,
+          parteCentimos: 3000,
+        );
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      // Hoy, el cobro de la parte, como «Te pagó», de la venta del sábado.
+      expect(find.text(Textos.tePago('Comercial El Sol')), findsOneWidget);
+      expect(
+        find.textContaining(
+          Textos.unaParteDeLa(true, '10 de octubre'),
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      // El sábado, la venta con su monto original, en gris.
+      final venta = find.textContaining(
+        Textos.teDebeDe(
+          formatearSolesComprobante(1000),
+          formatearSolesComprobante(4000),
+        ),
+        findRichText: true,
+      );
+      await tester.scrollUntilVisible(
+        venta,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(venta, findsOneWidget);
+      final gris = tester.widget<MontoText>(
+        find.byKey(const ValueKey('montoQueNoSuma')),
+      );
+      expect(gris.centimos, 4000);
+      expect(gris.color, Colores.textoSecundario);
+
+      // Se cobra lo que falta: dos «Te pagó» hoy, y la venta sigue en S/ 40.
+      await tester.runAsync(
+        () => RepositorioHistorialLocal(
+          base,
+          ahora: () => _ahora,
+        ).pagar(id, cuenta: TipoCuenta.efectivo, dia: _ahora),
+      );
+      await esperar(tester);
+      expect(
+        find.textContaining(
+          Textos.completoLa(true, '10 de octubre'),
+          findRichText: true,
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.tePago('Comercial El Sol'), skipOffstage: false),
+        findsNWidgets(2),
+      );
+      expect(
+        tester
+            .widget<MontoText>(
+              find.byKey(const ValueKey('montoQueNoSuma'), skipOffstage: false),
+            )
+            .centimos,
+        4000,
+      );
     });
 
     testWidgets('Entrega 86: cada día empieza con una franja azul claro, '
