@@ -67,7 +67,7 @@ interface DeudaDeCliente extends Deuda {
   ultimoRecordatorio: string;
 }
 
-interface Monto {
+export interface Monto {
   nombre: string;
   monto: string;
 }
@@ -86,7 +86,7 @@ export interface Extra {
   plan: string | null;
 }
 
-type Fila = Record<string, unknown>;
+export type Fila = Record<string, unknown>;
 
 const meses = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
@@ -104,14 +104,14 @@ export function soles(centimos: number): string {
 }
 
 /** La fecha en el Perú, como texto: «viernes 13 de noviembre de 2026». */
-function fechaLarga(d: Date): string {
+export function fechaLarga(d: Date): string {
   return `${dias[d.getUTCDay()]} ${d.getUTCDate()} de ${meses[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
-const enPeru = (v: unknown) => new Date(new Date(v as string | Date).getTime() + desfaseHorario);
+export const enPeru = (v: unknown) => new Date(new Date(v as string | Date).getTime() + desfaseHorario);
 
 /** El día en el Perú, a medianoche (UTC como reloj local). */
-const diaDe = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+export const diaDe = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 const diaCorto = (t: number) => {
   const f = new Date(t);
   return `${dias[f.getUTCDay()]} ${f.getUTCDate()} de ${meses[f.getUTCMonth()]}`;
@@ -119,7 +119,7 @@ const diaCorto = (t: number) => {
 const nombreDelMes = (anio: number, mes: number) => `${meses[mes]} de ${anio}`;
 
 /** Suma por clave y la deja de mayor a menor. */
-function sumarPor(pares: [string, number][]): Monto[] {
+export function sumarPor(pares: [string, number][]): Monto[] {
   const total = new Map<string, number>();
   for (const [k, v] of pares) total.set(k, (total.get(k) ?? 0) + v);
   return [...total.entries()]

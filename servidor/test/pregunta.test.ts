@@ -6,6 +6,7 @@ import type { Hechos } from '../src/pregunta/hechos.js';
 import { hechosDelNegocio, soles } from '../src/pregunta/hechos.js';
 import { calcularCifras, type DatosEmpresa } from '../src/cifras/calcular.js';
 import {
+  type CifrasDePeriodo,
   instrucciones,
   mensajeParaElModelo,
   type Respondedor,
@@ -94,12 +95,12 @@ describe('Pregúntale a Moca (entrega 74)', () => {
   let sinIa: FastifyInstance;
   let lucho: Persona;
   let empresaId: string;
-  let recibido: { hechos: Hechos; pregunta: string } | null = null;
+  let recibido: { hechos: Hechos; pregunta: string; periodo?: CifrasDePeriodo } | null = null;
   let falla = false;
 
   const respondedor: Respondedor = {
-    async responder(hechos, pregunta) {
-      recibido = { hechos, pregunta };
+    async responder(hechos, pregunta, periodo) {
+      recibido = { hechos, pregunta, periodo };
       if (falla) throw new Error('sin modelo');
       return {
         texto: 'Doña Rosa te debe S/ 40 desde el 9 de noviembre.',
@@ -213,6 +214,19 @@ describe('Pregúntale a Moca (entrega 74)', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ resultado: 'respondida', tokens_entrada: 900 });
     expect(JSON.stringify(rows[0])).not.toContain('Rosa');
+  });
+
+  it('Entrega 89: la IA puede pedir las cifras de cualquier fecha del negocio', () => {
+    // La pregunta de la prueba anterior (no se pregunta otra vez: cuenta para el tope).
+    const periodo = recibido!.periodo!;
+    // El lunes 9: S/ 120 por Yape y S/ 40 al fiado de Doña Rosa.
+    expect(periodo('2026-11-09', '2026-11-09')).toMatchObject({
+      vendiste: 'S/ 160',
+      deEsoAlFiado: 'S/ 40',
+      teEntro: 'S/ 120',
+    });
+    expect(periodo('2026-11-14', '2026-11-14')).toEqual({ error: 'en_el_futuro' });
+    expect(instrucciones).toContain('cifras_del_periodo');
   });
 
   it('el modelo recibe los hechos aparte de la pregunta, con sus reglas', () => {

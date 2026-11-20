@@ -6,6 +6,7 @@ import { autenticar } from '../datos/subir.js';
 import { desfaseHorario } from '../pais/peru.js';
 import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import { hechosDelNegocio } from './hechos.js';
+import { cifrasDelPeriodo } from './periodo.js';
 import type { Respondedor } from './respondedor.js';
 
 /** Preguntas respondidas por negocio y día (entrega 74). */
@@ -131,7 +132,11 @@ export function rutasPregunta(
       );
       const inicio = Date.now();
       try {
-        const r = await respondedor.responder(hechos, pregunta);
+        // Las cifras de cualquier día o rango, si la pregunta las pide
+        // (entrega 89).
+        const r = await respondedor.responder(hechos, pregunta, (desde, hasta) =>
+          cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+        );
         await pool.query(
           `INSERT INTO preguntas (empresa_id, usuario_id, resultado, modelo, tokens_entrada,
                                   tokens_salida, milisegundos)
