@@ -1059,6 +1059,14 @@ Future<void> quitarFiltros(WidgetTester tester) async {
   );
 }
 
+/// La venta del día (entrega 92: ya no tiene atajo en el +; en el teléfono
+/// se llega por la notificación de la noche o por voz).
+Future<void> abrirVentaDelDia(WidgetTester tester) async {
+  GoRouter.of(tester.element(find.byType(BarraInferior)))
+      .push(Rutas.ventaDelDia);
+  await esperar(tester);
+}
+
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
   await tocar(tester, find.byTooltip(Textos.ajustes));
@@ -1630,9 +1638,13 @@ void main() {
       expect(find.text(Textos.yaLoPagaste), findsOneWidget);
       await tocar(tester, find.byType(BotonVolver).first);
 
+      // «Un ingreso» abre «Escribirlo» con «Entró» (entrega 92).
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
-      expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      await tocar(tester, find.text(Textos.atajoUnIngreso));
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text(Textos.cuantoVendisteHoy), findsNothing);
+      expect(find.text(Textos.yaTePagaron), findsOneWidget);
       await tocar(tester, find.byType(BotonVolver).first);
 
       // «Cancelar» la cierra sin abrir nada.
@@ -1688,8 +1700,7 @@ void main() {
     testWidgets('Entrega 52: la venta de hoy con lo fiado; sin nombre no se '
         'guarda y el total no lo suma', (tester) async {
       final base = await abrirApp(tester, listo: true);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      await abrirVentaDelDia(tester);
       await tester.enterText(find.byType(TextField).at(0), '100');
       await tocar(tester, find.text(Textos.agregarFiado));
       // Efectivo, Yape, Al fiado y a quién.
@@ -2238,10 +2249,9 @@ void main() {
       // Bajo la cifra, el día y la hora en que se mira (entrega 62).
       expect(find.text(formatearDiaYHora(_ahora)), findsOneWidget);
 
-      // Con la venta de hoy ya anotada, otra más va por el + (mejora 01).
+      // Con la venta de hoy ya anotada, otra más se suma a la de hoy.
       expect(find.text(Textos.anotarVentaDeHoy), findsNothing);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      await abrirVentaDelDia(tester);
       expect(find.text(Textos.hoyYaAnotaste('S/ 350')), findsOneWidget);
       await tester.enterText(find.byType(TextField).at(1), '120');
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -5086,11 +5096,12 @@ void main() {
       expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });
 
-    testWidgets('Entrega 57: «Hacer arqueo» está en el +, no para el '
-        'ayudante', (tester) async {
+    testWidgets('Entrega 92: el + tiene «Un ingreso» y «Un gasto», sin el '
+        'arqueo', (tester) async {
       await comoRol(tester, Rol.ayudante);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      expect(find.text(Textos.atajoVentaDelDia), findsOneWidget);
+      expect(find.text(Textos.atajoUnIngreso), findsOneWidget);
+      expect(find.text(Textos.atajoUnGasto), findsOneWidget);
       expect(find.text(Textos.hacerArqueo), findsNothing);
     });
 
@@ -5099,9 +5110,9 @@ void main() {
     ) async {
       await comoRol(tester, Rol.encargado);
       expect(find.text(Textos.enTuCaja), findsOneWidget);
-      // El encargado hace el arqueo desde el + (entrega 57).
+      // Desde la entrega 92 el arqueo es solo del dueño (en «Mis cuentas»).
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      expect(find.text(Textos.hacerArqueo), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
       await tocar(tester, find.text(Textos.cancelar));
       expect(find.text(Textos.pestanaInformes), findsNothing);
       await abrirAjustes(tester);

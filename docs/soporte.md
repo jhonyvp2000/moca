@@ -208,7 +208,9 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **Cómo se fía:** desde **«Escribirlo»** (Entró → «Todavía me debe» → el nombre), **por voz** («Le fié 50 a doña Rosa») o, desde la entrega 52, en **«Anotar la venta de hoy»** → **«+ Al fiado»**: el monto fiado y el nombre, junto con lo cobrado. Lo fiado no sube «Tienes hoy» hasta que te paguen; se ve en la píldora del Inicio («· S/ 80 al fiado») y en Informes → «Lo que te deben».
 
-> Para anotar lo que fiaste hoy junto con la venta: + → «Venta del día» → «+ Al fiado», pon cuánto y quién te debe, y guarda.
+> Para anotar lo que fiaste: + → «Un ingreso», pon cuánto, en «¿Ya te pagaron?» elige «Todavía me debe», escribe quién y guarda.
+
+Desde la entrega 92 el + ya no tiene el atajo «Venta del día»: la venta del día, con su «+ Al fiado», se abre desde la notificación de la noche («¿Cuánto vendiste hoy?») o diciéndola por voz.
 
 **Por voz (entregas 49 y 50):** «Le fié 50 a doña Rosa» o «Le debo 100 a don Pepe» quedan como deuda, sin preguntar la cuenta. «Cobré 30 del fiado de doña Rosa» o «Le pagué 100 a don Pepe» descuentan la deuda si el usuario toca **«Sí, de esa deuda»**. Si dice que la deuda no bajó, revisa su versión (antes de la 50 se anotaba aparte) y si tocó **«Anotarlo aparte»**:
 
@@ -225,7 +227,7 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ---
 
-**Dónde está el arqueo (desde la entrega 91):** el dueño, en **Ajustes → Mis cuentas** → **«Hacer arqueo»** (debajo de sus cuentas). El encargado lo sigue teniendo en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
+**Dónde está el arqueo (desde la entrega 91):** el dueño, en **Ajustes → Mis cuentas** → **«Hacer arqueo»** (debajo de sus cuentas). Desde la entrega 92 el + ya no tiene «Hacer arqueo»: el arqueo es **solo del dueño**; el encargado ya no lo hace. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
 
 > Para contar tu plata: entra a Ajustes, luego «Mis cuentas» y toca «Hacer arqueo». (Si eres encargado: toca el + de abajo y luego «Hacer arqueo».)
 

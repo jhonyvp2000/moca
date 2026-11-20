@@ -769,7 +769,7 @@ abstract final class Textos {
   static const escribirloDetalle = 'Entró o salió, monto y cuenta';
   // La hoja del + (mejora 01)
   static const atajos = 'Atajos';
-  static const atajoVentaDelDia = 'Venta del día';
+  static const atajoUnIngreso = 'Un ingreso';
   static const atajoUnGasto = 'Un gasto';
   static String llegaEnLaEntrega(int n) => 'Llega en la entrega $n';
 
