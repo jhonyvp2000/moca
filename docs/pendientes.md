@@ -30,7 +30,8 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 - Que un abogado revise la política de privacidad (`servidor/src/legal/privacidad.ts`, publicada en `/privacidad` del servidor desde el 14-11-2026) antes de abrir Moca a todos. Desde la entrega Web 1 (16-11-2026) también está en `web/sitio/privacidad.html` (mocanegocios.com/privacidad, con la sección «Esta página web»): falta que el servidor lleve a la web, y mientras tanto se cambian las dos.
 - Cuando Moca esté en Play Store: si se sigue repartiendo el APK (con Mercado Pago y Yape) o se retira y todos pasan a Play.
 
-- El número de WhatsApp de ventas, los testimonios autorizados de pilotos, el presupuesto de publicidad y los términos de uso para la web. ~~Dónde se aloja la web~~: Cloudflare Pages (16-11-2026).
+- El número de WhatsApp de ventas, los testimonios autorizados de pilotos, el video corto para la web, el presupuesto de publicidad y los términos de uso para la web. ~~Dónde se aloja la web~~: Cloudflare Pages, publicada en mocanegocios.com desde el 17-11-2026.
+- Cuando Moca esté en Play: poner el enlace y la insignia oficial en la web (`web/README.md`) y decidir si los botones «Pruébalo gratis» llevan a la tienda en vez de a WhatsApp.
 - La cuenta de desarrollador de Google Play (personal u organización), la prueba cerrada con 12 personas si es personal, el armado del AAB. Pedido de D-U-N-S de Publisher Online E.I.R.L. en trámite: D&B abrió el caso el 15-11-2026 y todavía no da el número.
 - ~~Cómo se cobra en la versión de Play Store~~: decidido el 13-11-2026, con Google Play Billing (`decisiones.md`).
 

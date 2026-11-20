@@ -149,6 +149,7 @@ Lo que cambia respecto del canvas:
 6. **Web 2:** «Se instala en 1 minuto» espera a que Moca esté en Play (mientras tanto, «14 días gratis · sin tarjeta» y «Muy pronto en Google Play»); «la foto de la boleta» pasa a «la foto del comprobante»; los textos de 13 px del canvas van en 14 px, el mínimo de `estilo.md`.
 7. **Web 3:** «¿Mis datos están seguros?» dice, con frases de la política, que la conexión va cifrada, que cada negocio está separado y que no se venden los datos, con el enlace a la política. El pago dice «Se paga dentro de la app, con Google Play». La tarjeta de confianza va junto al crédito, antes de los precios, porque el video y los testimonios todavía no están.
 8. **Web 4:** «Se paga dentro de la app, con Google Play» no se publica hasta que exista el enlace de Play (quien escribe por WhatsApp recibe el APK, que se paga con Mercado Pago o Yape). El pie no lleva «Términos» ni «mocanegocios.com», y sí el correo. La barra fija va también en computadora, con «Moca · 14 días gratis, sin tarjeta» a la izquierda. Sin número de WhatsApp, la barra solo lleva el botón (al correo).
+9. **Web 5 (preparada, 20-11-2026):** como todavía no hay enlace de Play, ni video, ni testimonios, se dejan sus espacios listos y ocultos: aparecen solos al poner el enlace y la insignia oficial, el MP4 con su imagen previa, o un testimonio con `"autorizacion_escrita": true` (cómo, en `web/README.md`). La insignia de Google Play es la oficial, sin cambios. El video se sirve desde la misma página, sin YouTube, para seguir sin cookies ni terceros. Los botones «Pruébalo gratis» siguen llevando a WhatsApp también cuando haya enlace de Play: si conviene que lleven a la tienda, se decide entonces.
 
 | Entrega | Qué |
 |---|---|
@@ -156,7 +157,7 @@ Lo que cambia respecto del canvas:
 | Web 2 | Arriba de la página: inicio con el celular «Tienes hoy» (cifras de ejemplo), «Hecho para», «¿Te pasa esto?» y «Así de fácil» |
 | Web 3 | «Lo que ganas», el crédito con el Full, la confianza, los precios y las preguntas frecuentes |
 | Web 4 | Llamado final, pie, barra fija abajo con el botón y WhatsApp, la vista previa al compartir por WhatsApp e ícono; revisión de accesibilidad y letra al 150 % |
-| Web 5 | Cuando haya material: el enlace de Google Play, el video y los testimonios |
+| Web 5 | Preparada: los espacios del enlace de Google Play, el video y los testimonios, que se publican cuando exista el material |
 
 ## 11. Cómo se presenta Moca (16-11-2026)
 
