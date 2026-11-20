@@ -302,7 +302,10 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                                   delDia: true,
                                   conSeparador: i < delDia.length - 1,
                                   alTocar: () => context.push(
-                                    Rutas.detalleMovimiento(f.id),
+                                    Rutas.detalleMovimiento(
+                                      f.id,
+                                      pago: f.esPago,
+                                    ),
                                   ),
                                 ),
                             ],

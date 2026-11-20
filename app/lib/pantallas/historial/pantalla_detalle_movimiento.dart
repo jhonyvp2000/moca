@@ -36,9 +36,17 @@ String fechaYHora(DateTime f) {
 /// sus datos, el comprobante, «Ya lo pagué», «Corregir», «Deshacer» y la
 /// lista «Cambios» de la bitácora.
 class PantallaDetalleMovimiento extends ConsumerStatefulWidget {
-  const PantallaDetalleMovimiento({super.key, required this.id});
+  const PantallaDetalleMovimiento({
+    super.key,
+    required this.id,
+    this.comoPago = false,
+  });
 
   final String id;
+
+  /// Se llegó desde la fila del día en que se pagó la deuda (entrega 88):
+  /// se muestra ese pago, con «Ver la venta» o «Ver la compra».
+  final bool comoPago;
 
   @override
   ConsumerState<PantallaDetalleMovimiento> createState() =>
@@ -204,6 +212,76 @@ class _EstadoDetalleMovimiento
       );
   }
 
+  /// La fila del día del pago, abierta como ese pago (entrega 88): lo que
+  /// se pagó ese día (lo que faltaba de la deuda), cuándo y en qué cuenta, y
+  /// de qué venta o compra es. El total y todos los pagos, en «Ver la venta».
+  Widget _comoPago(BuildContext context, FilaHistorial deuda) {
+    final pago = deuda.comoPago();
+    final venta = deuda.tipo.entraPlata;
+    final fecha = formatearDiaYMes(deuda.fecha);
+    return PantallaConAcciones(
+      encabezado: EncabezadoConVolver(
+        titulo: Textos.tituloDetalle,
+        alVolver: () => context.pop(),
+      ),
+      contenido: [
+        Tarjeta(
+          relleno: const EdgeInsets.all(Medidas.e5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  AvatarDeFila(fila: pago),
+                  const SizedBox(width: Medidas.e3),
+                  Expanded(
+                    child: Text(
+                      tituloDeFila(pago),
+                      style: Tipografia.tituloFila,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Medidas.e3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: MontoText(
+                  pago.montoCentimos,
+                  key: const ValueKey('montoDelPago'),
+                  estilo: Tipografia.montoDetalle,
+                  tono: tonoDeFila(pago),
+                  conSigno: true,
+                  conCentimos: true,
+                ),
+              ),
+              const SizedBox(height: Medidas.e1),
+              Text(
+                '${fechaYHora(pago.fecha)} · '
+                '${Textos.nombreCuenta(pago.cuenta)}',
+                style: Tipografia.secundario,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Medidas.separacionTarjetas),
+        FranjaInformativa(
+          texto: deuda.pagadoEnPartesCentimos > 0
+              ? Textos.completoLa(venta, fecha)
+              : Textos.pagoDeLa(venta, fecha),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => context.push(Rutas.detalleMovimiento(deuda.id)),
+            child: Text(Textos.verLaVentaOCompra(venta)),
+          ),
+        ),
+      ],
+      acciones: const [],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = ref.watch(detalleMovimientoProvider(_id)).value;
@@ -218,6 +296,9 @@ class _EstadoDetalleMovimiento
       );
     }
     final f = d.fila;
+    if (widget.comoPago && f.fechaPago != null && !f.loDebes) {
+      return _comoPago(context, d.fila);
+    }
     final activo = d.vigente && !_ocupado;
     // Quién puede corregir, deshacer o pagar esto (entrega 20).
     final hoy = ref.watch(relojProvider)();

@@ -956,6 +956,11 @@ abstract final class Textos {
   static String debesDe(String falta, String total) => 'Debes $falta de $total';
   static String unaParteDeLa(bool venta, String fecha) =>
       'Una parte de la ${venta ? 'venta' : 'compra'} del $fecha';
+  // El detalle de la fila del día del pago (entrega 88).
+  static String pagoDeLa(bool venta, String fecha) =>
+      'Pago de la ${venta ? 'venta' : 'compra'} del $fecha';
+  static String verLaVentaOCompra(bool venta) =>
+      venta ? 'Ver la venta' : 'Ver la compra';
   static String completoLa(bool venta, String fecha) =>
       'Completó la ${venta ? 'venta' : 'compra'} del $fecha';
   static String tePago(String? cliente) =>

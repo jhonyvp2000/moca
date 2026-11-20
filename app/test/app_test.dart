@@ -1374,6 +1374,59 @@ void main() {
       );
     });
 
+    testWidgets('Entrega 88: la fila que completó la compra abre ese pago, '
+        'no la compra entera', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        // Compra al crédito de S/ 50 el sábado; se paga 10, 20 y 20 hoy.
+        final antes = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 10, 18),
+        );
+        final gastos = await antes.categorias(TipoMovimiento.egreso);
+        final id = (await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 5000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+            pagado: false,
+            contraparte: 'Manuel',
+          ),
+        )).ids.single;
+        final repo = RepositorioHistorialLocal(base, ahora: () => _ahora);
+        for (final parte in [1000, 2000]) {
+          await repo.pagar(
+            id,
+            cuenta: TipoCuenta.efectivo,
+            dia: _ahora,
+            parteCentimos: parte,
+          );
+        }
+        await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: _ahora);
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tocar(
+        tester,
+        find.textContaining(
+          Textos.completoLa(false, '10 de octubre'),
+          findRichText: true,
+        ),
+      );
+      // El pago de ese día: S/ 20, no la compra de S/ 50.
+      expect(
+        tester
+            .widget<MontoText>(find.byKey(const ValueKey('montoDelPago')))
+            .centimos,
+        2000,
+      );
+      expect(find.text(Textos.lePagaste('Manuel')), findsOneWidget);
+      // «Ver la compra» lleva a la compra entera, con sus pagos.
+      await tocar(tester, find.text(Textos.verLaVentaOCompra(false)));
+      expect(find.text(Textos.pagosEnPartes), findsOneWidget);
+      expect(find.byKey(const ValueKey('montoDelPago')), findsNothing);
+    });
+
     testWidgets('Entrega 86: cada día empieza con una franja azul claro, '
         'pegada a sus registros, aun angosto y con letra grande', (
       tester,
