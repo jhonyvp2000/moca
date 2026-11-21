@@ -29,6 +29,18 @@ export interface CifrasDelPeriodo {
   teEntroPorCuenta: Monto[];
   ventasPorCategoria: Monto[];
   gastosPorCategoria: Monto[];
+  // Entrega 93: los fiados y las compras al crédito del periodo.
+  /** De «te entró», lo que te pagaron de fiados (de ese u otros días). */
+  tePagaronDeFiados: string;
+  quienesTePagaron: Monto[];
+  /** Las compras y gastos de esos días, pagados o no, por lo que costaron. */
+  compraste: string;
+  /** De eso, lo que no se pagó en el momento. */
+  deEsoAlCredito: string;
+  aQuienLeCompristeAlCredito: Monto[];
+  /** De «salió», lo que pagaste de compras al crédito (de ese u otros días). */
+  pagasteDeLoQueDebias: string;
+  aQuienLePagaste: Monto[];
 }
 
 export type ErrorDePeriodo = 'fecha_invalida' | 'rango_al_reves' | 'rango_muy_largo' | 'en_el_futuro';
@@ -77,16 +89,30 @@ export function cifrasDelPeriodo(
   }
   const original = (m: Fila) => monto(m) + (partes.get(String(m.id)) ?? 0);
 
-  const ventas = vigentes.filter(
-    (m) => m.tipo === 'ingreso' && m.abona_a == null && dentro(diaAnotado(m)),
-  );
-  const alFiado = ventas.filter(
-    (m) => !pagado(m) || partes.has(String(m.id)) || diaPago(m) !== diaAnotado(m),
-  );
+  // Lo vendido o comprado esos días, y la parte que quedó debiéndose.
+  const anotados = (tipo: string) =>
+    vigentes.filter((m) => m.tipo === tipo && m.abona_a == null && dentro(diaAnotado(m)));
+  const quedoDebiendo = (m: Fila) =>
+    !pagado(m) || partes.has(String(m.id)) || diaPago(m) !== diaAnotado(m);
+  const ventas = anotados('ingreso');
+  const alFiado = ventas.filter(quedoDebiendo);
+  const compras = anotados('egreso');
+  const alCredito = compras.filter(quedoDebiendo);
   const movio = (tipo: string) =>
     vigentes.filter((m) => m.tipo === tipo && pagado(m) && dentro(diaPago(m)));
   const entro = movio('ingreso');
   const salio = movio('egreso');
+  // Un pago de algo que se debía: una parte («Te pagó»), o la venta o
+  // compra que se pagó otro día.
+  const porId = new Map(vigentes.map((m) => [String(m.id), m]));
+  const esPagoDeDeuda = (m: Fila) => m.abona_a != null || diaPago(m) !== diaAnotado(m);
+  const contraparteDe = new Map(filas('contrapartes').map((c) => [String(c.id), String(c.nombre)]));
+  const nombreDe = (m: Fila) => {
+    const id = m.contraparte_id ?? porId.get(String(m.abona_a))?.contraparte_id;
+    return (id != null && contraparteDe.get(String(id))) || 'Sin nombre';
+  };
+  const cobrosDeFiado = entro.filter(esPagoDeDeuda);
+  const pagosDeDeuda = salio.filter(esPagoDeDeuda);
   const suma = (lista: Fila[], valor: (m: Fila) => number = monto) =>
     lista.reduce((s, m) => s + valor(m), 0);
 
@@ -113,5 +139,12 @@ export function cifrasDelPeriodo(
     gastosPorCategoria: sumarPor(
       salio.map((m) => [categoriaDe.get(String(m.categoria_id)) ?? 'Sin categoría', monto(m)]),
     ).slice(0, 5),
+    tePagaronDeFiados: soles(suma(cobrosDeFiado)),
+    quienesTePagaron: sumarPor(cobrosDeFiado.map((m) => [nombreDe(m), monto(m)])).slice(0, 5),
+    compraste: soles(suma(compras, original)),
+    deEsoAlCredito: soles(suma(alCredito, original)),
+    aQuienLeCompristeAlCredito: sumarPor(alCredito.map((m) => [nombreDe(m), original(m)])).slice(0, 5),
+    pagasteDeLoQueDebias: soles(suma(pagosDeDeuda)),
+    aQuienLePagaste: sumarPor(pagosDeDeuda.map((m) => [nombreDe(m), monto(m)])).slice(0, 5),
   };
 }

@@ -47,7 +47,7 @@ export const pedidosMaximos = 2;
 export const herramientaPeriodo: Anthropic.Tool = {
   name: 'cifras_del_periodo',
   description:
-    'Las cifras del negocio de un día o de un rango de fechas, ya calculadas por el servidor: lo que vendió (y cuánto fue al fiado), lo que le entró y lo que salió, por cuenta y por categoría. Úsala siempre que pregunten por una fecha o un periodo que no esté en los hechos. Para un solo día, desde y hasta son el mismo día.',
+    'Las cifras del negocio de un día o de un rango de fechas, ya calculadas por el servidor: lo que vendió (y cuánto fue al fiado), lo que le entró y lo que salió, por cuenta y por categoría, lo que le pagaron de fiados y a quién, lo que compró (y cuánto fue al crédito, a quién) y lo que pagó de lo que debía. Úsala siempre que pregunten por una fecha o un periodo que no esté en los hechos. Para un solo día, desde y hasta son el mismo día.',
   input_schema: {
     type: 'object',
     properties: {
@@ -73,6 +73,7 @@ Reglas:
 - Tutea, con palabras simples, sin jerga contable: «lo que te deben», no «cuentas por cobrar». Responde en 1 a 3 oraciones, en español.
 - Si preguntan por un día o un periodo (ayer, antes de ayer, trasanteayer, «el 17», «el 17 de agosto», la semana pasada, el mes pasado, «del 1 al 15»), pide sus cifras con la herramienta cifras_del_periodo y responde con lo que devuelve. Cuenta las fechas desde «hoy» de los hechos: ayer es hoy menos 1 día, antes de ayer menos 2, trasanteayer menos 3. «El 17» sin mes es de este mes; un mes sin año es el más reciente que ya pasó o está en curso. Las semanas van de lunes a domingo. Para comparar dos periodos, pide los dos. Si la fecha es ambigua, pregunta cuál, sin adivinar.
 - Con esas cifras: «vendiste» es lo vendido esos días, cobrado o al fiado, y «deEsoAlFiado» lo que no se cobró en el momento; «teEntro» es la plata que entró, con los cobros de fiados de antes. Si alguien pregunta cuánto vendió, di lo vendido y, si hubo fiado, también lo que le entró. Si «empezoAAnotar» no es nulo, aclara desde cuándo anota. Si la herramienta devuelve un error «en_el_futuro», di que esa fecha todavía no llega.
+- También trae los fiados y las compras al crédito de esos días: «tePagaronDeFiados» (con «quienesTePagaron») es lo cobrado de fiados de ese u otros días, y ya está dentro de «teEntro»: nunca lo sumes otra vez. «compraste» son las compras y gastos de esos días, pagados o no, y «deEsoAlCredito» (con «aQuienLeCompristeAlCredito») lo que no se pagó en el momento; la plata que salió es «salio». «pagasteDeLoQueDebias» (con «aQuienLePagaste») es lo pagado de compras al crédito de ese u otros días, y ya está dentro de «salio». Cuánto debía alguien en una fecha pasada no lo tienes: dilo.
 - En «enlace» elige la pantalla donde el dueño ve el detalle: «historial» (registros y lo de la semana), «te_deben», «debes», «informe» (el mes y las categorías), «cuentas» (saldos), «mis_pagos» (el plan de Moca), o null si ninguna aplica.`;
 
 const esquema = {

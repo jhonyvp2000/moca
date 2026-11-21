@@ -25,6 +25,11 @@ const datos = {
     { id: 'efectivo', nombre: 'Efectivo' },
     { id: 'yape', nombre: 'BCP Yape' },
   ],
+  contrapartes: [
+    { id: 'rosa', nombre: 'Doña Rosa' },
+    { id: 'ana', nombre: 'Ana' },
+    { id: 'sol', nombre: 'Comercial El Sol' },
+  ],
   categorias: [
     { id: 'venta', nombre: 'Venta del día' },
     { id: 'mercaderia', nombre: 'Mercadería' },
@@ -32,15 +37,17 @@ const datos = {
   ],
   movimientos: [
     // El lunes 16, una venta al fiado que se cobró el miércoles 18.
-    mov({ monto_centimos: 3000, fecha_movimiento: el(16), fecha_pago: el(18), cuenta_id: 'yape' }),
+    mov({ monto_centimos: 3000, fecha_movimiento: el(16), fecha_pago: el(18), cuenta_id: 'yape', contraparte_id: 'rosa' }),
+    // Una compra al crédito del lunes 16 que se pagó el jueves 19.
+    mov({ tipo: 'egreso', categoria_id: 'mercaderia', monto_centimos: 5000, fecha_movimiento: el(16), fecha_pago: el(19), contraparte_id: 'sol' }),
     // El miércoles 18.
     mov({ monto_centimos: 10000, fecha_movimiento: el(18), fecha_pago: el(18) }),
     mov({ monto_centimos: 4000, fecha_movimiento: el(18), fecha_pago: null, estado_pago: 'pendiente' }),
     // Una venta de S/ 50 que se pagó en partes: quedan S/ 30.
-    mov({ id: 'partes', monto_centimos: 3000, fecha_movimiento: el(18), fecha_pago: null, estado_pago: 'pendiente' }),
+    mov({ id: 'partes', monto_centimos: 3000, fecha_movimiento: el(18), fecha_pago: null, estado_pago: 'pendiente', contraparte_id: 'ana' }),
     mov({ monto_centimos: 2000, fecha_movimiento: el(19), fecha_pago: el(19), abona_a: 'partes' }),
     // Una compra a crédito (no salió plata) y un gasto pagado.
-    mov({ tipo: 'egreso', categoria_id: 'mercaderia', monto_centimos: 20000, fecha_movimiento: el(18), fecha_pago: null, estado_pago: 'pendiente' }),
+    mov({ tipo: 'egreso', categoria_id: 'mercaderia', monto_centimos: 20000, fecha_movimiento: el(18), fecha_pago: null, estado_pago: 'pendiente', contraparte_id: 'sol' }),
     mov({ tipo: 'egreso', categoria_id: 'luz', monto_centimos: 1550, fecha_movimiento: el(18), fecha_pago: el(18) }),
     mov({ tipo: 'retiro', categoria_id: null, monto_centimos: 2500, fecha_movimiento: el(18), fecha_pago: el(18) }),
     mov({ tipo: 'aporte', categoria_id: null, monto_centimos: 1000, fecha_movimiento: el(18), fecha_pago: el(18) }),
@@ -82,6 +89,36 @@ describe('Pregúntale a Moca con fechas (entrega 89)', () => {
     expect(c.deEsoAlFiado).toBe('S/ 120');
     expect(c.teEntro).toBe('S/ 150');
     expect(c.ventasPorCategoria).toEqual([{ nombre: 'Venta del día', monto: 'S/ 220' }]);
+  });
+
+  it('Entrega 93: lo cobrado de fiados y lo comprado al crédito', () => {
+    const dia = cifras('2026-11-18', '2026-11-18');
+    // El fiado del lunes que Doña Rosa pagó ese día; ya está en «teEntro».
+    expect(dia.tePagaronDeFiados).toBe('S/ 30');
+    expect(dia.quienesTePagaron).toEqual([{ nombre: 'Doña Rosa', monto: 'S/ 30' }]);
+    // La compra al crédito y la luz pagada.
+    expect(dia.compraste).toBe('S/ 215.50');
+    expect(dia.deEsoAlCredito).toBe('S/ 200');
+    expect(dia.aQuienLeCompristeAlCredito).toEqual([{ nombre: 'Comercial El Sol', monto: 'S/ 200' }]);
+    expect(dia.pagasteDeLoQueDebias).toBe('S/ 0');
+    expect(dia.aQuienLePagaste).toEqual([]);
+
+    // La parte del jueves es de Ana, por la venta a la que abona.
+    expect(cifras('2026-11-19', '2026-11-19').quienesTePagaron).toEqual([{ nombre: 'Ana', monto: 'S/ 20' }]);
+
+    const semana = cifras('2026-11-16', '2026-11-19');
+    expect(semana.tePagaronDeFiados).toBe('S/ 50');
+    expect(semana.quienesTePagaron).toEqual([
+      { nombre: 'Doña Rosa', monto: 'S/ 30' },
+      { nombre: 'Ana', monto: 'S/ 20' },
+    ]);
+    expect(semana.compraste).toBe('S/ 265.50');
+    expect(semana.deEsoAlCredito).toBe('S/ 250');
+    expect(semana.aQuienLeCompristeAlCredito).toEqual([{ nombre: 'Comercial El Sol', monto: 'S/ 250' }]);
+    // La compra del lunes se pagó el jueves: salió ese día.
+    expect(semana.salio).toBe('S/ 65.50');
+    expect(semana.pagasteDeLoQueDebias).toBe('S/ 50');
+    expect(semana.aQuienLePagaste).toEqual([{ nombre: 'Comercial El Sol', monto: 'S/ 50' }]);
   });
 
   it('antes de empezar a anotar, o más allá de hoy, lo dice', () => {
