@@ -93,7 +93,7 @@ El proyecto se llama `moca-web` y su dirección de Cloudflare es `moca-web-33a.p
 3. **Guardar e implementar.** La página queda en `moca-web-33a.pages.dev`.
 4. En el proyecto → **Dominios personalizados** → agregar `mocanegocios.com`, y después `www.mocanegocios.com`. Como el dominio ya está en la misma cuenta, Cloudflare crea los registros solo. Los registros del correo (MX) no se tocan: `contacto@mocanegocios.com` sigue llegando.
 5. Para que `www` lleve a `mocanegocios.com`: en el dominio → **Reglas** → **Reglas de redirección** → la plantilla «Redirigir de WWW a la raíz», con **Preserve query string** marcado. Si avisa que `www` no pasa por Cloudflare, elegir «Ignore and deploy rule anyway» y revisar en **DNS** que el CNAME de `www` esté en **Proxied**.
-6. En el proyecto → **Configuración** → **Compilaciones** → **Rutas de observación** (build watch paths): incluir solo `web/*`, para que los cambios de la app o del servidor no vuelvan a publicar la web.
+6. **Build watch paths** (Settings → Builds) queda en `*`: se publica con cualquier cambio. El campo es una lista: se escribe `*` y se presiona Enter antes de guardar. **Nunca vacío:** con «Include paths» vacío, Cloudflare salta todas las publicaciones (⏩ «Skipped» en Deployments). Eso pasó del 17 al 21-11-2026, y por eso Web 6 no salía. Si una publicación se saltó, se rehace en Deployments → ⋯ → **Retry deployment**.
 
 ## Cómo se publica cada cambio
 
