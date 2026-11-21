@@ -1008,6 +1008,84 @@ h1 {
   }
 }
 
+/* Google Play, video y testimonios (Web 5): se publican cuando existen */
+
+.insignia-play {
+  display: inline-flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.insignia-play img {
+  display: block;
+  width: auto;
+  height: 56px;
+}
+
+.video-contenedor {
+  max-width: 820px;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 24px;
+  background: var(--azul-100);
+}
+
+.testimonio {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.testimonio blockquote {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.testimonio figcaption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.testimonio figcaption img,
+.testimonio-inicial {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.testimonio-inicial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--azul-100);
+  color: var(--azul-900);
+  font-weight: 800;
+}
+
+.testimonio figcaption > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.testimonio figcaption > span > span {
+  color: var(--secundario);
+  font-size: 14px;
+}
+
 /* Pregúntale a Moca (Web 6) */
 
 .seccion-preguntale {
