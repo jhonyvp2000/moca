@@ -208,7 +208,9 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 **Cómo se fía:** desde **«Escribirlo»** (Entró → «Todavía me debe» → el nombre), **por voz** («Le fié 50 a doña Rosa») o, desde la entrega 52, en **«Anotar la venta de hoy»** → **«+ Al fiado»**: el monto fiado y el nombre, junto con lo cobrado. Lo fiado no sube «Tienes hoy» hasta que te paguen; se ve en la píldora del Inicio («· S/ 80 al fiado») y en Informes → «Lo que te deben».
 
-> Para anotar lo que fiaste hoy junto con la venta: + → «Venta del día» → «+ Al fiado», pon cuánto y quién te debe, y guarda.
+> Para anotar lo que fiaste: + → «Un ingreso», pon cuánto, en «¿Ya te pagaron?» elige «Todavía me debe», escribe quién y guarda.
+
+Desde la entrega 92 el + ya no tiene el atajo «Venta del día»: la venta del día, con su «+ Al fiado», se abre desde la notificación de la noche («¿Cuánto vendiste hoy?») o diciéndola por voz.
 
 **Por voz (entregas 49 y 50):** «Le fié 50 a doña Rosa» o «Le debo 100 a don Pepe» quedan como deuda, sin preguntar la cuenta. «Cobré 30 del fiado de doña Rosa» o «Le pagué 100 a don Pepe» descuentan la deuda si el usuario toca **«Sí, de esa deuda»**. Si dice que la deuda no bajó, revisa su versión (antes de la 50 se anotaba aparte) y si tocó **«Anotarlo aparte»**:
 
@@ -225,11 +227,19 @@ Todo se arregla desde el **Historial**: toca el registro.
 
 ---
 
-**Dónde está el arqueo (desde la entrega 57):** en el botón **+** → atajo **«Hacer arqueo»**. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
+**Dónde está el arqueo (desde la entrega 91):** el dueño, en **Ajustes → Mis cuentas** → **«Hacer arqueo»** (debajo de sus cuentas). Desde la entrega 92 el + ya no tiene «Hacer arqueo»: el arqueo es **solo del dueño**; el encargado ya no lo hace. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
 
-> Para contar tu plata: toca el + de abajo y luego «Hacer arqueo».
+> Para contar tu plata: entra a Ajustes, luego «Mis cuentas» y toca «Hacer arqueo». (Si eres encargado: toca el + de abajo y luego «Hacer arqueo».)
 
 **«No me sale "Pregúntale a Moca"»** · **«Moca no me responde»** (entrega 74): la barra sale solo al **dueño con cuenta** (no al encargado, ayudante o contador, ni en la Demo). Necesita internet. Si dice «Ahora no puedo responder», el servidor o la IA no están disponibles en ese momento (revisa Render y el saldo de Anthropic). Hay un tope de 20 preguntas al día por negocio. Moca responde con lo que ya subió: si la persona anotó sin señal, primero tiene que subir.
+
+**«Se borró lo que le pregunté a Moca»** (entrega 90): la conversación se guarda en el teléfono, las últimas 20 preguntas. Empieza vacía al cambiar de negocio, al salir de la cuenta o si la persona tocó la papelera; las respuestas con «Ahora no puedo responder» no se guardan. No se puede recuperar: el servidor no guarda el texto de las preguntas.
+
+**«Moca compara mal el mes»** (entrega 94): si el mes o la semana todavía no termina, Moca compara los mismos días de los dos (del 1 al 21 de este mes con del 1 al 21 del anterior), como los Informes, y lo dice. Para el mes anterior completo, que pregunte por los dos meses ya cerrados. **«No encuentra a mi cliente»:** Moca lo busca por como está escrito en la app (en «Lo que te deben» o en el registro); si hay dos parecidos, pregunta cuál.
+
+**«Moca no me dice cuánto me debía alguien en tal fecha»** (entrega 93): Moca dice lo que te deben **hoy** y, para cualquier día o rango, lo que fiaste, lo que te pagaron de fiados, lo que compraste al crédito y lo que pagaste de lo que debías. Cuánto debía alguien en una fecha pasada todavía no lo tiene, y lo dice.
+
+**«Moca me dijo una cifra de un día que no cuadra»** (entrega 89): Moca separa **lo que vendiste** ese día (por el día de la venta, incluido lo que quedó al fiado) de **la plata que te entró** (lo cobrado ese día, también fiados de días anteriores). Revisa el Historial de ese día: las filas grises son ventas o compras que no movieron plata ese día, y las filas «Te pagó» son cobros de días anteriores. Si la fecha que entendió Moca no es la que quería la persona, que pregunte con la fecha completa («el martes 17 de noviembre»).
 
 > «Pregúntale a Moca» está en el Inicio, debajo de «Tienes hoy», solo para los dueños con cuenta y con internet. Si te dice que no puede responder, intenta en un rato. Puedes hacer hasta 20 preguntas al día.
 
@@ -268,6 +278,12 @@ Todo se arregla desde el **Historial**: toca el registro.
 **«No me deja guardar mi avance: el botón está gris»** (entrega 83): hay que marcar la casilla **«Acepto»** debajo del texto de cómo cuidamos los datos. **«Me sale "Cómo cuidamos tus datos" en el Asistente»**: es para quien ya tenía cuenta; toca «Acepto» con señal y no vuelve a salir. No bloquea nada.
 
 > Para guardar tu avance, marca la casilla «Acepto» que está debajo del texto y luego toca «Enviarme el código». Si quieres leer cómo cuidamos tus datos, toca «Política de privacidad».
+
+**«No me sale "Pregúntale a Moca"» y es dueño con cuenta:** puede ser que su plan esté **vencido**: en «solo anotar» el Inicio es otro y no tiene la barra. Mientras se prueba con pilotos, nadie debería estar vencido: se mueve `MOCA_COBRO_DESDE` en Render a la fecha de hoy (la prueba de 14 días de quien nunca pagó cuenta desde ese día). A un negocio puntual también se le pueden dar días desde **Cobros → Dar días de prueba**; a quien pagó y se le venció, **Registrar pago**. Después tiene que abrir Moca con señal.
+
+**«¿Por qué una venta sale en gris en el Historial?»** (entrega 87): el gris dice que **ese día no entró plata**: fue al fiado. La plata cuenta el día en que te pagaron, en las filas «Te pagó …» (cada parte dice de qué venta es). En compras al crédito, lo mismo con «Le pagaste a …».
+
+> En el Historial, lo gris es lo que vendiste al fiado: ese día no entró plata. Cuando te pagan, sale una fila «Te pagó …» en azul el día del pago, y ahí suma.
 
 ## Lo que conviene saber de Moca
 

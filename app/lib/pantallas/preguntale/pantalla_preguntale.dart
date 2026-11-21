@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../dominio/medicion.dart';
 import '../../dominio/pregunta.dart';
 import '../../inyeccion.dart';
-import '../../pais/peru/formato.dart';
 import '../../rutas.dart';
 import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
@@ -26,21 +25,33 @@ class PantallaPreguntale extends ConsumerStatefulWidget {
 }
 
 class _Mensaje {
-  const _Mensaje.mio(this.texto) : deMoca = false, enlace = null, hora = null;
-  const _Mensaje.deMoca(this.texto, {this.enlace, this.hora}) : deMoca = true;
+  const _Mensaje.mio(this.texto) : deMoca = false, enlace = null, cuando = null;
+  const _Mensaje.deMoca(this.texto, {this.enlace, this.cuando}) : deMoca = true;
 
   final String texto;
   final bool deMoca;
   final EnlaceRespuesta? enlace;
 
-  /// «9:40 a. m.»: hasta cuándo eran las cifras.
-  final String? hora;
+  /// Hasta cuándo eran las cifras.
+  final DateTime? cuando;
+
+  static List<_Mensaje> de(Intercambio i) => [
+    _Mensaje.mio(i.pregunta),
+    _Mensaje.deMoca(
+      i.respuesta.texto,
+      enlace: i.respuesta.enlace,
+      cuando: i.cuando,
+    ),
+  ];
 }
 
 class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
   final _pregunta = TextEditingController();
   final _desplazar = ScrollController();
   final _mensajes = <_Mensaje>[];
+
+  /// Lo guardado en el teléfono más lo de ahora (entrega 90).
+  final _intercambios = <Intercambio>[];
   bool _esperando = false;
   bool _sinSenal = false;
   int? _quedan;
@@ -51,6 +62,15 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
     ref.read(medicionProvider).anotar(EventoMedicion.preguntaleAbierto);
     ref.read(servicioPreguntaProvider).preguntasQueQuedan().then((n) {
       if (mounted && n != null) setState(() => _quedan = n);
+    });
+    // La conversación de antes, arriba de lo que se pregunte mientras carga.
+    ref.read(conversacionProvider).leer().then((guardada) {
+      if (!mounted || guardada.isEmpty) return;
+      setState(() {
+        _intercambios.insertAll(0, guardada);
+        _mensajes.insertAll(0, [for (final i in guardada) ..._Mensaje.de(i)]);
+      });
+      _alFinal(animar: false);
     });
   }
 
@@ -74,9 +94,22 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
     });
     _alFinal();
     await ref.read(medicionProvider).anotar(EventoMedicion.preguntaHecha);
-    final r = await ref.read(servicioPreguntaProvider).preguntar(pregunta);
-    if (!mounted) return;
+    final conversacion = ref.read(conversacionProvider);
+    final r = await ref
+        .read(servicioPreguntaProvider)
+        .preguntar(pregunta, anteriores: List.of(_intercambios));
     final ahora = ref.read(relojProvider)();
+    // Solo se guarda lo que respondió Moca, no los avisos.
+    if (r.respuesta case final respuesta?) {
+      final intercambio = Intercambio(
+        pregunta: pregunta,
+        respuesta: respuesta,
+        cuando: ahora,
+      );
+      _intercambios.add(intercambio);
+      await conversacion.agregar(intercambio);
+    }
+    if (!mounted) return;
     setState(() {
       _esperando = false;
       if (r.quedan != null) _quedan = r.quedan;
@@ -85,7 +118,7 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
           _Mensaje.deMoca(
             respuesta.texto,
             enlace: respuesta.enlace,
-            hora: formatearHora(ahora.hour * 60 + ahora.minute),
+            cuando: ahora,
           ),
         );
         return;
@@ -108,15 +141,46 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
     _alFinal();
   }
 
-  void _alFinal() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_desplazar.hasClients) {
-      _desplazar.animateTo(
-        _desplazar.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
-  });
+  Future<void> _borrar() async {
+    final borrar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(Textos.borrarConversacionTitulo),
+        content: const Text(Textos.borrarConversacionTexto),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(Textos.cancelar),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(Textos.borrar),
+          ),
+        ],
+      ),
+    );
+    if (borrar != true || !mounted) return;
+    await ref.read(conversacionProvider).borrar();
+    if (!mounted) return;
+    setState(() {
+      _intercambios.clear();
+      _mensajes.clear();
+    });
+  }
+
+  void _alFinal({bool animar = true}) =>
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_desplazar.hasClients) return;
+        if (!animar) {
+          _desplazar.jumpTo(_desplazar.position.maxScrollExtent);
+          return;
+        }
+        _desplazar.animateTo(
+          _desplazar.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      });
 
   void _abrir(EnlaceRespuesta enlace) => switch (enlace) {
     EnlaceRespuesta.historial => context.go(Rutas.historial),
@@ -182,6 +246,17 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
                       ],
                     ),
                   ),
+                  if (_intercambios.isNotEmpty && !_esperando)
+                    IconButton(
+                      tooltip: Textos.borrarConversacion,
+                      onPressed: _borrar,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(
+                          Medidas.objetivoTactilMinimo,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -239,9 +314,12 @@ class _EstadoPreguntale extends ConsumerState<PantallaPreguntale> {
                                 ),
                                 child: Text('${_textoDelEnlace(enlace)} ›'),
                               ),
-                            if (m.hora case final hora?)
+                            if (m.cuando case final cuando?)
                               Text(
-                                Textos.conLoAnotadoHasta(hora),
+                                Textos.conLoAnotadoHasta(
+                                  cuando,
+                                  ref.watch(relojProvider)(),
+                                ),
                                 style: Tipografia.apoyo,
                               ),
                           ],

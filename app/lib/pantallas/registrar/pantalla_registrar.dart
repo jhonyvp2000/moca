@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../comun/estructura.dart';
 import '../../comun/icono_trazo.dart';
 import '../../comun/videos.dart';
-import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/tutoria.dart';
 import '../../inyeccion.dart';
@@ -103,9 +102,6 @@ class ContenidoRegistrar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sin cuenta, cuántas fotos de prueba quedan (entrega 14.2).
     final pruebas = ref.watch(fotosDePruebaProvider).value;
-    // El arqueo, para quien lo hace (entrega 57).
-    final haceArqueo =
-        (ref.watch(permisosProvider).value ?? Permisos.delDueno).haceArqueo;
     // Todo armado de una vez (no es una lista larga): con letra grande,
     // «Escribirlo» existe aunque haya que desplazarse para verlo.
     return SingleChildScrollView(
@@ -173,12 +169,19 @@ class ContenidoRegistrar extends ConsumerWidget {
             spacing: Medidas.e2,
             runSpacing: Medidas.e2,
             children: [
+              // «Un ingreso» y «Un gasto» (entrega 92: antes «Venta del
+              // día»). El arqueo está en «Mis cuentas», solo del dueño.
               _Atajo(
                 icono: Icons.south_west_rounded,
-                texto: Textos.atajoVentaDelDia,
+                texto: Textos.atajoUnIngreso,
                 color: Colores.ingreso,
                 fondo: Colores.ingresoFondo,
-                alTocar: () => alElegir(Rutas.ventaDelDia),
+                alTocar: () => alElegir(
+                  Uri(
+                    path: Rutas.escribir,
+                    queryParameters: {'tipo': TipoMovimiento.ingreso.name},
+                  ).toString(),
+                ),
               ),
               _Atajo(
                 icono: Icons.north_east_rounded,
@@ -192,15 +195,6 @@ class ContenidoRegistrar extends ConsumerWidget {
                   ).toString(),
                 ),
               ),
-              // Contar la plata de las cuentas (entrega 57): no entra ni sale.
-              if (haceArqueo)
-                _Atajo(
-                  icono: Icons.fact_check_outlined,
-                  texto: Textos.hacerArqueo,
-                  color: Colores.marca,
-                  fondo: Colores.azul50,
-                  alTocar: () => alElegir(Rutas.arqueo),
-                ),
             ],
           ),
           if (alCancelar != null) ...[

@@ -8,6 +8,7 @@ import 'datos/repositorios/repositorio_categorias_local.dart';
 import 'datos/repositorios/repositorio_negocio_local.dart';
 import 'datos/repositorios/repositorio_errores_local.dart';
 import 'datos/repositorios/acceso_local.dart';
+import 'datos/repositorios/conversacion_local.dart';
 import 'datos/remoto/servicio_cuenta_remoto.dart';
 import 'datos/repositorios/repositorio_ajustes_local.dart';
 import 'datos/repositorios/medicion_local.dart';
@@ -530,6 +531,13 @@ final cobroProvider = StreamProvider<Cobro>((ref) {
 /// «Pregúntale a Moca» (entrega 74).
 final servicioPreguntaProvider = Provider<ServicioPregunta>(
   (ref) => ref.watch(servicioCuentaProvider) as ServicioPregunta,
+);
+
+/// La conversación con Moca, guardada en el teléfono (entrega 90).
+final conversacionProvider = Provider<ConversacionConMoca>(
+  (ref) => ConversacionLocal(
+    AccesoLocal(ref.watch(baseLocalProvider), ref.watch(relojProvider)),
+  ),
 );
 
 final servicioPagosProvider = Provider<ServicioPagos>(

@@ -136,8 +136,12 @@ abstract final class Rutas {
   static const cuentaCodigo = '/cuenta/codigo';
 
   /// El detalle de un movimiento del Historial.
-  static String detalleMovimiento(String id) =>
-      Uri(path: movimiento, queryParameters: {'id': id}).toString();
+  /// Con [pago], la fila del día en que se pagó una deuda: se abre como ese
+  /// pago, no como la venta o la compra (entrega 88).
+  static String detalleMovimiento(String id, {bool pago = false}) => Uri(
+    path: movimiento,
+    queryParameters: {'id': id, if (pago) 'pago': 'si'},
+  ).toString();
 
   /// «Anotar la venta de hoy» por voz.
   static final vozVenta = Uri(
@@ -373,8 +377,10 @@ GoRouter crearRutas(
     ),
     GoRoute(
       path: Rutas.movimiento,
-      builder: (context, estado) =>
-          PantallaDetalleMovimiento(id: estado.uri.queryParameters['id'] ?? ''),
+      builder: (context, estado) => PantallaDetalleMovimiento(
+        id: estado.uri.queryParameters['id'] ?? '',
+        comoPago: estado.uri.queryParameters['pago'] == 'si',
+      ),
       routes: [
         GoRoute(
           path: 'corregir',

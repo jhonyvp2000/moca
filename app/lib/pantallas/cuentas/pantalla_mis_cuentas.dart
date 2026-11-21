@@ -346,6 +346,16 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             ),
           ),
         ],
+        // El arqueo de la semana (entrega 91; antes estaba en Registrar).
+        const SizedBox(height: Medidas.e5),
+        OutlinedButton.icon(
+          onPressed: () => context.push(Rutas.arqueo),
+          icon: const Icon(Icons.fact_check_outlined),
+          label: const Text(Textos.hacerArqueo),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(Medidas.objetivoTactilMinimo),
+          ),
+        ),
         if (hayQueAgregar) ...[
           const SizedBox(height: 8),
           const Text(

@@ -769,7 +769,7 @@ abstract final class Textos {
   static const escribirloDetalle = 'Entró o salió, monto y cuenta';
   // La hoja del + (mejora 01)
   static const atajos = 'Atajos';
-  static const atajoVentaDelDia = 'Venta del día';
+  static const atajoUnIngreso = 'Un ingreso';
   static const atajoUnGasto = 'Un gasto';
   static String llegaEnLaEntrega(int n) => 'Llega en la entrega $n';
 
@@ -867,8 +867,25 @@ abstract final class Textos {
   static const escribeTuPregunta = 'Escribe tu pregunta';
   static const enviar = 'Enviar';
   static const mocaPiensa = 'Moca está revisando tus cifras…';
-  static String conLoAnotadoHasta(String hora) =>
-      'Con lo anotado hasta hoy $hora';
+
+  /// Hasta cuándo eran las cifras de una respuesta (entrega 90: la
+  /// conversación se guarda, y una respuesta vieja puede haber cambiado).
+  static String conLoAnotadoHasta(DateTime cuando, DateTime ahora) {
+    final hora = formatearHora(cuando.hour * 60 + cuando.minute);
+    final dia = DateTime(cuando.year, cuando.month, cuando.day);
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    if (dia == hoy) return 'Con lo anotado hasta hoy $hora';
+    if (dia == DateTime(hoy.year, hoy.month, hoy.day - 1)) {
+      return 'Con lo anotado hasta ayer $hora';
+    }
+    return 'Con lo anotado hasta el ${formatearFechaLarga(cuando)}, $hora';
+  }
+
+  static const borrarConversacion = 'Borrar conversación';
+  static const borrarConversacionTitulo = '¿Borrar la conversación?';
+  static const borrarConversacionTexto =
+      'Se borran de este teléfono tus preguntas y lo que respondió Moca. '
+      'Lo que anotaste no cambia.';
   static String preguntasQueQuedan(int n) => n == 1
       ? 'Te queda 1 pregunta hoy · Necesita internet'
       : 'Te quedan $n preguntas hoy · Necesita internet';
@@ -950,6 +967,19 @@ abstract final class Textos {
   static String pagadoEl(String fecha) => 'Pagado el $fecha';
   // Lo cobrado o pagado otro día, en el día del pago (entrega 55).
   static String cobradoEl(String fecha) => 'Cobrado el $fecha';
+  // Ventas y compras al fiado en el Historial (entrega 87).
+  static String teDebeDe(String falta, String total) =>
+      'Te debe $falta de $total';
+  static String debesDe(String falta, String total) => 'Debes $falta de $total';
+  static String unaParteDeLa(bool venta, String fecha) =>
+      'Una parte de la ${venta ? 'venta' : 'compra'} del $fecha';
+  // El detalle de la fila del día del pago (entrega 88).
+  static String pagoDeLa(bool venta, String fecha) =>
+      'Pago de la ${venta ? 'venta' : 'compra'} del $fecha';
+  static String verLaVentaOCompra(bool venta) =>
+      venta ? 'Ver la venta' : 'Ver la compra';
+  static String completoLa(bool venta, String fecha) =>
+      'Completó la ${venta ? 'venta' : 'compra'} del $fecha';
   static String tePago(String? cliente) =>
       cliente == null ? 'Te pagaron un fiado' : 'Te pagó $cliente';
   static String lePagaste(String? proveedor) =>

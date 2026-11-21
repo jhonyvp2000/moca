@@ -6,7 +6,8 @@ import { autenticar } from '../datos/subir.js';
 import { desfaseHorario } from '../pais/peru.js';
 import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import { hechosDelNegocio } from './hechos.js';
-import type { Respondedor } from './respondedor.js';
+import { cifrasDeUnaPersona, cifrasDelPeriodo, compararPeriodos } from './periodo.js';
+import { anterioresMaximas, type Anterior, type Respondedor } from './respondedor.js';
 
 /** Preguntas respondidas por negocio y día (entrega 74). */
 export const topeDiario = 20;
@@ -99,14 +100,30 @@ export function rutasPregunta(
 
   // «Pregúntale a Moca»: la IA explica las cifras que el servidor ya
   // calculó. No se guarda el texto de la pregunta ni de la respuesta.
-  app.post<{ Body: { pregunta: string } }>(
+  app.post<{ Body: { pregunta: string; anteriores?: Anterior[] } }>(
     '/pregunta',
     {
       schema: {
         body: {
           type: 'object',
           required: ['pregunta'],
-          properties: { pregunta: { type: 'string', minLength: 1, maxLength: 300 } },
+          properties: {
+            pregunta: { type: 'string', minLength: 1, maxLength: 300 },
+            // Las últimas de la conversación, que guarda el teléfono (entrega 90).
+            anteriores: {
+              type: 'array',
+              maxItems: anterioresMaximas,
+              items: {
+                type: 'object',
+                required: ['pregunta', 'respuesta'],
+                additionalProperties: false,
+                properties: {
+                  pregunta: { type: 'string', minLength: 1, maxLength: 300 },
+                  respuesta: { type: 'string', minLength: 1, maxLength: 2000 },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -131,7 +148,19 @@ export function rutasPregunta(
       );
       const inicio = Date.now();
       try {
-        const r = await respondedor.responder(hechos, pregunta);
+        // Las cifras de cualquier día o rango, si la pregunta las pide
+        // (entrega 89).
+        const r = await respondedor.responder(
+          hechos,
+          pregunta,
+          {
+            periodo: (desde, hasta) => cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+            comparar: (a, b) => compararPeriodos(quien.datos, a, b, momento),
+            persona: (nombre, desde, hasta) =>
+              cifrasDeUnaPersona(quien.datos, nombre, desde, hasta, momento),
+          },
+          peticion.body.anteriores ?? [],
+        );
         await pool.query(
           `INSERT INTO preguntas (empresa_id, usuario_id, resultado, modelo, tokens_entrada,
                                   tokens_salida, milisegundos)

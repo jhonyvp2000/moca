@@ -5,6 +5,19 @@ import type { FastifyInstance } from "fastify";
 // publicada; luego se muda allá. La revisa un abogado antes de abrir Moca a
 // todos. Si cambia lo que Moca hace con los datos, se cambia este texto.
 
+/** El estilo de las páginas legales (privacidad y borrar la cuenta). */
+export const estiloLegal = `
+:root{--marca:#1D4ED8;--texto:#13213F;--suave:#4A5878;--fondo:#F4F7FC;--superficie:#FFFFFF}
+body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px;background:var(--superficie)}
+h1{font-size:28px;line-height:1.25;margin:0 0 4px;color:var(--marca)}
+h2{font-size:20px;margin:32px 0 8px}
+p{margin:0 0 12px}
+.fecha{color:var(--suave);font-size:14px;margin-bottom:24px}
+a{color:var(--marca)}
+ol,ul{padding-left:22px;margin:0 0 12px}li{margin:0 0 6px}
+`;
+
 export const actualizada = "14 de noviembre de 2026";
 
 const secciones: [string, string[]][] = [
@@ -95,16 +108,7 @@ export function paginaPrivacidad(): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Política de privacidad de Moca</title>
-<style>
-:root{--marca:#1D4ED8;--texto:#13213F;--suave:#4A5878;--fondo:#F4F7FC;--superficie:#FFFFFF}
-body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:720px;margin:0 auto;padding:32px 16px 64px;background:var(--superficie)}
-h1{font-size:28px;line-height:1.25;margin:0 0 4px;color:var(--marca)}
-h2{font-size:20px;margin:32px 0 8px}
-p{margin:0 0 12px}
-.fecha{color:var(--suave);font-size:14px;margin-bottom:24px}
-a{color:var(--marca)}
-</style>
+<style>${estiloLegal}</style>
 </head>
 <body>
 <main>

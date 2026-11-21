@@ -15,6 +15,7 @@ import { type ConfigCobro, rutasCobro, sinCobro } from './cobro/rutas.js';
 import { rutasErrores } from './errores/rutas.js';
 import type { GooglePlay } from './google/cliente.js';
 import { type CobradorGoogle, rutasGooglePlay } from './google/rutas.js';
+import { rutasBorrarCuenta } from './legal/borrar_cuenta.js';
 import { rutasPrivacidad } from './legal/privacidad.js';
 import type { Respondedor } from './pregunta/respondedor.js';
 import { rutasPregunta } from './pregunta/rutas.js';
@@ -133,6 +134,7 @@ export function crearApp({
   rutasErrores(app, pool, conPago);
   rutasUso(app, pool);
   rutasPrivacidad(app);
+  rutasBorrarCuenta(app);
   app.decorate(
     'cobrador',
     rutasMercadoPago(

@@ -38,8 +38,9 @@ Color colorDelMonto(TipoMovimiento tipo) => tipo.esPase
 /// categoría.
 String tituloDeFila(FilaHistorial f) {
   if (f.ajusteArqueo) return Textos.ajusteDelArqueo;
-  // El día en que te pagaron o pagaste una deuda (entrega 55).
-  if (f.esPago) {
+  // El día en que te pagaron o pagaste una deuda (entrega 55), o una parte
+  // de ella (entrega 87): las dos se ven igual.
+  if (f.esPago || f.parteDe != null) {
     return f.tipo.entraPlata
         ? Textos.tePago(f.proveedor)
         : Textos.lePagaste(f.proveedor);
@@ -106,6 +107,16 @@ class AvatarDeFila extends StatelessWidget {
 /// categoría si el título no la dice, el pase o la cuenta del ajuste.
 String? _complemento(FilaHistorial f) {
   if (f.ajusteArqueo) return Textos.nombreCuenta(f.cuenta);
+  // De qué venta o compra es el cobro o el pago (entrega 87).
+  if (f.fechaDeLaDeuda case final deuda?) {
+    final venta = f.tipo.entraPlata;
+    if (f.parteDe != null) {
+      return Textos.unaParteDeLa(venta, formatearDiaYMes(deuda));
+    }
+    if (f.esPago && f.pagadoEnPartesCentimos > 0) {
+      return Textos.completoLa(venta, formatearDiaYMes(deuda));
+    }
+  }
   if (f.cuentaDestino case final destino? when f.tipo.esPase) {
     return Textos.pase(
       Textos.nombreCuenta(f.cuenta),
@@ -131,7 +142,13 @@ class FilaMovimiento extends ConsumerWidget {
     required this.alTocar,
     this.conSeparador = false,
     this.conFecha = false,
+    this.delDia = false,
   });
+
+  /// En el Historial, agrupado por día (entrega 87): la venta o la compra al
+  /// fiado que ese día no movió plata va en gris, con su monto original.
+  /// En «Lo que te deben» manda lo que falta.
+  final bool delDia;
 
   final FilaHistorial fila;
   final VoidCallback alTocar;
@@ -147,8 +164,20 @@ class FilaMovimiento extends ConsumerWidget {
     final cuando = conFecha
         ? formatearFechaYHoraDeFila(f.fecha, ref.watch(relojProvider)())
         : formatearHora(f.fecha.hour * 60 + f.fecha.minute);
+    // Lo que se debe, y si ya se pagó una parte, de cuánto (entrega 87).
+    final conPartes = f.loDebes && f.pagadoEnPartesCentimos > 0;
+    String deTotal(String Function(String, String) texto) => texto(
+      formatearSolesComprobante(f.montoCentimos),
+      formatearSolesComprobante(f.totalConPartesCentimos),
+    );
+    final gris = delDia && f.noMovioPlataEseDia;
     final estado = [
-      if (f.loDebes) f.teDeben ? Textos.teDebe : Textos.loDebes,
+      if (f.loDebes)
+        conPartes
+            ? deTotal(f.teDeben ? Textos.teDebeDe : Textos.debesDe)
+            : f.teDeben
+            ? Textos.teDebe
+            : Textos.loDebes,
       if (f.porSubir) Textos.porSubirEtiqueta,
     ];
     // Cobrado o pagado otro día: ahí suma (entrega 55).
@@ -223,14 +252,25 @@ class FilaMovimiento extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: Medidas.e3),
-            MontoText(
-              f.montoCentimos,
-              estilo: Tipografia.textoFuerte,
-              tono: tono == Tono.neutro ? null : tono,
-              // Solo lo que salió lleva «−» (entrega 68).
-              conSigno: tono == Tono.egreso,
-              conCentimos: true,
-            ),
+            if (gris)
+              // Ese día no movió plata: el monto original, en gris y sin
+              // signo (entrega 87).
+              MontoText(
+                f.totalConPartesCentimos,
+                key: const ValueKey('montoQueNoSuma'),
+                estilo: Tipografia.textoFuerte,
+                color: Colores.textoSecundario,
+                conCentimos: true,
+              )
+            else
+              MontoText(
+                f.montoCentimos,
+                estilo: Tipografia.textoFuerte,
+                tono: tono == Tono.neutro ? null : tono,
+                // Solo lo que salió lleva «−» (entrega 68).
+                conSigno: tono == Tono.egreso,
+                conCentimos: true,
+              ),
           ],
         ),
       ),

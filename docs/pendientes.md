@@ -27,6 +27,8 @@ Decisiones abiertas al 10 de octubre de 2026. Cuando una se cierre, se anota aqu
 
 ## Página web y Play Store (13-11-2026, `pagina-web.md`)
 
+- Cuando el cobro sea real: si «Pregúntale a Moca» sigue disponible con el plan vencido («solo anotar») o es parte de lo que se paga. Hoy, al vencer, no se ve (19-11-2026).
+
 - Que un abogado revise la política de privacidad (`servidor/src/legal/privacidad.ts`, publicada en `/privacidad` del servidor desde el 14-11-2026) antes de abrir Moca a todos. Desde la entrega Web 1 (16-11-2026) también está en `web/sitio/privacidad.html` (mocanegocios.com/privacidad, con la sección «Esta página web»): falta que el servidor lleve a la web, y mientras tanto se cambian las dos.
 - Cuando Moca esté en Play Store: si se sigue repartiendo el APK (con Mercado Pago y Yape) o se retira y todos pasan a Play.
 
