@@ -272,10 +272,12 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Más aire arriba que abajo: el encabezado queda pegado a
+                    // sus registros y separado del día anterior (entrega 86).
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         0,
-                        Medidas.e3,
+                        Medidas.e5,
                         0,
                         Medidas.e2,
                       ),
@@ -297,9 +299,13 @@ class _EstadoHistorial extends ConsumerState<PantallaHistorial> {
                               for (final (i, f) in delDia.indexed)
                                 FilaMovimiento(
                                   fila: f,
+                                  delDia: true,
                                   conSeparador: i < delDia.length - 1,
                                   alTocar: () => context.push(
-                                    Rutas.detalleMovimiento(f.id),
+                                    Rutas.detalleMovimiento(
+                                      f.id,
+                                      pago: f.esPago,
+                                    ),
                                   ),
                                 ),
                             ],
@@ -367,15 +373,53 @@ class _EncabezadoDelDia extends StatelessWidget {
         .where((f) => !f.tipo.entraPlata)
         .fold(0, (s, f) => s + f.montoCentimos);
     final estilo = Tipografia.apoyo.copyWith(fontWeight: FontWeight.w700);
+    // Una franja azul claro con una raya de marca a la izquierda: se lee
+    // como la cabecera del día, no como un registro más (entrega 86).
+    return ClipRRect(
+      key: const ValueKey('encabezadoDelDia'),
+      borderRadius: BorderRadius.circular(Medidas.radioChico),
+      child: ColoredBox(
+        color: Colores.tinteAzul,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(width: 4, child: ColoredBox(color: Colores.marca)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Medidas.e3,
+                    Medidas.e2,
+                    Medidas.e3,
+                    Medidas.e2,
+                  ),
+                  child: _filaDelEncabezado(entro, salio, estilo),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filaDelEncabezado(int entro, int salio, TextStyle estilo) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Semantics(
             header: true,
-            child: Text(titulo, style: Tipografia.tituloTarjeta),
+            child: Text(
+              titulo,
+              style: Tipografia.tituloTarjeta.copyWith(
+                color: Colores.azulOscuro,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ),
+        const SizedBox(width: Medidas.e2),
         // Con letra grande, el total se achica antes que desbordarse.
         Flexible(
           child: FittedBox(

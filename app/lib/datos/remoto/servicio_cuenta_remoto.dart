@@ -468,6 +468,9 @@ class ServicioCuentaRemoto
 
   // --- Pregúntale a Moca (entrega 74) -------------------------------------
 
+  static String _recortar(String texto, int maximo) =>
+      texto.length <= maximo ? texto : texto.substring(0, maximo);
+
   @override
   Future<int?> preguntasQueQuedan() async {
     final r = await _delEquipo(await _delNegocio('/pregunta'));
@@ -476,11 +479,27 @@ class ServicioCuentaRemoto
   }
 
   @override
-  Future<ResultadoPregunta> preguntar(String pregunta) async {
+  Future<ResultadoPregunta> preguntar(
+    String pregunta, {
+    List<Intercambio> anteriores = const [],
+  }) async {
     // Lo último que anotó, antes de preguntar.
     if (await hayCambiosSinSubir()) await subirTodo();
+    final ultimas = anteriores.length > ConversacionConMoca.queRecuerda
+        ? anteriores.sublist(
+            anteriores.length - ConversacionConMoca.queRecuerda,
+          )
+        : anteriores;
     final r = await _delEquipo(await _delNegocio('/pregunta'), {
       'pregunta': pregunta,
+      if (ultimas.isNotEmpty)
+        'anteriores': [
+          for (final a in ultimas)
+            {
+              'pregunta': _recortar(a.pregunta, 300),
+              'respuesta': _recortar(a.respuesta.texto, 2000),
+            },
+        ],
     });
     if (r == null) {
       return (respuesta: null, error: ErrorDePregunta.sinSenal, quedan: null);

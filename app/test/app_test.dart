@@ -16,6 +16,8 @@ import 'package:moca/comun/barra_inferior.dart';
 import 'package:moca/comun/estructura.dart';
 import 'package:moca/datos/local/base_local.dart';
 import 'package:moca/datos/repositorios/acceso_local.dart';
+import 'package:moca/datos/repositorios/conversacion_local.dart';
+import 'package:moca/dominio/pregunta.dart';
 import 'package:moca/datos/remoto/servicio_cuenta_remoto.dart';
 import 'package:moca/datos/repositorios/repositorio_comprobantes_local.dart';
 import 'package:moca/datos/repositorios/repositorio_historial_local.dart';
@@ -23,6 +25,10 @@ import 'package:moca/datos/repositorios/repositorio_movimientos_local.dart';
 import 'package:moca/datos/repositorios/repositorio_operador_local.dart';
 import 'package:moca/datos/repositorios/repositorio_primer_dia_local.dart';
 import 'package:moca/datos/simulados/lector_foto_simulado.dart';
+import 'package:moca/tema/colores.dart';
+import 'package:moca/tema/medidas.dart';
+import 'package:moca/comun/tarjeta.dart';
+import 'package:moca/comun/monto_text.dart';
 import 'package:moca/dominio/google_play.dart';
 import 'package:moca/dominio/version.dart';
 import 'package:moca/dominio/cobro.dart';
@@ -178,6 +184,9 @@ class _ServidorFalso {
   /// «Pregúntale a Moca» (entrega 74): lo preguntado, lo que responde y
   /// cuántas quedan; [errorPregunta] hace que falle.
   final preguntas = <String>[];
+
+  /// Las anteriores que llegaron con cada pregunta (entrega 90).
+  final anteriores = <Object?>[];
   var quedanPreguntas = 20;
   String? errorPregunta;
 
@@ -440,6 +449,7 @@ class _ServidorFalso {
         );
       case '/pregunta':
         preguntas.add(cuerpo['pregunta']! as String);
+        anteriores.add(cuerpo['anteriores']);
         if (errorPregunta case final error?) {
           return http.Response(
             jsonEncode({'error': error, 'quedan': quedanPreguntas}),
@@ -1049,6 +1059,14 @@ Future<void> quitarFiltros(WidgetTester tester) async {
   );
 }
 
+/// La venta del día (entrega 92: ya no tiene atajo en el +; en el teléfono
+/// se llega por la notificación de la noche o por voz).
+Future<void> abrirVentaDelDia(WidgetTester tester) async {
+  GoRouter.of(tester.element(find.byType(BarraInferior)))
+      .push(Rutas.ventaDelDia);
+  await esperar(tester);
+}
+
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
   await tocar(tester, find.byTooltip(Textos.ajustes));
@@ -1282,6 +1300,199 @@ void main() {
       expect(alto, inInclusiveRange(84, 90));
     });
 
+    testWidgets('Entrega 87: la venta al fiado en gris con su monto; los '
+        'cobros en partes, como «Te pagó», el día del cobro', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      late String id;
+      await tester.runAsync(() async {
+        // Venta al fiado de S/ 40 el sábado 10; se cobran S/ 30 hoy.
+        final antes = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 10, 18),
+        );
+        final ventas = await antes.categorias(TipoMovimiento.ingreso);
+        id = (await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: 4000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: ventas.first.id,
+            pagado: false,
+            contraparte: 'Comercial El Sol',
+          ),
+        )).ids.single;
+        await RepositorioHistorialLocal(base, ahora: () => _ahora).pagar(
+          id,
+          cuenta: TipoCuenta.efectivo,
+          dia: _ahora,
+          parteCentimos: 3000,
+        );
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      // Hoy, el cobro de la parte, como «Te pagó», de la venta del sábado.
+      expect(find.text(Textos.tePago('Comercial El Sol')), findsOneWidget);
+      expect(
+        find.textContaining(
+          Textos.unaParteDeLa(true, '10 de octubre'),
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      // El sábado, la venta con su monto original, en gris.
+      final venta = find.textContaining(
+        Textos.teDebeDe(
+          formatearSolesComprobante(1000),
+          formatearSolesComprobante(4000),
+        ),
+        findRichText: true,
+      );
+      await tester.scrollUntilVisible(
+        venta,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(venta, findsOneWidget);
+      final gris = tester.widget<MontoText>(
+        find.byKey(const ValueKey('montoQueNoSuma')),
+      );
+      expect(gris.centimos, 4000);
+      expect(gris.color, Colores.textoSecundario);
+
+      // Se cobra lo que falta: dos «Te pagó» hoy, y la venta sigue en S/ 40.
+      await tester.runAsync(
+        () => RepositorioHistorialLocal(
+          base,
+          ahora: () => _ahora,
+        ).pagar(id, cuenta: TipoCuenta.efectivo, dia: _ahora),
+      );
+      await esperar(tester);
+      expect(
+        find.textContaining(
+          Textos.completoLa(true, '10 de octubre'),
+          findRichText: true,
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(Textos.tePago('Comercial El Sol'), skipOffstage: false),
+        findsNWidgets(2),
+      );
+      expect(
+        tester
+            .widget<MontoText>(
+              find.byKey(const ValueKey('montoQueNoSuma'), skipOffstage: false),
+            )
+            .centimos,
+        4000,
+      );
+    });
+
+    testWidgets('Entrega 88: la fila que completó la compra abre ese pago, '
+        'no la compra entera', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      await tester.runAsync(() async {
+        // Compra al crédito de S/ 50 el sábado; se paga 10, 20 y 20 hoy.
+        final antes = RepositorioMovimientosLocal(
+          base,
+          ahora: () => DateTime(2026, 10, 10, 18),
+        );
+        final gastos = await antes.categorias(TipoMovimiento.egreso);
+        final id = (await antes.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 5000,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+            pagado: false,
+            contraparte: 'Manuel',
+          ),
+        )).ids.single;
+        final repo = RepositorioHistorialLocal(base, ahora: () => _ahora);
+        for (final parte in [1000, 2000]) {
+          await repo.pagar(
+            id,
+            cuenta: TipoCuenta.efectivo,
+            dia: _ahora,
+            parteCentimos: parte,
+          );
+        }
+        await repo.pagar(id, cuenta: TipoCuenta.efectivo, dia: _ahora);
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      await tocar(
+        tester,
+        find.textContaining(
+          Textos.completoLa(false, '10 de octubre'),
+          findRichText: true,
+        ),
+      );
+      // El pago de ese día: S/ 20, no la compra de S/ 50.
+      expect(
+        tester
+            .widget<MontoText>(find.byKey(const ValueKey('montoDelPago')))
+            .centimos,
+        2000,
+      );
+      expect(find.text(Textos.lePagaste('Manuel')), findsOneWidget);
+      // «Ver la compra» lleva a la compra entera, con sus pagos.
+      await tocar(tester, find.text(Textos.verLaVentaOCompra(false)));
+      expect(find.text(Textos.pagosEnPartes), findsOneWidget);
+      expect(find.byKey(const ValueKey('montoDelPago')), findsNothing);
+    });
+
+    testWidgets('Entrega 86: cada día empieza con una franja azul claro, '
+        'pegada a sus registros, aun angosto y con letra grande', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      tester.view.physicalSize = const Size(360 * 3, 780 * 3);
+      tester.view.devicePixelRatio = 3;
+      await tester.runAsync(() async {
+        final repo = RepositorioMovimientosLocal(base, ahora: () => _ahora);
+        final gastos = await repo.categorias(TipoMovimiento.egreso);
+        await repo.registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.egreso,
+            montoCentimos: 21700,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: gastos.first.id,
+          ),
+        );
+      });
+      await tocar(tester, find.text(Textos.pestanaHistorial));
+      for (final escala in [1.0, 1.5]) {
+        tester.platformDispatcher.textScaleFactorTestValue = escala;
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'letra $escala');
+        final franja = find.byKey(const ValueKey('encabezadoDelDia')).first;
+        // El fondo azul claro de la marca.
+        expect(
+          tester
+              .widgetList<ColoredBox>(
+                find.descendant(of: franja, matching: find.byType(ColoredBox)),
+              )
+              .map((c) => c.color),
+          contains(Colores.tinteAzul),
+        );
+        // Los totales caben dentro de la franja.
+        final caja = tester.getRect(franja);
+        final quedo = tester.getRect(
+          find.byKey(const ValueKey('quedoDelDia')).first,
+        );
+        expect(
+          quedo.right,
+          lessThanOrEqualTo(caja.right),
+          reason: 'letra $escala',
+        );
+        expect(caja.right, lessThanOrEqualTo(360), reason: 'letra $escala');
+        // Más cerca de su tarjeta que del borde de arriba de su bloque.
+        final tarjeta = tester.getRect(find.byType(Tarjeta).first);
+        expect(tarjeta.top - caja.bottom, lessThan(Medidas.e3));
+      }
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
     testWidgets('Entrega 55: el total del día y el cobro de un fiado en el '
         'día en que te pagaron', (tester) async {
       final base = await abrirApp(tester, listo: true);
@@ -1427,9 +1638,13 @@ void main() {
       expect(find.text(Textos.yaLoPagaste), findsOneWidget);
       await tocar(tester, find.byType(BotonVolver).first);
 
+      // «Un ingreso» abre «Escribirlo» con «Entró» (entrega 92).
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
-      expect(find.text(Textos.cuantoVendisteHoy), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      await tocar(tester, find.text(Textos.atajoUnIngreso));
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.text(Textos.cuantoVendisteHoy), findsNothing);
+      expect(find.text(Textos.yaTePagaron), findsOneWidget);
       await tocar(tester, find.byType(BotonVolver).first);
 
       // «Cancelar» la cierra sin abrir nada.
@@ -1485,8 +1700,7 @@ void main() {
     testWidgets('Entrega 52: la venta de hoy con lo fiado; sin nombre no se '
         'guarda y el total no lo suma', (tester) async {
       final base = await abrirApp(tester, listo: true);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      await abrirVentaDelDia(tester);
       await tester.enterText(find.byType(TextField).at(0), '100');
       await tocar(tester, find.text(Textos.agregarFiado));
       // Efectivo, Yape, Al fiado y a quién.
@@ -2035,10 +2249,9 @@ void main() {
       // Bajo la cifra, el día y la hora en que se mira (entrega 62).
       expect(find.text(formatearDiaYHora(_ahora)), findsOneWidget);
 
-      // Con la venta de hoy ya anotada, otra más va por el + (mejora 01).
+      // Con la venta de hoy ya anotada, otra más se suma a la de hoy.
       expect(find.text(Textos.anotarVentaDeHoy), findsNothing);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.atajoVentaDelDia));
+      await abrirVentaDelDia(tester);
       expect(find.text(Textos.hoyYaAnotaste('S/ 350')), findsOneWidget);
       await tester.enterText(find.byType(TextField).at(1), '120');
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
@@ -3017,10 +3230,21 @@ void main() {
   });
 
   group('Arqueo', () {
-    testWidgets('Entrega 57: el + abre el arqueo con su atajo', (tester) async {
+    testWidgets('Entrega 91: el dueño abre el arqueo desde «Mis cuentas», '
+        'no desde el +', (tester) async {
       await abrirApp(tester, listo: true);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.hacerArqueo));
+      expect(find.text(Textos.hacerArqueo), findsNothing);
+      await tocar(tester, find.text(Textos.cancelar));
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      // Antes de «¿Tienes otra caja de efectivo?».
+      final boton = find.widgetWithText(OutlinedButton, Textos.hacerArqueo);
+      expect(
+        tester.getTopLeft(boton).dy,
+        lessThan(tester.getTopLeft(find.text(Textos.agregarUnaCaja)).dy),
+      );
+      await tocar(tester, boton);
       expect(find.text(Textos.guardarArqueo), findsOneWidget);
     });
 
@@ -3142,7 +3366,7 @@ void main() {
     });
 
     testWidgets('«Pedir el arqueo ahora»: el Inicio no lleva tarjeta '
-        '(entrega 64) y el arqueo se hace desde el +', (tester) async {
+        '(entrega 64) y el arqueo se hace desde «Mis cuentas»', (tester) async {
       await abrirApp(tester, listo: true);
       await abrirAjusteOculto(tester);
       await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
@@ -3151,8 +3375,12 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInicio));
 
       expect(find.text(Textos.mocaTocaArqueo), findsNothing);
-      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      await tocar(tester, find.text(Textos.hacerArqueo));
+      await abrirAjustes(tester);
+      await tocar(tester, find.text(Textos.misCuentas));
+      await tocar(
+        tester,
+        find.widgetWithText(OutlinedButton, Textos.hacerArqueo),
+      );
       expect(find.text(Textos.arqueoDeLaSemana), findsOneWidget);
     });
 
@@ -4868,11 +5096,12 @@ void main() {
       expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });
 
-    testWidgets('Entrega 57: «Hacer arqueo» está en el +, no para el '
-        'ayudante', (tester) async {
+    testWidgets('Entrega 92: el + tiene «Un ingreso» y «Un gasto», sin el '
+        'arqueo', (tester) async {
       await comoRol(tester, Rol.ayudante);
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      expect(find.text(Textos.atajoVentaDelDia), findsOneWidget);
+      expect(find.text(Textos.atajoUnIngreso), findsOneWidget);
+      expect(find.text(Textos.atajoUnGasto), findsOneWidget);
       expect(find.text(Textos.hacerArqueo), findsNothing);
     });
 
@@ -4881,9 +5110,9 @@ void main() {
     ) async {
       await comoRol(tester, Rol.encargado);
       expect(find.text(Textos.enTuCaja), findsOneWidget);
-      // El encargado hace el arqueo desde el + (entrega 57).
+      // Desde la entrega 92 el arqueo es solo del dueño (en «Mis cuentas»).
       await tocar(tester, find.bySemanticsLabel(Textos.registrar));
-      expect(find.text(Textos.hacerArqueo), findsOneWidget);
+      expect(find.text(Textos.hacerArqueo), findsNothing);
       await tocar(tester, find.text(Textos.cancelar));
       expect(find.text(Textos.pestanaInformes), findsNothing);
       await abrirAjustes(tester);
@@ -6947,6 +7176,174 @@ void main() {
             .widget<TextField>(find.byKey(PantallaPreguntale.claveCampo))
             .enabled,
         isFalse,
+      );
+    });
+
+    // Entrega 90: la conversación se guarda en el teléfono.
+    Future<void> cerrarYVolver(WidgetTester tester) async {
+      await tocar(tester, find.byTooltip(Textos.cerrar));
+      await tocar(tester, find.text(Textos.preguntaleAMoca));
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+    }
+
+    const respuestaDeRosa = 'Doña Rosa te debe S/ 80 desde el 12 de octubre.';
+
+    testWidgets('Entrega 90: al volver está la conversación, y Moca la '
+        'recuerda', (tester) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      final sugerida = Textos.sugerenciasDelDia(_ahora)[0];
+      await preguntar(tester, find.text(sugerida));
+      expect(_servidor.anteriores, [null]);
+      await cerrarYVolver(tester);
+      expect(find.text(sugerida), findsOneWidget);
+      expect(find.text(respuestaDeRosa), findsOneWidget);
+      expect(
+        find.text(Textos.conLoAnotadoHasta(_ahora, _ahora)),
+        findsOneWidget,
+      );
+      // Las sugerencias ya no salen: hay conversación.
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsNothing);
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Y el martes?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(_servidor.anteriores.last, [
+        {'pregunta': sugerida, 'respuesta': respuestaDeRosa},
+      ]);
+    });
+
+    testWidgets('Entrega 90: guarda las últimas 20 y manda las últimas 4, '
+        'con su fecha', (tester) async {
+      final base = await conCuenta(tester);
+      final acceso = AccesoLocal(base, () => _ahora);
+      final conversacion = ConversacionLocal(acceso);
+      final antes = _ahora.subtract(const Duration(days: 3));
+      final negocio = await tester.runAsync(acceso.empresa);
+      // Ya tiene 20 guardadas: con la próxima se va la más vieja.
+      await tester.runAsync(
+        () => acceso.guardarAjuste(
+          ConversacionLocal.clave,
+          jsonEncode({
+            'negocio': negocio!.id,
+            'intercambios': [
+              for (var i = 1; i <= 20; i++)
+                Intercambio(
+                  pregunta: 'pregunta $i',
+                  respuesta: RespuestaDeMoca(texto: 'respuesta $i'),
+                  cuando: antes,
+                ).aJson(),
+            ],
+          }),
+        ),
+      );
+      // Con 20 guardadas abre al final: el saludo queda arriba, sin dibujar.
+      await tocar(tester, find.text(Textos.preguntaleAMoca));
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      // Al final, la última; con la fecha de cuando respondió.
+      expect(find.text('respuesta 20'), findsOneWidget);
+      expect(
+        find.text(Textos.conLoAnotadoHasta(antes, _ahora)).hitTestable(),
+        findsWidgets,
+      );
+      expect(Textos.conLoAnotadoHasta(antes, _ahora), contains('el viernes 9'));
+      await tester.enterText(
+        find.byKey(PantallaPreguntale.claveCampo),
+        '¿Y hoy?',
+      );
+      await preguntar(tester, find.byKey(PantallaPreguntale.claveEnviar));
+      expect(_servidor.anteriores.last, [
+        for (var i = 17; i <= 20; i++)
+          {'pregunta': 'pregunta $i', 'respuesta': 'respuesta $i'},
+      ]);
+      final despues = await tester.runAsync(conversacion.leer);
+      expect(despues!.length, 20);
+      expect(despues.first.pregunta, 'pregunta 2');
+      expect(despues.last.pregunta, '¿Y hoy?');
+    });
+
+    testWidgets('Entrega 90: lo que no respondió Moca no se guarda', (
+      tester,
+    ) async {
+      await conCuenta(tester);
+      await abrirPreguntale(tester);
+      _servidor.errorPregunta = 'sin_respuesta';
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
+      expect(find.text(Textos.preguntaleNoDisponible), findsOneWidget);
+      expect(find.byTooltip(Textos.borrarConversacion), findsNothing);
+      await cerrarYVolver(tester);
+      expect(find.text(Textos.preguntaleNoDisponible), findsNothing);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsOneWidget);
+    });
+
+    testWidgets('Entrega 90: «Borrar conversación» pregunta y la borra', (
+      tester,
+    ) async {
+      final base = await conCuenta(tester);
+      await abrirPreguntale(tester);
+      await preguntar(tester, find.text(Textos.sugerenciasDelDia(_ahora)[0]));
+      await tocar(tester, find.byTooltip(Textos.borrarConversacion));
+      expect(find.text(Textos.borrarConversacionTitulo), findsOneWidget);
+      await tocar(tester, find.text(Textos.cancelar));
+      expect(find.text(respuestaDeRosa), findsOneWidget);
+      await tocar(tester, find.byTooltip(Textos.borrarConversacion));
+      await tocar(tester, find.text(Textos.borrar));
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      expect(find.text(respuestaDeRosa), findsNothing);
+      expect(find.text(Textos.sugerenciasDelDia(_ahora)[1]), findsOneWidget);
+      final guardadas = await tester.runAsync(
+        ConversacionLocal(AccesoLocal(base, () => _ahora)).leer,
+      );
+      expect(guardadas, isEmpty);
+    });
+
+    testWidgets('Entrega 90: la conversación de otro negocio no se muestra', (
+      tester,
+    ) async {
+      final base = await conCuenta(tester);
+      final acceso = AccesoLocal(base, () => _ahora);
+      await tester.runAsync(
+        () => acceso.guardarAjuste(
+          ConversacionLocal.clave,
+          jsonEncode({
+            'negocio': 'otro-negocio',
+            'intercambios': [
+              Intercambio(
+                pregunta: '¿Cuánto vendí?',
+                respuesta: const RespuestaDeMoca(texto: 'De otro negocio.'),
+                cuando: _ahora,
+              ).aJson(),
+            ],
+          }),
+        ),
+      );
+      await abrirPreguntale(tester);
+      for (var i = 0; i < 5; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump();
+      }
+      expect(find.text('De otro negocio.'), findsNothing);
+      expect(
+        await tester.runAsync(() => acceso.leerAjuste(ConversacionLocal.clave)),
+        isNull,
       );
     });
 

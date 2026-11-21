@@ -37,6 +37,7 @@ Su dolor real: «vendo todo el día y a fin de mes no sé dónde se fue la plata
 2. El problema, con palabras del dueño.
 3. Cómo funciona, en 3 pasos: lo dices, foto o QR → Moca hace las cuentas → ves cuánto tienes y quién te debe.
 4. Lo que ganas: cuánto tienes por cuenta, lo que te deben con recordatorio por WhatsApp, funciona sin señal, el informe para tu contador, «Pregúntale a Moca».
+4b. **«Pregúntale a Moca»** (Web 6, 21-11-2026; `id="preguntale"`, la tarjeta de «Lo que ganas» enlaza aquí): seis grupos de preguntas de ejemplo en burbujas («¿Cómo me va?», «¿Voy mejor o peor?», «Cualquier día, cualquier fecha», «Lo que te deben», «Lo que debes y lo que compras», «Tus clientes»), una conversación de ejemplo («¿y el martes?»), «Moca no adivina», el botón «Pruébalo gratis 14 días» y la letra chica «Para el dueño del negocio · Hasta 20 preguntas al día». Fondo celeste propio (`--azul-50`), para no recambiar el de las secciones de abajo. **Cada pregunta tiene que ser algo que Moca responde hoy** (entregas 74 a 94): si Moca aprende o deja de responder algo, se cambia aquí en el mismo commit.
 5. Para pedir un crédito: el flujo de caja que piden la caja o el banco (diferencial del Full).
 6. Video corto (guiones en `guiones-videos.md`).
 7. Testimonios reales de pilotos.

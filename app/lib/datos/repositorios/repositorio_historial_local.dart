@@ -100,6 +100,15 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
       anotadoEn: m.creadoEn,
       vence: m.fechaVencimiento,
       parteDe: m.abonaA,
+      // El día de la venta o la compra de la que es parte (entrega 87).
+      fechaDeLaDeuda: switch (m.abonaA) {
+        final deuda? =>
+          d.movimientos
+              .where((x) => x.id == deuda)
+              .firstOrNull
+              ?.fechaMovimiento,
+        null => null,
+      },
       pagadoEnPartesCentimos: d
           .partesDe(m.id)
           .fold(0, (s, p) => s + p.montoCentimos),
