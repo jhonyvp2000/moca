@@ -235,6 +235,8 @@ Desde la entrega 92 el + ya no tiene el atajo «Venta del día»: la venta del d
 
 **«Se borró lo que le pregunté a Moca»** (entrega 90): la conversación se guarda en el teléfono, las últimas 20 preguntas. Empieza vacía al cambiar de negocio, al salir de la cuenta o si la persona tocó la papelera; las respuestas con «Ahora no puedo responder» no se guardan. No se puede recuperar: el servidor no guarda el texto de las preguntas.
 
+**«Moca compara mal el mes»** (entrega 94): si el mes o la semana todavía no termina, Moca compara los mismos días de los dos (del 1 al 21 de este mes con del 1 al 21 del anterior), como los Informes, y lo dice. Para el mes anterior completo, que pregunte por los dos meses ya cerrados. **«No encuentra a mi cliente»:** Moca lo busca por como está escrito en la app (en «Lo que te deben» o en el registro); si hay dos parecidos, pregunta cuál.
+
 **«Moca no me dice cuánto me debía alguien en tal fecha»** (entrega 93): Moca dice lo que te deben **hoy** y, para cualquier día o rango, lo que fiaste, lo que te pagaron de fiados, lo que compraste al crédito y lo que pagaste de lo que debías. Cuánto debía alguien en una fecha pasada todavía no lo tiene, y lo dice.
 
 **«Moca me dijo una cifra de un día que no cuadra»** (entrega 89): Moca separa **lo que vendiste** ese día (por el día de la venta, incluido lo que quedó al fiado) de **la plata que te entró** (lo cobrado ese día, también fiados de días anteriores). Revisa el Historial de ese día: las filas grises son ventas o compras que no movieron plata ese día, y las filas «Te pagó» son cobros de días anteriores. Si la fecha que entendió Moca no es la que quería la persona, que pregunte con la fecha completa («el martes 17 de noviembre»).

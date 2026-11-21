@@ -6,7 +6,7 @@ import type { Hechos } from '../src/pregunta/hechos.js';
 import { hechosDelNegocio, soles } from '../src/pregunta/hechos.js';
 import { calcularCifras, type DatosEmpresa } from '../src/cifras/calcular.js';
 import {
-  type CifrasDePeriodo,
+  type Calculos,
   instrucciones,
   mensajeParaElModelo,
   type Respondedor,
@@ -98,14 +98,14 @@ describe('Pregúntale a Moca (entrega 74)', () => {
   let recibido: {
     hechos: Hechos;
     pregunta: string;
-    periodo?: CifrasDePeriodo;
+    calculos?: Calculos;
     anteriores?: { pregunta: string; respuesta: string }[];
   } | null = null;
   let falla = false;
 
   const respondedor: Respondedor = {
-    async responder(hechos, pregunta, periodo, anteriores) {
-      recibido = { hechos, pregunta, periodo, anteriores };
+    async responder(hechos, pregunta, calculos, anteriores) {
+      recibido = { hechos, pregunta, calculos, anteriores };
       if (falla) throw new Error('sin modelo');
       return {
         texto: 'Doña Rosa te debe S/ 40 desde el 9 de noviembre.',
@@ -223,7 +223,7 @@ describe('Pregúntale a Moca (entrega 74)', () => {
 
   it('Entrega 89: la IA puede pedir las cifras de cualquier fecha del negocio', () => {
     // La pregunta de la prueba anterior (no se pregunta otra vez: cuenta para el tope).
-    const periodo = recibido!.periodo!;
+    const { periodo, comparar, persona } = recibido!.calculos!;
     // El lunes 9: S/ 120 por Yape y S/ 40 al fiado de Doña Rosa.
     expect(periodo('2026-11-09', '2026-11-09')).toMatchObject({
       vendiste: 'S/ 160',
@@ -232,6 +232,15 @@ describe('Pregúntale a Moca (entrega 74)', () => {
     });
     expect(periodo('2026-11-14', '2026-11-14')).toEqual({ error: 'en_el_futuro' });
     expect(instrucciones).toContain('cifras_del_periodo');
+    // Entrega 94: comparar y una persona, con los datos del negocio.
+    expect(
+      comparar({ desde: '2026-11-09', hasta: '2026-11-09' }, { desde: '2026-10-20', hasta: '2026-10-20' }),
+    ).toMatchObject({ comparacion: { vendiste: { primero: 'S/ 160', segundo: 'S/ 200', sentido: 'menos' } } });
+    expect(persona('rosa', '2026-11-09', '2026-11-09')).toMatchObject({
+      persona: 'Doña Rosa',
+      leVendiste: 'S/ 40',
+      deEsoAlFiado: 'S/ 40',
+    });
   });
 
   it('el modelo recibe los hechos aparte de la pregunta, con sus reglas', () => {

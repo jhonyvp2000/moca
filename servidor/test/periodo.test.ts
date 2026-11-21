@@ -1,8 +1,13 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it } from 'vitest';
-import { cifrasDelPeriodo, type CifrasDelPeriodo } from '../src/pregunta/periodo.js';
+import {
+  cifrasDeUnaPersona,
+  cifrasDelPeriodo,
+  compararPeriodos,
+  type CifrasDelPeriodo,
+} from '../src/pregunta/periodo.js';
 import type { Hechos } from '../src/pregunta/hechos.js';
-import { respondedorAnthropic, type ClienteDeMensajes } from '../src/pregunta/respondedor.js';
+import { respondedorAnthropic, type Calculos, type ClienteDeMensajes } from '../src/pregunta/respondedor.js';
 
 // «Pregúntale a Moca» con cualquier fecha (entrega 89). Viernes 20 de
 // noviembre de 2026, 10 de la mañana en Lima.
@@ -29,6 +34,7 @@ const datos = {
     { id: 'rosa', nombre: 'Doña Rosa' },
     { id: 'ana', nombre: 'Ana' },
     { id: 'sol', nombre: 'Comercial El Sol' },
+    { id: 'rosam', nombre: 'Rosa María' },
   ],
   categorias: [
     { id: 'venta', nombre: 'Venta del día' },
@@ -58,6 +64,13 @@ const datos = {
 
 const cifras = (desde: unknown, hasta: unknown) =>
   cifrasDelPeriodo(datos, desde, hasta, ahora) as CifrasDelPeriodo;
+
+/** Lo que el servidor calcula para la IA, con [periodo] cambiable. */
+const calculos = (periodo: Calculos['periodo'] = cifras): Calculos => ({
+  periodo,
+  comparar: (a, b) => compararPeriodos(datos, a, b, ahora),
+  persona: (n, d, h) => cifrasDeUnaPersona(datos, n, d, h, ahora),
+});
 
 describe('Pregúntale a Moca con fechas (entrega 89)', () => {
   it('un día: lo vendido con su fiado, y la plata que entró y salió', () => {
@@ -119,6 +132,98 @@ describe('Pregúntale a Moca con fechas (entrega 89)', () => {
     expect(semana.salio).toBe('S/ 65.50');
     expect(semana.pagasteDeLoQueDebias).toBe('S/ 50');
     expect(semana.aQuienLePagaste).toEqual([{ nombre: 'Comercial El Sol', monto: 'S/ 50' }]);
+  });
+
+  it('Entrega 94: lo vendido por cliente y lo comprado por proveedor', () => {
+    const semana = cifras('2026-11-16', '2026-11-19');
+    // Las ventas sin cliente no entran en la lista.
+    expect(semana.ventasPorCliente).toEqual([
+      { nombre: 'Ana', monto: 'S/ 50' },
+      { nombre: 'Doña Rosa', monto: 'S/ 30' },
+    ]);
+    expect(semana.comprasPorProveedor).toEqual([{ nombre: 'Comercial El Sol', monto: 'S/ 250' }]);
+  });
+
+  it('Entrega 94: compara dos periodos con la diferencia ya calculada', () => {
+    const r = compararPeriodos(
+      datos,
+      { desde: '2026-11-18', hasta: '2026-11-18' },
+      { desde: '2026-11-16', hasta: '2026-11-16' },
+      ahora,
+    );
+    expect(r).toMatchObject({ mismosDias: false });
+    const c = (r as Extract<typeof r, { comparacion: unknown }>).comparacion;
+    expect(c.vendiste).toEqual({
+      primero: 'S/ 190',
+      segundo: 'S/ 30',
+      sentido: 'más',
+      diferencia: 'S/ 160',
+      porcentaje: '533 %',
+    });
+    // Contra S/ 0 no hay porcentaje.
+    expect(c.teEntro).toMatchObject({ sentido: 'más', diferencia: 'S/ 130', porcentaje: null });
+    expect(c.compraste).toMatchObject({ primero: 'S/ 215.50', segundo: 'S/ 50', sentido: 'más' });
+    expect(c.retirasteParaTi).toMatchObject({ primero: 'S/ 25', sentido: 'más' });
+    const menos = compararPeriodos(
+      datos,
+      { desde: '2026-11-16', hasta: '2026-11-16' },
+      { desde: '2026-11-18', hasta: '2026-11-18' },
+      ahora,
+    ) as Extract<typeof r, { comparacion: unknown }>;
+    expect(menos.comparacion.vendiste).toMatchObject({ sentido: 'menos', porcentaje: '84 %' });
+    expect(menos.comparacion.salio).toMatchObject({ primero: 'S/ 0', segundo: 'S/ 15.50', sentido: 'menos' });
+    const igual = compararPeriodos(
+      datos,
+      { desde: '2026-11-17', hasta: '2026-11-17' },
+      { desde: '2026-11-10', hasta: '2026-11-10' },
+      ahora,
+    ) as Extract<typeof r, { comparacion: unknown }>;
+    expect(igual.comparacion.vendiste).toMatchObject({ sentido: 'igual', diferencia: 'S/ 0', porcentaje: null });
+  });
+
+  it('Entrega 94: si un periodo no termina, compara los mismos días (opción A)', () => {
+    // Esta semana va del lunes 16 al viernes 20 (hoy): la pasada, del 9 al 13.
+    const r = compararPeriodos(
+      datos,
+      { desde: '2026-11-16', hasta: '2026-11-22' },
+      { desde: '2026-11-09', hasta: '2026-11-15' },
+      ahora,
+    );
+    expect(r).toMatchObject({
+      mismosDias: true,
+      primero: { desde: 'lunes 16 de noviembre de 2026', hasta: 'viernes 20 de noviembre de 2026' },
+      segundo: { desde: 'lunes 9 de noviembre de 2026', hasta: 'viernes 13 de noviembre de 2026' },
+    });
+    expect(
+      compararPeriodos(datos, { desde: 'ayer', hasta: '2026-11-19' }, { desde: '2026-11-09', hasta: '2026-11-09' }, ahora),
+    ).toEqual({ error: 'fecha_invalida', en: 'primero' });
+    expect(
+      compararPeriodos(datos, { desde: '2026-11-19', hasta: '2026-11-19' }, { desde: '2026-12-01', hasta: '2026-12-01' }, ahora),
+    ).toEqual({ error: 'en_el_futuro', en: 'segundo' });
+  });
+
+  it('Entrega 94: un cliente o proveedor por su nombre', () => {
+    const persona = (n: unknown) => cifrasDeUnaPersona(datos, n, '2026-11-16', '2026-11-19', ahora);
+    // Sin tildes ni mayúsculas, y la parte de Ana cuenta por la venta a la que abona.
+    expect(persona('dona rosa')).toMatchObject({
+      persona: 'Doña Rosa',
+      leVendiste: 'S/ 30',
+      deEsoAlFiado: 'S/ 30',
+      tePago: 'S/ 30',
+    });
+    expect(persona('ANA')).toMatchObject({ persona: 'Ana', leVendiste: 'S/ 50', deEsoAlFiado: 'S/ 50', tePago: 'S/ 20' });
+    expect(persona('el sol')).toMatchObject({
+      persona: 'Comercial El Sol',
+      leCompraste: 'S/ 250',
+      deEsoAlCredito: 'S/ 250',
+      lePagaste: 'S/ 50',
+      leVendiste: 'S/ 0',
+    });
+    // «Rosa» es Doña Rosa o Rosa María: Moca pregunta.
+    expect(persona('rosa')).toEqual({ error: 'varios', opciones: ['Doña Rosa', 'Rosa María'] });
+    expect(persona('Pedro')).toEqual({ error: 'no_encontrado' });
+    expect(persona('  ')).toEqual({ error: 'sin_nombre' });
+    expect(cifrasDeUnaPersona(datos, 'Ana', '2026-11-19', '2026-11-18', ahora)).toEqual({ error: 'rango_al_reves' });
   });
 
   it('antes de empezar a anotar, o más allá de hoy, lo dice', () => {
@@ -186,10 +291,14 @@ describe('El respondedor pide las cifras y después responde (entrega 89)', () =
       responde('El miércoles 18 vendiste S/ 190.'),
     ]);
     const pedidosDePeriodo: unknown[] = [];
-    const r = await respondedorAnthropic('llave', cliente).responder(hechos, '¿cuánto vendí el 18?', (d, h) => {
-      pedidosDePeriodo.push([d, h]);
-      return cifras(d, h);
-    });
+    const r = await respondedorAnthropic('llave', cliente).responder(
+      hechos,
+      '¿cuánto vendí el 18?',
+      calculos((d, h) => {
+        pedidosDePeriodo.push([d, h]);
+        return cifras(d, h);
+      }),
+    );
     expect(r.texto).toBe('El miércoles 18 vendiste S/ 190.');
     expect(r.tokensEntrada).toBe(200);
     expect(r.tokensSalida).toBe(20);
@@ -208,11 +317,11 @@ describe('El respondedor pide las cifras y después responde (entrega 89)', () =
       pide('2026-11-18', '2026-11-18'),
       responde('Vendiste más el miércoles.'),
     ]);
-    const r = await respondedorAnthropic('llave', cliente).responder(hechos, '¿lunes o miércoles?', cifras);
+    const r = await respondedorAnthropic('llave', cliente).responder(hechos, '¿lunes o miércoles?', calculos());
     expect(r.texto).toBe('Vendiste más el miércoles.');
     expect(pedidos.map((p) => p.tool_choice)).toEqual([{ type: 'auto' }, { type: 'auto' }, { type: 'none' }]);
     // La herramienta sigue declarada: la conversación trae sus pedidos.
-    expect(pedidos[2]!.tools).toHaveLength(1);
+    expect(pedidos[2]!.tools).toHaveLength(3);
   });
 
   it('Entrega 90: las preguntas anteriores van antes, y las cifras una sola vez', async () => {
@@ -221,7 +330,7 @@ describe('El respondedor pide las cifras y después responde (entrega 89)', () =
       pregunta: `pregunta ${i + 1}`,
       respuesta: `respuesta ${i + 1}`,
     }));
-    await respondedorAnthropic('llave', cliente).responder(hechos, '¿y el martes?', cifras, anteriores);
+    await respondedorAnthropic('llave', cliente).responder(hechos, '¿y el martes?', calculos(), anteriores);
     const m = pedidos[0]!.messages;
     // Solo las 4 últimas: 8 mensajes y la pregunta nueva.
     expect(m).toHaveLength(9);
@@ -234,6 +343,36 @@ describe('El respondedor pide las cifras y después responde (entrega 89)', () =
     expect(m[8]!.content).toContain('<hechos>');
     expect(m[8]!.content).toContain('Pregunta del dueño: ¿y el martes?');
     expect(m.filter((x) => String(x.content).includes('<hechos>'))).toHaveLength(1);
+  });
+
+  it('Entrega 94: ofrece las tres herramientas y responde cada pedido', async () => {
+    const { cliente, pedidos } = clienteFalso([
+      respuesta({
+        stop_reason: 'tool_use',
+        content: [
+          {
+            type: 'tool_use',
+            id: 't-comparar',
+            name: 'comparar_periodos',
+            input: { primero: { desde: '2026-11-18', hasta: '2026-11-18' }, segundo: { desde: '2026-11-16', hasta: '2026-11-16' } },
+          },
+          { type: 'tool_use', id: 't-ana', name: 'cifras_de_una_persona', input: { nombre: 'Ana', desde: '2026-11-16', hasta: '2026-11-19' } },
+          { type: 'tool_use', id: 't-otra', name: 'otra_cosa', input: {} },
+        ],
+      } as Partial<Anthropic.Message>),
+      responde('Vendiste S/ 160 más.'),
+    ]);
+    await respondedorAnthropic('llave', cliente).responder(hechos, '¿vendí más?', calculos());
+    expect(pedidos[0]!.tools!.map((t) => (t as Anthropic.Tool).name)).toEqual([
+      'cifras_del_periodo',
+      'comparar_periodos',
+      'cifras_de_una_persona',
+    ]);
+    const resultados = pedidos[1]!.messages.at(-1)!.content as Anthropic.ToolResultBlockParam[];
+    const leer = (i: number) => JSON.parse(resultados[i]!.content as string);
+    expect(leer(0).comparacion.vendiste.diferencia).toBe('S/ 160');
+    expect(leer(1).persona).toBe('Ana');
+    expect(leer(2)).toEqual({ error: 'herramienta_desconocida' });
   });
 
   it('sin periodo no se ofrece la herramienta', async () => {

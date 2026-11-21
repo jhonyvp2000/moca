@@ -6,7 +6,7 @@ import { autenticar } from '../datos/subir.js';
 import { desfaseHorario } from '../pais/peru.js';
 import { cobroParaElTelefono, type ConfigCobro } from '../cobro/rutas.js';
 import { hechosDelNegocio } from './hechos.js';
-import { cifrasDelPeriodo } from './periodo.js';
+import { cifrasDeUnaPersona, cifrasDelPeriodo, compararPeriodos } from './periodo.js';
 import { anterioresMaximas, type Anterior, type Respondedor } from './respondedor.js';
 
 /** Preguntas respondidas por negocio y día (entrega 74). */
@@ -153,7 +153,12 @@ export function rutasPregunta(
         const r = await respondedor.responder(
           hechos,
           pregunta,
-          (desde, hasta) => cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+          {
+            periodo: (desde, hasta) => cifrasDelPeriodo(quien.datos, desde, hasta, momento),
+            comparar: (a, b) => compararPeriodos(quien.datos, a, b, momento),
+            persona: (nombre, desde, hasta) =>
+              cifrasDeUnaPersona(quien.datos, nombre, desde, hasta, momento),
+          },
           peticion.body.anteriores ?? [],
         );
         await pool.query(
