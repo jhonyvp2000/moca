@@ -8,7 +8,6 @@ import '../../comun/seccion_plegable.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/tarjeta_resumen.dart';
 import '../../comun/tono.dart';
-import '../inicio/bloque_pendientes.dart';
 import '../moca/avisos.dart';
 import 'grafico_semanas.dart';
 import '../../comun/videos.dart';
@@ -378,25 +377,29 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
           ),
         ),
       ),
-      if (informe != null)
-        OutlinedButton.icon(
-          onPressed: informe.sinRegistros || _armandoPdf || _armandoExcel
-              ? null
-              : () => _elegirQueCompartir(informe),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
-            side: BorderSide.none,
-            shape: const StadiumBorder(),
-          ),
-          icon: const Icon(Icons.ios_share_rounded, size: 20),
-          label: Text(
-            _armandoPdf
-                ? Textos.armandoPdf
-                : _armandoExcel
-                ? Textos.armandoExcel
-                : Textos.compartir,
-          ),
+      // Siempre en su lugar, para que la cabecera no salte (entrega 99).
+      OutlinedButton.icon(
+        onPressed:
+            informe == null ||
+                informe.sinRegistros ||
+                _armandoPdf ||
+                _armandoExcel
+            ? null
+            : () => _elegirQueCompartir(informe),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
         ),
+        icon: const Icon(Icons.ios_share_rounded, size: 20),
+        label: Text(
+          _armandoPdf
+              ? Textos.armandoPdf
+              : _armandoExcel
+              ? Textos.armandoExcel
+              : Textos.compartir,
+        ),
+      ),
     ],
   );
 
@@ -415,47 +418,38 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     const AvisoEnInformes(),
     _titulo(informe),
     const SizedBox(height: Medidas.e3),
-    // El selector y el periodo con sus flechas, siempre en una sola fila
-    // (entrega 76): si no cabe, el nombre se achica.
+    // El selector en su fila y, debajo, el periodo entre sus flechas, con
+    // letra legible (entrega 99: en una sola fila, desde que hay «Día», el
+    // nombre quedaba diminuto; cambia lo de la entrega 76).
+    Align(
+      alignment: Alignment.centerLeft,
+      child: FittedBox(fit: BoxFit.scaleDown, child: _selector()),
+    ),
+    const SizedBox(height: Medidas.e1),
     Row(
       children: [
-        // Si aun así no cabe (letra grande en un teléfono angosto), se achica.
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width * 0.6,
-          ),
-          child: FittedBox(fit: BoxFit.scaleDown, child: _selector()),
+        _Flecha(
+          icono: Icono.izquierda,
+          etiqueta: anterior,
+          alTocar: alAnterior,
         ),
-        const SizedBox(width: Medidas.e2),
         Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _Flecha(
-                icono: Icono.izquierda,
-                etiqueta: anterior,
-                alTocar: alAnterior,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Semantics(
+              header: true,
+              child: Text(
+                titulo,
+                maxLines: 1,
+                style: Tipografia.tituloDestacado,
               ),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Semantics(
-                    header: true,
-                    child: Text(
-                      titulo,
-                      maxLines: 1,
-                      style: Tipografia.tituloDestacado,
-                    ),
-                  ),
-                ),
-              ),
-              _Flecha(
-                icono: Icono.derecha,
-                etiqueta: siguiente,
-                alTocar: alSiguiente,
-              ),
-            ],
+            ),
           ),
+        ),
+        _Flecha(
+          icono: Icono.derecha,
+          etiqueta: siguiente,
+          alTocar: alSiguiente,
         ),
       ],
     ),
@@ -581,7 +575,8 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                 final siguiente = DateTime(dia.year, dia.month, dia.day + 1);
                 _dia = siguiente == hoy ? null : siguiente;
               }),
-        periodo: Textos.fechaDelDia(dia),
+        // La fecha ya va entre las flechas (entrega 99).
+        periodo: null,
       ),
       _VistaDelPeriodo(
         desde: dia,
@@ -798,10 +793,8 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
       ),
       separacion,
 
-      // Lo que se debe, en dos fichas como en el Inicio (entrega 59).
-      const BloquePendientes(
-        margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
-      ),
+      // Las fichas de lo que se debe están en el Inicio y, aquí, en los
+      // filtros «Debes» y «Te deben» (entrega 99).
       // El resto del mes, a un toque (entrega 59).
       SeccionPlegable(
         clave: 'informe_mes',
@@ -1663,6 +1656,12 @@ class _VistaDelPeriodo extends ConsumerWidget {
 
   static const _separacion = SizedBox(height: Medidas.separacionTarjetas);
 
+  /// «hoy», «ese día» o «en estos días» (entrega 99).
+  String get _cuando => Textos.enElPeriodo(
+    unDia: hasta.difference(desde).inHours <= 25,
+    esHoy: esHoy,
+  );
+
   void _abrir(
     BuildContext context, {
     required TipoMovimiento tipo,
@@ -1818,26 +1817,39 @@ class _VistaDelPeriodo extends ConsumerWidget {
         ),
         segunda: (Textos.alFiadoEtiqueta, c.alFiadoCentimos),
       ),
-      _separacion,
-      _lista(
-        context,
-        titulo: Textos.porCategoria,
-        filas: c.ventasPorCategoria,
-        vacio: Textos.sinVentasEnElPeriodo,
-        tipo: TipoMovimiento.ingreso,
-        porAnotado: true,
-      ),
-      _separacion,
-      _lista(
-        context,
-        titulo: Textos.porCliente,
-        filas: c.ventasPorCliente,
-        vacio: Textos.ventasSinClienteNota,
-        tipo: TipoMovimiento.ingreso,
-        porAnotado: true,
-        porContraparte: true,
-        nota: c.ventasPorCliente.isEmpty ? null : Textos.ventasSinClienteNota,
-      ),
+      if (c.vendisteCentimos == 0) ...[
+        _separacion,
+        Text(
+          Textos.sinVentasEnElPeriodo(_cuando),
+          style: Tipografia.secundario,
+        ),
+      ],
+      // Con una sola categoría repetiría el total (entrega 99).
+      if (c.ventasPorCategoria.length > 1) ...[
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.porCategoria,
+          filas: c.ventasPorCategoria,
+          vacio: '',
+          tipo: TipoMovimiento.ingreso,
+          porAnotado: true,
+        ),
+      ],
+      // Sin ventas con nombre, la tarjeta no sale (entrega 99).
+      if (c.ventasPorCliente.isNotEmpty) ...[
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.porCliente,
+          filas: c.ventasPorCliente,
+          vacio: '',
+          tipo: TipoMovimiento.ingreso,
+          porAnotado: true,
+          porContraparte: true,
+          nota: Textos.ventasSinClienteNota,
+        ),
+      ],
     ],
   );
 
@@ -1855,28 +1867,37 @@ class _VistaDelPeriodo extends ConsumerWidget {
         ),
         segunda: (Textos.alCredito, c.alCreditoCentimos),
       ),
-      _separacion,
-      _lista(
-        context,
-        titulo: Textos.porCategoria,
-        filas: c.comprasPorCategoria,
-        vacio: Textos.sinComprasEnElPeriodo,
-        tipo: TipoMovimiento.egreso,
-        porAnotado: true,
-      ),
-      _separacion,
-      _lista(
-        context,
-        titulo: Textos.porProveedor,
-        filas: c.comprasPorProveedor,
-        vacio: Textos.comprasSinProveedorNota,
-        tipo: TipoMovimiento.egreso,
-        porAnotado: true,
-        porContraparte: true,
-        nota: c.comprasPorProveedor.isEmpty
-            ? null
-            : Textos.comprasSinProveedorNota,
-      ),
+      if (c.comprasteCentimos == 0) ...[
+        _separacion,
+        Text(
+          Textos.sinComprasEnElPeriodo(_cuando),
+          style: Tipografia.secundario,
+        ),
+      ],
+      if (c.comprasPorCategoria.length > 1) ...[
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.porCategoria,
+          filas: c.comprasPorCategoria,
+          vacio: '',
+          tipo: TipoMovimiento.egreso,
+          porAnotado: true,
+        ),
+      ],
+      if (c.comprasPorProveedor.isNotEmpty) ...[
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.porProveedor,
+          filas: c.comprasPorProveedor,
+          vacio: '',
+          tipo: TipoMovimiento.egreso,
+          porAnotado: true,
+          porContraparte: true,
+          nota: Textos.comprasSinProveedorNota,
+        ),
+      ],
     ],
   );
 
@@ -1890,6 +1911,7 @@ class _VistaDelPeriodo extends ConsumerWidget {
     required String vacio,
     required TipoMovimiento tipo,
     required bool porAnotado,
+    bool totalNeutro = false,
   }) {
     final tono = tipo == TipoMovimiento.egreso ? Tono.egreso : Tono.ingreso;
     final enLista = filas.fold(0, (s, g) => s + g.centimos);
@@ -1907,7 +1929,8 @@ class _VistaDelPeriodo extends ConsumerWidget {
               child: MontoText(
                 total,
                 estilo: Tipografia.montoGrande,
-                tono: total == 0 ? Tono.neutro : tono,
+                // Pagar una deuda no es una alerta (entrega 99).
+                tono: total == 0 || totalNeutro ? Tono.neutro : tono,
               ),
             ),
           ),
@@ -1967,32 +1990,43 @@ class _VistaDelPeriodo extends ConsumerWidget {
         ),
       );
 
+  /// Sin nada en el periodo, una línea en vez de dos tarjetas en cero
+  /// (entrega 99).
+  Widget _sinNada(String texto) =>
+      Tarjeta(child: Text(texto, style: Tipografia.texto));
+
   Widget _debo(BuildContext context, WidgetRef ref, CifrasDelPeriodo c) {
     final hoy = ref.watch(loQueDebesProvider).value ?? const [];
+    final sinNada = c.alCreditoCentimos == 0 && c.pagasteDeudasCentimos == 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _deuda(
-          context,
-          titulo: Textos.quedasteDebiendo,
-          detalle: Textos.quedasteDebiendoDetalle,
-          total: c.alCreditoCentimos,
-          filas: c.alCreditoPorProveedor,
-          vacio: Textos.nadaAlCredito,
-          tipo: TipoMovimiento.egreso,
-          porAnotado: true,
-        ),
-        _separacion,
-        _deuda(
-          context,
-          titulo: Textos.pagasteDeLoQueDebias,
-          detalle: Textos.pagasteDeLoQueDebiasDetalle,
-          total: c.pagasteDeudasCentimos,
-          filas: c.pagosPorProveedor,
-          vacio: Textos.nadaPagadoDeDeudas,
-          tipo: TipoMovimiento.egreso,
-          porAnotado: false,
-        ),
+        if (sinNada)
+          _sinNada(Textos.sinDeudasNiPagos(_cuando))
+        else ...[
+          _deuda(
+            context,
+            titulo: Textos.quedasteDebiendo,
+            detalle: Textos.quedasteDebiendoDetalle(_cuando),
+            total: c.alCreditoCentimos,
+            filas: c.alCreditoPorProveedor,
+            vacio: Textos.nadaAlCredito(_cuando),
+            tipo: TipoMovimiento.egreso,
+            porAnotado: true,
+          ),
+          _separacion,
+          _deuda(
+            context,
+            titulo: Textos.pagasteDeLoQueDebias,
+            detalle: Textos.pagasteDeLoQueDebiasDetalle,
+            total: c.pagasteDeudasCentimos,
+            filas: c.pagosPorProveedor,
+            vacio: Textos.nadaPagadoDeDeudas(_cuando),
+            tipo: TipoMovimiento.egreso,
+            porAnotado: false,
+            totalNeutro: true,
+          ),
+        ],
         _separacion,
         _totalDeHoy(
           context,
@@ -2007,30 +2041,35 @@ class _VistaDelPeriodo extends ConsumerWidget {
 
   Widget _meDeben(BuildContext context, WidgetRef ref, CifrasDelPeriodo c) {
     final hoy = ref.watch(loQueTeDebenProvider).value ?? const [];
+    final sinNada = c.alFiadoCentimos == 0 && c.teCobraronCentimos == 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _deuda(
-          context,
-          titulo: Textos.fiaste,
-          detalle: Textos.fiasteDetalle,
-          total: c.alFiadoCentimos,
-          filas: c.alFiadoPorCliente,
-          vacio: Textos.nadaFiado,
-          tipo: TipoMovimiento.ingreso,
-          porAnotado: true,
-        ),
-        _separacion,
-        _deuda(
-          context,
-          titulo: Textos.tePagaronDeFiados,
-          detalle: Textos.tePagaronDeFiadosDetalle,
-          total: c.teCobraronCentimos,
-          filas: c.cobrosPorCliente,
-          vacio: Textos.nadaCobradoDeFiados,
-          tipo: TipoMovimiento.ingreso,
-          porAnotado: false,
-        ),
+        if (sinNada)
+          _sinNada(Textos.sinFiadosNiCobros(_cuando))
+        else ...[
+          _deuda(
+            context,
+            titulo: Textos.fiaste,
+            detalle: Textos.fiasteDetalle(_cuando),
+            total: c.alFiadoCentimos,
+            filas: c.alFiadoPorCliente,
+            vacio: Textos.nadaFiado(_cuando),
+            tipo: TipoMovimiento.ingreso,
+            porAnotado: true,
+          ),
+          _separacion,
+          _deuda(
+            context,
+            titulo: Textos.tePagaronDeFiados,
+            detalle: Textos.tePagaronDeFiadosDetalle,
+            total: c.teCobraronCentimos,
+            filas: c.cobrosPorCliente,
+            vacio: Textos.nadaCobradoDeFiados(_cuando),
+            tipo: TipoMovimiento.ingreso,
+            porAnotado: false,
+          ),
+        ],
         _separacion,
         _totalDeHoy(
           context,

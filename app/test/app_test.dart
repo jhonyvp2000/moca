@@ -1067,6 +1067,12 @@ Future<void> abrirVentaDelDia(WidgetTester tester) async {
   await esperar(tester);
 }
 
+/// «Te deben», desde su ficha del Inicio (entrega 99; antes, en Informes).
+Future<void> abrirLoQueTeDeben(WidgetTester tester) async {
+  await tocar(tester, find.text(Textos.pestanaInicio).last);
+  await tocar(tester, find.text(Textos.fichaTeDeben));
+}
+
 Future<void> abrirAjustes(WidgetTester tester) async {
   await tocar(tester, find.text(Textos.pestanaInicio).last);
   await tocar(tester, find.byTooltip(Textos.ajustes));
@@ -1679,8 +1685,8 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
 
-      // Desde la entrega 63, «Te deben» no está en el Inicio: en Informes.
-      expect(find.text(Textos.fichaTeDeben), findsNothing);
+      // Desde la entrega 99, «Te deben» está otra vez en el Inicio.
+      expect(find.text(Textos.fichaTeDeben), findsOneWidget);
       expect(find.text(Textos.escucharMiSemana), findsOneWidget);
       // Entrega 51: cuánto de lo vendido hoy se fió, y el ⓘ no cuenta lo
       // fiado como plata en la mano.
@@ -1692,8 +1698,7 @@ void main() {
         findsOneWidget,
       );
       await verNotaDeTienesHoy(tester, Textos.notaConMovimientos);
-      await tocar(tester, find.text(Textos.pestanaInformes));
-      await tocar(tester, find.text(Textos.fichaTeDeben));
+      await abrirLoQueTeDeben(tester);
       expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
       await tocar(tester, find.byType(BotonVolver).first);
 
@@ -1744,9 +1749,7 @@ void main() {
         (m) => m.estadoPago == EstadoPago.pendiente,
       );
       expect(fiado.montoCentimos, 8000);
-      // «Te deben» está en Informes (entrega 63), no en el Inicio.
-      expect(find.text(Textos.fichaTeDeben), findsNothing);
-      await tocar(tester, find.text(Textos.pestanaInformes));
+      // «Te deben» volvió al Inicio (entrega 99); en Informes es un filtro.
       expect(find.text(Textos.fichaTeDeben), findsOneWidget);
     });
 
@@ -1946,9 +1949,8 @@ void main() {
       );
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaInformes));
-      // Las deudas, en fichas (entrega 59).
-      await tocar(tester, find.text(Textos.fichaTeDeben).first);
+      // Las deudas, en fichas (entrega 59), en el Inicio (entrega 99).
+      await abrirLoQueTeDeben(tester);
       expect(
         find.text(Textos.teDebenTotal(formatearSoles(20000), 1)),
         findsOneWidget,
@@ -2017,9 +2019,8 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaInformes));
-      // Las deudas, en fichas (entrega 59).
-      await tocar(tester, find.text(Textos.fichaTeDeben).first);
+      // Las deudas, en fichas (entrega 59), en el Inicio (entrega 99).
+      await abrirLoQueTeDeben(tester);
       expect(find.text('987 000 053'), findsOneWidget);
       expect(find.text(Textos.cambiarCelular), findsOneWidget);
       // Con su número, WhatsApp abre su chat; queda cuándo se le recordó.
@@ -2075,9 +2076,8 @@ void main() {
       await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
       await tester.pump(const Duration(seconds: 5));
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaInformes));
-      // Las deudas, en fichas (entrega 59).
-      await tocar(tester, find.text(Textos.fichaTeDeben).first);
+      // Las deudas, en fichas (entrega 59), en el Inicio (entrega 99).
+      await abrirLoQueTeDeben(tester);
       // Entrega 45: recordarle por WhatsApp, sin su número.
       await tocar(tester, find.text(Textos.recordarPorWhatsApp));
       expect(_abiertos.single, startsWith('https://wa.me/?text='));
@@ -2264,10 +2264,8 @@ void main() {
       expect(find.text('S/ 1,470'), findsOneWidget);
     });
 
-    testWidgets('Entrega 76: en Informes, «Mes / Año» y el mes van en una '
-        'sola fila, aun en un teléfono angosto con letra grande', (
-      tester,
-    ) async {
+    testWidgets('Entrega 99: en Informes, el periodo va en su propia fila, '
+        'legible, aun en un teléfono angosto con letra grande', (tester) async {
       tester.view.physicalSize = const Size(360 * 3, 780 * 3);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
@@ -2279,10 +2277,10 @@ void main() {
         expect(tester.takeException(), isNull, reason: 'letra $escala');
         final selector = tester.getRect(find.text(Textos.verMes));
         final mes = tester.getRect(find.text(nombreDelMesConMayuscula(_ahora)));
-        // En la misma fila: se cruzan en altura.
-        expect(mes.top, lessThan(selector.bottom), reason: 'letra $escala');
-        expect(mes.bottom, greaterThan(selector.top), reason: 'letra $escala');
+        // Debajo del selector, sin salirse y sin achicarse: con su alto.
+        expect(mes.top, greaterThanOrEqualTo(selector.bottom));
         expect(mes.right, lessThanOrEqualTo(360), reason: 'letra $escala');
+        expect(mes.height, greaterThanOrEqualTo(20), reason: 'letra $escala');
       }
       tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
@@ -3366,9 +3364,10 @@ void main() {
 
       await tocar(tester, find.text(Textos.pestanaHistorial));
       expect(find.text(Textos.ajusteDelArqueo), findsOneWidget);
+      // Desde la entrega 99, cada fila dice su cuenta.
       expect(
         find.textContaining(' · ${Textos.efectivo}', findRichText: true),
-        findsOneWidget,
+        findsWidgets,
       );
       // Un ajuste no es ni entrada ni salida.
       await filtrarTransacciones(tester, [Textos.entro]);
@@ -3437,7 +3436,8 @@ void main() {
         findsOneWidget,
       );
       await tocar(tester, find.byType(BotonVolver));
-      // Sin deudas no hay fichas (entrega 59).
+      // Sin deudas no hay fichas (entrega 59), que están en el Inicio.
+      await tocar(tester, find.text(Textos.pestanaInicio).last);
       expect(find.text(Textos.fichaDebes), findsNothing);
       expect(find.text(Textos.fichaTeDeben), findsNothing);
     });
@@ -3545,8 +3545,6 @@ void main() {
 
     testWidgets('El informe del primer mes', (tester) async {
       await abrirApp(tester, listo: true);
-      // En el Inicio, «Tienes hoy» es desde que empezó (entrega 36).
-      expect(find.text(Textos.desdeQueEmpezaste), findsOneWidget);
       await tocar(tester, find.text(Textos.pestanaInformes));
       expect(find.text('Octubre'), findsOneWidget);
       expect(find.text(Textos.desdeElDiaHastaHoy(12)), findsOneWidget);
@@ -5109,9 +5107,8 @@ void main() {
             .write(const MembresiasCompanion(rol: Value(Rol.contador)));
       });
       await esperar(tester);
-      await tocar(tester, find.text(Textos.pestanaInformes));
-      // Las deudas, en fichas (entrega 59).
-      await tocar(tester, find.text(Textos.fichaTeDeben).first);
+      // Las deudas, en fichas (entrega 59), en el Inicio (entrega 99).
+      await abrirLoQueTeDeben(tester);
       expect(find.textContaining('Don Pepe'), findsWidgets);
       expect(find.text(Textos.recordarPorWhatsApp), findsNothing);
     });
@@ -7395,6 +7392,28 @@ void main() {
     });
   });
 
+  group('Entrega 99: pulido', () {
+    testWidgets('en el Inicio, «Anotar la venta de hoy» mientras no esté '
+        'anotada', (tester) async {
+      final base = await abrirApp(tester, listo: true);
+      // El Inicio completo, pasada la primera semana.
+      await abrirAjusteOculto(tester);
+      await tocarEnAjuste(tester, Textos.saltarPrimeraSemana);
+      await tocar(tester, find.byType(IconButton).first);
+      await tocar(tester, find.text(Textos.pestanaInicio));
+      // Hoy ya está anotada: no hace falta el botón.
+      expect(find.text(Textos.tienesHoy), findsOneWidget);
+      expect(find.text(Textos.anotarVentaDeHoy), findsNothing);
+      // Al día siguiente, sí.
+      _ahora = _ahora.add(const Duration(days: 1));
+      await tester.runAsync(
+        () => AccesoLocal(base, () => _ahora).guardarAjuste('prueba', '1'),
+      );
+      await esperar(tester);
+      expect(find.text(Textos.anotarVentaDeHoy), findsOneWidget);
+    });
+  });
+
   group('Entrega 97: Informes por día, con «Venta» y «Compra»', () {
     testWidgets('el día, el filtro y quitarlo', (tester) async {
       await abrirApp(tester, listo: true);
@@ -7403,7 +7422,6 @@ void main() {
       expect(find.text(Textos.tuPlataCrecio), findsOneWidget);
       await tocar(tester, find.text(Textos.verDia));
       expect(find.text(Textos.nombreDelDia(_ahora, _ahora)), findsOneWidget);
-      expect(find.text(Textos.fechaDelDia(_ahora)), findsOneWidget);
       // Hoy no se puede ir más adelante.
       expect(
         tester
@@ -7416,6 +7434,11 @@ void main() {
             .onPressed,
         isNull,
       );
+      // Un día sin deudas: una sola línea, y dice «hoy» (entrega 99).
+      await tocar(tester, find.text(Textos.filtroDebo));
+      expect(find.text(Textos.sinDeudasNiPagos('hoy')), findsOneWidget);
+      expect(find.text(Textos.quedasteDebiendo), findsNothing);
+      await tocar(tester, find.text(Textos.filtroDebo));
       // «Venta» cambia lo de abajo; tocarlo otra vez lo quita.
       await tocar(tester, find.text(Textos.filtroVenta));
       expect(find.text(Textos.vendiste), findsOneWidget);
@@ -7435,11 +7458,8 @@ void main() {
       // lista.
       await tocar(tester, find.text(Textos.verMes));
       await tocar(tester, find.text(Textos.filtroDebo));
-      expect(find.text(Textos.quedasteDebiendo), findsOneWidget);
-      expect(find.text(Textos.pagasteDeLoQueDebias), findsOneWidget);
+      expect(find.textContaining('Hoy debes en total'), findsOneWidget);
       await tocar(tester, find.text(Textos.filtroMeDeben));
-      expect(find.text(Textos.fiaste), findsOneWidget);
-      expect(find.text(Textos.tePagaronDeFiados), findsOneWidget);
       await tocar(tester, find.textContaining('Hoy te deben en total'));
       expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
     });

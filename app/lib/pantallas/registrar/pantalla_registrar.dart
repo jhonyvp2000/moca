@@ -106,11 +106,13 @@ class ContenidoRegistrar extends ConsumerWidget {
     // «Escribirlo» existe aunque haya que desplazarse para verlo.
     return SingleChildScrollView(
       controller: controlador,
-      padding: const EdgeInsets.fromLTRB(
+      // En la hoja, la barra de navegación del teléfono tapa lo de abajo
+      // (entrega 99: «Cancelar» quedaba debajo): se deja su espacio.
+      padding: EdgeInsets.fromLTRB(
         Medidas.margenLateral,
         Medidas.e2,
         Medidas.margenLateral,
-        Medidas.e6,
+        Medidas.e6 + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

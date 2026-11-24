@@ -89,13 +89,8 @@ class TarjetaTienesHoy extends StatelessWidget {
                               color: Colores.sobreMarca,
                             ),
                           ),
-                          // De qué periodo es (entrega 36): no se reinicia.
-                          Text(
-                            Textos.desdeQueEmpezaste,
-                            style: Tipografia.secundario.copyWith(
-                              color: Colores.sobreMarcaSuave,
-                            ),
-                          ),
+                          // «Desde que empezaste con Moca» queda solo en la
+                          // «i» (entrega 99): aquí parecía lo acumulado.
                         ],
                       ),
                     ),

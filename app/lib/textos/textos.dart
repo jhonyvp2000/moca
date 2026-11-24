@@ -1307,8 +1307,8 @@ abstract final class Textos {
   static const verDia = 'Día';
   static const filtroVenta = 'Venta';
   static const filtroCompra = 'Compra';
-  static const filtroDebo = 'Debo';
-  static const filtroMeDeben = 'Me deben';
+  static const filtroDebo = 'Debes';
+  static const filtroMeDeben = 'Te deben';
 
   /// «Hoy, 24 nov.», «Ayer, 23 nov.» o «Viernes 20 nov.»: entre las flechas.
   static String nombreDelDia(DateTime dia, DateTime hoy) {
@@ -1352,9 +1352,9 @@ abstract final class Textos {
 
   static const diaSinRegistros = 'Este día no hay nada anotado.';
   static const vendiste = 'Vendiste';
-  static const cobradoEnElMomento = 'Cobrado en el momento';
+  static const cobradoEnElMomento = 'Cobrado al momento';
   static const compraste = 'Compraste';
-  static const pagadoEnElMomento = 'Pagado en el momento';
+  static const pagadoEnElMomento = 'Pagado al momento';
   static const alCredito = 'Al crédito';
   static const porCategoria = 'Por categoría';
   static const porCliente = 'Por cliente';
@@ -1362,16 +1362,24 @@ abstract final class Textos {
   static const ventasSinClienteNota = 'Las ventas sin cliente no salen aquí.';
   static const comprasSinProveedorNota =
       'Las compras sin proveedor no salen aquí.';
-  static const sinVentasEnElPeriodo = 'No hay ventas en estos días.';
+  static String sinVentasEnElPeriodo(String cuando) => 'No hay ventas $cuando.';
   // «Debo» y «Me deben» (entrega 98).
   static const quedasteDebiendo = 'Quedaste debiendo';
-  static const quedasteDebiendoDetalle =
-      'Lo que compraste al crédito en estos días.';
+
+  /// «hoy», «ese día» o «en estos días», según lo que se mira (entrega 99).
+  static String enElPeriodo({required bool unDia, required bool esHoy}) => esHoy
+      ? 'hoy'
+      : unDia
+      ? 'ese día'
+      : 'en estos días';
+  static String quedasteDebiendoDetalle(String cuando) =>
+      'Lo que compraste al crédito $cuando.';
   static const pagasteDeLoQueDebias = 'Pagaste de lo que debías';
   static const pagasteDeLoQueDebiasDetalle =
       'De compras de antes o de estos mismos días.';
   static const fiaste = 'Fiaste';
-  static const fiasteDetalle = 'Lo que vendiste al fiado en estos días.';
+  static String fiasteDetalle(String cuando) =>
+      'Lo que vendiste al fiado $cuando.';
   static const tePagaronDeFiados = 'Te pagaron de fiados';
   static const tePagaronDeFiadosDetalle =
       'De ventas de antes o de estos mismos días.';
@@ -1379,11 +1387,19 @@ abstract final class Textos {
   static String hoyTeDebenEnTotal(String monto) =>
       'Hoy te deben en total $monto';
   static const sinNombreNota = 'Lo que no tiene nombre no sale en la lista.';
-  static const nadaAlCredito = 'No quedaste debiendo nada en estos días.';
-  static const nadaPagadoDeDeudas = 'No pagaste deudas en estos días.';
-  static const nadaFiado = 'No fiaste nada en estos días.';
-  static const nadaCobradoDeFiados = 'No te pagaron fiados en estos días.';
-  static const sinComprasEnElPeriodo = 'No hay compras en estos días.';
+  static String nadaAlCredito(String cuando) =>
+      'No quedaste debiendo nada $cuando.';
+  static String nadaPagadoDeDeudas(String cuando) =>
+      'No pagaste deudas $cuando.';
+  static String nadaFiado(String cuando) => 'No fiaste nada $cuando.';
+  static String nadaCobradoDeFiados(String cuando) =>
+      'No te pagaron fiados $cuando.';
+  static String sinDeudasNiPagos(String cuando) =>
+      'No quedaste debiendo ni pagaste deudas $cuando.';
+  static String sinFiadosNiCobros(String cuando) =>
+      'No fiaste ni te pagaron fiados $cuando.';
+  static String sinComprasEnElPeriodo(String cuando) =>
+      'No hay compras $cuando.';
   static const verMes = 'Mes';
   static const verAnio = 'Año';
   static const anioAnterior = 'Año anterior';

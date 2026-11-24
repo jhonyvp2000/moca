@@ -221,6 +221,17 @@ class FilaMovimiento extends ConsumerWidget {
                     TextSpan(
                       children: [
                         TextSpan(text: cuando),
+                        // Con qué cuenta se movió la plata (entrega 99): dos
+                        // ventas iguales se distinguen por la cuenta. No en
+                        // lo que se debe, ni en el pase o el ajuste, que ya
+                        // la dicen.
+                        if (!f.loDebes &&
+                            !gris &&
+                            !f.ajusteArqueo &&
+                            !f.tipo.esPase) ...[
+                          separador,
+                          TextSpan(text: Textos.nombreCuenta(f.cuenta)),
+                        ],
                         // Lo que se debe, antes que la categoría: no se corta.
                         for (final e in estado) ...[
                           separador,
