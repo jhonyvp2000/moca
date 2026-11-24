@@ -148,6 +148,8 @@ Quien instaló Moca **desde Play Store** paga con **Google Play**: no ve Mercado
 
 > Tu plan se paga y se renueva en Google Play. Para cancelarlo o cambiar tu medio de pago: abre Play Store → toca tu foto → Pagos y suscripciones → Suscripciones → Moca. Lo que ya pagaste sigue hasta la fecha.
 
+**«¿Cuánto vendí ayer?» en Informes** (entrega 97): en Informes, arriba, **Día** y las flechas hasta ese día; **Venta** muestra lo vendido (cobrado y al fiado) por categoría y por cliente, y **Compra** lo comprado (pagado y al crédito). «Vendiste» cuenta el día de la venta, aunque te paguen después; «Entró» cuenta el día en que entró la plata. Para volver al informe de siempre, se toca otra vez el filtro elegido.
+
 ### 6. «No veo Informes» · «No puedo corregir» · «No veo los saldos»
 
 **Qué pasó:** depende del **rol**. No es un error.

@@ -231,6 +231,15 @@ final loQueDebesProvider = StreamProvider.autoDispose<List<FilaHistorial>>(
   (ref) => ref.watch(repositorioHistorialProvider).observarLoQueDebes(),
 );
 
+/// Las cifras de un día o de un rango, sin incluir el segundo día
+/// (entrega 97).
+final cifrasDelPeriodoProvider = StreamProvider.autoDispose
+    .family<CifrasDelPeriodo, (DateTime, DateTime)>(
+      (ref, rango) => ref
+          .watch(repositorioInformeProvider)
+          .observarPeriodo(rango.$1, rango.$2),
+    );
+
 /// El resumen de un año (entrega 40); nulo es el actual.
 final resumenAnioProvider = StreamProvider.autoDispose
     .family<ResumenAnio, int?>(

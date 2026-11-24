@@ -463,7 +463,80 @@ class ResumenAnio {
   final int? anioSiguiente;
 }
 
+/// Qué periodo muestra Informes (entrega 97: se suma «Día»).
+enum PeriodoInforme { dia, mes, anio }
+
+/// El filtro de Informes (entregas 97 y 98); nulo es el informe de siempre.
+enum FiltroInforme { venta, compra, debo, meDeben }
+
+/// Las cifras de un día o de cualquier rango (entrega 97), con las mismas
+/// reglas que el servidor le da a «Pregúntale a Moca» (`periodo.ts`): la
+/// plata, el día en que se movió; lo vendido o comprado, el día de la venta
+/// o la compra, por lo que costó.
+class CifrasDelPeriodo {
+  const CifrasDelPeriodo({
+    required this.desde,
+    required this.hasta,
+    this.primerDia,
+    this.entroCentimos = 0,
+    this.salioCentimos = 0,
+    this.retirosCentimos = 0,
+    this.aportesCentimos = 0,
+    this.ajustesCentimos = 0,
+    this.entradas = const [],
+    this.salidas = const [],
+    this.vendisteCentimos = 0,
+    this.alFiadoCentimos = 0,
+    this.ventasPorCategoria = const [],
+    this.ventasPorCliente = const [],
+    this.comprasteCentimos = 0,
+    this.alCreditoCentimos = 0,
+    this.comprasPorCategoria = const [],
+    this.comprasPorProveedor = const [],
+  });
+
+  /// El primer día, incluido; [hasta] es el día siguiente al último.
+  final DateTime desde;
+  final DateTime hasta;
+
+  /// El primer día con algo anotado: más atrás no hay nada que ver.
+  final DateTime? primerDia;
+
+  // La plata, como en el informe del mes.
+  final int entroCentimos;
+  final int salioCentimos;
+  final int retirosCentimos;
+  final int aportesCentimos;
+  final int ajustesCentimos;
+  final List<GastoPorCategoria> entradas;
+  final List<GastoPorCategoria> salidas;
+
+  // «Venta»: lo vendido, cobrado o al fiado.
+  final int vendisteCentimos;
+  final int alFiadoCentimos;
+  final List<GastoPorCategoria> ventasPorCategoria;
+  final List<GastoPorCategoria> ventasPorCliente;
+
+  // «Compra»: lo comprado o gastado, pagado o al crédito.
+  final int comprasteCentimos;
+  final int alCreditoCentimos;
+  final List<GastoPorCategoria> comprasPorCategoria;
+  final List<GastoPorCategoria> comprasPorProveedor;
+
+  int get crecioCentimos =>
+      entroCentimos +
+      aportesCentimos -
+      salioCentimos -
+      retirosCentimos +
+      ajustesCentimos;
+  int get cobradoEnElMomentoCentimos => vendisteCentimos - alFiadoCentimos;
+  int get pagadoEnElMomentoCentimos => comprasteCentimos - alCreditoCentimos;
+}
+
 abstract interface class RepositorioInforme {
+  /// Las cifras de [desde] a [hasta], sin incluir [hasta] (entrega 97).
+  Stream<CifrasDelPeriodo> observarPeriodo(DateTime desde, DateTime hasta);
+
   /// El informe del mes que empieza en [mes]; nulo es el mes en curso.
   Stream<InformeMes> observarMes(DateTime? mes);
 

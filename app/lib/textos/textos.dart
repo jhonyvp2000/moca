@@ -1303,6 +1303,67 @@ abstract final class Textos {
   static const hastaHoy = 'Hasta hoy';
 
   // Resumen del año (entrega 40)
+  // Día y los filtros de Informes (entrega 97).
+  static const verDia = 'Día';
+  static const filtroVenta = 'Venta';
+  static const filtroCompra = 'Compra';
+  static const filtroDebo = 'Debo';
+  static const filtroMeDeben = 'Me deben';
+
+  /// «Hoy, 24 nov.», «Ayer, 23 nov.» o «Viernes 20 nov.»: entre las flechas.
+  static String nombreDelDia(DateTime dia, DateTime hoy) {
+    final h = DateTime(hoy.year, hoy.month, hoy.day);
+    final d = DateTime(dia.year, dia.month, dia.day);
+    final corto = '${d.day} ${_mes(d).substring(0, 3)}.';
+    if (d == h) return 'Hoy, $corto';
+    if (d == DateTime(h.year, h.month, h.day - 1)) return 'Ayer, $corto';
+    final largo = formatearFechaLarga(d);
+    return '${largo[0].toUpperCase()}${largo.substring(1, largo.indexOf(' '))} '
+        '$corto';
+  }
+
+  /// «Martes 24 de noviembre»: debajo de los filtros.
+  static String fechaDelDia(DateTime dia) {
+    final largo = formatearFechaLarga(dia);
+    return '${largo[0].toUpperCase()}${largo.substring(1)}';
+  }
+
+  /// El periodo de una lista de registros (entrega 97): un día, o «Del 13
+  /// de noviembre al 24 de noviembre».
+  static String periodoDelRango(DateTime desde, DateTime hasta) {
+    final ultimo = hasta.subtract(const Duration(days: 1));
+    if (ultimo.year == desde.year &&
+        ultimo.month == desde.month &&
+        ultimo.day == desde.day) {
+      return fechaDelDia(desde);
+    }
+    return 'Del ${formatearFechaLarga(desde).split(' ').skip(1).join(' ')} '
+        'al ${formatearFechaLarga(ultimo).split(' ').skip(1).join(' ')}';
+  }
+
+  static String tuPlataDelDia({required bool hoy, required int crecio}) {
+    final cuando = hoy ? 'Hoy' : 'Ese día';
+    return crecio > 0
+        ? '$cuando tu plata creció'
+        : crecio < 0
+        ? '$cuando tu plata bajó'
+        : '$cuando tu plata quedó igual';
+  }
+
+  static const diaSinRegistros = 'Este día no hay nada anotado.';
+  static const vendiste = 'Vendiste';
+  static const cobradoEnElMomento = 'Cobrado en el momento';
+  static const compraste = 'Compraste';
+  static const pagadoEnElMomento = 'Pagado en el momento';
+  static const alCredito = 'Al crédito';
+  static const porCategoria = 'Por categoría';
+  static const porCliente = 'Por cliente';
+  static const porProveedor = 'Por proveedor';
+  static const ventasSinClienteNota = 'Las ventas sin cliente no salen aquí.';
+  static const comprasSinProveedorNota =
+      'Las compras sin proveedor no salen aquí.';
+  static const sinVentasEnElPeriodo = 'No hay ventas en estos días.';
+  static const sinComprasEnElPeriodo = 'No hay compras en estos días.';
   static const verMes = 'Mes';
   static const verAnio = 'Año';
   static const anioAnterior = 'Año anterior';

@@ -34,7 +34,10 @@ class _EstadoDeCategoria extends ConsumerState<PantallaDeCategoria> {
   Widget build(BuildContext context) {
     final c = widget.consulta;
     final ahora = ref.read(relojProvider)();
-    final periodo = c.anual
+    final periodo = c.hasta != null
+        // Un día o el periodo de un filtro (entrega 97).
+        ? Textos.periodoDelRango(c.mes, c.hasta!)
+        : c.anual
         ? Textos.periodoDelAnio(c.mes, enCurso: c.mes.year == ahora.year)
         : Textos.periodoDelMes(
             c.mes,

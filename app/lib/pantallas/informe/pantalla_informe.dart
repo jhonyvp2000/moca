@@ -43,9 +43,21 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
   /// Nulo: el mes en curso.
   DateTime? _mes;
 
-  /// El resumen del año (entrega 40); nulo es el actual.
-  bool _verAnio = false;
+  /// Día, mes o año (entregas 40 y 97); el año nulo es el actual.
+  PeriodoInforme _vista = PeriodoInforme.mes;
   int? _anio;
+
+  /// El día que se mira (entrega 97); nulo es hoy.
+  DateTime? _dia;
+
+  /// «Venta» o «Compra» (entrega 97); nulo es el informe de siempre.
+  FiltroInforme? _filtro;
+
+  /// Los filtros que ya existen; «Debo» y «Me deben» llegan en la 98.
+  static const _filtrosDisponibles = [
+    FiltroInforme.venta,
+    FiltroInforme.compra,
+  ];
   bool _armandoPdf = false;
   bool _armandoExcel = false;
 
@@ -301,186 +313,336 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
     await (cual ? _compartir(informe) : _compartirExcel(informe));
   }
 
-  /// «Mes · Año» (entrega 40).
-  Widget _selector() => Align(
-    alignment: Alignment.centerLeft,
-    child: SegmentedButton<bool>(
+  /// «Día · Mes · Año» (entregas 40 y 97).
+  Widget _selector() => SegmentedButton<PeriodoInforme>(
+    showSelectedIcon: false,
+    // Tres opciones en la misma fila que el periodo (entrega 76): menos
+    // relleno a los lados.
+    style: const ButtonStyle(
+      padding: WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: Medidas.e3),
+      ),
+    ),
+    segments: const [
+      ButtonSegment(value: PeriodoInforme.dia, label: Text(Textos.verDia)),
+      ButtonSegment(value: PeriodoInforme.mes, label: Text(Textos.verMes)),
+      ButtonSegment(value: PeriodoInforme.anio, label: Text(Textos.verAnio)),
+    ],
+    selected: {_vista},
+    onSelectionChanged: (v) => setState(() {
+      final antes = _vista;
+      _vista = v.first;
+      // El año o el mes del día o del mes que estaba mirando.
+      if (_vista == PeriodoInforme.anio) {
+        _anio = antes == PeriodoInforme.dia ? _dia?.year : _mes?.year;
+      }
+      if (_vista == PeriodoInforme.mes && antes == PeriodoInforme.dia) {
+        _mes = _dia == null ? null : DateTime(_dia!.year, _dia!.month);
+      }
+      if (_vista == PeriodoInforme.dia) _dia = null;
+    }),
+  );
+
+  /// «Venta · Compra» (entrega 97): ninguno elegido es el informe de siempre;
+  /// tocar el elegido lo quita.
+  Widget _filtros() => SizedBox(
+    width: double.infinity,
+    child: SegmentedButton<FiltroInforme>(
       showSelectedIcon: false,
-      segments: const [
-        ButtonSegment(value: false, label: Text(Textos.verMes)),
-        ButtonSegment(value: true, label: Text(Textos.verAnio)),
+      emptySelectionAllowed: true,
+      segments: [
+        for (final f in _filtrosDisponibles)
+          ButtonSegment(value: f, label: Text(_nombreDelFiltro(f))),
       ],
-      selected: {_verAnio},
-      onSelectionChanged: (v) => setState(() {
-        _verAnio = v.first;
-        // El año del mes que estaba mirando.
-        if (_verAnio) _anio = _mes?.year;
-      }),
+      selected: {?_filtro},
+      onSelectionChanged: (v) =>
+          setState(() => _filtro = v.isEmpty ? null : v.first),
+    ),
+  );
+
+  static String _nombreDelFiltro(FiltroInforme f) => switch (f) {
+    FiltroInforme.venta => Textos.filtroVenta,
+    FiltroInforme.compra => Textos.filtroCompra,
+    FiltroInforme.debo => Textos.filtroDebo,
+    FiltroInforme.meDeben => Textos.filtroMeDeben,
+  };
+
+  /// «Informes» y «Compartir» (mejora 01); sin [informe], no comparte.
+  Widget _titulo(InformeMes? informe) => Row(
+    children: [
+      Expanded(
+        child: Semantics(
+          header: true,
+          child: const Text(
+            Textos.pestanaInformes,
+            style: Tipografia.tituloPantalla,
+          ),
+        ),
+      ),
+      if (informe != null)
+        OutlinedButton.icon(
+          onPressed: informe.sinRegistros || _armandoPdf || _armandoExcel
+              ? null
+              : () => _elegirQueCompartir(informe),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
+            side: BorderSide.none,
+            shape: const StadiumBorder(),
+          ),
+          icon: const Icon(Icons.ios_share_rounded, size: 20),
+          label: Text(
+            _armandoPdf
+                ? Textos.armandoPdf
+                : _armandoExcel
+                ? Textos.armandoExcel
+                : Textos.compartir,
+          ),
+        ),
+    ],
+  );
+
+  /// El selector, el periodo con sus flechas, los filtros y de cuándo es
+  /// (entrega 97: los filtros van entre las flechas y el periodo).
+  List<Widget> _cabecera({
+    required InformeMes? informe,
+    required String titulo,
+    required String anterior,
+    required String siguiente,
+    required VoidCallback? alAnterior,
+    required VoidCallback? alSiguiente,
+    required String? periodo,
+  }) => [
+    // El aviso más importante, arriba de todo (entrega 64).
+    const AvisoEnInformes(),
+    _titulo(informe),
+    const SizedBox(height: Medidas.e3),
+    // El selector y el periodo con sus flechas, siempre en una sola fila
+    // (entrega 76): si no cabe, el nombre se achica.
+    Row(
+      children: [
+        // Si aun así no cabe (letra grande en un teléfono angosto), se achica.
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.6,
+          ),
+          child: FittedBox(fit: BoxFit.scaleDown, child: _selector()),
+        ),
+        const SizedBox(width: Medidas.e2),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _Flecha(
+                icono: Icono.izquierda,
+                etiqueta: anterior,
+                alTocar: alAnterior,
+              ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      titulo,
+                      maxLines: 1,
+                      style: Tipografia.tituloDestacado,
+                    ),
+                  ),
+                ),
+              ),
+              _Flecha(
+                icono: Icono.derecha,
+                etiqueta: siguiente,
+                alTocar: alSiguiente,
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: Medidas.e2),
+    _filtros(),
+    if (periodo != null)
+      Padding(
+        padding: const EdgeInsets.only(top: Medidas.e2),
+        child: Text(periodo, style: Tipografia.secundario),
+      ),
+    const SizedBox(height: 12),
+  ];
+
+  Widget _pantalla(List<Widget> hijos) => SafeArea(
+    bottom: false,
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        Medidas.margenLateral,
+        Medidas.e4,
+        Medidas.margenLateral,
+        Medidas.e8 + Medidas.e4,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ...hijos,
+          // Entrega 83: Moca no reemplaza la contabilidad oficial.
+          const SizedBox(height: Medidas.e5),
+          const Text(
+            Textos.noReemplazaContabilidad,
+            style: Tipografia.secundario,
+          ),
+        ],
+      ),
     ),
   );
 
   @override
-  Widget build(BuildContext context) {
-    if (_verAnio) {
-      return SafeArea(
-        bottom: false,
-        child: _VistaAnio(
-          anio: _anio,
-          // El mismo título que el mes (mejora 01).
-          selector: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AvisoEnInformes(),
-              Semantics(
-                header: true,
-                child: const Text(
-                  Textos.pestanaInformes,
-                  style: Tipografia.tituloPantalla,
-                ),
+  Widget build(BuildContext context) => switch (_vista) {
+    PeriodoInforme.dia => _construirDia(),
+    PeriodoInforme.anio when _filtro == null => _construirAnio(),
+    PeriodoInforme.anio => _construirAnioConFiltro(),
+    PeriodoInforme.mes => _construirMes(),
+  };
+
+  Widget _construirAnio() => SafeArea(
+    bottom: false,
+    child: _VistaAnio(
+      anio: _anio,
+      // El mismo título que el mes (mejora 01), con los filtros.
+      selector: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AvisoEnInformes(),
+          _titulo(null),
+          const SizedBox(height: Medidas.e3),
+          FittedBox(fit: BoxFit.scaleDown, child: _selector()),
+          const SizedBox(height: Medidas.e2),
+          _filtros(),
+        ],
+      ),
+      alCambiarAnio: (a) => setState(() => _anio = a),
+      alElegirMes: (m) => setState(() {
+        _mes = m;
+        _vista = PeriodoInforme.mes;
+      }),
+    ),
+  );
+
+  /// El año con «Venta» o «Compra» (entrega 97).
+  Widget _construirAnioConFiltro() {
+    final r = ref.watch(resumenAnioProvider(_anio)).value;
+    if (r == null) return const SizedBox.shrink();
+    final hasta = r.enCurso ? _manana() : DateTime(r.anio + 1);
+    return _pantalla([
+      ..._cabecera(
+        informe: null,
+        titulo: '${r.anio}',
+        anterior: Textos.anioAnterior,
+        siguiente: Textos.anioSiguiente,
+        alAnterior: r.anioPrevio == null
+            ? null
+            : () => setState(() => _anio = r.anioPrevio),
+        alSiguiente: r.anioSiguiente == null
+            ? null
+            : () => setState(() => _anio = r.anioSiguiente),
+        periodo: Textos.periodoDelAnio(r.desde, enCurso: r.enCurso),
+      ),
+      _VistaDelPeriodo(desde: r.desde, hasta: hasta, filtro: _filtro),
+    ]);
+  }
+
+  DateTime _manana() =>
+      _soloDia(ref.read(relojProvider)()).add(const Duration(days: 1));
+
+  static DateTime _soloDia(DateTime f) => DateTime(f.year, f.month, f.day);
+
+  /// Un día (entrega 97): con o sin filtro.
+  Widget _construirDia() {
+    final hoy = _soloDia(ref.watch(relojProvider)());
+    final dia = _dia ?? hoy;
+    final hasta = DateTime(dia.year, dia.month, dia.day + 1);
+    final cifras = ref.watch(cifrasDelPeriodoProvider((dia, hasta))).value;
+    // Compartir: el mes de ese día.
+    final informe = ref
+        .watch(informeProvider(DateTime(dia.year, dia.month)))
+        .value;
+    final primero = cifras?.primerDia;
+    return _pantalla([
+      ..._cabecera(
+        informe: informe,
+        titulo: Textos.nombreDelDia(dia, hoy),
+        anterior: Textos.diaAnterior,
+        siguiente: Textos.diaSiguiente,
+        alAnterior: primero == null || !primero.isBefore(dia)
+            ? null
+            : () => setState(
+                () => _dia = DateTime(dia.year, dia.month, dia.day - 1),
               ),
-              const SizedBox(height: Medidas.e3),
-              _selector(),
-            ],
-          ),
-          alCambiarAnio: (a) => setState(() => _anio = a),
-          alElegirMes: (m) => setState(() {
-            _mes = m;
-            _verAnio = false;
-          }),
-        ),
-      );
-    }
+        alSiguiente: !dia.isBefore(hoy)
+            ? null
+            : () => setState(() {
+                final siguiente = DateTime(dia.year, dia.month, dia.day + 1);
+                _dia = siguiente == hoy ? null : siguiente;
+              }),
+        periodo: Textos.fechaDelDia(dia),
+      ),
+      _VistaDelPeriodo(
+        desde: dia,
+        hasta: hasta,
+        filtro: _filtro,
+        esHoy: dia == hoy,
+      ),
+    ]);
+  }
+
+  Widget _construirMes() {
     final informe = ref.watch(informeProvider(_mes)).value;
     if (informe == null) return const SizedBox.shrink();
     final i = informe;
-
-    // Todo armado de una vez: así cada sección existe aunque no se vea.
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          Medidas.margenLateral,
-          Medidas.e4,
-          Medidas.margenLateral,
-          Medidas.e8 + Medidas.e4,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // El aviso más importante, arriba de todo (entrega 64).
-            const AvisoEnInformes(),
-            // «Informes» y un solo «Compartir» que abre PDF o Excel
-            // (mejora 01): el resultado queda arriba.
-            Row(
-              children: [
-                Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: const Text(
-                      Textos.pestanaInformes,
-                      style: Tipografia.tituloPantalla,
-                    ),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: i.sinRegistros || _armandoPdf || _armandoExcel
-                      ? null
-                      : () => _elegirQueCompartir(i),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, Medidas.objetivoTactilMinimo),
-                    side: BorderSide.none,
-                    shape: const StadiumBorder(),
-                  ),
-                  icon: const Icon(Icons.ios_share_rounded, size: 20),
-                  label: Text(
-                    _armandoPdf
-                        ? Textos.armandoPdf
-                        : _armandoExcel
-                        ? Textos.armandoExcel
-                        : Textos.compartir,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: Medidas.e3),
-            // «Mes · Año» y el mes con sus flechas, siempre en una sola fila
-            // (entrega 76): si no cabe, el nombre del mes se achica.
-            Row(
-              children: [
-                _selector(),
-                const SizedBox(width: Medidas.e2),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _Flecha(
-                        icono: Icono.izquierda,
-                        etiqueta: Textos.mesAnterior,
-                        alTocar: i.mesPrevio == null
-                            ? null
-                            : () => setState(() => _mes = i.mesPrevio),
-                      ),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Semantics(
-                            header: true,
-                            child: Text(
-                              nombreDelMesConMayuscula(i.mes),
-                              maxLines: 1,
-                              style: Tipografia.tituloDestacado,
-                            ),
-                          ),
-                        ),
-                      ),
-                      _Flecha(
-                        icono: Icono.derecha,
-                        etiqueta: Textos.mesSiguiente,
-                        alTocar: i.mesSiguiente == null
-                            ? null
-                            : () => setState(() => _mes = i.mesSiguiente),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (_periodo(i) case final periodo?)
-              Padding(
-                padding: const EdgeInsets.only(top: Medidas.e1),
-                child: Text(periodo, style: Tipografia.secundario),
-              ),
-            const SizedBox(height: 12),
-            const TarjetaPrimeraVez(
-              video: VideoTutoria.informe,
-              margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
-            ),
-            if (i.sinRegistros)
-              Tarjeta(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(Textos.mesSinRegistros, style: Tipografia.texto),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => context.push(Rutas.registrar),
-                      child: const Text(Textos.registrar),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ..._contenido(i),
-            // Entrega 83: Moca no reemplaza la contabilidad oficial.
-            const SizedBox(height: Medidas.e5),
-            const Text(
-              Textos.noReemplazaContabilidad,
-              style: Tipografia.secundario,
-            ),
-          ],
-        ),
-      ),
+    final cabecera = _cabecera(
+      informe: i,
+      titulo: nombreDelMesConMayuscula(i.mes),
+      anterior: Textos.mesAnterior,
+      siguiente: Textos.mesSiguiente,
+      alAnterior: i.mesPrevio == null
+          ? null
+          : () => setState(() => _mes = i.mesPrevio),
+      alSiguiente: i.mesSiguiente == null
+          ? null
+          : () => setState(() => _mes = i.mesSiguiente),
+      periodo: _periodo(i),
     );
+    if (_filtro != null) {
+      final desde = DateTime(i.mes.year, i.mes.month, i.desdeDia ?? 1);
+      final hasta = i.enCurso
+          ? _manana()
+          : DateTime(i.mes.year, i.mes.month + 1);
+      return _pantalla([
+        ...cabecera,
+        _VistaDelPeriodo(desde: desde, hasta: hasta, filtro: _filtro),
+      ]);
+    }
+    return _pantalla([
+      ...cabecera,
+      const TarjetaPrimeraVez(
+        video: VideoTutoria.informe,
+        margen: EdgeInsets.only(bottom: Medidas.separacionTarjetas),
+      ),
+      if (i.sinRegistros)
+        Tarjeta(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(Textos.mesSinRegistros, style: Tipografia.texto),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => context.push(Rutas.registrar),
+                child: const Text(Textos.registrar),
+              ),
+            ],
+          ),
+        )
+      else
+        ..._contenido(i),
+    ]);
   }
 
   static String? _periodo(InformeMes i) {
@@ -1456,4 +1618,429 @@ String? _tambien(InformeMes i) {
       Textos.enElArqueoFalto(formatearSoles(-i.ajustesCentimos)),
   ];
   return partes.isEmpty ? null : Textos.tambien(partes);
+}
+
+String? _tambienDelPeriodo(CifrasDelPeriodo c) {
+  final partes = [
+    if (c.retirosCentimos > 0)
+      Textos.retirastePara(formatearSoles(c.retirosCentimos)),
+    if (c.aportesCentimos > 0)
+      Textos.pusisteDeTuBolsilloMonto(formatearSoles(c.aportesCentimos)),
+    if (c.ajustesCentimos > 0)
+      Textos.enElArqueoSobro(formatearSoles(c.ajustesCentimos)),
+    if (c.ajustesCentimos < 0)
+      Textos.enElArqueoFalto(formatearSoles(-c.ajustesCentimos)),
+  ];
+  return partes.isEmpty ? null : Textos.tambien(partes);
+}
+
+/// Un día sin filtro, o cualquier periodo con «Venta» o «Compra»
+/// (entrega 97). Cada fila abre sus registros.
+class _VistaDelPeriodo extends ConsumerWidget {
+  const _VistaDelPeriodo({
+    required this.desde,
+    required this.hasta,
+    required this.filtro,
+    this.esHoy = false,
+  });
+
+  final DateTime desde;
+  final DateTime hasta;
+  final FiltroInforme? filtro;
+  final bool esHoy;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = ref.watch(cifrasDelPeriodoProvider((desde, hasta))).value;
+    if (c == null) return const SizedBox.shrink();
+    return switch (filtro) {
+      FiltroInforme.venta => _ventas(context, c),
+      FiltroInforme.compra => _compras(context, c),
+      // «Debo» y «Me deben» llegan en la entrega 98.
+      _ => _dia(context, c),
+    };
+  }
+
+  static const _separacion = SizedBox(height: Medidas.separacionTarjetas);
+
+  void _abrir(
+    BuildContext context, {
+    required TipoMovimiento tipo,
+    required GastoPorCategoria g,
+    required List<GastoPorCategoria> todas,
+    bool porAnotado = false,
+    bool porContraparte = false,
+  }) => context.push(
+    Rutas.deCategoria,
+    extra: ConsultaDeCategoria(
+      mes: desde,
+      hasta: hasta,
+      tipo: tipo,
+      titulo: g.nombre ?? Textos.loDemas,
+      nombres: g.nombre == null ? null : {g.nombre!},
+      salvo: {
+        for (final o in todas)
+          if (o.nombre != null) o.nombre!,
+      },
+      porAnotado: porAnotado,
+      porContraparte: porContraparte,
+    ),
+  );
+
+  /// Una tarjeta con su lista: barras (categorías) o filas (personas).
+  Widget _lista(
+    BuildContext context, {
+    required String titulo,
+    required List<GastoPorCategoria> filas,
+    required String vacio,
+    required TipoMovimiento tipo,
+    bool porAnotado = false,
+    bool porContraparte = false,
+    String? nota,
+  }) => Tarjeta(
+    relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(titulo, style: Tipografia.tituloTarjeta),
+        const SizedBox(height: 8),
+        if (filas.isEmpty)
+          Text(vacio, style: Tipografia.secundario)
+        else
+          for (final (n, g) in filas.indexed)
+            if (porContraparte)
+              _FilaDePersona(
+                nombre: g.nombre ?? Textos.loDemas,
+                centimos: g.centimos,
+                tono: tipo == TipoMovimiento.egreso
+                    ? Tono.egreso
+                    : Tono.ingreso,
+                conSeparador: n > 0,
+                alTocar: () => _abrir(
+                  context,
+                  tipo: tipo,
+                  g: g,
+                  todas: filas,
+                  porAnotado: porAnotado,
+                  porContraparte: true,
+                ),
+              )
+            else
+              _Barra(
+                nombre: g.nombre ?? Textos.loDemas,
+                centimos: g.centimos,
+                proporcion: g.centimos / filas.first.centimos,
+                primera: n == 0,
+                alTocar: () => _abrir(
+                  context,
+                  tipo: tipo,
+                  g: g,
+                  todas: filas,
+                  porAnotado: porAnotado,
+                ),
+              ),
+        if (nota != null) ...[
+          const SizedBox(height: 8),
+          Text(nota, style: Tipografia.secundario),
+        ],
+      ],
+    ),
+  );
+
+  /// El total grande y sus dos partes (Venta y Compra).
+  Widget _resumen({
+    required String titulo,
+    required int total,
+    required Tono tono,
+    required (String, int, Tono) primera,
+    required (String, int) segunda,
+  }) => Tarjeta(
+    relleno: const EdgeInsets.all(Medidas.e5),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          titulo,
+          style: Tipografia.textoFuerte.copyWith(
+            color: Colores.textoSecundario,
+          ),
+        ),
+        const SizedBox(height: Medidas.e1),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: MontoText(
+            total,
+            estilo: Tipografia.montoGrande,
+            tono: total == 0 ? Tono.neutro : tono,
+          ),
+        ),
+        const SizedBox(height: Medidas.e4),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: TarjetaResumen(
+                  etiqueta: primera.$1,
+                  centimos: primera.$2,
+                  tono: primera.$2 == 0 ? Tono.neutro : primera.$3,
+                ),
+              ),
+              const SizedBox(width: Medidas.e3),
+              Expanded(
+                child: TarjetaResumen(
+                  etiqueta: segunda.$1,
+                  centimos: segunda.$2,
+                  tono: Tono.neutro,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _ventas(BuildContext context, CifrasDelPeriodo c) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _resumen(
+        titulo: Textos.vendiste,
+        total: c.vendisteCentimos,
+        tono: Tono.ingreso,
+        primera: (
+          Textos.cobradoEnElMomento,
+          c.cobradoEnElMomentoCentimos,
+          Tono.ingreso,
+        ),
+        segunda: (Textos.alFiadoEtiqueta, c.alFiadoCentimos),
+      ),
+      _separacion,
+      _lista(
+        context,
+        titulo: Textos.porCategoria,
+        filas: c.ventasPorCategoria,
+        vacio: Textos.sinVentasEnElPeriodo,
+        tipo: TipoMovimiento.ingreso,
+        porAnotado: true,
+      ),
+      _separacion,
+      _lista(
+        context,
+        titulo: Textos.porCliente,
+        filas: c.ventasPorCliente,
+        vacio: Textos.ventasSinClienteNota,
+        tipo: TipoMovimiento.ingreso,
+        porAnotado: true,
+        porContraparte: true,
+        nota: c.ventasPorCliente.isEmpty ? null : Textos.ventasSinClienteNota,
+      ),
+    ],
+  );
+
+  Widget _compras(BuildContext context, CifrasDelPeriodo c) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _resumen(
+        titulo: Textos.compraste,
+        total: c.comprasteCentimos,
+        tono: Tono.egreso,
+        primera: (
+          Textos.pagadoEnElMomento,
+          c.pagadoEnElMomentoCentimos,
+          Tono.egreso,
+        ),
+        segunda: (Textos.alCredito, c.alCreditoCentimos),
+      ),
+      _separacion,
+      _lista(
+        context,
+        titulo: Textos.porCategoria,
+        filas: c.comprasPorCategoria,
+        vacio: Textos.sinComprasEnElPeriodo,
+        tipo: TipoMovimiento.egreso,
+        porAnotado: true,
+      ),
+      _separacion,
+      _lista(
+        context,
+        titulo: Textos.porProveedor,
+        filas: c.comprasPorProveedor,
+        vacio: Textos.comprasSinProveedorNota,
+        tipo: TipoMovimiento.egreso,
+        porAnotado: true,
+        porContraparte: true,
+        nota: c.comprasPorProveedor.isEmpty
+            ? null
+            : Textos.comprasSinProveedorNota,
+      ),
+    ],
+  );
+
+  /// Un día sin filtro: como la tarjeta del mes, sin comparar.
+  Widget _dia(BuildContext context, CifrasDelPeriodo c) {
+    final crecio = c.crecioCentimos;
+    final hayAlgo =
+        c.entroCentimos != 0 ||
+        c.salioCentimos != 0 ||
+        c.retirosCentimos != 0 ||
+        c.aportesCentimos != 0 ||
+        c.ajustesCentimos != 0 ||
+        c.vendisteCentimos != 0 ||
+        c.comprasteCentimos != 0;
+    if (!hayAlgo) {
+      return const Tarjeta(
+        child: Text(Textos.diaSinRegistros, style: Tipografia.texto),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Tarjeta(
+          relleno: const EdgeInsets.all(Medidas.e5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                Textos.tuPlataDelDia(hoy: esHoy, crecio: crecio),
+                style: Tipografia.textoFuerte.copyWith(
+                  color: Colores.textoSecundario,
+                ),
+              ),
+              const SizedBox(height: Medidas.e1),
+              Row(
+                children: [
+                  if (crecio != 0) ...[
+                    Icon(
+                      crecio > 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      size: 32,
+                      color: crecio > 0 ? Colores.marca : Colores.neutro,
+                    ),
+                    const SizedBox(width: Medidas.e2),
+                  ],
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: MontoText(
+                        crecio,
+                        estilo: Tipografia.montoGrande.copyWith(
+                          color: crecio < 0 ? Colores.neutro : null,
+                        ),
+                        tono: crecio > 0 ? Tono.ingreso : null,
+                        conSigno: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Medidas.e4),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: TarjetaResumen(
+                        etiqueta: Textos.entro,
+                        centimos: c.entroCentimos,
+                        tono: c.entroCentimos == 0 ? Tono.neutro : Tono.ingreso,
+                      ),
+                    ),
+                    const SizedBox(width: Medidas.e3),
+                    Expanded(
+                      child: TarjetaResumen(
+                        etiqueta: Textos.salio,
+                        centimos: c.salioCentimos,
+                        tono: c.salioCentimos == 0 ? Tono.neutro : Tono.egreso,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_tambienDelPeriodo(c) case final texto?) ...[
+                const SizedBox(height: Medidas.e3),
+                Text(texto, style: Tipografia.cifra(Tipografia.secundario)),
+              ],
+            ],
+          ),
+        ),
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.conQueEntro,
+          filas: c.entradas,
+          vacio: Textos.sinIngresosDelMes,
+          tipo: TipoMovimiento.ingreso,
+        ),
+        _separacion,
+        _lista(
+          context,
+          titulo: Textos.enQueSeFue,
+          filas: c.salidas,
+          vacio: Textos.sinGastos,
+          tipo: TipoMovimiento.egreso,
+        ),
+      ],
+    );
+  }
+}
+
+/// Un cliente o un proveedor con su monto y «›» (entrega 97).
+class _FilaDePersona extends StatelessWidget {
+  const _FilaDePersona({
+    required this.nombre,
+    required this.centimos,
+    required this.tono,
+    required this.conSeparador,
+    required this.alTocar,
+  });
+
+  final String nombre;
+  final int centimos;
+  final Tono tono;
+  final bool conSeparador;
+  final VoidCallback alTocar;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: alTocar,
+    child: Container(
+      constraints: const BoxConstraints(
+        minHeight: Medidas.objetivoTactilMinimo,
+      ),
+      decoration: conSeparador
+          ? const BoxDecoration(
+              border: Border(top: BorderSide(color: Colores.separador)),
+            )
+          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              nombre,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Tipografia.texto,
+            ),
+          ),
+          const SizedBox(width: Medidas.e3),
+          MontoText(
+            centimos,
+            estilo: Tipografia.textoFuerte.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            tono: tono,
+          ),
+          const SizedBox(width: Medidas.e1),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: Colores.textoSecundario,
+          ),
+        ],
+      ),
+    ),
+  );
 }

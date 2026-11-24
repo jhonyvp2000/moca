@@ -620,6 +620,9 @@ class ConsultaDeCategoria {
     this.nombres,
     this.salvo = const {},
     this.anual = false,
+    this.hasta,
+    this.porAnotado = false,
+    this.porContraparte = false,
   });
 
   /// El primer día del mes; con [anual], desde cuándo cuenta el año.
@@ -631,6 +634,17 @@ class ConsultaDeCategoria {
   final String titulo;
   final Set<String>? nombres;
   final Set<String> salvo;
+
+  /// Un rango cualquiera desde [mes] (entrega 97: un día, o el periodo de un
+  /// filtro); sin incluir [hasta]. Nulo: el mes o el año, como antes.
+  final DateTime? hasta;
+
+  /// Lo vendido o comprado (filtros «Venta» y «Compra»): el día de la venta
+  /// o la compra y lo que costó, pagado o no. Si no, la plata que se movió.
+  final bool porAnotado;
+
+  /// [nombres] y [salvo] son clientes o proveedores, no categorías.
+  final bool porContraparte;
 }
 
 abstract interface class RepositorioHistorial {

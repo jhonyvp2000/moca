@@ -1625,6 +1625,11 @@ void main() {
       await tocar(tester, find.text(Textos.pestanaInformes));
       await tocar(tester, find.text(Textos.verAnio));
       expect(tester.takeException(), isNull, reason: 'Año');
+      // Entrega 97: el día y los filtros, también con letra grande.
+      await tocar(tester, find.text(Textos.verDia));
+      expect(tester.takeException(), isNull, reason: 'Día');
+      await tocar(tester, find.text(Textos.filtroVenta));
+      expect(tester.takeException(), isNull, reason: 'Venta');
     });
 
     testWidgets('Mejora 01: el + abre la hoja con atajos; «Un gasto» abre '
@@ -7387,6 +7392,45 @@ void main() {
       expect(_abiertos.last, 'https://mocanegocios.com');
       await tocar(tester, find.text(Textos.politicaDePrivacidad));
       expect(_abiertos.last, 'https://mocanegocios.com/privacidad');
+    });
+  });
+
+  group('Entrega 97: Informes por día, con «Venta» y «Compra»', () {
+    testWidgets('el día, el filtro y quitarlo', (tester) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.text(Textos.pestanaInformes));
+      // Sin filtro, el mes de siempre.
+      expect(find.text(Textos.tuPlataCrecio), findsOneWidget);
+      await tocar(tester, find.text(Textos.verDia));
+      expect(find.text(Textos.nombreDelDia(_ahora, _ahora)), findsOneWidget);
+      expect(find.text(Textos.fechaDelDia(_ahora)), findsOneWidget);
+      // Hoy no se puede ir más adelante.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.ancestor(
+                of: find.byTooltip(Textos.diaSiguiente),
+                matching: find.byType(IconButton),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      // «Venta» cambia lo de abajo; tocarlo otra vez lo quita.
+      await tocar(tester, find.text(Textos.filtroVenta));
+      expect(find.text(Textos.vendiste), findsOneWidget);
+      expect(find.text(Textos.cobradoEnElMomento), findsOneWidget);
+      await tocar(tester, find.text(Textos.filtroVenta));
+      expect(find.text(Textos.vendiste), findsNothing);
+      // En el mes, «Compra».
+      await tocar(tester, find.text(Textos.verMes));
+      await tocar(tester, find.text(Textos.filtroCompra));
+      expect(find.text(Textos.compraste), findsOneWidget);
+      expect(find.text(Textos.pagadoEnElMomento), findsOneWidget);
+      expect(find.text(Textos.tuPlataCrecio), findsNothing);
+      // Y en el año.
+      await tocar(tester, find.text(Textos.verAnio));
+      expect(find.text(Textos.compraste), findsOneWidget);
     });
   });
 
