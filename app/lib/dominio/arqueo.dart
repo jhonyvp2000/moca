@@ -34,10 +34,12 @@ class CuentaArqueo {
   /// punto de partida y no hay diferencia que explicar.
   final bool puntoDePartida;
 
-  /// Lo que se propone en el campo, en soles enteros. Nulo si no hay saldo
-  /// inicial o si lo calculado es negativo: el dueño lo escribe.
-  int? get propuestoSoles => puntoDePartida || calculadoCentimos < 0
-      ? null
+  /// Lo que se propone en el campo, en soles enteros. Cero si no hay saldo
+  /// inicial o si lo calculado es negativo (entrega 96: antes quedaba vacío
+  /// y no dejaba guardar sin escribir); en el negativo, el cero no cuadra y
+  /// Moca pregunta por qué.
+  int get propuestoSoles => puntoDePartida || calculadoCentimos < 0
+      ? 0
       : (calculadoCentimos / 100).round();
 
   /// Contado menos calculado: negativo si faltan, positivo si sobran. Cero

@@ -3270,7 +3270,13 @@ void main() {
 
       expect(find.text(Textos.arqueoDetalle), findsOneWidget);
       expect(find.text(Textos.cuadra), findsNWidgets(3));
+      // Sin tocar nada se puede guardar (entrega 96).
       expect(guardarArqueo(tester).onPressed, isNotNull);
+      // Un campo vacío no deja guardar, y dice qué falta.
+      await tester.enterText(find.byType(TextField).first, '');
+      await esperar(tester);
+      expect(guardarArqueo(tester).onPressed, isNull);
+      expect(find.text(Textos.faltaContar(Textos.efectivo)), findsOneWidget);
 
       await tester.enterText(find.byType(TextField).first, '1270');
       await esperar(tester);
@@ -3280,6 +3286,10 @@ void main() {
         findsOneWidget,
       );
       expect(guardarArqueo(tester).onPressed, isNull);
+      expect(
+        find.text(Textos.faltaPorQue(Textos.efectivo, sobra: false)),
+        findsOneWidget,
+      );
 
       await tocar(
         tester,
@@ -3312,8 +3322,13 @@ void main() {
         find.text(Textos.motivoArqueo(MotivoArqueo.gastoOlvidado)),
       );
       expect(guardarArqueo(tester).onPressed, isNull);
+      expect(
+        find.text(Textos.faltaTipoDeGasto(Textos.efectivo)),
+        findsOneWidget,
+      );
       await tocar(tester, find.text('Otros'));
       expect(guardarArqueo(tester).onPressed, isNotNull);
+      expect(find.text(Textos.faltaTipoDeGasto(Textos.efectivo)), findsNothing);
     });
 
     testWidgets('Si sobra plata, ofrece «Una venta que no anoté»', (

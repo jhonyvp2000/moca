@@ -1215,7 +1215,15 @@ abstract final class Textos {
   static const arqueoPuntoDePartidaDetalle =
       'Escribe cuánto tienes hoy en cada sitio. Lo que cuentes será tu punto '
       'de partida.';
-  static const tuPuntoDePartida = 'Tu punto de partida';
+  // Entrega 96: las cuentas sin saldo inicial vienen en cero.
+  static const tuPuntoDePartidaConCero =
+      'Tu punto de partida. Si tienes plata aquí, escribe cuánto.';
+  static String faltaContar(String cuenta) =>
+      'Falta escribir cuánto hay en $cuenta';
+  static String faltaPorQue(String cuenta, {required bool sobra}) =>
+      'Falta responder por qué ${sobra ? 'sobra' : 'falta'} en $cuenta';
+  static String faltaTipoDeGasto(String cuenta) =>
+      'Falta elegir el tipo de gasto en $cuenta';
   static const escribeCuantoHay = 'Escribe cuánto hay';
   static const cuadra = 'Cuadra';
   static String faltan(String monto) => 'Faltan $monto';

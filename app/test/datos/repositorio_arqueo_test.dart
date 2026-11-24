@@ -198,7 +198,7 @@ void main() {
     await empezar();
     final cuentas = await repo.preparar();
     expect(cuentas.every((c) => c.puntoDePartida), isTrue);
-    expect(cuentas.first.propuestoSoles, isNull);
+    expect(cuentas.first.propuestoSoles, 0);
     await repo.guardar(const [
       ConteoCuenta(cuenta: TipoCuenta.efectivo, contadoCentimos: 140000),
       ConteoCuenta(cuenta: TipoCuenta.yape, contadoCentimos: 0),
