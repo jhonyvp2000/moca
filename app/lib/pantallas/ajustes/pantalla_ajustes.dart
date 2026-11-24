@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/enlace.dart';
 import 'ayuda.dart';
+import 'moca_en_la_web.dart';
 import '../../comun/badge_estado.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tono.dart';
@@ -121,6 +122,8 @@ class PantallaAjustes extends ConsumerWidget {
             const BorrarEsteTelefono(),
           ],
         ]),
+        // Recomendar Moca, la web y la privacidad (entrega 95).
+        const MocaEnLaWeb(),
         // El estado del teléfono y «Pedir ayuda» (entrega 46).
         seccion(Textos.ayuda, [const AyudaDelTelefono()]),
         // Qué versión es, para reportar un problema (entrega 26.3).

@@ -51,6 +51,8 @@ Te llega algo así:
 
 El mismo estado se ve en **Ajustes → Ayuda → Estado de este teléfono**. Si tiene una versión anterior a la 46, o el botón no aparece porque nunca tuvo señal, usa las tres preguntas de abajo.
 
+**Ajustes → Moca** (entrega 95): «Recomendar Moca» abre WhatsApp con un mensaje listo para mandarle a otro dueño, «Moca en la web» abre mocanegocios.com y «Política de privacidad» abre mocanegocios.com/privacidad. Necesitan internet; si no abre, que pruebe con señal o que tenga WhatsApp instalado.
+
 ## Si no puede usar «Pedir ayuda»: tres preguntas
 
 Pídele al usuario que te las responda o que te mande una captura:

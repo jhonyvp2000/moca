@@ -562,9 +562,13 @@ final enlaceDescargaProvider = Provider<String>(
   (ref) => '$direccionServidor/descargar',
 );
 
-/// La política de privacidad (entrega 83), mientras no esté en la web.
+/// La página de Moca (entrega 95).
+const paginaDeMoca = 'https://mocanegocios.com';
+
+/// La política de privacidad (entrega 83). Desde la entrega 95, la de la
+/// web: el mismo texto que el servidor, en la página de Moca.
 final enlacePrivacidadProvider = Provider<String>(
-  (ref) => '$direccionServidor/privacidad',
+  (ref) => '$paginaDeMoca/privacidad',
 );
 
 /// Si el dueño ya aceptó el texto de consentimiento vigente (entrega 83).

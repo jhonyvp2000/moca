@@ -7354,6 +7354,27 @@ void main() {
     });
   });
 
+  group('Entrega 95: Moca en la web, desde Ajustes', () {
+    testWidgets('recomendar por WhatsApp, la página y la privacidad', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await abrirAjustes(tester);
+      expect(find.text(Textos.seccionMoca.toUpperCase()), findsOneWidget);
+      // Recomendar: WhatsApp sin número, con la página en el mensaje.
+      await tocar(tester, find.text(Textos.recomendarMoca));
+      expect(_abiertos.last, startsWith('https://wa.me/?text='));
+      final mensaje = Uri.decodeComponent(
+        _abiertos.last.substring('https://wa.me/?text='.length),
+      );
+      expect(mensaje, Textos.mensajeRecomendarMoca('https://mocanegocios.com'));
+      await tocar(tester, find.text(Textos.mocaEnLaWeb));
+      expect(_abiertos.last, 'https://mocanegocios.com');
+      await tocar(tester, find.text(Textos.politicaDePrivacidad));
+      expect(_abiertos.last, 'https://mocanegocios.com/privacidad');
+    });
+  });
+
   group('Entrega 39: buscar y filtrar en el Historial', () {
     Future<void> conGasto(WidgetTester tester) async {
       final base = await abrirApp(tester, listo: true);

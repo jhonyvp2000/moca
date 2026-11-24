@@ -1554,7 +1554,10 @@ abstract final class Textos {
       'mismo.';
   static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
   static String hechoEl(String fecha) => 'Hecho el $fecha';
-  static const pieDelPdf = 'Hecho con Moca con lo que anotaste en tu teléfono.';
+  // Con la página de Moca, para el contador o el banco (entrega 95).
+  static const webDeMoca = 'mocanegocios.com';
+  static const pieDelPdf =
+      'Hecho con Moca con lo que anotaste en tu teléfono · $webDeMoca';
 
   // S16 · Moca
   static String tuSemanaEn(int segundos) => 'Tu semana, en $segundos segundos';
@@ -2064,6 +2067,18 @@ abstract final class Textos {
 
   // «Ayuda» en Ajustes (entrega 46).
   static const ayuda = 'Ayuda';
+  // La sección «Moca» de Ajustes (entrega 95).
+  static const seccionMoca = 'Moca';
+  static const recomendarMoca = 'Recomendar Moca';
+  static const recomendarMocaDetalle = 'Cuéntale a otro dueño';
+  static String mensajeRecomendarMoca(String pagina) =>
+      'Uso Moca para llevar las cuentas de mi negocio: anoto en segundos y sé '
+      'cuánto tengo y quién me debe. Te la recomiendo: $pagina';
+  static const mocaEnLaWeb = 'Moca en la web';
+  static const mocaEnLaWebDetalle =
+      'Qué hace Moca, planes y preguntas frecuentes';
+  static const politicaDePrivacidadDetalle = 'Cómo cuidamos tus datos';
+  static const noSeAbrioLaPagina = 'No se pudo abrir la página.';
   static const estadoDeEsteTelefono = 'Estado de este teléfono';
   static const etiquetaCuentaAyuda = 'Cuenta';
   static const etiquetaNegocioAyuda = 'Negocio';
