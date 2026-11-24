@@ -7431,6 +7431,17 @@ void main() {
       // Y en el año.
       await tocar(tester, find.text(Textos.verAnio));
       expect(find.text(Textos.compraste), findsOneWidget);
+      // Entrega 98: «Debo» y «Me deben», con el total de hoy que abre su
+      // lista.
+      await tocar(tester, find.text(Textos.verMes));
+      await tocar(tester, find.text(Textos.filtroDebo));
+      expect(find.text(Textos.quedasteDebiendo), findsOneWidget);
+      expect(find.text(Textos.pagasteDeLoQueDebias), findsOneWidget);
+      await tocar(tester, find.text(Textos.filtroMeDeben));
+      expect(find.text(Textos.fiaste), findsOneWidget);
+      expect(find.text(Textos.tePagaronDeFiados), findsOneWidget);
+      await tocar(tester, find.textContaining('Hoy te deben en total'));
+      expect(find.text(Textos.loQueTeDebenTitulo), findsWidgets);
     });
   });
 

@@ -173,12 +173,34 @@ void main() {
       expect(dia13.crecioCentimos, 8500);
       expect(dia13.primerDia, DateTime(2026, 10, 12));
 
+      // Entrega 98: lo que quedó debiéndose ese día, por persona.
+      expect(
+        [for (final g in dia13.alFiadoPorCliente) (g.nombre, g.centimos)],
+        [('Ana', 5000), ('Doña Rosa', 4000)],
+      );
+      expect(dia13.alCreditoPorProveedor.single.nombre, 'Comercial El Sol');
+      expect(dia13.teCobraronCentimos, 0);
+
       final dia14 = await informe.calcularPeriodo(
         DateTime(2026, 10, 14),
         DateTime(2026, 10, 15),
       );
       expect(dia14.vendisteCentimos, 0);
       expect(dia14.entroCentimos, 6000);
+      // La parte de Ana cuenta para Ana, por la venta a la que abona.
+      expect(dia14.teCobraronCentimos, 6000);
+      expect(
+        [for (final g in dia14.cobrosPorCliente) (g.nombre, g.centimos)],
+        [('Doña Rosa', 4000), ('Ana', 2000)],
+      );
+      expect(dia14.alFiadoPorCliente, isEmpty);
+
+      final dia15 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 15),
+        DateTime(2026, 10, 16),
+      );
+      expect(dia15.pagasteDeudasCentimos, 20000);
+      expect(dia15.pagosPorProveedor.single.nombre, 'Comercial El Sol');
 
       final semana = await informe.calcularPeriodo(
         DateTime(2026, 10, 13),

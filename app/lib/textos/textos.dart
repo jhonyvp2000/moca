@@ -1363,6 +1363,26 @@ abstract final class Textos {
   static const comprasSinProveedorNota =
       'Las compras sin proveedor no salen aquí.';
   static const sinVentasEnElPeriodo = 'No hay ventas en estos días.';
+  // «Debo» y «Me deben» (entrega 98).
+  static const quedasteDebiendo = 'Quedaste debiendo';
+  static const quedasteDebiendoDetalle =
+      'Lo que compraste al crédito en estos días.';
+  static const pagasteDeLoQueDebias = 'Pagaste de lo que debías';
+  static const pagasteDeLoQueDebiasDetalle =
+      'De compras de antes o de estos mismos días.';
+  static const fiaste = 'Fiaste';
+  static const fiasteDetalle = 'Lo que vendiste al fiado en estos días.';
+  static const tePagaronDeFiados = 'Te pagaron de fiados';
+  static const tePagaronDeFiadosDetalle =
+      'De ventas de antes o de estos mismos días.';
+  static String hoyDebesEnTotal(String monto) => 'Hoy debes en total $monto';
+  static String hoyTeDebenEnTotal(String monto) =>
+      'Hoy te deben en total $monto';
+  static const sinNombreNota = 'Lo que no tiene nombre no sale en la lista.';
+  static const nadaAlCredito = 'No quedaste debiendo nada en estos días.';
+  static const nadaPagadoDeDeudas = 'No pagaste deudas en estos días.';
+  static const nadaFiado = 'No fiaste nada en estos días.';
+  static const nadaCobradoDeFiados = 'No te pagaron fiados en estos días.';
   static const sinComprasEnElPeriodo = 'No hay compras en estos días.';
   static const verMes = 'Mes';
   static const verAnio = 'Año';

@@ -171,16 +171,27 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
         // Con «Venta» o «Compra» (entrega 97), lo que costó: lo que falta
         // más sus partes, como en las cifras del periodo.
         final partes = <String, int>{};
-        if (c.porAnotado) {
+        if (c.porAnotado || c.soloDeudas) {
           for (final m in d.movimientos) {
             if (m.estado == EstadoRegistro.vigente && m.abonaA != null) {
               partes[m.abonaA!] = (partes[m.abonaA!] ?? 0) + m.montoCentimos;
             }
           }
         }
-        DateTime fecha(Movimiento m) => c.porAnotado
-            ? m.fechaComprobante ?? m.fechaMovimiento
-            : m.fechaPago ?? m.fechaMovimiento;
+        DateTime anotado(Movimiento m) =>
+            m.fechaComprobante ?? m.fechaMovimiento;
+        DateTime pagado(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
+        DateTime fecha(Movimiento m) => c.porAnotado ? anotado(m) : pagado(m);
+        bool mismoDia(DateTime a, DateTime b) =>
+            a.year == b.year && a.month == b.month && a.day == b.day;
+        // Las mismas reglas que las cifras del periodo (entrega 98).
+        bool quedoDebiendo(Movimiento m) =>
+            m.estadoPago != EstadoPago.pagado ||
+            partes.containsKey(m.id) ||
+            !mismoDia(pagado(m), anotado(m));
+        bool esPagoDeDeuda(Movimiento m) =>
+            m.abonaA != null || !mismoDia(pagado(m), anotado(m));
+        final porId = {for (final m in d.movimientos) m.id: m};
         bool entra(Movimiento m) {
           if (m.estado != EstadoRegistro.vigente || m.tipo != c.tipo) {
             return false;
@@ -188,15 +199,19 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
           final f = fecha(m);
           if (c.porAnotado) {
             if (m.abonaA != null) return false;
+            if (c.soloDeudas && !quedoDebiendo(m)) return false;
           } else {
             if (m.estadoPago != EstadoPago.pagado) return false;
             final desde = desdeDe[m.cuentaId];
             if (desde != null && f.isBefore(desde)) return false;
+            if (c.soloDeudas && !esPagoDeDeuda(m)) return false;
           }
           if (f.isBefore(c.mes) || !f.isBefore(hasta)) return false;
           final String nombre;
           if (c.porContraparte) {
-            final quien = d.contrapartes[m.contraparteId];
+            final quien =
+                d.contrapartes[m.contraparteId ??
+                    porId[m.abonaA]?.contraparteId];
             if (quien == null) return false;
             nombre = quien;
           } else {
@@ -212,7 +227,7 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
           ..sort((a, b) => fecha(b).compareTo(fecha(a)));
         return [
           for (final m in elegidos)
-            if (partes[m.id] case final p?)
+            if (partes[m.id] case final p? when c.porAnotado)
               _fila(d, m).conMonto(m.montoCentimos + p)
             else
               _fila(d, m),

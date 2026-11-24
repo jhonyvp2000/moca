@@ -122,18 +122,32 @@ class RepositorioInformeLocal implements RepositorioInforme {
       for (final m in vigentes)
         if (m.tipo == tipo && m.abonaA == null && dentro(anotado(m))) m,
     ];
-    List<GastoPorCategoria> porContraparte(Iterable<Movimiento> ms) {
+    // El cliente o proveedor; el de la deuda, si es una parte.
+    final porId = {for (final m in vigentes) m.id: m};
+    String? quien(Movimiento m) =>
+        nombreDe[m.contraparteId ?? porId[m.abonaA]?.contraparteId];
+    List<GastoPorCategoria> porContraparte(
+      Iterable<Movimiento> ms, [
+      int Function(Movimiento)? valor,
+    ]) {
       final total = <String, int>{};
       for (final m in ms) {
-        final nombre = nombreDe[m.contraparteId];
+        final nombre = quien(m);
         if (nombre == null) continue;
-        total[nombre] = (total[nombre] ?? 0) + original(m);
+        total[nombre] = (total[nombre] ?? 0) + (valor ?? original)(m);
       }
       return _filas(total);
     }
 
     final ventas = anotados(TipoMovimiento.ingreso);
     final compras = anotados(TipoMovimiento.egreso);
+    // Un cobro o un pago de algo que se debía: una parte, o la venta o la
+    // compra que se pagó otro día (entrega 98).
+    bool esPagoDeDeuda(Movimiento m) =>
+        m.abonaA != null || !mismoDia(_fecha(m), anotado(m));
+    final cobros = deTipo(movio, TipoMovimiento.ingreso).where(esPagoDeDeuda);
+    final pagos = deTipo(movio, TipoMovimiento.egreso).where(esPagoDeDeuda);
+    int monto(Movimiento m) => m.montoCentimos;
 
     final fechas = [
       for (final m in vigentes) ...[_fecha(m), anotado(m)],
@@ -160,6 +174,12 @@ class RepositorioInformeLocal implements RepositorioInforme {
       alCreditoCentimos: suma(compras.where(quedoDebiendo), original),
       comprasPorCategoria: porCategoria(compras, original),
       comprasPorProveedor: porContraparte(compras),
+      alFiadoPorCliente: porContraparte(ventas.where(quedoDebiendo)),
+      alCreditoPorProveedor: porContraparte(compras.where(quedoDebiendo)),
+      teCobraronCentimos: suma(cobros),
+      cobrosPorCliente: porContraparte(cobros, monto),
+      pagasteDeudasCentimos: suma(pagos),
+      pagosPorProveedor: porContraparte(pagos, monto),
     );
   }
 

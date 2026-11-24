@@ -493,6 +493,12 @@ class CifrasDelPeriodo {
     this.alCreditoCentimos = 0,
     this.comprasPorCategoria = const [],
     this.comprasPorProveedor = const [],
+    this.alFiadoPorCliente = const [],
+    this.alCreditoPorProveedor = const [],
+    this.teCobraronCentimos = 0,
+    this.cobrosPorCliente = const [],
+    this.pagasteDeudasCentimos = 0,
+    this.pagosPorProveedor = const [],
   });
 
   /// El primer día, incluido; [hasta] es el día siguiente al último.
@@ -522,6 +528,16 @@ class CifrasDelPeriodo {
   final int alCreditoCentimos;
   final List<GastoPorCategoria> comprasPorCategoria;
   final List<GastoPorCategoria> comprasPorProveedor;
+
+  // «Me deben» y «Debo» (entrega 98): lo que quedó debiéndose esos días, y
+  // lo que se cobró o pagó esos días de lo que se debía (de antes o de esos
+  // mismos días).
+  final List<GastoPorCategoria> alFiadoPorCliente;
+  final List<GastoPorCategoria> alCreditoPorProveedor;
+  final int teCobraronCentimos;
+  final List<GastoPorCategoria> cobrosPorCliente;
+  final int pagasteDeudasCentimos;
+  final List<GastoPorCategoria> pagosPorProveedor;
 
   int get crecioCentimos =>
       entroCentimos +

@@ -10173,7 +10173,9 @@
     "compraste": 0,
     "alCredito": 0,
     "retiros": 0,
-    "aportes": 0
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
    }
   },
   {
@@ -10187,7 +10189,9 @@
     "compraste": 258930,
     "alCredito": 74230,
     "retiros": 76000,
-    "aportes": 0
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
    }
   },
   {
@@ -10201,7 +10205,9 @@
     "compraste": 424980,
     "alCredito": 74230,
     "retiros": 138000,
-    "aportes": 0
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
    }
   },
   {
@@ -10215,7 +10221,9 @@
     "compraste": 844130,
     "alCredito": 14230,
     "retiros": 288000,
-    "aportes": 50000
+    "aportes": 50000,
+    "tePagaron": 0,
+    "pagaste": 14230
    }
   }
  ]

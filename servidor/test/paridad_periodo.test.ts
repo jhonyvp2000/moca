@@ -32,6 +32,8 @@ describe('Los periodos de Informes, iguales en el servidor (entrega 97)', () => 
         deEsoAlCredito: r.deEsoAlCredito,
         retirasteParaTi: r.retirasteParaTi,
         pusisteDeTuBolsillo: r.pusisteDeTuBolsillo,
+        tePagaronDeFiados: r.tePagaronDeFiados,
+        pagasteDeLoQueDebias: r.pagasteDeLoQueDebias,
       }).toEqual({
         vendiste: soles(c.vendiste!),
         deEsoAlFiado: soles(c.alFiado!),
@@ -41,6 +43,9 @@ describe('Los periodos de Informes, iguales en el servidor (entrega 97)', () => 
         deEsoAlCredito: soles(c.alCredito!),
         retirasteParaTi: soles(c.retiros!),
         pusisteDeTuBolsillo: soles(c.aportes!),
+        // Entrega 98: «Debo» y «Me deben».
+        tePagaronDeFiados: soles(c.tePagaron!),
+        pagasteDeLoQueDebias: soles(c.pagaste!),
       });
     });
   }

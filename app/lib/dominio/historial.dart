@@ -623,6 +623,7 @@ class ConsultaDeCategoria {
     this.hasta,
     this.porAnotado = false,
     this.porContraparte = false,
+    this.soloDeudas = false,
   });
 
   /// El primer día del mes; con [anual], desde cuándo cuenta el año.
@@ -645,6 +646,10 @@ class ConsultaDeCategoria {
 
   /// [nombres] y [salvo] son clientes o proveedores, no categorías.
   final bool porContraparte;
+
+  /// «Debo» y «Me deben» (entrega 98): con [porAnotado], lo que quedó
+  /// debiéndose; si no, lo cobrado o pagado de algo que se debía.
+  final bool soloDeudas;
 }
 
 abstract interface class RepositorioHistorial {

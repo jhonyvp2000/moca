@@ -53,11 +53,8 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
   /// «Venta» o «Compra» (entrega 97); nulo es el informe de siempre.
   FiltroInforme? _filtro;
 
-  /// Los filtros que ya existen; «Debo» y «Me deben» llegan en la 98.
-  static const _filtrosDisponibles = [
-    FiltroInforme.venta,
-    FiltroInforme.compra,
-  ];
+  /// Los cuatro filtros (entregas 97 y 98).
+  static const _filtrosDisponibles = FiltroInforme.values;
   bool _armandoPdf = false;
   bool _armandoExcel = false;
 
@@ -345,8 +342,10 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
 
   /// «Venta · Compra» (entrega 97): ninguno elegido es el informe de siempre;
   /// tocar el elegido lo quita.
-  Widget _filtros() => SizedBox(
-    width: double.infinity,
+  Widget _filtros() => FittedBox(
+    // Con letra grande en un teléfono angosto, se achica (entrega 98).
+    fit: BoxFit.scaleDown,
+    alignment: Alignment.centerLeft,
     child: SegmentedButton<FiltroInforme>(
       showSelectedIcon: false,
       emptySelectionAllowed: true,
@@ -1656,8 +1655,9 @@ class _VistaDelPeriodo extends ConsumerWidget {
     return switch (filtro) {
       FiltroInforme.venta => _ventas(context, c),
       FiltroInforme.compra => _compras(context, c),
-      // «Debo» y «Me deben» llegan en la entrega 98.
-      _ => _dia(context, c),
+      FiltroInforme.debo => _debo(context, ref, c),
+      FiltroInforme.meDeben => _meDeben(context, ref, c),
+      null => _dia(context, c),
     };
   }
 
@@ -1670,6 +1670,7 @@ class _VistaDelPeriodo extends ConsumerWidget {
     required List<GastoPorCategoria> todas,
     bool porAnotado = false,
     bool porContraparte = false,
+    bool soloDeudas = false,
   }) => context.push(
     Rutas.deCategoria,
     extra: ConsultaDeCategoria(
@@ -1684,6 +1685,7 @@ class _VistaDelPeriodo extends ConsumerWidget {
       },
       porAnotado: porAnotado,
       porContraparte: porContraparte,
+      soloDeudas: soloDeudas,
     ),
   );
 
@@ -1877,6 +1879,169 @@ class _VistaDelPeriodo extends ConsumerWidget {
       ),
     ],
   );
+
+  /// Una deuda del periodo (entrega 98): el total, qué es y por persona.
+  Widget _deuda(
+    BuildContext context, {
+    required String titulo,
+    required String detalle,
+    required int total,
+    required List<GastoPorCategoria> filas,
+    required String vacio,
+    required TipoMovimiento tipo,
+    required bool porAnotado,
+  }) {
+    final tono = tipo == TipoMovimiento.egreso ? Tono.egreso : Tono.ingreso;
+    final enLista = filas.fold(0, (s, g) => s + g.centimos);
+    return Tarjeta(
+      relleno: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(titulo, style: Tipografia.tituloTarjeta),
+          const SizedBox(height: Medidas.e1),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: MontoText(
+                total,
+                estilo: Tipografia.montoGrande,
+                tono: total == 0 ? Tono.neutro : tono,
+              ),
+            ),
+          ),
+          const SizedBox(height: Medidas.e1),
+          Text(total == 0 ? vacio : detalle, style: Tipografia.secundario),
+          if (filas.isNotEmpty) const SizedBox(height: Medidas.e2),
+          for (final (n, g) in filas.indexed)
+            _FilaDePersona(
+              nombre: g.nombre ?? Textos.loDemas,
+              centimos: g.centimos,
+              tono: tono,
+              conSeparador: n > 0,
+              alTocar: () => _abrir(
+                context,
+                tipo: tipo,
+                g: g,
+                todas: filas,
+                porAnotado: porAnotado,
+                porContraparte: true,
+                soloDeudas: true,
+              ),
+            ),
+          if (enLista < total) ...[
+            const SizedBox(height: Medidas.e2),
+            const Text(Textos.sinNombreNota, style: Tipografia.secundario),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// «Hoy debes en total» o «Hoy te deben en total», que abre la lista.
+  Widget _totalDeHoy(BuildContext context, String texto, String ruta) =>
+      Material(
+        color: Colores.azul100,
+        borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Medidas.radioTarjeta),
+          onTap: () => context.push(ruta),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: const EdgeInsets.symmetric(horizontal: Medidas.e4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    texto,
+                    style: Tipografia.cifra(
+                      Tipografia.textoFuerte.copyWith(color: Colores.marca),
+                    ),
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colores.marca),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _debo(BuildContext context, WidgetRef ref, CifrasDelPeriodo c) {
+    final hoy = ref.watch(loQueDebesProvider).value ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _deuda(
+          context,
+          titulo: Textos.quedasteDebiendo,
+          detalle: Textos.quedasteDebiendoDetalle,
+          total: c.alCreditoCentimos,
+          filas: c.alCreditoPorProveedor,
+          vacio: Textos.nadaAlCredito,
+          tipo: TipoMovimiento.egreso,
+          porAnotado: true,
+        ),
+        _separacion,
+        _deuda(
+          context,
+          titulo: Textos.pagasteDeLoQueDebias,
+          detalle: Textos.pagasteDeLoQueDebiasDetalle,
+          total: c.pagasteDeudasCentimos,
+          filas: c.pagosPorProveedor,
+          vacio: Textos.nadaPagadoDeDeudas,
+          tipo: TipoMovimiento.egreso,
+          porAnotado: false,
+        ),
+        _separacion,
+        _totalDeHoy(
+          context,
+          Textos.hoyDebesEnTotal(
+            formatearSoles(hoy.fold(0, (s, f) => s + f.montoCentimos)),
+          ),
+          Rutas.loQueDebes,
+        ),
+      ],
+    );
+  }
+
+  Widget _meDeben(BuildContext context, WidgetRef ref, CifrasDelPeriodo c) {
+    final hoy = ref.watch(loQueTeDebenProvider).value ?? const [];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _deuda(
+          context,
+          titulo: Textos.fiaste,
+          detalle: Textos.fiasteDetalle,
+          total: c.alFiadoCentimos,
+          filas: c.alFiadoPorCliente,
+          vacio: Textos.nadaFiado,
+          tipo: TipoMovimiento.ingreso,
+          porAnotado: true,
+        ),
+        _separacion,
+        _deuda(
+          context,
+          titulo: Textos.tePagaronDeFiados,
+          detalle: Textos.tePagaronDeFiadosDetalle,
+          total: c.teCobraronCentimos,
+          filas: c.cobrosPorCliente,
+          vacio: Textos.nadaCobradoDeFiados,
+          tipo: TipoMovimiento.ingreso,
+          porAnotado: false,
+        ),
+        _separacion,
+        _totalDeHoy(
+          context,
+          Textos.hoyTeDebenEnTotal(
+            formatearSoles(hoy.fold(0, (s, f) => s + f.montoCentimos)),
+          ),
+          Rutas.loQueTeDeben,
+        ),
+      ],
+    );
+  }
 
   /// Un día sin filtro: como la tarjeta del mes, sin comparar.
   Widget _dia(BuildContext context, CifrasDelPeriodo c) {

@@ -69,6 +69,8 @@ Future<List<Map<String, Object?>>> _periodosLocales(
             'alCredito': c.alCreditoCentimos,
             'retiros': c.retirosCentimos,
             'aportes': c.aportesCentimos,
+            'tePagaron': c.teCobraronCentimos,
+            'pagaste': c.pagasteDeudasCentimos,
           },
         },
   ];
