@@ -338,16 +338,28 @@ class _EstadoDetalleMovimiento
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: MontoText(
-                  // Con partes, la venta o la compra completa (entrega 87).
-                  d.partes.isEmpty || f.parteDe != null
-                      ? f.montoCentimos
-                      : f.totalConPartesCentimos,
-                  estilo: Tipografia.montoDetalle,
-                  tono: tonoDeFila(f) == Tono.neutro ? null : tonoDeFila(f),
-                  conSigno: true,
-                  conCentimos: true,
-                ),
+                child: f.loDebes
+                    // Lo que se debe todavía no movió plata (entrega 100):
+                    // va lo que falta, sin «+» ni «−».
+                    ? MontoText(
+                        f.montoCentimos,
+                        estilo: Tipografia.montoDetalle,
+                        tono: Tono.pendiente,
+                        conCentimos: true,
+                      )
+                    : MontoText(
+                        // Con partes, la venta o la compra completa
+                        // (entrega 87).
+                        d.partes.isEmpty || f.parteDe != null
+                            ? f.montoCentimos
+                            : f.totalConPartesCentimos,
+                        estilo: Tipografia.montoDetalle,
+                        tono: tonoDeFila(f) == Tono.neutro
+                            ? null
+                            : tonoDeFila(f),
+                        conSigno: true,
+                        conCentimos: true,
+                      ),
               ),
               const SizedBox(height: Medidas.e1),
               Text(fechaYHora(f.fecha), style: Tipografia.secundario),
@@ -362,7 +374,17 @@ class _EstadoDetalleMovimiento
                   spacing: Medidas.e1,
                   children: [
                     if (f.loDebes)
-                      BadgeEstado(f.teDeben ? Textos.teDebe : Textos.loDebes),
+                      BadgeEstado(
+                        // Con partes, de cuánto era (entrega 100).
+                        d.partes.isEmpty
+                            ? (f.teDeben ? Textos.teDebe : Textos.loDebes)
+                            : (f.teDeben ? Textos.teDebeDe : Textos.debesDe)(
+                                formatearSolesComprobante(f.montoCentimos),
+                                formatearSolesComprobante(
+                                  f.totalConPartesCentimos,
+                                ),
+                              ),
+                      ),
                     if (f.porSubir)
                       const BadgeEstado(
                         Textos.porSubirEtiqueta,

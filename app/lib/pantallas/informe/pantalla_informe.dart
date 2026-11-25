@@ -974,7 +974,10 @@ class _EstadoInforme extends ConsumerState<PantallaInforme> {
                 ],
               ),
             ),
-            if (i.confianza case final c?) ...[
+            // Solo si hay algún comprobante o foto (entrega 100): «100 % sin
+            // papel» no le dice nada a quien anota por voz.
+            if (i.confianza case final c?
+                when c.conComprobante + c.conFoto > 0) ...[
               separacion,
               Tarjeta(
                 relleno: const EdgeInsets.symmetric(
@@ -1817,6 +1820,17 @@ class _VistaDelPeriodo extends ConsumerWidget {
         ),
         segunda: (Textos.alFiadoEtiqueta, c.alFiadoCentimos),
       ),
+      // Por qué «Entró» no es igual a «Vendiste» (entrega 100).
+      if (c.teCobraronCentimos > 0 || c.alFiadoCentimos > 0) ...[
+        _separacion,
+        Text(
+          Textos.teEntroEnTotal(
+            formatearSoles(c.entroCentimos),
+            formatearSoles(c.teCobraronCentimos),
+          ),
+          style: Tipografia.cifra(Tipografia.secundario),
+        ),
+      ],
       if (c.vendisteCentimos == 0) ...[
         _separacion,
         Text(

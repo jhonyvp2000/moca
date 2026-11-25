@@ -497,6 +497,23 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
           tono: tono,
           alElegir: (id) => setState(() => _categoriaId = id),
         ),
+        // Un fiado anotado se cobra en «Lo que te deben» (entrega 100): aquí
+        // entraría la plata y la deuda seguiría abierta.
+        if (tipo == TipoMovimiento.ingreso &&
+            categorias.any(
+              (c) => c.id == _categoriaId && c.nombre == categoriaCobroDeFiado,
+            ) &&
+            (ref.watch(loQueTeDebenProvider).value?.isNotEmpty ?? false)) ...[
+          const SizedBox(height: Medidas.e2),
+          const Aviso(texto: Textos.cobroDeFiadoAviso),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.push(Rutas.loQueTeDeben),
+              child: const Text(Textos.irALoQueTeDeben),
+            ),
+          ),
+        ],
         // Una categoría propia, que queda elegida (entrega 31).
         if (permisos.cambiaCategorias)
           Align(
@@ -522,8 +539,11 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         maxLength: 80,
         textCapitalization: TextCapitalization.sentences,
         style: Tipografia.texto,
-        decoration: const InputDecoration(
-          hintText: Textos.notaEjemplo,
+        decoration: InputDecoration(
+          // El ejemplo va con lo elegido (entrega 100).
+          hintText: tipo == TipoMovimiento.ingreso
+              ? Textos.notaEjemploIngreso
+              : Textos.notaEjemplo,
           counterText: '',
           contentPadding: EdgeInsets.symmetric(
             horizontal: Medidas.e4,
@@ -600,7 +620,15 @@ class _EstadoEscribir extends ConsumerState<PantallaEscribir> {
         // En lo que se debe, el nombre ya se pidió arriba.
         if (!_loDebe) ...[
           const SizedBox(height: Medidas.e5),
-          Text(Textos.institucion, style: etiqueta),
+          // Con palabras del dueño (entrega 100).
+          Text(
+            tipo == TipoMovimiento.ingreso
+                ? Textos.clienteOpcional
+                : tipo == TipoMovimiento.egreso
+                ? Textos.proveedorOpcional
+                : Textos.institucion,
+            style: etiqueta,
+          ),
           const SizedBox(height: Medidas.e2),
           Autocomplete<String>(
             initialValue: TextEditingValue(text: _institucion),

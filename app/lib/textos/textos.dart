@@ -811,6 +811,12 @@ abstract final class Textos {
   static const deQue = '¿De qué?';
   static const nota = 'Nota (opcional)';
   static const notaEjemplo = 'Por ejemplo: luz de octubre';
+  static const notaEjemploIngreso = 'Por ejemplo: una caja de gaseosas';
+  // Entrega 100: un fiado anotado se cobra en «Lo que te deben».
+  static const cobroDeFiadoAviso =
+      'Si ese fiado ya lo anotaste, cóbralo en «Lo que te deben» para que la '
+      'deuda se cierre. Aquí entra como plata nueva.';
+  static const irALoQueTeDeben = 'Ir a Lo que te deben';
   static const quedariaNegativoTitulo = '¿Lo guardo igual?';
   static String quedariaNegativo(String cuenta, String monto) =>
       'Con esto, en ${cuenta.toLowerCase()} te quedaría $monto.';
@@ -940,6 +946,8 @@ abstract final class Textos {
   static const numeroDeDocumento = 'Número de documento';
   static const numeroDocumentoEjemplo = 'Ej.: 0045J';
   static const institucion = 'Institución';
+  static const clienteOpcional = 'Cliente';
+  static const proveedorOpcional = 'Proveedor';
   static const institucionEjemplo = 'Ej.: Comercial Tarapoto';
   static String institucionAyuda(TipoMovimiento tipo) =>
       tipo == TipoMovimiento.ingreso
@@ -1364,6 +1372,10 @@ abstract final class Textos {
       'Las compras sin proveedor no salen aquí.';
   static String sinVentasEnElPeriodo(String cuando) => 'No hay ventas $cuando.';
   // «Debo» y «Me deben» (entrega 98).
+  /// La plata que entró no es lo vendido: lo fiado entra cuando lo pagan.
+  static String teEntroEnTotal(String entro, String deFiados) =>
+      'La plata que te entró fue $entro: lo cobrado al momento y $deFiados '
+      'de fiados que te pagaron. Lo fiado entra cuando te lo pagan.';
   static const quedasteDebiendo = 'Quedaste debiendo';
 
   /// «hoy», «ese día» o «en estos días», según lo que se mira (entrega 99).

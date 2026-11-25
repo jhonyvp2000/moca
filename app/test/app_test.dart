@@ -3597,12 +3597,9 @@ void main() {
       );
       expect(anterior.onPressed, isNull);
       expect(find.text(Textos.compartir), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text(Textos.sinPapel(100)),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text(Textos.sinPapel(100)), findsOneWidget);
+      // Sin ningún comprobante ni foto, «Qué tan seguras son estas cuentas»
+      // no sale (entrega 100).
+      expect(find.text(Textos.sinPapel(100)), findsNothing);
     });
 
     testWidgets('El PDF del informe se arma en el teléfono, para quien '
@@ -7389,6 +7386,25 @@ void main() {
       expect(_abiertos.last, 'https://mocanegocios.com');
       await tocar(tester, find.text(Textos.politicaDePrivacidad));
       expect(_abiertos.last, 'https://mocanegocios.com/privacidad');
+    });
+  });
+
+  group('Entrega 100: ajustes tras la revisión', () {
+    testWidgets('en «Escribirlo», el ingreso lleva su ejemplo y «Cliente»', (
+      tester,
+    ) async {
+      await abrirApp(tester, listo: true);
+      await tocar(tester, find.bySemanticsLabel(Textos.registrar));
+      await tocar(tester, find.text(Textos.atajoUnIngreso));
+      expect(find.text(Textos.notaEjemploIngreso), findsOneWidget);
+      expect(find.text(Textos.notaEjemplo), findsNothing);
+    });
+
+    test('lo que te entró se explica frente a lo vendido', () {
+      expect(
+        Textos.teEntroEnTotal('S/ 564', 'S/ 152'),
+        contains('La plata que te entró fue S/ 564'),
+      );
     });
   });
 

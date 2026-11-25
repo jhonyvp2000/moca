@@ -148,6 +148,8 @@ Quien instaló Moca **desde Play Store** paga con **Google Play**: no ve Mercado
 
 > Tu plan se paga y se renueva en Google Play. Para cancelarlo o cambiar tu medio de pago: abre Play Store → toca tu foto → Pagos y suscripciones → Suscripciones → Moca. Lo que ya pagaste sigue hasta la fecha.
 
+**«Anoté que me pagaron un fiado y me sigue saliendo que me deben»** (entrega 100): lo anotó como ingreso nuevo con la categoría «Cobro de fiado» en vez de cobrarlo. Que deshaga ese registro y lo cobre en Inicio → **Te deben** → el cliente → **Ya me pagó**. Desde la 100, Moca avisa al elegir esa categoría si hay fiados anotados.
+
 **«¿Cuánto vendí ayer?» en Informes** (entrega 97): en Informes, arriba, **Día** y las flechas hasta ese día; **Venta** muestra lo vendido (cobrado y al fiado) por categoría y por cliente, y **Compra** lo comprado (pagado y al crédito). «Vendiste» cuenta el día de la venta, aunque te paguen después; «Entró» cuenta el día en que entró la plata. Para volver al informe de siempre, se toca otra vez el filtro elegido. Desde la entrega 99 esos filtros se llaman **Debes** y **Te deben**, y las fichas «Te deben» y «Debes» están en el **Inicio** (ya no en el resumen de Informes), junto con «Anotar la venta de hoy». Desde la entrega 98, **Debo** dice cuánto quedó debiendo esos días y cuánto pagó de lo que debía, y **Me deben**, cuánto fió y cuánto le pagaron; abajo, lo que debe o le deben **hoy** en total. Si el total de arriba no cuadra con la lista, es porque hay deudas sin nombre: suman en el total pero no salen por persona.
 
 ### 6. «No veo Informes» · «No puedo corregir» · «No veo los saldos»
