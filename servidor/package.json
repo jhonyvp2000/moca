@@ -11,6 +11,7 @@
     "compilar": "tsc -p tsconfig.json",
     "revisar": "tsc -p tsconfig.pruebas.json",
     "migrar": "node dist/base/migrar.js",
+    "uso-pilotos": "node dist/uso/informe.js",
     "iniciar": "node dist/servidor.js",
     "probar": "vitest run",
     "suscripciones-play": "node dist/google/crear_suscripciones.js"
