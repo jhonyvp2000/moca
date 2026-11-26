@@ -520,8 +520,13 @@ class _EstadoDetalleMovimiento
             child: const Text(Textos.recordarPorWhatsApp),
           ),
         // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).
+        // Corregir y deshacer se usan poco y uno borra: van como texto, más
+        // discretos que lo principal (entrega 102).
         if (puedeCambiar && d.vigente && d.sePuedeDeshacerElPago)
-          OutlinedButton(
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colores.textoSecundario,
+            ),
             onPressed: activo ? () => _deshacerPago(d) : null,
             child: Text(
               f.tipo == TipoMovimiento.ingreso
@@ -533,7 +538,7 @@ class _EstadoDetalleMovimiento
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: TextButton(
                   onPressed: activo
                       ? () => d.trabaAlCorregir == null
                             ? _corregir(d)
@@ -544,7 +549,10 @@ class _EstadoDetalleMovimiento
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colores.textoSecundario,
+                  ),
                   onPressed: activo
                       ? () => d.trabaAlDeshacer == null
                             ? _deshacer(d)

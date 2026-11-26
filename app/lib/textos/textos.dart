@@ -2188,6 +2188,13 @@ abstract final class Textos {
   // La sección «Moca» de Ajustes (entrega 95).
   static const seccionMoca = 'Moca';
   static const borrarYSalir = 'Borrar y salir';
+  // Cuánto lleva una deuda (entrega 102).
+  static String desdeHaceDias(int dias) => switch (dias) {
+    <= 0 => 'De hoy',
+    1 => 'Desde ayer',
+    >= 30 => 'Hace $dias días: más de un mes',
+    _ => 'Desde hace $dias días',
+  };
   static const recomendarMoca = 'Recomendar Moca';
   static const recomendarMocaDetalle = 'Cuéntale a otro dueño';
   static String mensajeRecomendarMoca(String pagina) =>

@@ -1951,6 +1951,8 @@ void main() {
       await esperar(tester);
       // Las deudas, en fichas (entrega 59), en el Inicio (entrega 99).
       await abrirLoQueTeDeben(tester);
+      // Entrega 102: cuánto lleva la deuda.
+      expect(find.text(Textos.desdeHaceDias(0)), findsOneWidget);
       expect(
         find.text(Textos.teDebenTotal(formatearSoles(20000), 1)),
         findsOneWidget,
@@ -7416,6 +7418,13 @@ void main() {
       await tocar(tester, find.text(Textos.atajoUnIngreso));
       expect(find.text(Textos.notaEjemploIngreso), findsOneWidget);
       expect(find.text(Textos.notaEjemplo), findsNothing);
+    });
+
+    test('Entrega 102: cuánto lleva una deuda', () {
+      expect(Textos.desdeHaceDias(0), 'De hoy');
+      expect(Textos.desdeHaceDias(1), 'Desde ayer');
+      expect(Textos.desdeHaceDias(5), 'Desde hace 5 días');
+      expect(Textos.desdeHaceDias(31), 'Hace 31 días: más de un mes');
     });
 
     test('lo que te entró se explica frente a lo vendido', () {

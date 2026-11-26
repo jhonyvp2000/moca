@@ -33,6 +33,16 @@ class PantallaLoQueDebes extends ConsumerStatefulWidget {
 }
 
 class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
+  /// Los días que lleva la deuda más vieja del grupo, contados por día.
+  int _diasDeLaMasVieja(List<FilaHistorial> filas) {
+    final ahora = ref.read(relojProvider)();
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final vieja = filas
+        .map((f) => DateTime(f.fecha.year, f.fecha.month, f.fecha.day))
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+    return hoy.difference(vieja).inHours ~/ 24;
+  }
+
   late final Stream<List<FilaHistorial>> _deudas = widget.teDeben
       ? ref.read(repositorioHistorialProvider).observarLoQueTeDeben()
       : ref.read(repositorioHistorialProvider).observarLoQueDebes();
@@ -133,6 +143,22 @@ class _EstadoLoQueDebes extends ConsumerState<PantallaLoQueDebes> {
                     filas.length,
                   ),
                   style: Tipografia.cifra(Tipografia.tituloTarjeta),
+                ),
+                // Cuánto lleva la deuda más vieja (entrega 102): en ámbar
+                // desde los 30 días.
+                Builder(
+                  builder: (context) {
+                    final dias = _diasDeLaMasVieja(filas);
+                    return Text(
+                      Textos.desdeHaceDias(dias),
+                      style: dias >= 30
+                          ? Tipografia.secundario.copyWith(
+                              color: Colores.avisoTexto,
+                              fontWeight: FontWeight.w700,
+                            )
+                          : Tipografia.secundario,
+                    );
+                  },
                 ),
                 // Recordarle por WhatsApp y su celular, solo los dueños
                 // (entregas 45 y 53).
