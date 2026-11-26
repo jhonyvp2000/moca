@@ -29,7 +29,9 @@ WITH n AS (
 SELECT 'N' || n.orden AS negocio,
        (now()::date - n.creado_en::date) AS dias_con_moca,
        count(m.id) FILTER (WHERE m.estado = 'vigente') AS registros_total,
-       count(m.id) FILTER (WHERE m.creado_en >= now() - interval '30 days') AS registros_30d,
+       -- Solo lo vigente, como el total: lo deshecho no cuenta.
+       count(m.id) FILTER (WHERE m.estado = 'vigente'
+         AND m.creado_en >= now() - interval '30 days') AS registros_30d,
        count(DISTINCT (m.creado_en AT TIME ZONE 'America/Lima')::date)
          FILTER (WHERE m.creado_en >= now() - interval '30 days') AS dias_que_anoto_30d,
        (now()::date - max(m.creado_en)::date) AS dias_sin_anotar,

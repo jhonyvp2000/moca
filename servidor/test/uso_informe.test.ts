@@ -31,6 +31,17 @@ describe('Informe de uso de los pilotos', () => {
     expect(informe).toContain('negocios');
   });
 
+  it('el administrador puede leer lo que el informe cuenta (migración 031)', async () => {
+    const { rows } = await base.poolAdmin.query<{ tablename: string }>(
+      `SELECT tablename FROM pg_policies
+       WHERE policyname IN ('admin', 'admin_lee') ORDER BY tablename`,
+    );
+    const tablas = rows.map((r) => r.tablename);
+    for (const t of ['arqueos', 'arqueo_cuentas', 'empresas', 'membresias', 'movimientos', 'eventos_uso']) {
+      expect(tablas, t).toContain(t);
+    }
+  });
+
   it('arma una tabla que se puede copiar', () => {
     expect(comoTabla([{ fuente: 'voz', registros: 12 }])).toBe('fuente | registros\n-------+----------\nvoz    | 12       ');
     expect(comoTabla([])).toBe('(sin filas)');
