@@ -95,7 +95,8 @@ abstract final class Textos {
   static const usasOtroBanco = '¿Usas otro banco además del BCP?';
   static const nombreDelBanco = 'Escribe el nombre del banco o la caja';
   static const billeteraEmpiezaEnCero =
-      'Empieza en S/\u00A00 desde hoy. Las cuentas no se borran.';
+      'La cuenta que agregues empieza en S/\u00A00 desde hoy. Las cuentas no '
+      'se borran.';
   static const agregar = 'Agregar';
   static String billeteraAgregada(String nombre) => 'Listo, agregaste $nombre.';
 
@@ -2186,6 +2187,7 @@ abstract final class Textos {
   static const ayuda = 'Ayuda';
   // La sección «Moca» de Ajustes (entrega 95).
   static const seccionMoca = 'Moca';
+  static const borrarYSalir = 'Borrar y salir';
   static const recomendarMoca = 'Recomendar Moca';
   static const recomendarMocaDetalle = 'Cuéntale a otro dueño';
   static String mensajeRecomendarMoca(String pagina) =>

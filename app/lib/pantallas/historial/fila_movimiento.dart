@@ -255,7 +255,9 @@ class FilaMovimiento extends ConsumerWidget {
                         ],
                       ],
                     ),
-                    maxLines: 1,
+                    // Con la fecha (listas sin días), dos líneas: «Te debe
+                    // S/ 30 de S/ 50» no se corta (entrega 101).
+                    maxLines: conFecha ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                     style: Tipografia.cifra(Tipografia.secundario),
                   ),

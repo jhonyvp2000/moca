@@ -243,6 +243,7 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
     FiadoDelDia? fiado,
+    String? nota,
   }) {
     final conFiado = fiado != null && fiado.montoCentimos > 0;
     if (!ventaPorCuenta.values.any((monto) => monto > 0) && !conFiado) {
@@ -265,6 +266,10 @@ class RepositorioMovimientosLocal implements RepositorioMovimientos {
             montoCentimos: monto,
             categoriaId: venta.id,
             fuente: fuente,
+            // Lo dicho por voz, en la venta de una sola cuenta (entrega 101).
+            nota: ventaPorCuenta.values.where((m) => m > 0).length == 1
+                ? nota
+                : null,
           ),
         );
       }

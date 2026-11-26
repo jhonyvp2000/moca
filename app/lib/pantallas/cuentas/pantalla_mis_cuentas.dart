@@ -356,13 +356,6 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
             minimumSize: const Size.fromHeight(Medidas.objetivoTactilMinimo),
           ),
         ),
-        if (hayQueAgregar) ...[
-          const SizedBox(height: 8),
-          const Text(
-            Textos.billeteraEmpiezaEnCero,
-            style: Tipografia.secundario,
-          ),
-        ],
         for (final (titulo, opciones) in [
           (Textos.agregarUnaCaja, cajas),
           (Textos.agregarBilletera, billeteras),
@@ -404,6 +397,15 @@ class _EstadoMisCuentas extends ConsumerState<PantallaMisCuentas> {
               ),
             ],
           ],
+        // Debajo de lo que se agrega (entrega 101): pegado a «Hacer arqueo»
+        // parecía que el arqueo empezaba en cero.
+        if (hayQueAgregar) ...[
+          const SizedBox(height: Medidas.e4),
+          const Text(
+            Textos.billeteraEmpiezaEnCero,
+            style: Tipografia.secundario,
+          ),
+        ],
       ],
       acciones: [
         if (hayQueAgregar)

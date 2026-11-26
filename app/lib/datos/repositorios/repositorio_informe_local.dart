@@ -143,8 +143,13 @@ class RepositorioInformeLocal implements RepositorioInforme {
     final compras = anotados(TipoMovimiento.egreso);
     // Un cobro o un pago de algo que se debía: una parte, o la venta o la
     // compra que se pagó otro día (entrega 98).
+    // También el resto de una deuda con partes, aunque se pague el mismo día
+    // en que se anotó (entrega 101): si no, no era ni «cobrado al momento»
+    // ni «te pagaron de fiados», y la suma no cuadraba con lo que entró.
     bool esPagoDeDeuda(Movimiento m) =>
-        m.abonaA != null || !mismoDia(_fecha(m), anotado(m));
+        m.abonaA != null ||
+        partes.containsKey(m.id) ||
+        !mismoDia(_fecha(m), anotado(m));
     final cobros = deTipo(movio, TipoMovimiento.ingreso).where(esPagoDeDeuda);
     final pagos = deTipo(movio, TipoMovimiento.egreso).where(esPagoDeDeuda);
     int monto(Movimiento m) => m.montoCentimos;

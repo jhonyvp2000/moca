@@ -224,6 +224,10 @@ class _Cliente extends ConsumerWidget {
             if (id != null)
               TextButton(
                 onPressed: () => _cambiarCelular(context, ref, id, celular),
+                // Se usa poco: más discreto que «Recordar» (entrega 101).
+                style: TextButton.styleFrom(
+                  foregroundColor: Colores.textoSecundario,
+                ),
                 child: Text(
                   celular == null
                       ? Textos.agregarCelular

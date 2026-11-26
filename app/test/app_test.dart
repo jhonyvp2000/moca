@@ -2328,6 +2328,24 @@ void main() {
       await tocar(tester, find.text(Textos.decirloConVoz));
     }
 
+    testWidgets('Entrega 101: lo dicho queda como nota si dice qué fue', (
+      tester,
+    ) async {
+      final base = await abrirApp(tester, listo: true);
+      await abrirVozLibre(tester);
+      await decir(tester, [
+        const AlternativaVoz('venta de una caja de cerveza a 100 soles'),
+      ]);
+      await tocar(tester, find.widgetWithText(FilledButton, Textos.guardar));
+      final movimientos = await tester.runAsync(
+        () => base.select(base.movimientos).get(),
+      );
+      expect(
+        movimientos!.where((m) => m.montoCentimos == 10000).single.nota,
+        'Venta de una caja de cerveza a 100 soles',
+      );
+    });
+
     testWidgets('La primera venta dicha por voz va por cuenta', (tester) async {
       final base = await abrirApp(tester);
       await tocar(tester, find.text(Textos.anotarPrimeraVenta));

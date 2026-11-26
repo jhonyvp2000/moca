@@ -303,6 +303,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         guardado = await repo.anotarVentaDelDia(
           _montosPorCuenta,
           fuente: Fuente.voz,
+          // La venta dicha en el registro libre pasaba por aquí sin su nota
+          // (entrega 101).
+          nota: _notaDeLoDicho,
         );
         await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
           'modo': 'voz',

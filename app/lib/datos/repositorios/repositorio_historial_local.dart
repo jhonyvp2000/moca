@@ -190,7 +190,9 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
             partes.containsKey(m.id) ||
             !mismoDia(pagado(m), anotado(m));
         bool esPagoDeDeuda(Movimiento m) =>
-            m.abonaA != null || !mismoDia(pagado(m), anotado(m));
+            m.abonaA != null ||
+            partes.containsKey(m.id) ||
+            !mismoDia(pagado(m), anotado(m));
         final porId = {for (final m in d.movimientos) m.id: m};
         bool entra(Movimiento m) {
           if (m.estado != EstadoRegistro.vigente || m.tipo != c.tipo) {

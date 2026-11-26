@@ -210,6 +210,48 @@ void main() {
       expect(semana.vendisteCentimos, 19000);
       expect(semana.alFiadoCentimos, 9000);
       expect(semana.salioCentimos, 21500);
+      // Lo que entró es lo cobrado al momento más lo cobrado de fiados.
+      expect(
+        semana.entroCentimos,
+        semana.cobradoEnElMomentoCentimos + semana.teCobraronCentimos,
+      );
+
+      // Entrega 101: un fiado pagado en partes el mismo día en que se anotó
+      // también es «te pagaron de fiados», no «cobrado al momento».
+      final el16 = DateTime(2026, 10, 16, 10);
+      await registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 6000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Venta del día'],
+          pagado: false,
+          contraparte: 'Beto',
+        ),
+        el16,
+      );
+      ahora = DateTime(2026, 10, 16, 18);
+      final hist16 = RepositorioHistorialLocal(base, ahora: () => ahora);
+      await hist16.pagar(
+        await idDe('Beto'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 16),
+        parteCentimos: 1000,
+      );
+      await hist16.pagar(
+        await idDe('Beto'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 16),
+      );
+      final dia16 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 16),
+        DateTime(2026, 10, 17),
+      );
+      expect(dia16.vendisteCentimos, 6000);
+      expect(dia16.cobradoEnElMomentoCentimos, 0);
+      expect(dia16.entroCentimos, 6000);
+      expect(dia16.teCobraronCentimos, 6000);
+      expect(dia16.cobrosPorCliente.single.centimos, 6000);
     });
   });
 
