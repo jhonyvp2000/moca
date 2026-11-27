@@ -8,6 +8,9 @@ Una hoja con los 5 pasos para empezar con Moca mientras se reparte como APK: abr
 | `guia-instalar-moca.pdf` | Para imprimir |
 | `guia-instalar-moca.docx` | La misma guía en Word, para editar el texto a mano |
 | `fuente/` | El HTML y las capturas con que se arma la imagen y el PDF |
+| `guion-visita.md` | El guion de 10 minutos para instalar Moca en persona en un negocio |
+| `mensajes-seguimiento.md` | Los mensajes de WhatsApp del día de la instalación y de los días 1, 3, 7 y 14 |
+| `para-el-contador.md` | Qué gana un contador, cómo entra y el mensaje para escribirle |
 
 Las capturas son del negocio de prueba de Jhony («Don Lucho's»), no de un piloto. Cuando cambie una de esas pantallas (Registrar, voz, Inicio) o el enlace de descarga, se actualiza la guía.
 
