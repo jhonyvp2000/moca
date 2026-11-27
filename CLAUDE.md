@@ -58,6 +58,7 @@ El análisis, el diseño y los mockups se hacen en Claude chat, que ya no escrib
 | `docs/soporte.md` | Guía de soporte para Jhony: lo que dice el usuario, qué revisar y qué hacerle hacer, con mensajes listos. Se actualiza cuando cambia la app |
 | `docs/prueba-varios-telefonos.md` | Guion de la prueba con dos o tres teléfonos (entrega 23) |
 | `docs/guiones-videos.md` | Guiones de los 7 videos cortos de tutoría |
+| `docs/guia-piloto/` | La guía de instalación de una hoja para los pilotos (imagen, PDF y Word) y la oferta de 3 meses gratis |
 | `docs/pendientes.md` | Decisiones abiertas |
 | `docs/pagina-web.md` | La página de venta en mocanegocios.com: análisis, estructura, píxeles y cookies, y lo que falta para Play Store |
 | `docs/guia-google-play.md` | Puesta en marcha del cobro con Google Play: la cuenta de servicio, Render, las 12 suscripciones, los avisos por Pub/Sub y la prueba de punta a punta |
