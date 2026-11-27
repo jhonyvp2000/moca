@@ -338,16 +338,28 @@ class _EstadoDetalleMovimiento
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: MontoText(
-                  // Con partes, la venta o la compra completa (entrega 87).
-                  d.partes.isEmpty || f.parteDe != null
-                      ? f.montoCentimos
-                      : f.totalConPartesCentimos,
-                  estilo: Tipografia.montoDetalle,
-                  tono: tonoDeFila(f) == Tono.neutro ? null : tonoDeFila(f),
-                  conSigno: true,
-                  conCentimos: true,
-                ),
+                child: f.loDebes
+                    // Lo que se debe todavía no movió plata (entrega 100):
+                    // va lo que falta, sin «+» ni «−».
+                    ? MontoText(
+                        f.montoCentimos,
+                        estilo: Tipografia.montoDetalle,
+                        tono: Tono.pendiente,
+                        conCentimos: true,
+                      )
+                    : MontoText(
+                        // Con partes, la venta o la compra completa
+                        // (entrega 87).
+                        d.partes.isEmpty || f.parteDe != null
+                            ? f.montoCentimos
+                            : f.totalConPartesCentimos,
+                        estilo: Tipografia.montoDetalle,
+                        tono: tonoDeFila(f) == Tono.neutro
+                            ? null
+                            : tonoDeFila(f),
+                        conSigno: true,
+                        conCentimos: true,
+                      ),
               ),
               const SizedBox(height: Medidas.e1),
               Text(fechaYHora(f.fecha), style: Tipografia.secundario),
@@ -362,7 +374,17 @@ class _EstadoDetalleMovimiento
                   spacing: Medidas.e1,
                   children: [
                     if (f.loDebes)
-                      BadgeEstado(f.teDeben ? Textos.teDebe : Textos.loDebes),
+                      BadgeEstado(
+                        // Con partes, de cuánto era (entrega 100).
+                        d.partes.isEmpty
+                            ? (f.teDeben ? Textos.teDebe : Textos.loDebes)
+                            : (f.teDeben ? Textos.teDebeDe : Textos.debesDe)(
+                                formatearSolesComprobante(f.montoCentimos),
+                                formatearSolesComprobante(
+                                  f.totalConPartesCentimos,
+                                ),
+                              ),
+                      ),
                     if (f.porSubir)
                       const BadgeEstado(
                         Textos.porSubirEtiqueta,
@@ -498,8 +520,13 @@ class _EstadoDetalleMovimiento
             child: const Text(Textos.recordarPorWhatsApp),
           ),
         // Fue una deuda ya pagada: puede volver a deberse (entrega 44.2).
+        // Corregir y deshacer se usan poco y uno borra: van como texto, más
+        // discretos que lo principal (entrega 102).
         if (puedeCambiar && d.vigente && d.sePuedeDeshacerElPago)
-          OutlinedButton(
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colores.textoSecundario,
+            ),
             onPressed: activo ? () => _deshacerPago(d) : null,
             child: Text(
               f.tipo == TipoMovimiento.ingreso
@@ -511,7 +538,7 @@ class _EstadoDetalleMovimiento
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: TextButton(
                   onPressed: activo
                       ? () => d.trabaAlCorregir == null
                             ? _corregir(d)
@@ -522,7 +549,10 @@ class _EstadoDetalleMovimiento
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colores.textoSecundario,
+                  ),
                   onPressed: activo
                       ? () => d.trabaAlDeshacer == null
                             ? _deshacer(d)

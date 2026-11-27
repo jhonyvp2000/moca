@@ -70,7 +70,7 @@ Antes de pegarla: confirma que los precios sigan iguales a los de `servidor/src/
 | Correo | contacto@mocanegocios.com |
 | Sitio web | https://mocanegocios.com |
 | Teléfono | Opcional. Si lo pones, es público: el de ventas, no el personal |
-| Política de privacidad | https://moca-servidor.onrender.com/privacidad (luego mocanegocios.com/privacidad) |
+| Política de privacidad | https://mocanegocios.com/privacidad |
 
 ### Categoría
 
@@ -98,7 +98,7 @@ Las capturas se toman en un teléfono con la **Demo** («Ver una demo», negocio
 ## 3. Contenido de la app (los formularios)
 
 ### Política de privacidad
-`https://moca-servidor.onrender.com/privacidad`
+`https://mocanegocios.com/privacidad` (desde el 24-11-2026; es el mismo texto que el del servidor, y la app abre esta)
 
 ### Acceso a la app
 La cuenta del revisor: `guia-google-play.md`, «La cuenta del revisor» (entrega 82).
@@ -161,7 +161,7 @@ Los tipos de datos (para cada uno: **recogido sí, compartido no**, y el resto c
 ## 4. Antes de mandar a revisión
 
 - [ ] La cuenta del revisor activa en Render (`guia-google-play.md`).
-- [ ] La política y `/borrar-cuenta` abren en el celular.
+- [ ] La política (mocanegocios.com/privacidad) y `/borrar-cuenta` abren en el celular.
 - [ ] Las 12 suscripciones creadas y con precio.
 - [ ] Las capturas tomadas con la Demo, sin datos reales.
 - [ ] El abogado revisó la política de privacidad y el consentimiento (`pendientes.md`).

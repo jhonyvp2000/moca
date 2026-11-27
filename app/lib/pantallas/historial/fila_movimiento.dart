@@ -221,6 +221,17 @@ class FilaMovimiento extends ConsumerWidget {
                     TextSpan(
                       children: [
                         TextSpan(text: cuando),
+                        // Con qué cuenta se movió la plata (entrega 99): dos
+                        // ventas iguales se distinguen por la cuenta. No en
+                        // lo que se debe, ni en el pase o el ajuste, que ya
+                        // la dicen.
+                        if (!f.loDebes &&
+                            !gris &&
+                            !f.ajusteArqueo &&
+                            !f.tipo.esPase) ...[
+                          separador,
+                          TextSpan(text: Textos.nombreCuenta(f.cuenta)),
+                        ],
                         // Lo que se debe, antes que la categoría: no se corta.
                         for (final e in estado) ...[
                           separador,
@@ -244,7 +255,9 @@ class FilaMovimiento extends ConsumerWidget {
                         ],
                       ],
                     ),
-                    maxLines: 1,
+                    // Con la fecha (listas sin días), dos líneas: «Te debe
+                    // S/ 30 de S/ 50» no se corta (entrega 101).
+                    maxLines: conFecha ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                     style: Tipografia.cifra(Tipografia.secundario),
                   ),

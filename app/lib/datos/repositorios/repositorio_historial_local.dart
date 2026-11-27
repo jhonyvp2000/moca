@@ -161,23 +161,64 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
         final ahora = _a.ahora();
         final actual = DateTime(ahora.year, ahora.month);
         final enCurso = c.anual ? c.mes.year == ahora.year : c.mes == actual;
-        final hasta = enCurso
-            ? inicioDelDia(ahora).add(const Duration(days: 1))
-            : c.anual
-            ? DateTime(c.mes.year + 1)
-            : DateTime(c.mes.year, c.mes.month + 1);
-        DateTime fecha(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
+        final hasta =
+            c.hasta ??
+            (enCurso
+                ? inicioDelDia(ahora).add(const Duration(days: 1))
+                : c.anual
+                ? DateTime(c.mes.year + 1)
+                : DateTime(c.mes.year, c.mes.month + 1));
+        // Con «Venta» o «Compra» (entrega 97), lo que costó: lo que falta
+        // más sus partes, como en las cifras del periodo.
+        final partes = <String, int>{};
+        if (c.porAnotado || c.soloDeudas) {
+          for (final m in d.movimientos) {
+            if (m.estado == EstadoRegistro.vigente && m.abonaA != null) {
+              partes[m.abonaA!] = (partes[m.abonaA!] ?? 0) + m.montoCentimos;
+            }
+          }
+        }
+        DateTime anotado(Movimiento m) =>
+            m.fechaComprobante ?? m.fechaMovimiento;
+        DateTime pagado(Movimiento m) => m.fechaPago ?? m.fechaMovimiento;
+        DateTime fecha(Movimiento m) => c.porAnotado ? anotado(m) : pagado(m);
+        bool mismoDia(DateTime a, DateTime b) =>
+            a.year == b.year && a.month == b.month && a.day == b.day;
+        // Las mismas reglas que las cifras del periodo (entrega 98).
+        bool quedoDebiendo(Movimiento m) =>
+            m.estadoPago != EstadoPago.pagado ||
+            partes.containsKey(m.id) ||
+            !mismoDia(pagado(m), anotado(m));
+        bool esPagoDeDeuda(Movimiento m) =>
+            m.abonaA != null ||
+            partes.containsKey(m.id) ||
+            !mismoDia(pagado(m), anotado(m));
+        final porId = {for (final m in d.movimientos) m.id: m};
         bool entra(Movimiento m) {
-          if (m.estado != EstadoRegistro.vigente ||
-              m.tipo != c.tipo ||
-              m.estadoPago != EstadoPago.pagado) {
+          if (m.estado != EstadoRegistro.vigente || m.tipo != c.tipo) {
             return false;
           }
           final f = fecha(m);
-          final desde = desdeDe[m.cuentaId];
-          if (desde != null && f.isBefore(desde)) return false;
+          if (c.porAnotado) {
+            if (m.abonaA != null) return false;
+            if (c.soloDeudas && !quedoDebiendo(m)) return false;
+          } else {
+            if (m.estadoPago != EstadoPago.pagado) return false;
+            final desde = desdeDe[m.cuentaId];
+            if (desde != null && f.isBefore(desde)) return false;
+            if (c.soloDeudas && !esPagoDeDeuda(m)) return false;
+          }
           if (f.isBefore(c.mes) || !f.isBefore(hasta)) return false;
-          final nombre = d.categorias[m.categoriaId] ?? 'Otros';
+          final String nombre;
+          if (c.porContraparte) {
+            final quien =
+                d.contrapartes[m.contraparteId ??
+                    porId[m.abonaA]?.contraparteId];
+            if (quien == null) return false;
+            nombre = quien;
+          } else {
+            nombre = d.categorias[m.categoriaId] ?? 'Otros';
+          }
           final nombres = c.nombres;
           return nombres == null
               ? !c.salvo.contains(nombre)
@@ -186,7 +227,13 @@ class RepositorioHistorialLocal implements RepositorioHistorial {
 
         final elegidos = d.movimientos.where(entra).toList()
           ..sort((a, b) => fecha(b).compareTo(fecha(a)));
-        return [for (final m in elegidos) _fila(d, m)];
+        return [
+          for (final m in elegidos)
+            if (partes[m.id] case final p? when c.porAnotado)
+              _fila(d, m).conMonto(m.montoCentimos + p)
+            else
+              _fila(d, m),
+        ];
       });
 
   @override

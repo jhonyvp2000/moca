@@ -69,6 +69,192 @@ void main() {
     return guardado.ids.single;
   }
 
+  group('Entrega 97: las cifras de un día o un rango', () {
+    Future<void> registrar(NuevoMovimiento n, DateTime el) async {
+      ahora = el;
+      await movimientos.registrar(n);
+    }
+
+    Future<String> idDe(String cliente) async {
+      final c = (await base.select(base.contrapartes).get()).firstWhere(
+        (c) => c.nombre == cliente,
+      );
+      return (await base.select(base.movimientos).get())
+          .firstWhere((m) => m.contraparteId == c.id && m.abonaA == null)
+          .id;
+    }
+
+    test('Venta y compra por el día de la venta; la plata, por el día del '
+        'pago', () async {
+      final el13 = DateTime(2026, 10, 13, 10);
+      await registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 10000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Venta del día'],
+        ),
+        el13,
+      );
+      for (final (quien, soles) in [('Doña Rosa', 40), ('Ana', 50)]) {
+        await registrar(
+          NuevoMovimiento(
+            tipo: TipoMovimiento.ingreso,
+            montoCentimos: soles * 100,
+            cuenta: TipoCuenta.efectivo,
+            categoriaId: categorias['Venta del día'],
+            pagado: false,
+            contraparte: quien,
+          ),
+          el13,
+        );
+      }
+      await registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 20000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Mercadería'],
+          pagado: false,
+          contraparte: 'Comercial El Sol',
+        ),
+        el13,
+      );
+      await registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.egreso,
+          montoCentimos: 1500,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Movilidad del negocio'],
+        ),
+        el13,
+      );
+      // El 14 Ana paga una parte y Doña Rosa todo; el 15, la compra.
+      ahora = DateTime(2026, 10, 15, 20);
+      final historial = RepositorioHistorialLocal(base, ahora: () => ahora);
+      await historial.pagar(
+        await idDe('Ana'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 14),
+        parteCentimos: 2000,
+      );
+      await historial.pagar(
+        await idDe('Doña Rosa'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 14),
+      );
+      await historial.pagar(
+        await idDe('Comercial El Sol'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 15),
+      );
+
+      final dia13 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 13),
+        DateTime(2026, 10, 14),
+      );
+      expect(dia13.vendisteCentimos, 19000);
+      expect(dia13.alFiadoCentimos, 9000);
+      expect(dia13.cobradoEnElMomentoCentimos, 10000);
+      expect(
+        [for (final g in dia13.ventasPorCliente) (g.nombre, g.centimos)],
+        [('Ana', 5000), ('Doña Rosa', 4000)],
+      );
+      expect(dia13.comprasteCentimos, 21500);
+      expect(dia13.alCreditoCentimos, 20000);
+      expect(dia13.comprasPorProveedor.single.nombre, 'Comercial El Sol');
+      expect(
+        [for (final g in dia13.comprasPorCategoria) g.nombre],
+        ['Mercadería', 'Movilidad del negocio'],
+      );
+      // La plata de ese día: la venta cobrada y la movilidad.
+      expect(dia13.entroCentimos, 10000);
+      expect(dia13.salioCentimos, 1500);
+      expect(dia13.crecioCentimos, 8500);
+      expect(dia13.primerDia, DateTime(2026, 10, 12));
+
+      // Entrega 98: lo que quedó debiéndose ese día, por persona.
+      expect(
+        [for (final g in dia13.alFiadoPorCliente) (g.nombre, g.centimos)],
+        [('Ana', 5000), ('Doña Rosa', 4000)],
+      );
+      expect(dia13.alCreditoPorProveedor.single.nombre, 'Comercial El Sol');
+      expect(dia13.teCobraronCentimos, 0);
+
+      final dia14 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 14),
+        DateTime(2026, 10, 15),
+      );
+      expect(dia14.vendisteCentimos, 0);
+      expect(dia14.entroCentimos, 6000);
+      // La parte de Ana cuenta para Ana, por la venta a la que abona.
+      expect(dia14.teCobraronCentimos, 6000);
+      expect(
+        [for (final g in dia14.cobrosPorCliente) (g.nombre, g.centimos)],
+        [('Doña Rosa', 4000), ('Ana', 2000)],
+      );
+      expect(dia14.alFiadoPorCliente, isEmpty);
+
+      final dia15 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 15),
+        DateTime(2026, 10, 16),
+      );
+      expect(dia15.pagasteDeudasCentimos, 20000);
+      expect(dia15.pagosPorProveedor.single.nombre, 'Comercial El Sol');
+
+      final semana = await informe.calcularPeriodo(
+        DateTime(2026, 10, 13),
+        DateTime(2026, 10, 16),
+      );
+      // La venta en partes cuenta por lo que costó.
+      expect(semana.vendisteCentimos, 19000);
+      expect(semana.alFiadoCentimos, 9000);
+      expect(semana.salioCentimos, 21500);
+      // Lo que entró es lo cobrado al momento más lo cobrado de fiados.
+      expect(
+        semana.entroCentimos,
+        semana.cobradoEnElMomentoCentimos + semana.teCobraronCentimos,
+      );
+
+      // Entrega 101: un fiado pagado en partes el mismo día en que se anotó
+      // también es «te pagaron de fiados», no «cobrado al momento».
+      final el16 = DateTime(2026, 10, 16, 10);
+      await registrar(
+        NuevoMovimiento(
+          tipo: TipoMovimiento.ingreso,
+          montoCentimos: 6000,
+          cuenta: TipoCuenta.efectivo,
+          categoriaId: categorias['Venta del día'],
+          pagado: false,
+          contraparte: 'Beto',
+        ),
+        el16,
+      );
+      ahora = DateTime(2026, 10, 16, 18);
+      final hist16 = RepositorioHistorialLocal(base, ahora: () => ahora);
+      await hist16.pagar(
+        await idDe('Beto'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 16),
+        parteCentimos: 1000,
+      );
+      await hist16.pagar(
+        await idDe('Beto'),
+        cuenta: TipoCuenta.efectivo,
+        dia: DateTime(2026, 10, 16),
+      );
+      final dia16 = await informe.calcularPeriodo(
+        DateTime(2026, 10, 16),
+        DateTime(2026, 10, 17),
+      );
+      expect(dia16.vendisteCentimos, 6000);
+      expect(dia16.cobradoEnElMomentoCentimos, 0);
+      expect(dia16.entroCentimos, 6000);
+      expect(dia16.teCobraronCentimos, 6000);
+      expect(dia16.cobrosPorCliente.single.centimos, 6000);
+    });
+  });
+
   group('Informe del mes', () {
     test(
       'El primer mes: cómo se movió la plata, desde qué día y sustento',

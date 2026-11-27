@@ -9,6 +9,7 @@ import '../../pais/peru/formato.dart';
 import '../../tema/medidas.dart';
 import '../../textos/textos.dart';
 import '../preguntale/barra_preguntale.dart';
+import 'bloque_pendientes.dart';
 import 'desglose_cuentas.dart';
 import 'encabezado_negocio.dart';
 import '../../inyeccion.dart';
@@ -23,7 +24,11 @@ class PantallaInicioCompleta extends ConsumerStatefulWidget {
     this.tarjetaAvisos,
     this.actualizado,
     this.permisos = Permisos.delDueno,
+    this.alAnotarVenta,
   });
+
+  /// «Anotar la venta de hoy» (entrega 99), mientras no esté anotada.
+  final VoidCallback? alAnotarVenta;
 
   final ResumenInicio resumen;
 
@@ -104,6 +109,23 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
               const SizedBox(height: Medidas.separacionTarjetas),
               _conMargen(const BarraPreguntale()),
             ],
+            // La venta de hoy, a un toque mientras no esté anotada (entrega
+            // 99: desde la 92 ya no está en el +).
+            if (widget.alAnotarVenta != null &&
+                permisos.anota &&
+                r.ventaDeHoyCentimos == 0) ...[
+              const SizedBox(height: Medidas.separacionTarjetas),
+              _conMargen(
+                FilledButton.icon(
+                  onPressed: widget.alAnotarVenta,
+                  icon: const Icon(Icons.mic_rounded),
+                  label: const Text(Textos.anotarVentaDeHoy),
+                ),
+              ),
+            ],
+            // «Te deben» y «Debes» vuelven al Inicio (entrega 99): lo que
+            // tienes no se entiende sin lo que debes. Solo quien ve saldos.
+            if (permisos.veSaldos) BloquePendientes(ocultar: _ocultar),
             // Las cuentas, siempre a la vista (entrega 65): sin la fila
             // «Ver por cuenta / Ocultar».
             if (misCajas == null || saldos.length > 1) ...[
@@ -115,8 +137,7 @@ class _EstadoInicioCompleta extends ConsumerState<PantallaInicioCompleta> {
               ),
             ],
             // La tarjeta de Moca salió del Inicio (entrega 64): el aviso va
-            // en Informes y en el Asistente; la venta de hoy y el arqueo, en
-            // el +. «Te deben» y «Debes» viven en Informes (entrega 63).
+            // en Informes y en el Asistente.
           ],
         ),
       ),

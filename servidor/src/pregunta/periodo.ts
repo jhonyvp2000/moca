@@ -107,7 +107,11 @@ function delPeriodo(datos: Fila, desde: number, hasta: number) {
   // Un pago de algo que se debía: una parte («Te pagó»), o la venta o
   // compra que se pagó otro día.
   const porId = new Map(vigentes.map((m) => [String(m.id), m]));
-  const esPagoDeDeuda = (m: Fila) => m.abona_a != null || diaPago(m) !== diaAnotado(m);
+  // También el resto de una deuda con partes pagado el mismo día en que se
+  // anotó (entrega 101), para que lo cobrado al momento más lo cobrado de
+  // fiados sume lo que entró.
+  const esPagoDeDeuda = (m: Fila) =>
+    m.abona_a != null || partes.has(String(m.id)) || diaPago(m) !== diaAnotado(m);
   const contraparteDe = new Map(filas('contrapartes').map((c) => [String(c.id), String(c.nombre)]));
   /** El cliente o proveedor de un registro; el de la deuda, si es una parte. */
   const contraparteId = (m: Fila) => {

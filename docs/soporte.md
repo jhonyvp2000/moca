@@ -51,6 +51,8 @@ Te llega algo así:
 
 El mismo estado se ve en **Ajustes → Ayuda → Estado de este teléfono**. Si tiene una versión anterior a la 46, o el botón no aparece porque nunca tuvo señal, usa las tres preguntas de abajo.
 
+**Ajustes → Moca** (entrega 95): «Recomendar Moca» abre WhatsApp con un mensaje listo para mandarle a otro dueño, «Moca en la web» abre mocanegocios.com y «Política de privacidad» abre mocanegocios.com/privacidad. Necesitan internet; si no abre, que pruebe con señal o que tenga WhatsApp instalado.
+
 ## Si no puede usar «Pedir ayuda»: tres preguntas
 
 Pídele al usuario que te las responda o que te mande una captura:
@@ -146,6 +148,10 @@ Quien instaló Moca **desde Play Store** paga con **Google Play**: no ve Mercado
 
 > Tu plan se paga y se renueva en Google Play. Para cancelarlo o cambiar tu medio de pago: abre Play Store → toca tu foto → Pagos y suscripciones → Suscripciones → Moca. Lo que ya pagaste sigue hasta la fecha.
 
+**«Anoté que me pagaron un fiado y me sigue saliendo que me deben»** (entrega 100): lo anotó como ingreso nuevo con la categoría «Cobro de fiado» en vez de cobrarlo. Que deshaga ese registro y lo cobre en Inicio → **Te deben** → el cliente → **Ya me pagó**. Desde la 100, Moca avisa al elegir esa categoría si hay fiados anotados.
+
+**«¿Cuánto vendí ayer?» en Informes** (entrega 97): en Informes, arriba, **Día** y las flechas hasta ese día; **Venta** muestra lo vendido (cobrado y al fiado) por categoría y por cliente, y **Compra** lo comprado (pagado y al crédito). «Vendiste» cuenta el día de la venta, aunque te paguen después; «Entró» cuenta el día en que entró la plata. Para volver al informe de siempre, se toca otra vez el filtro elegido. Desde la entrega 99 esos filtros se llaman **Debes** y **Te deben**, y las fichas «Te deben» y «Debes» están en el **Inicio** (ya no en el resumen de Informes), junto con «Anotar la venta de hoy». Desde la entrega 98, **Debo** dice cuánto quedó debiendo esos días y cuánto pagó de lo que debía, y **Me deben**, cuánto fió y cuánto le pagaron; abajo, lo que debe o le deben **hoy** en total. Si el total de arriba no cuadra con la lista, es porque hay deudas sin nombre: suman en el total pero no salen por persona.
+
 ### 6. «No veo Informes» · «No puedo corregir» · «No veo los saldos»
 
 **Qué pasó:** depende del **rol**. No es un error.
@@ -153,7 +159,7 @@ Quien instaló Moca **desde Play Store** paga con **Google Play**: no ve Mercado
 | Rol | Qué puede hacer |
 |---|---|
 | Dueño | Todo. Solo el titular borra el negocio. |
-| Encargado | Anota, hace el arqueo de sus cajas y corrige lo de cualquiera. No ve Informes ni «Mis cuentas». |
+| Encargado | Anota y corrige lo de cualquiera. Desde la entrega 92 no hace el arqueo. No ve Informes ni «Mis cuentas». |
 | Ayudante | Anota ventas y gastos y ve **solo lo de hoy**, en su caja. Corrige solo lo suyo del día. |
 | Contador | **Solo mira** los informes. No anota. |
 
@@ -229,7 +235,9 @@ Desde la entrega 92 el + ya no tiene el atajo «Venta del día»: la venta del d
 
 **Dónde está el arqueo (desde la entrega 91):** el dueño, en **Ajustes → Mis cuentas** → **«Hacer arqueo»** (debajo de sus cuentas). Desde la entrega 92 el + ya no tiene «Hacer arqueo»: el arqueo es **solo del dueño**; el encargado ya no lo hace. Ya no está debajo de las cuentas del Inicio. Desde la entrega 64 el Inicio ya no tiene la tarjeta de Moca: si el arqueo quedó sin hacer, el aviso sale arriba de Informes y en el Asistente (para el dueño y el contador). El ayudante no lo ve.
 
-> Para contar tu plata: entra a Ajustes, luego «Mis cuentas» y toca «Hacer arqueo». (Si eres encargado: toca el + de abajo y luego «Hacer arqueo».)
+> Para contar tu plata: entra a Ajustes, luego «Mis cuentas» y toca «Hacer arqueo».
+
+**«No me deja guardar el arqueo»** (entrega 96): encima del botón gris dice qué falta: escribir cuánto hay en una cuenta, responder por qué falta o sobra, o elegir el tipo de gasto. Las cuentas vienen con lo calculado, o en 0 si no tienen saldo inicial o si Moca calcula un saldo negativo; si todo está bien, se guarda sin tocar nada. Con un saldo negativo, el 0 no cuadra y hay que decir por qué sobra.
 
 **«No me sale "Pregúntale a Moca"»** · **«Moca no me responde»** (entrega 74): la barra sale solo al **dueño con cuenta** (no al encargado, ayudante o contador, ni en la Demo). Necesita internet. Si dice «Ahora no puedo responder», el servidor o la IA no están disponibles en ese momento (revisa Render y el saldo de Anthropic). Hay un tope de 20 preguntas al día por negocio. Moca responde con lo que ya subió: si la persona anotó sin señal, primero tiene que subir.
 
@@ -267,7 +275,7 @@ Desde la entrega 92 el + ya no tiene el atajo «Venta del día»: la venta del d
 
 > Al anotar, baja hasta «Más datos (opcional)» y tócalo. Elige el tipo de documento, escribe su número y el nombre del cliente o proveedor. Si ya lo anotaste, ábrelo en el Historial y toca «Corregir».
 
-**«Ya no veo el aviso de Moca en el Inicio»** · **«¿Dónde anoto la venta de hoy?»** (entrega 64): el Inicio ya no tiene la tarjeta de Moca. El aviso más importante (el ajuste del arqueo, un gasto alto, un cliente que debe) está arriba de **Informes**, con el mismo botón, y todos los avisos siguen en el **Asistente**. La venta de hoy y el arqueo se anotan con el **+**.
+**«Ya no veo el aviso de Moca en el Inicio»** · **«¿Dónde anoto la venta de hoy?»** (entrega 64): el Inicio ya no tiene la tarjeta de Moca. El aviso más importante (el ajuste del arqueo, un gasto alto, un cliente que debe) está arriba de **Informes**, con el mismo botón, y todos los avisos siguen en el **Asistente**. Desde la entrega 92, el + tiene «Un ingreso» y «Un gasto»; la venta de hoy se abre desde la notificación de la noche o por voz, y el arqueo, desde Ajustes → Mis cuentas.
 
 > El aviso ahora está arriba, en la pestaña Informes. Para anotar la venta de hoy, toca el + de abajo y elige «Anotar la venta de hoy».
 

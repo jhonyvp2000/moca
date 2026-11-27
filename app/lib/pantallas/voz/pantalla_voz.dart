@@ -77,6 +77,23 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
 
   bool get _esVenta => widget.modo != ModoVoz.libre;
 
+  /// Lo dicho queda como nota (entrega 100), para que no se pierda qué fue:
+  /// «Venta de una caja de cerveza a 100 soles». Solo en el registro libre
+  /// de una sola cuenta: en la venta del día son solo montos.
+  String? get _notaDeLoDicho {
+    if (widget.modo != ModoVoz.libre || _lectura.partidas.length > 1) {
+      return null;
+    }
+    final dicho = _lectura.textoDicho.trim();
+    // Sin palabras que digan qué fue («350 en efectivo»), no aporta.
+    final palabras = dicho
+        .split(RegExp(r'\s+'))
+        .where((p) => p.length > 3 && !RegExp(r'\d').hasMatch(p));
+    if (palabras.length < 3) return null;
+    final nota = '${dicho[0].toUpperCase()}${dicho.substring(1)}';
+    return nota.length <= 80 ? nota : '${nota.substring(0, 79)}…';
+  }
+
   /// Para medir una sola vez que Moca dudó del monto.
   bool _dudaMedida = false;
 
@@ -286,6 +303,9 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
         guardado = await repo.anotarVentaDelDia(
           _montosPorCuenta,
           fuente: Fuente.voz,
+          // La venta dicha en el registro libre pasaba por aquí sin su nota
+          // (entrega 101).
+          nota: _notaDeLoDicho,
         );
         await ref.read(medicionProvider).anotar(EventoMedicion.ventaGuardada, {
           'modo': 'voz',
@@ -312,6 +332,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
             categoriaId: _idCategoria(categorias),
             fuente: Fuente.voz,
             pagado: false,
+            nota: _notaDeLoDicho,
             contraparte: quien.isEmpty ? null : quien,
           ),
         );
@@ -327,6 +348,7 @@ class _EstadoVoz extends ConsumerState<PantallaVoz> {
                   : null,
               categoriaId: _idCategoria(categorias),
               fuente: Fuente.voz,
+              nota: _notaDeLoDicho,
             ),
         ];
         // Moca pregunta antes de dejar una cuenta en negativo.

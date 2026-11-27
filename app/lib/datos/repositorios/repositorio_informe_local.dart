@@ -31,6 +31,164 @@ class RepositorioInformeLocal implements RepositorioInforme {
       _a.cambios().asyncMap((_) => _calcular(mes));
 
   @override
+  Stream<CifrasDelPeriodo> observarPeriodo(DateTime desde, DateTime hasta) =>
+      _a.cambios().asyncMap((_) => calcularPeriodo(desde, hasta));
+
+  /// Las cifras de un periodo (entrega 97). La plata sigue las reglas del
+  /// informe del mes (lo pagado, desde el saldo inicial de su cuenta, el día
+  /// en que se movió); lo vendido y lo comprado, las de «Pregúntale a Moca»
+  /// en el servidor (`periodo.ts`): el día de la venta o la compra, por lo
+  /// que costó aunque se haya pagado en partes.
+  Future<CifrasDelPeriodo> calcularPeriodo(
+    DateTime desde,
+    DateTime hasta,
+  ) async {
+    final empresa = await _a.empresa();
+    if (empresa == null) return CifrasDelPeriodo(desde: desde, hasta: hasta);
+    final vigentes = [
+      for (final m in await _a.movimientos(empresa.id))
+        if (m.estado == EstadoRegistro.vigente) m,
+    ];
+    final categorias = {
+      for (final c in await (_base.select(
+        _base.categorias,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+    final cuentas = await (_base.select(
+      _base.cuentas,
+    )..where((c) => c.empresaId.equals(empresa.id))).get();
+    final desdeDe = {for (final c in cuentas) c.id: c.fechaSaldoInicial};
+    final nombreDe = {
+      for (final c in await (_base.select(
+        _base.contrapartes,
+      )..where((c) => c.empresaId.equals(empresa.id))).get())
+        c.id: c.nombre,
+    };
+    bool dentro(DateTime f) => !f.isBefore(desde) && f.isBefore(hasta);
+    bool cuentaParaSaldo(String cuentaId, DateTime fecha) {
+      final inicial = desdeDe[cuentaId];
+      return inicial == null || !fecha.isBefore(inicial);
+    }
+
+    // La plata.
+    final movio = [
+      for (final m in vigentes)
+        if (m.estadoPago == EstadoPago.pagado &&
+            cuentaParaSaldo(m.cuentaId, _fecha(m)) &&
+            dentro(_fecha(m)))
+          m,
+    ];
+    int suma(Iterable<Movimiento> ms, [int Function(Movimiento)? valor]) =>
+        ms.fold(0, (s, m) => s + (valor ?? (m) => m.montoCentimos)(m));
+    Iterable<Movimiento> deTipo(Iterable<Movimiento> ms, TipoMovimiento t) =>
+        ms.where((m) => m.tipo == t);
+    List<GastoPorCategoria> porCategoria(
+      Iterable<Movimiento> ms, [
+      int Function(Movimiento)? valor,
+    ]) {
+      final total = <String, int>{};
+      for (final m in ms) {
+        final nombre = categorias[m.categoriaId] ?? 'Otros';
+        total[nombre] =
+            (total[nombre] ?? 0) + (valor ?? (m) => m.montoCentimos)(m);
+      }
+      return _filas(total);
+    }
+
+    final ajustes = [
+      for (final a in await _a.ajustes(empresa.id))
+        if (cuentaParaSaldo(a.cuentaId, a.fecha) && dentro(a.fecha)) a,
+    ];
+
+    // Lo vendido y lo comprado: una deuda con partes se queda con lo que
+    // falta (entrega 44), así que lo que costó es lo que falta más sus
+    // partes.
+    final partes = <String, int>{};
+    for (final m in vigentes) {
+      if (m.abonaA case final deuda?) {
+        partes[deuda] = (partes[deuda] ?? 0) + m.montoCentimos;
+      }
+    }
+    int original(Movimiento m) => m.montoCentimos + (partes[m.id] ?? 0);
+    DateTime anotado(Movimiento m) => m.fechaComprobante ?? m.fechaMovimiento;
+    bool mismoDia(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+    bool quedoDebiendo(Movimiento m) =>
+        m.estadoPago != EstadoPago.pagado ||
+        partes.containsKey(m.id) ||
+        !mismoDia(_fecha(m), anotado(m));
+    List<Movimiento> anotados(TipoMovimiento tipo) => [
+      for (final m in vigentes)
+        if (m.tipo == tipo && m.abonaA == null && dentro(anotado(m))) m,
+    ];
+    // El cliente o proveedor; el de la deuda, si es una parte.
+    final porId = {for (final m in vigentes) m.id: m};
+    String? quien(Movimiento m) =>
+        nombreDe[m.contraparteId ?? porId[m.abonaA]?.contraparteId];
+    List<GastoPorCategoria> porContraparte(
+      Iterable<Movimiento> ms, [
+      int Function(Movimiento)? valor,
+    ]) {
+      final total = <String, int>{};
+      for (final m in ms) {
+        final nombre = quien(m);
+        if (nombre == null) continue;
+        total[nombre] = (total[nombre] ?? 0) + (valor ?? original)(m);
+      }
+      return _filas(total);
+    }
+
+    final ventas = anotados(TipoMovimiento.ingreso);
+    final compras = anotados(TipoMovimiento.egreso);
+    // Un cobro o un pago de algo que se debía: una parte, o la venta o la
+    // compra que se pagó otro día (entrega 98).
+    // También el resto de una deuda con partes, aunque se pague el mismo día
+    // en que se anotó (entrega 101): si no, no era ni «cobrado al momento»
+    // ni «te pagaron de fiados», y la suma no cuadraba con lo que entró.
+    bool esPagoDeDeuda(Movimiento m) =>
+        m.abonaA != null ||
+        partes.containsKey(m.id) ||
+        !mismoDia(_fecha(m), anotado(m));
+    final cobros = deTipo(movio, TipoMovimiento.ingreso).where(esPagoDeDeuda);
+    final pagos = deTipo(movio, TipoMovimiento.egreso).where(esPagoDeDeuda);
+    int monto(Movimiento m) => m.montoCentimos;
+
+    final fechas = [
+      for (final m in vigentes) ...[_fecha(m), anotado(m)],
+      for (final c in cuentas) ?c.fechaSaldoInicial,
+    ];
+    return CifrasDelPeriodo(
+      desde: desde,
+      hasta: hasta,
+      primerDia: fechas.isEmpty
+          ? null
+          : inicioDelDia(fechas.reduce((a, b) => a.isBefore(b) ? a : b)),
+      entroCentimos: suma(deTipo(movio, TipoMovimiento.ingreso)),
+      salioCentimos: suma(deTipo(movio, TipoMovimiento.egreso)),
+      retirosCentimos: suma(deTipo(movio, TipoMovimiento.retiro)),
+      aportesCentimos: suma(deTipo(movio, TipoMovimiento.aporte)),
+      ajustesCentimos: ajustes.fold(0, (s, a) => s + a.centimos),
+      entradas: porCategoria(deTipo(movio, TipoMovimiento.ingreso)),
+      salidas: porCategoria(deTipo(movio, TipoMovimiento.egreso)),
+      vendisteCentimos: suma(ventas, original),
+      alFiadoCentimos: suma(ventas.where(quedoDebiendo), original),
+      ventasPorCategoria: porCategoria(ventas, original),
+      ventasPorCliente: porContraparte(ventas),
+      comprasteCentimos: suma(compras, original),
+      alCreditoCentimos: suma(compras.where(quedoDebiendo), original),
+      comprasPorCategoria: porCategoria(compras, original),
+      comprasPorProveedor: porContraparte(compras),
+      alFiadoPorCliente: porContraparte(ventas.where(quedoDebiendo)),
+      alCreditoPorProveedor: porContraparte(compras.where(quedoDebiendo)),
+      teCobraronCentimos: suma(cobros),
+      cobrosPorCliente: porContraparte(cobros, monto),
+      pagasteDeudasCentimos: suma(pagos),
+      pagosPorProveedor: porContraparte(pagos, monto),
+    );
+  }
+
+  @override
   Stream<ResumenAnio> observarAnio(int? anio) =>
       _a.cambios().asyncMap((_) => _calcularAnio(anio));
 

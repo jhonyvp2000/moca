@@ -226,6 +226,32 @@ describe('Pregúntale a Moca con fechas (entrega 89)', () => {
     expect(cifrasDeUnaPersona(datos, 'Ana', '2026-11-19', '2026-11-18', ahora)).toEqual({ error: 'rango_al_reves' });
   });
 
+  it('Entrega 101: un fiado en partes pagado el mismo día es «te pagaron de fiados»', () => {
+    const base = { tipo: 'ingreso', cuenta_id: 'efectivo', categoria_id: 'venta', estado: 'vigente' };
+    const r = cifrasDelPeriodo(
+      {
+        cuentas: datos.cuentas,
+        categorias: datos.categorias,
+        contrapartes: [{ id: 'beto', nombre: 'Beto' }],
+        movimientos: [
+          // Una venta de S/ 60: una parte de S/ 10 y el resto, el mismo día.
+          { ...base, id: 'v', monto_centimos: 5000, estado_pago: 'pagado', fecha_movimiento: el(18), fecha_pago: el(18), contraparte_id: 'beto' },
+          { ...base, id: 'p', monto_centimos: 1000, estado_pago: 'pagado', fecha_movimiento: el(18), fecha_pago: el(18), abona_a: 'v' },
+        ],
+      },
+      '2026-11-18',
+      '2026-11-18',
+      ahora,
+    ) as CifrasDelPeriodo;
+    expect(r).toMatchObject({
+      vendiste: 'S/ 60',
+      deEsoAlFiado: 'S/ 60',
+      teEntro: 'S/ 60',
+      tePagaronDeFiados: 'S/ 60',
+      quienesTePagaron: [{ nombre: 'Beto', monto: 'S/ 60' }],
+    });
+  });
+
   it('antes de empezar a anotar, o más allá de hoy, lo dice', () => {
     const c = cifras('2026-11-01', '2026-11-30');
     expect(c.empezoAAnotar).toBe('lunes 16 de noviembre de 2026');

@@ -204,6 +204,7 @@ abstract interface class RepositorioMovimientos {
     Map<TipoCuenta, int> ventaPorCuenta, {
     Fuente fuente = Fuente.texto,
     FiadoDelDia? fiado,
+    String? nota,
   });
 
   /// Anula lo guardado: no se borra, y el cambio queda en la bitácora.

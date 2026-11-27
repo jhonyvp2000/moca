@@ -83,7 +83,12 @@ HojaXlsx _instrucciones(String negocio, DateTime hoy) => HojaXlsx(
         fuerte: true,
       ),
     ],
-    [_t('$negocio · Hecho con Moca el ${formatearFechaLarga(hoy)}')],
+    [
+      _t(
+        '$negocio · Hecho con Moca el ${formatearFechaLarga(hoy)} · '
+        'mocanegocios.com',
+      ),
+    ],
     [],
     [
       _t('QUÉ LLENÓ MOCA', fuerte: true),
@@ -445,7 +450,9 @@ class _Hogar {
       ),
     ]);
   }
-  filas.add([_t('Hecho con Moca el ${formatearFechaLarga(hoy)}.')]);
+  filas.add([
+    _t('Hecho con Moca el ${formatearFechaLarga(hoy)} · mocanegocios.com'),
+  ]);
 
   // Las otras hojas leen H31 y H34.
   assert(filaDeudas == 31 && filaExcedente == 34);

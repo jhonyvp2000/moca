@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../comun/enlace.dart';
 import 'ayuda.dart';
+import 'moca_en_la_web.dart';
 import '../../comun/badge_estado.dart';
 import '../../comun/estructura.dart';
 import '../../comun/tono.dart';
@@ -84,6 +85,21 @@ class PantallaAjustes extends ConsumerWidget {
           ruta: Rutas.negocios,
         ),
     ];
+    final salidas = <Widget>[
+      // Solo el titular borra (entrega 16.1); los demás salen (22.2).
+      if (guardada && permisos.borraElNegocio)
+        const TarjetaEnlace(
+          icono: Icons.delete_outline_rounded,
+          titulo: Textos.borrarMiNegocio,
+          detalle: Textos.borrarMiNegocioDetalle,
+          ruta: Rutas.borrarNegocio,
+        ),
+      if (guardada && permisos.saleDelNegocio) const SalirDelNegocio(),
+      // Una salida que siempre existe para quien no es titular (entrega 37):
+      // solo este teléfono, sin tocar el negocio.
+      if (guardada && permisos.saleDelNegocio) const SalirDeMocaAqui(),
+      if (!guardada && estadoCuenta != null) const BorrarEsteTelefono(),
+    ];
     return PantallaConAcciones(
       encabezado: EncabezadoConVolver(
         titulo: Textos.ajustes,
@@ -97,32 +113,23 @@ class PantallaAjustes extends ConsumerWidget {
         seccion(Textos.seguridad, [
           // Para todos los roles, en cada teléfono (entrega 16.3).
           const InterruptorHuella(),
-          // Solo el titular borra (entrega 16.1); los demás salen (22.2).
-          if (guardada && permisos.borraElNegocio)
-            const TarjetaEnlace(
-              icono: Icons.delete_outline_rounded,
-              titulo: Textos.borrarMiNegocio,
-              detalle: Textos.borrarMiNegocioDetalle,
-              ruta: Rutas.borrarNegocio,
-            ),
-          if (guardada && permisos.saleDelNegocio) const SalirDelNegocio(),
-          // Una salida que siempre existe para quien no es titular (entrega
-          // 37): solo este teléfono, sin tocar el negocio.
-          if (guardada && permisos.saleDelNegocio) const SalirDeMocaAqui(),
           // Sin la cuenta unida, siempre hay salida desde la app (entrega
           // 45.1): entrar con el número, o empezar como recién instalada.
-          if (!guardada && estadoCuenta != null) ...[
+          if (!guardada && estadoCuenta != null)
             const TarjetaEnlace(
               icono: Icons.phone_iphone_rounded,
               titulo: Textos.entrarConMiCelular,
               detalle: Textos.entrarConMiCelularDetalle,
               ruta: Rutas.cuenta,
             ),
-            const BorrarEsteTelefono(),
-          ],
         ]),
+        // Recomendar Moca, la web y la privacidad (entrega 95).
+        const MocaEnLaWeb(),
         // El estado del teléfono y «Pedir ayuda» (entrega 46).
         seccion(Textos.ayuda, [const AyudaDelTelefono()]),
+        // Borrar y salir, al final (entrega 101): estaban pegados al
+        // interruptor de la huella.
+        if (salidas.isNotEmpty) seccion(Textos.borrarYSalir, salidas),
         // Qué versión es, para reportar un problema (entrega 26.3).
         const VersionDeMoca(),
       ],

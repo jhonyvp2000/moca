@@ -10,6 +10,8 @@ import '../../comun/monto_text.dart';
 import '../../comun/seccion_titulo.dart';
 import '../../comun/tarjeta.dart';
 import '../../comun/videos.dart';
+import '../../dominio/cuenta_real.dart';
+import '../preguntale/barra_preguntale.dart';
 import '../../dominio/equipo.dart';
 import '../../dominio/modelos.dart';
 import '../../dominio/moca.dart';
@@ -81,7 +83,6 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
         ? ref.watch(resumenSemanaProvider).value
         : null;
     final avisos = ref.watch(avisosProvider).value;
-
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -134,6 +135,14 @@ class _EstadoMoca extends ConsumerState<PantallaMoca> {
           const TarjetaGuardarAvance(),
           // El consentimiento de quien ya tenía cuenta (entrega 83).
           const TarjetaConsentimiento(),
+          // «Pregúntale a Moca» también aquí (entrega 100): la pestaña se
+          // llama Asistente. Solo el dueño con cuenta.
+          if (permisos.rol == Rol.dueno &&
+              ref.watch(situacionCuentaProvider).value?.estado ==
+                  EstadoCuenta.guardada) ...[
+            const BarraPreguntale(),
+            const SizedBox(height: Medidas.separacionTarjetas),
+          ],
           // La prueba o el pago, y la pregunta del día 10 (entrega 25).
           const TarjetaCobro(),
           const PreguntaDelPrecio(),

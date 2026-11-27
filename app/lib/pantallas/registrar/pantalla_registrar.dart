@@ -22,15 +22,21 @@ Future<void> mostrarHojaRegistrar(BuildContext context) async {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (hoja) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (hoja, desplazamiento) => ContenidoRegistrar(
-        controlador: desplazamiento,
-        alElegir: (ruta) => Navigator.of(hoja).pop(ruta),
-        alCancelar: () => Navigator.of(hoja).pop(),
+    // La hoja termina encima de la barra de navegación del teléfono
+    // (entrega 100): «Cancelar» quedaba debajo, y el relleno al final del
+    // contenido no bastaba porque había que desplazarse para verlo.
+    builder: (hoja) => SafeArea(
+      top: false,
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (hoja, desplazamiento) => ContenidoRegistrar(
+          controlador: desplazamiento,
+          alElegir: (ruta) => Navigator.of(hoja).pop(ruta),
+          alCancelar: () => Navigator.of(hoja).pop(),
+        ),
       ),
     ),
   );
@@ -110,7 +116,7 @@ class ContenidoRegistrar extends ConsumerWidget {
         Medidas.margenLateral,
         Medidas.e2,
         Medidas.margenLateral,
-        Medidas.e6,
+        Medidas.e4,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

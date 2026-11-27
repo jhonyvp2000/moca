@@ -142,6 +142,8 @@ Uint8List armarExcelDelInforme(
       [],
       [t(Textos.notaCajaExcel)],
       [t(Textos.aclaracionPdf)],
+      [],
+      [t(Textos.pieDelPdf)],
     ],
   );
 

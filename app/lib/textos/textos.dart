@@ -95,7 +95,8 @@ abstract final class Textos {
   static const usasOtroBanco = '¿Usas otro banco además del BCP?';
   static const nombreDelBanco = 'Escribe el nombre del banco o la caja';
   static const billeteraEmpiezaEnCero =
-      'Empieza en S/\u00A00 desde hoy. Las cuentas no se borran.';
+      'La cuenta que agregues empieza en S/\u00A00 desde hoy. Las cuentas no '
+      'se borran.';
   static const agregar = 'Agregar';
   static String billeteraAgregada(String nombre) => 'Listo, agregaste $nombre.';
 
@@ -811,6 +812,12 @@ abstract final class Textos {
   static const deQue = '¿De qué?';
   static const nota = 'Nota (opcional)';
   static const notaEjemplo = 'Por ejemplo: luz de octubre';
+  static const notaEjemploIngreso = 'Por ejemplo: una caja de gaseosas';
+  // Entrega 100: un fiado anotado se cobra en «Lo que te deben».
+  static const cobroDeFiadoAviso =
+      'Si ese fiado ya lo anotaste, cóbralo en «Lo que te deben» para que la '
+      'deuda se cierre. Aquí entra como plata nueva.';
+  static const irALoQueTeDeben = 'Ir a Lo que te deben';
   static const quedariaNegativoTitulo = '¿Lo guardo igual?';
   static String quedariaNegativo(String cuenta, String monto) =>
       'Con esto, en ${cuenta.toLowerCase()} te quedaría $monto.';
@@ -940,6 +947,8 @@ abstract final class Textos {
   static const numeroDeDocumento = 'Número de documento';
   static const numeroDocumentoEjemplo = 'Ej.: 0045J';
   static const institucion = 'Institución';
+  static const clienteOpcional = 'Cliente';
+  static const proveedorOpcional = 'Proveedor';
   static const institucionEjemplo = 'Ej.: Comercial Tarapoto';
   static String institucionAyuda(TipoMovimiento tipo) =>
       tipo == TipoMovimiento.ingreso
@@ -1215,7 +1224,15 @@ abstract final class Textos {
   static const arqueoPuntoDePartidaDetalle =
       'Escribe cuánto tienes hoy en cada sitio. Lo que cuentes será tu punto '
       'de partida.';
-  static const tuPuntoDePartida = 'Tu punto de partida';
+  // Entrega 96: las cuentas sin saldo inicial vienen en cero.
+  static const tuPuntoDePartidaConCero =
+      'Tu punto de partida. Si tienes plata aquí, escribe cuánto.';
+  static String faltaContar(String cuenta) =>
+      'Falta escribir cuánto hay en $cuenta';
+  static String faltaPorQue(String cuenta, {required bool sobra}) =>
+      'Falta responder por qué ${sobra ? 'sobra' : 'falta'} en $cuenta';
+  static String faltaTipoDeGasto(String cuenta) =>
+      'Falta elegir el tipo de gasto en $cuenta';
   static const escribeCuantoHay = 'Escribe cuánto hay';
   static const cuadra = 'Cuadra';
   static String faltan(String monto) => 'Faltan $monto';
@@ -1295,6 +1312,107 @@ abstract final class Textos {
   static const hastaHoy = 'Hasta hoy';
 
   // Resumen del año (entrega 40)
+  // Día y los filtros de Informes (entrega 97).
+  static const verDia = 'Día';
+  static const filtroVenta = 'Venta';
+  static const filtroCompra = 'Compra';
+  static const filtroDebo = 'Debes';
+  static const filtroMeDeben = 'Te deben';
+
+  /// «Hoy, 24 nov.», «Ayer, 23 nov.» o «Viernes 20 nov.»: entre las flechas.
+  static String nombreDelDia(DateTime dia, DateTime hoy) {
+    final h = DateTime(hoy.year, hoy.month, hoy.day);
+    final d = DateTime(dia.year, dia.month, dia.day);
+    final corto = '${d.day} ${_mes(d).substring(0, 3)}.';
+    if (d == h) return 'Hoy, $corto';
+    if (d == DateTime(h.year, h.month, h.day - 1)) return 'Ayer, $corto';
+    final largo = formatearFechaLarga(d);
+    return '${largo[0].toUpperCase()}${largo.substring(1, largo.indexOf(' '))} '
+        '$corto';
+  }
+
+  /// «Martes 24 de noviembre»: debajo de los filtros.
+  static String fechaDelDia(DateTime dia) {
+    final largo = formatearFechaLarga(dia);
+    return '${largo[0].toUpperCase()}${largo.substring(1)}';
+  }
+
+  /// El periodo de una lista de registros (entrega 97): un día, o «Del 13
+  /// de noviembre al 24 de noviembre».
+  static String periodoDelRango(DateTime desde, DateTime hasta) {
+    final ultimo = hasta.subtract(const Duration(days: 1));
+    if (ultimo.year == desde.year &&
+        ultimo.month == desde.month &&
+        ultimo.day == desde.day) {
+      return fechaDelDia(desde);
+    }
+    return 'Del ${formatearFechaLarga(desde).split(' ').skip(1).join(' ')} '
+        'al ${formatearFechaLarga(ultimo).split(' ').skip(1).join(' ')}';
+  }
+
+  static String tuPlataDelDia({required bool hoy, required int crecio}) {
+    final cuando = hoy ? 'Hoy' : 'Ese día';
+    return crecio > 0
+        ? '$cuando tu plata creció'
+        : crecio < 0
+        ? '$cuando tu plata bajó'
+        : '$cuando tu plata quedó igual';
+  }
+
+  static const diaSinRegistros = 'Este día no hay nada anotado.';
+  static const vendiste = 'Vendiste';
+  static const cobradoEnElMomento = 'Cobrado al momento';
+  static const compraste = 'Compraste';
+  static const pagadoEnElMomento = 'Pagado al momento';
+  static const alCredito = 'Al crédito';
+  static const porCategoria = 'Por categoría';
+  static const porCliente = 'Por cliente';
+  static const porProveedor = 'Por proveedor';
+  static const ventasSinClienteNota = 'Las ventas sin cliente no salen aquí.';
+  static const comprasSinProveedorNota =
+      'Las compras sin proveedor no salen aquí.';
+  static String sinVentasEnElPeriodo(String cuando) => 'No hay ventas $cuando.';
+  // «Debo» y «Me deben» (entrega 98).
+  /// La plata que entró no es lo vendido: lo fiado entra cuando lo pagan.
+  static String teEntroEnTotal(String entro, String deFiados) =>
+      'La plata que te entró fue $entro: lo cobrado al momento y $deFiados '
+      'de fiados que te pagaron. Lo fiado entra cuando te lo pagan.';
+  static const quedasteDebiendo = 'Quedaste debiendo';
+
+  /// «hoy», «ese día» o «en estos días», según lo que se mira (entrega 99).
+  static String enElPeriodo({required bool unDia, required bool esHoy}) => esHoy
+      ? 'hoy'
+      : unDia
+      ? 'ese día'
+      : 'en estos días';
+  static String quedasteDebiendoDetalle(String cuando) =>
+      'Lo que compraste al crédito $cuando.';
+  static const pagasteDeLoQueDebias = 'Pagaste de lo que debías';
+  static const pagasteDeLoQueDebiasDetalle =
+      'De compras de antes o de estos mismos días.';
+  static const fiaste = 'Fiaste';
+  static String fiasteDetalle(String cuando) =>
+      'Lo que vendiste al fiado $cuando.';
+  static const tePagaronDeFiados = 'Te pagaron de fiados';
+  static const tePagaronDeFiadosDetalle =
+      'De ventas de antes o de estos mismos días.';
+  static String hoyDebesEnTotal(String monto) => 'Hoy debes en total $monto';
+  static String hoyTeDebenEnTotal(String monto) =>
+      'Hoy te deben en total $monto';
+  static const sinNombreNota = 'Lo que no tiene nombre no sale en la lista.';
+  static String nadaAlCredito(String cuando) =>
+      'No quedaste debiendo nada $cuando.';
+  static String nadaPagadoDeDeudas(String cuando) =>
+      'No pagaste deudas $cuando.';
+  static String nadaFiado(String cuando) => 'No fiaste nada $cuando.';
+  static String nadaCobradoDeFiados(String cuando) =>
+      'No te pagaron fiados $cuando.';
+  static String sinDeudasNiPagos(String cuando) =>
+      'No quedaste debiendo ni pagaste deudas $cuando.';
+  static String sinFiadosNiCobros(String cuando) =>
+      'No fiaste ni te pagaron fiados $cuando.';
+  static String sinComprasEnElPeriodo(String cuando) =>
+      'No hay compras $cuando.';
   static const verMes = 'Mes';
   static const verAnio = 'Año';
   static const anioAnterior = 'Año anterior';
@@ -1554,7 +1672,10 @@ abstract final class Textos {
       'mismo.';
   static String informeDe(String mes, int anio) => 'Informe de $mes $anio';
   static String hechoEl(String fecha) => 'Hecho el $fecha';
-  static const pieDelPdf = 'Hecho con Moca con lo que anotaste en tu teléfono.';
+  // Con la página de Moca, para el contador o el banco (entrega 95).
+  static const webDeMoca = 'mocanegocios.com';
+  static const pieDelPdf =
+      'Hecho con Moca con lo que anotaste en tu teléfono · $webDeMoca';
 
   // S16 · Moca
   static String tuSemanaEn(int segundos) => 'Tu semana, en $segundos segundos';
@@ -2064,6 +2185,26 @@ abstract final class Textos {
 
   // «Ayuda» en Ajustes (entrega 46).
   static const ayuda = 'Ayuda';
+  // La sección «Moca» de Ajustes (entrega 95).
+  static const seccionMoca = 'Moca';
+  static const borrarYSalir = 'Borrar y salir';
+  // Cuánto lleva una deuda (entrega 102).
+  static String desdeHaceDias(int dias) => switch (dias) {
+    <= 0 => 'De hoy',
+    1 => 'Desde ayer',
+    >= 30 => 'Hace $dias días: más de un mes',
+    _ => 'Desde hace $dias días',
+  };
+  static const recomendarMoca = 'Recomendar Moca';
+  static const recomendarMocaDetalle = 'Cuéntale a otro dueño';
+  static String mensajeRecomendarMoca(String pagina) =>
+      'Uso Moca para llevar las cuentas de mi negocio: anoto en segundos y sé '
+      'cuánto tengo y quién me debe. Te la recomiendo: $pagina';
+  static const mocaEnLaWeb = 'Moca en la web';
+  static const mocaEnLaWebDetalle =
+      'Qué hace Moca, planes y preguntas frecuentes';
+  static const politicaDePrivacidadDetalle = 'Cómo cuidamos tus datos';
+  static const noSeAbrioLaPagina = 'No se pudo abrir la página.';
   static const estadoDeEsteTelefono = 'Estado de este teléfono';
   static const etiquetaCuentaAyuda = 'Cuenta';
   static const etiquetaNegocioAyuda = 'Negocio';

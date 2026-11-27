@@ -18,6 +18,7 @@ import '../../tema/colores.dart';
 import '../../tema/medidas.dart';
 import '../../tema/tipografia.dart';
 import '../../textos/textos.dart';
+import 'bloque_pendientes.dart';
 import 'desglose_cuentas.dart';
 import 'tarjeta_tienes_hoy.dart';
 
@@ -119,6 +120,8 @@ class PantallaPrimerDia extends StatelessWidget {
                 child: BarraPreguntale(),
               ),
             ),
+            // «Te deben» y «Debes», como en el Inicio (entrega 99).
+            const BloquePendientes(),
             // Qué hay en cada cuenta, como en el Inicio.
             if (resumen.saldosPorCuenta.isNotEmpty) ...[
               const SizedBox(height: Medidas.e5),
@@ -127,7 +130,6 @@ class PantallaPrimerDia extends StatelessWidget {
                 conVerTodas: true,
               ),
             ],
-            // «Te deben» y «Debes» viven en Informes (entrega 63).
             const SizedBox(height: Medidas.separacionTarjetas),
             // Moca no repite el +: la venta de hoy mientras falta y, ya
             // anotada, «Escuchar mi semana» (mejora 01).

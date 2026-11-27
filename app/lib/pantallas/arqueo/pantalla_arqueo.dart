@@ -57,9 +57,8 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
     setState(() {
       _cuentas = cuentas;
       for (final c in cuentas) {
-        final propuesto = c.propuestoSoles;
         _campos[c.cuenta] = TextEditingController(
-          text: propuesto == null ? '' : separarMiles(propuesto),
+          text: separarMiles(c.propuestoSoles),
         );
       }
     });
@@ -94,6 +93,29 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
         return motivo != MotivoArqueo.gastoOlvidado ||
             _categorias[c.cuenta] != null;
       });
+
+  /// Lo que falta para poder guardar, en palabras (entrega 96); nulo si nada.
+  String? _queFalta(List<CuentaArqueo> cuentas) {
+    for (final c in cuentas) {
+      if (_contado(c) == null) {
+        return Textos.faltaContar(Textos.nombreCuenta(c.cuenta));
+      }
+    }
+    for (final c in _conDiferencia(cuentas)) {
+      final nombre = Textos.nombreCuenta(c.cuenta);
+      final sobra = c.diferencia(_contado(c)!) > 0;
+      final motivo = _motivos[c.cuenta];
+      if (motivo == null ||
+          !motivosPara(c.diferencia(_contado(c)!)).contains(motivo)) {
+        return Textos.faltaPorQue(nombre, sobra: sobra);
+      }
+      if (motivo == MotivoArqueo.gastoOlvidado &&
+          _categorias[c.cuenta] == null) {
+        return Textos.faltaTipoDeGasto(nombre);
+      }
+    }
+    return null;
+  }
 
   Future<void> _guardar(List<CuentaArqueo> cuentas) async {
     if (!_completo(cuentas) || _guardando) return;
@@ -182,6 +204,15 @@ class _EstadoArqueo extends ConsumerState<PantallaArqueo> {
         ],
       ],
       acciones: [
+        if (_queFalta(cuentas) case final falta?)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Medidas.e2),
+            child: Text(
+              falta,
+              textAlign: TextAlign.center,
+              style: Tipografia.secundario,
+            ),
+          ),
         FilledButton(
           onPressed: _completo(cuentas) && !_guardando
               ? () => _guardar(cuentas)
@@ -214,8 +245,9 @@ class _FilaCuenta extends StatelessWidget {
 
     final Widget estado;
     if (cuenta.puntoDePartida) {
+      // Viene en cero (entrega 96): si hay plata, que la escriba.
       estado = const Text(
-        Textos.tuPuntoDePartida,
+        Textos.tuPuntoDePartidaConCero,
         style: Tipografia.secundario,
       );
     } else if (contado == null) {

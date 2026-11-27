@@ -35,6 +35,47 @@ class _Llavero implements Llavero {
 }
 
 /// Lo que calculan los repositorios del teléfono, en el formato del servidor.
+/// Las cifras de algunos periodos (entrega 97), para que el servidor
+/// (`periodo.ts`, «Pregúntale a Moca») diga lo mismo que Informes.
+final _periodos = [
+  (DateTime(2026, 10, 12), DateTime(2026, 10, 13)),
+  (DateTime(2026, 10, 5), DateTime(2026, 10, 12)),
+  (DateTime(2026, 10, 1), DateTime(2026, 10, 13)),
+  (DateTime(2026, 9, 1), DateTime(2026, 10, 1)),
+];
+
+String _dia(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
+
+Future<List<Map<String, Object?>>> _periodosLocales(
+  BaseLocal base,
+  DateTime ahora,
+) async {
+  final informe = RepositorioInformeLocal(base, ahora: () => ahora);
+  return [
+    for (final (desde, hasta) in _periodos)
+      if (await informe.calcularPeriodo(desde, hasta) case final c)
+        {
+          'desde': _dia(desde),
+          // El último día, incluido, como lo pide el servidor.
+          'hasta': _dia(hasta.subtract(const Duration(days: 1))),
+          'centimos': {
+            'vendiste': c.vendisteCentimos,
+            'alFiado': c.alFiadoCentimos,
+            'entro': c.entroCentimos,
+            'salio': c.salioCentimos,
+            'compraste': c.comprasteCentimos,
+            'alCredito': c.alCreditoCentimos,
+            'retiros': c.retirosCentimos,
+            'aportes': c.aportesCentimos,
+            'tePagaron': c.teCobraronCentimos,
+            'pagaste': c.pagasteDeudasCentimos,
+          },
+        },
+  ];
+}
+
 Future<Cifras> _cifrasLocales(BaseLocal base, DateTime ahora) async {
   DateTime reloj() => ahora;
   final inicio = await RepositorioMovimientosLocal(
@@ -148,6 +189,7 @@ void main() {
             'cifras': (await _cifrasLocales(base, ahora)).toJson(),
           },
       ],
+      'periodos': await _periodosLocales(base, cargada),
     };
     File(_archivo)
       ..createSync(recursive: true)
@@ -216,6 +258,12 @@ void main() {
         // Mismo formato de ida y vuelta.
         expect(Cifras.fromJson(esperadas).toJson(), esperadas);
       }
+      // Los periodos de Informes (entrega 97).
+      expect(
+        jsonDecode(jsonEncode(await _periodosLocales(base, ahora))),
+        archivo['periodos'],
+        reason: 'Cambió una regla de los periodos: rehaz $_archivo.',
+      );
     },
     skip: enLima ? false : 'Corre con TZ=America/Lima',
   );

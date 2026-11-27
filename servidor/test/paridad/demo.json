@@ -10160,5 +10160,71 @@
     ]
    }
   }
+ ],
+ "periodos": [
+  {
+   "desde": "2026-10-12",
+   "hasta": "2026-10-12",
+   "centimos": {
+    "vendiste": 0,
+    "alFiado": 0,
+    "entro": 0,
+    "salio": 0,
+    "compraste": 0,
+    "alCredito": 0,
+    "retiros": 0,
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
+   }
+  },
+  {
+   "desde": "2026-10-05",
+   "hasta": "2026-10-11",
+   "centimos": {
+    "vendiste": 448000,
+    "alFiado": 0,
+    "entro": 448000,
+    "salio": 184700,
+    "compraste": 258930,
+    "alCredito": 74230,
+    "retiros": 76000,
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
+   }
+  },
+  {
+   "desde": "2026-10-01",
+   "hasta": "2026-10-12",
+   "centimos": {
+    "vendiste": 740000,
+    "alFiado": 0,
+    "entro": 740000,
+    "salio": 350750,
+    "compraste": 424980,
+    "alCredito": 74230,
+    "retiros": 138000,
+    "aportes": 0,
+    "tePagaron": 0,
+    "pagaste": 0
+   }
+  },
+  {
+   "desde": "2026-09-01",
+   "hasta": "2026-09-30",
+   "centimos": {
+    "vendiste": 1747500,
+    "alFiado": 0,
+    "entro": 1747500,
+    "salio": 844130,
+    "compraste": 844130,
+    "alCredito": 14230,
+    "retiros": 288000,
+    "aportes": 50000,
+    "tePagaron": 0,
+    "pagaste": 14230
+   }
+  }
  ]
 }

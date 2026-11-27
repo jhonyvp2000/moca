@@ -70,6 +70,7 @@ class PantallaInicio extends ConsumerWidget {
           resumen: inicio,
           actualizado: actualizado,
           permisos: permisos,
+          alAnotarVenta: anotarVenta,
           tarjetaAvisos: arriba(permisos.recibeAvisos),
         ),
       );
